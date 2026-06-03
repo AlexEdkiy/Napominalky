@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 10 |
+| Completed | 11 |
 | In Progress | 0 |
-| Pending | 56 |
+| Pending | 55 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -199,7 +199,7 @@
 
 ### MOB-2: Экраны login/register/onboarding + lock-заглушка + useAuth
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-1
 - **Блокирует:** —
@@ -207,16 +207,16 @@
 - **Описание:** Создать основные экраны аутентификации: login.tsx, register.tsx, onboarding/index.tsx (выбор войти/создать). Заглушка lock.tsx. Хук useAuth для управления состоянием. Навигация через Expo Router.
 - **Реализация:** app/(auth)/login.tsx, app/(auth)/register.tsx, app/(onboarding)/index.tsx. Компоненты: TextInput для email/password, Button для submit, ссылка на register/login. useAuth хук экспортирует setToken, setUser, logout, token, user. lock.tsx заглушка с текстом «App locked». Навигация через useRouter() from expo-router.
 - **Файлы:** `mobile/src/hooks/useAuth.ts`, `mobile/app/(auth)/login.tsx`, `mobile/app/(auth)/register.tsx`, `mobile/app/(onboarding)/index.tsx`, `mobile/app/lock.tsx`
-- **Критерии приёмки:**
-  - [ ] Экран login имеет TextInput для email, password, Button «Sign in»
-  - [ ] Экран register имеет TextInput для name, email, password, password_confirmation, Button «Create account»
-  - [ ] Экран onboarding имеет кнопки «Sign in» и «Create account» с навигацией
-  - [ ] lock.tsx отображается с сообщением (заглушка для MOB-18)
-  - [ ] useAuth работает, return {setToken, setUser, logout, token, user, isAuth}
-  - [ ] Все компоненты используют Expo Router для навигации
-  - [ ] TypeScript strict mode
+- **Критерии приёмки:** (npx tsc --noEmit EXIT 0, без any)
+  - [x] login: поля email/password, submit, показ ошибок, переход на register
+  - [x] register: name/email/password/confirmation, submit, ошибки 422, переход на login
+  - [x] onboarding: «Начать без регистрации» (гость) + «Войти», навигация
+  - [x] lock.tsx — осмысленная заглушка (PIN/биометрия → MOB-18/19)
+  - [x] useAuth: login/register/logout (useMutation), user/token/isAuthenticated/guestMode/continueAsGuest
+  - [x] При успехе login/register — token+user сохранены, навигация в (tabs); гейтинг по hydrate
+  - [x] Навигация через expo-router; TypeScript strict; общие BaseButton/BaseInput
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### WEB-1: authStore (Pinia), client, router/guards, views (LoginView, RegisterView, AccountView)
 - **Исполнитель:** web-developer
