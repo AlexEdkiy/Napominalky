@@ -1,25 +1,35 @@
 import type { Router } from 'vue-router'
 
+import { useAuthStore } from '@/stores/authStore'
+
+const GUEST_ROUTES = new Set(['login', 'register'])
+
 /**
- * Guard-заглушка. Реализация — в WEB-1 (authStore + полная логика).
- * Блокирует маршруты requiresAuth / requiresAdmin.
+ * Подключает navigation guards:
+ * - requireAuth: маршруты с meta.requiresAuth недоступны без токена → /login.
+ * - requireAdmin: маршруты с meta.requiresAdmin недоступны не-админам → /lk.
+ * - requireGuest: аутентифицированный пользователь на /login|/register → /lk.
  */
 export function setupGuards(router: Router): void {
   router.beforeEach((to) => {
-    // TODO WEB-1: заменить на проверку authStore.isAuthenticated / isAdmin
-    const isAuthenticated = false
-    const isAdmin = false
+    const auth = useAuthStore()
 
-    if (to.meta.requiresAuth && !isAuthenticated) {
-      return { name: 'login' }
+    if (to.meta.requiresAuth && !auth.isAuthenticated) {
+      return { name: 'login', query: { redirect: to.fullPath } }
     }
 
-    if (to.meta.requiresAdmin && !isAdmin) {
+    if (to.meta.requiresAdmin && !auth.isAdmin) {
+      return { name: 'lk-dashboard' }
+    }
+
+    if (typeof to.name === 'string' && GUEST_ROUTES.has(to.name) && auth.isAuthenticated) {
       return { name: 'lk-dashboard' }
     }
 
     if (to.meta.title) {
       document.title = `${to.meta.title} — Reminders App`
     }
+
+    return true
   })
 }
