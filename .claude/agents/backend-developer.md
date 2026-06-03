@@ -14,7 +14,6 @@ disallowedTools:
   - WebSearch
   - WebFetch
   - NotebookEdit
-isolation: worktree
 ---
 
 # Backend Developer — Разработчик доменного слоя

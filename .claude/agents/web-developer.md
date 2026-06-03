@@ -14,7 +14,6 @@ disallowedTools:
   - WebSearch
   - WebFetch
   - NotebookEdit
-isolation: worktree
 ---
 
 # Web Developer — Разработчик веб-интерфейса

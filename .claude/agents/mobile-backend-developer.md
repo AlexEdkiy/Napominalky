@@ -14,7 +14,6 @@ disallowedTools:
   - WebSearch
   - WebFetch
   - NotebookEdit
-isolation: worktree
 ---
 
 # Mobile Backend Developer — Разработчик API мобильного приложения
