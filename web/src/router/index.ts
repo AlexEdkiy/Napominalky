@@ -77,6 +77,12 @@ const lkRoutes: RouteRecordRaw = {
       meta: { requiresAuth: true, title: 'Заметки' },
     },
     {
+      path: 'notes/new',
+      name: 'lk-note-create',
+      component: () => import('@/pages/lk/notes/NoteEditView.vue'),
+      meta: { requiresAuth: true, title: 'Новая заметка' },
+    },
+    {
       path: 'notes/:uuid',
       name: 'lk-note-edit',
       component: () => import('@/pages/lk/notes/NoteEditView.vue'),
