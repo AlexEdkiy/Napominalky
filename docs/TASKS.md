@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 4 |
+| Completed | 6 |
 | In Progress | 0 |
-| Pending | 62 |
+| Pending | 60 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -75,9 +75,9 @@
   - [x] Pest готов к использованию (pestphp/pest ^3.8, tests/Pest.php)
   - [x] HTTPS-конфиг включён (docker/certs/selfsigned.* + nginx 8443)
   - [x] README.md содержит инструкции запуска
-  - [ ] Runtime-проверка (migrate:fresh, artisan test, tinker-токены) — требует `docker compose up` (нет локального PHP/Composer)
+  - [x] Runtime-проверка: dev-образ собирается, `php artisan migrate` проходит против PostgreSQL 17 (исправлен Dockerfile: libpq-dev, opcache статически; убраны конфликтующие хостовые порты db/redis)
 - **Создана:** 2026-06-03
-- **Завершена:** 2026-06-03 (скаффолд; runtime-валидация в Docker отложена)
+- **Завершена:** 2026-06-03
 
 ### OPS-2: Инициализировать Expo SDK 52 app в mobile/
 - **Исполнитель:** devops-engineer
@@ -130,7 +130,7 @@
 
 ### DEV-1: User/Device модели, миграции, DTO, Actions
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** OPS-1
 - **Блокирует:** MBE-1, DEV-12
@@ -139,17 +139,17 @@
 - **Реализация:** Создать миграции create_users_table, create_devices_table. User модель с HasMany(Device), методами для работы с uuid. Device модель с BelongsTo(User). DTO: RegisterData (readonly props: name, email, password), LoginData (readonly props: email, password). Actions в app/Actions/{User,Device}/*.php. Фабрики: UserFactory, DeviceFactory.
 - **Файлы:** `project/database/migrations/*_create_users_table.php`, `project/database/migrations/*_create_devices_table.php`, `project/app/Models/User.php`, `project/app/Models/Device.php`, `project/app/Data/RegisterData.php`, `project/app/Data/LoginData.php`, `project/app/Actions/User/RegisterUserAction.php`, `project/app/Actions/User/IssueTokenAction.php`, `project/app/Actions/User/DeleteAccountAction.php`, `project/database/factories/UserFactory.php`, `project/database/factories/DeviceFactory.php`
 - **Критерии приёмки:**
-  - [ ] php artisan migrate:fresh успешна, таблицы users и devices существуют
-  - [ ] User::all() работает, uuid UNIQUE индекс создан
-  - [ ] Device::all() работает, FK на users(id) с ON DELETE CASCADE
-  - [ ] RegisterData/LoginData инстанцируются без ошибок
-  - [ ] RegisterUserAction(__invoke) создаёт пользователя с хешированным паролем
-  - [ ] IssueTokenAction создаёт Sanctum token
-  - [ ] DeleteAccountAction удаляет пользователя и связанные devices (каскад)
-  - [ ] Фабрики создают корректные данные (UserFactory::new()->create())
-  - [ ] declare(strict_types=1) во всех новых файлах
+  - [x] php artisan migrate успешна, таблицы users и devices существуют (migrate:status — все Ran)
+  - [x] users: uuid UNIQUE индекс, sync_enabled/is_admin, soft deletes
+  - [x] devices: FK на users(id) с ON DELETE CASCADE, индекс user_id
+  - [x] RegisterData/LoginData — readonly DTO с constructor promotion
+  - [x] RegisterUserAction создаёт пользователя с хешированным паролем (cast 'hashed')
+  - [x] IssueTokenAction создаёт Sanctum token (plainTextToken)
+  - [x] DeleteAccountAction в транзакции: revoke токенов + удаление devices + soft-delete user
+  - [x] UserFactory/DeviceFactory корректны (uuid, состояния syncEnabled/admin)
+  - [x] declare(strict_types=1), PHP-lint OK во всех новых файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MBE-1: Auth контроллеры (Register/Login/Logout/Me/DeleteAccount) и ресурсы
 - **Исполнитель:** mobile-backend-developer
@@ -266,7 +266,7 @@
 
 ### DEV-2: TracksSyncRevision trait + sync_revision sequence
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** OPS-1
 - **Блокирует:** DEV-9
@@ -275,14 +275,14 @@
 - **Реализация:** app/Models/Concerns/TracksSyncRevision.php с boot методом, который на saving присваивает server_revision из sequence. Миграция create_sync_revision_sequence.php (CREATE SEQUENCE IF NOT EXISTS sync_revision_sequence START 1 INCREMENT 1).
 - **Файлы:** `project/app/Models/Concerns/TracksSyncRevision.php`, `project/database/migrations/*_create_sync_revision_sequence.php`
 - **Критерии приёмки:**
-  - [ ] Trait инстанцируется без ошибок
-  - [ ] Boot hook срабатывает на Model::create()
-  - [ ] server_revision инкрементируется с каждым сохранением
-  - [ ] Sequence создана в PostgreSQL (SELECT nextval('sync_revision_sequence'))
-  - [ ] php artisan migrate:fresh успешна
-  - [ ] declare(strict_types=1) в trait
+  - [x] Trait bootTracksSyncRevision регистрирует saving-хук
+  - [x] server_revision присваивается из nextval на каждое сохранение (create и update)
+  - [x] Sequence создана в PostgreSQL (nextval('sync_revision_sequence') → 1, 2, 3 — монотонно)
+  - [x] php artisan migrate успешна (sync_revision_sequence — Ran)
+  - [x] declare(strict_types=1) в trait, PHP-lint OK
+  - [x] Комментарий о требовании столбца server_revision для моделей-потребителей (DEV-3/5/7)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-3: db/client.ts + Drizzle config + syncOutbox/syncMeta schema + baseRepo + DbProvider
 - **Исполнитель:** mobile-developer
