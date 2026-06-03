@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 11 |
+| Completed | 12 |
 | In Progress | 0 |
-| Pending | 55 |
+| Pending | 54 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -286,7 +286,7 @@
 
 ### MOB-3: db/client.ts + Drizzle config + syncOutbox/syncMeta schema + baseRepo + DbProvider
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** MOB-1
 - **Блокирует:** MOB-5, MOB-7, MOB-9, MOB-13
@@ -294,17 +294,16 @@
 - **Описание:** Создать базовую инфраструктуру SQLite для мобильного приложения. Инициализировать expo-sqlite БД, Drizzle ORM конфиг, схемы для служебных таблиц (sync_outbox, sync_meta), базовый репозиторий с CRUD + запись в outbox, DbProvider для передачи db в контекст.
 - **Реализация:** src/db/client.ts (openDatabaseAsync + Drizzle client), drizzle.config.ts (SQLite конфиг), src/db/schema/{index.ts, syncOutbox.ts, syncMeta.ts}, src/db/repositories/baseRepo.ts (abstract class с CRUD методами и outbox записью), src/providers/DbProvider.tsx (React context).
 - **Файлы:** `mobile/src/db/client.ts`, `mobile/drizzle.config.ts`, `mobile/src/db/schema/index.ts`, `mobile/src/db/schema/syncOutbox.ts`, `mobile/src/db/schema/syncMeta.ts`, `mobile/src/db/repositories/baseRepo.ts`, `mobile/src/providers/DbProvider.tsx`, `mobile/src/db/migrations/` (папка для drizzle миграций)
-- **Критерии приёмки:**
-  - [ ] openDatabaseAsync() возвращает db объект без ошибок
-  - [ ] Drizzle client инстанцируется (import { drizzle } from 'drizzle-orm/expo-sqlite')
-  - [ ] sync_outbox и sync_meta таблицы определены в schema
-  - [ ] baseRepo.insert(), baseRepo.update(), baseRepo.delete(), baseRepo.findById() работают
-  - [ ] insert() автоматически пишет в sync_outbox {entity_type, uuid, operation, payload, updated_at}
-  - [ ] DbProvider экспортирует useDb хук
-  - [ ] drizzle-kit migrations generate работает (npx drizzle-kit generate)
-  - [ ] TypeScript strict mode
+- **Критерии приёмки:** (tsc PASS; drizzle-kit generate PASS; npm test PASS)
+  - [x] db client: openDatabaseSync('napominalki.db') + drizzle, типизирован
+  - [x] sync_outbox и sync_meta определены в schema, index.ts реэкспортирует
+  - [x] BaseRepository: insert/update/softDelete/findById; uuid+updated_at на клиенте (expo-crypto)
+  - [x] мутации пишут в sync_outbox (create/update/delete), softDelete = tombstone deleted_at
+  - [x] DbProvider + useDb (применение миграций через useMigrations)
+  - [x] npx drizzle-kit generate создаёт миграцию (src/db/migrations)
+  - [x] Jest настроен (jest-expo), npm test зелёный; TypeScript strict, без any
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-4: netStatus (NetInfo) + интеграция baseRepo→outbox
 - **Исполнитель:** mobile-developer
