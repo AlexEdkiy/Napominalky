@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 7 |
+| Completed | 8 |
 | In Progress | 0 |
-| Pending | 59 |
+| Pending | 58 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -171,7 +171,7 @@
   - [x] DELETE /api/v1/account → 204, auth:sanctum, soft-delete user
   - [x] UserResource: uuid/name/email/is_admin/sync_enabled/created_at (без password/id)
   - [x] declare(strict_types=1), один контроллер = одно __invoke, валидация через Form Request
-  - [ ] Формальные Pest-тесты — TEST-1 (требует настройки тестовой БД на PostgreSQL)
+  - [x] Формальные Pest-тесты — TEST-1 (24 passed против PostgreSQL)
 - **Создана:** 2026-06-03
 - **Завершена:** 2026-06-03
 
@@ -241,7 +241,7 @@
 
 ### TEST-1: Integration auth (register/login/logout/me/delete-account), Policy delete account
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-1
 - **Блокирует:** —
@@ -249,16 +249,16 @@
 - **Описание:** Написать integration тесты для всех auth endpoints (регистрация, логин, логаут, получение профиля, удаление аккаунта) через HTTP запросы. Проверить валидацию, авторизацию, каскадное удаление. Тесты Policy для DeleteAccountPolicy.
 - **Реализация:** tests/Feature/Auth/{RegisterTest,LoginTest,LogoutTest,MeTest,DeleteAccountTest}.php. Каждый тест проверяет happy path, 422 валидация, 401 без токена, 404 неизвестный endpoint. DeleteAccountTest проверяет каскадное удаление User→Devices.
 - **Файлы:** `project/tests/Feature/Auth/RegisterTest.php`, `project/tests/Feature/Auth/LoginTest.php`, `project/tests/Feature/Auth/LogoutTest.php`, `project/tests/Feature/Auth/MeTest.php`, `project/tests/Feature/Auth/DeleteAccountTest.php`
-- **Критерии приёмки:**
-  - [ ] php artisan test все 5 тестов проходят
-  - [ ] Регистрация: 201 с token, 422 с дублирующимся email
-  - [ ] Логин: 200 с token, 422 с неверным паролем
-  - [ ] Логаут: 204, требует auth:sanctum
-  - [ ] GetMe: 200 с user, требует auth:sanctum
-  - [ ] DeleteAccount: 204, удаляет user и devices, требует auth:sanctum
-  - [ ] Использовать RefreshDatabase trait для изоляции
+- **Критерии приёмки:** (php artisan test против PostgreSQL: 24 passed, 97 assertions)
+  - [x] php artisan test — все тесты Auth зелёные (24 passed)
+  - [x] Регистрация: 201 с token, 422 с дублирующимся email/невалидными
+  - [x] Логин: 200 с token, 422 с неверным паролем, создание Device, throttle 429
+  - [x] Логаут: 204, 401 без токена, токен отозван
+  - [x] GetMe: 200 с user, 401 без токена
+  - [x] DeleteAccount: 204, soft-delete user + каскад devices, 401 без токена
+  - [x] RefreshDatabase для изоляции; тестовая БД на PostgreSQL (phpunit.xml + init.sql)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
