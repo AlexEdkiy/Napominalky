@@ -40,10 +40,16 @@ docker compose up -d
 ```
 
 Services started:
+
 - `app` — PHP 8.5-FPM (code at http/https via nginx)
 - `nginx` — HTTP :8080, HTTPS :8443
-- `db` — PostgreSQL 17 on port 5432
-- `redis` — Redis 7 on port 6379
+- `db` — PostgreSQL 17 (internal compose network only; no host port published)
+- `redis` — Redis 7 (internal compose network only; no host port published)
+
+> **Note:** `db` and `redis` do not bind to the host to avoid conflicts with locally
+> installed PostgreSQL/Redis. If you need direct host access, temporarily add
+> `ports: ["5433:5432"]` to `db` and `ports: ["6380:6379"]` to `redis` in
+> `docker-compose.yml`.
 
 ### 4. Run migrations
 
@@ -56,7 +62,7 @@ The `docker/postgres/init.sql` is executed automatically on first DB creation
 
 ### 5. Verify
 
-Open https://localhost:8443/up (health check) — browser will warn about self-signed cert, accept it for local dev.
+Open <https://localhost:8443/up> (health check) — browser will warn about self-signed cert, accept it for local dev.
 
 HTTP redirects to HTTPS automatically.
 
@@ -129,7 +135,7 @@ Production image (`target: production` in Dockerfile) runs `config:cache`, `rout
 
 ## Project structure
 
-```
+```text
 app/
   Actions/        # Invokable action classes (one action = one operation)
   Data/           # DTO classes (readonly, spatie/laravel-data)

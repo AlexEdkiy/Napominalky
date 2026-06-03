@@ -5,25 +5,25 @@
 # ---------------------------------------------------------------------------
 FROM php:8.5-fpm-alpine AS base
 
+# libpq-dev replaces the non-existent postgresql-dev package in Alpine 3.21+
+# opcache is already compiled into php:8.5-fpm-alpine — no need to install it
 RUN apk add --no-cache \
-        postgresql-dev \
-        libpq \
+        libpq-dev \
         libzip-dev \
         oniguruma-dev \
-        && docker-php-ext-install \
-            pdo_pgsql \
-            pcntl \
-            bcmath \
-            zip \
-            opcache \
-        && rm -rf /tmp/*
+    && docker-php-ext-install \
+        pdo_pgsql \
+        pcntl \
+        bcmath \
+        zip \
+    && rm -rf /tmp/*
 
-# Redis extension
-RUN apk add --no-cache $PHPIZE_DEPS \
+# Redis PECL extension — build tools are installed and removed in one layer
+RUN apk add --no-cache --virtual .phpize-build $PHPIZE_DEPS \
     && pecl install redis \
     && docker-php-ext-enable redis \
-    && apk del $PHPIZE_DEPS \
-    && rm -rf /tmp/*
+    && apk del .phpize-build \
+    && rm -rf /tmp/* /root/.pearrc
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
