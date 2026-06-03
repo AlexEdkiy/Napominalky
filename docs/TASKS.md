@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 15 |
+| Completed | 19 |
 | In Progress | 0 |
-| Pending | 51 |
+| Pending | 47 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -412,7 +412,7 @@
 
 ### MOB-5: Drizzle schema notes + notesRepo
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-3, MBE-2
 - **Блокирует:** MOB-6
@@ -421,19 +421,18 @@
 - **Реализация:** src/db/schema/notes.ts (table definition с индексами), src/db/repositories/notesRepo.ts (extends baseRepo, методы: createNote, updateNote, deleteNote, getNoteByUuid, listNotes, searchNotes, togglePin, toggleArchive).
 - **Файлы:** `mobile/src/db/schema/notes.ts`, `mobile/src/db/repositories/notesRepo.ts`
 - **Критерии приёмки:**
-  - [ ] Drizzle schema notes с полями совпадает с backend
-  - [ ] notesRepo.createNote() пишет в sqlite и outbox
-  - [ ] notesRepo.listNotes() возвращает массив
-  - [ ] notesRepo.searchNotes(query) ищет по title/body (LIKE)
-  - [ ] notesRepo.getNoteByUuid(uuid) возвращает заметку или null
-  - [ ] Все операции проверяются через baseRepo
-  - [ ] TypeScript strict mode
+  - [x] Drizzle schema notes (зеркало backend + sync-поля, uuid PK, booleans 0/1, tombstone)
+  - [x] notesRepo.createNote() пишет в sqlite и outbox (через baseRepo)
+  - [x] listNotes() (фильтр archived, исключает удалённые), searchNotes() (LIKE title/body)
+  - [x] getNoteByUuid() → заметка или null (исключает tombstone)
+  - [x] togglePin/toggleArchive/deleteNote(tombstone) через baseRepo
+  - [x] drizzle-kit generate создал миграцию; tsc OK, jest 4 passed; без any
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-6: useNotes + экраны (Главная/new/[uuid]) + NoteCard/NoteForm
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-5
 - **Блокирует:** —
@@ -442,20 +441,18 @@
 - **Реализация:** src/hooks/useNotes.ts (useQuery для listNotes, useMutation для create/update/delete), src/components/notes/{NoteCard.tsx, NoteForm.tsx}, app/(tabs)/index.tsx, app/notes/new.tsx, app/notes/[uuid].tsx. NoteCard показывает title, body snippet, is_pinned indicator. NoteForm имеет TextInput для title, body (autosave через debounce).
 - **Файлы:** `mobile/src/hooks/useNotes.ts`, `mobile/src/components/notes/NoteCard.tsx`, `mobile/src/components/notes/NoteForm.tsx`, `mobile/app/(tabs)/index.tsx`, `mobile/app/notes/new.tsx`, `mobile/app/notes/[uuid].tsx`
 - **Критерии приёмки:**
-  - [ ] useNotes() возвращает {notes, isLoading, createNote, updateNote, deleteNote}
-  - [ ] (tabs)/index.tsx показывает FlatList с notes
-  - [ ] notes/new.tsx имеет форму для создания
-  - [ ] notes/[uuid].tsx загружает и показывает заметку для редактирования
-  - [ ] NoteCard показывает title и snippet body
-  - [ ] NoteForm имеет autosave (debounce 2s) на изменение
-  - [ ] Удаление показывает AlertDialog перед удалением
-  - [ ] TypeScript strict mode
+  - [x] useNotes — TanStack Query поверх notesRepo (list/detail + мутации с инвалидацией)
+  - [x] (tabs)/index.tsx: FlatList (keyExtractor=uuid), поиск, FAB, пустое состояние
+  - [x] notes/new.tsx (создание) и notes/[uuid].tsx (загрузка/редактирование)
+  - [x] NoteCard (title+snippet+pin); NoteForm с автосохранением (debounce 800мс, FR-7)
+  - [x] Удаление через Alert-подтверждение (FR-8)
+  - [x] _layout обёрнут в DbProvider+QueryClientProvider; tsc OK, jest зелёный; без any
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### WEB-3: notesApi + useNotes + NotesListView/NoteEditView + NoteCard
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-2, WEB-1
 - **Блокирует:** —
@@ -464,18 +461,18 @@
 - **Реализация:** src/api/notesApi.ts (fetch функции с axios), src/composables/useNotes.ts (состояние заметок), src/pages/lk/notes/NotesListView.vue (таблица/список), src/pages/lk/notes/NoteEditView.vue (форма редактирования), src/components/notes/NoteCard.vue (компонент карточки).
 - **Файлы:** `web/src/api/notesApi.ts`, `web/src/composables/useNotes.ts`, `web/src/pages/lk/notes/NotesListView.vue`, `web/src/pages/lk/notes/NoteEditView.vue`, `web/src/components/notes/NoteCard.vue`, `web/src/types/note.ts`
 - **Критерии приёмки:**
-  - [ ] notesApi экспортирует fetchNotes, createNote, updateNote, deleteNote
-  - [ ] useNotes() возвращает {notes, isLoading, createNote, updateNote, deleteNote}
-  - [ ] NotesListView показывает таблицу/список заметок
-  - [ ] NoteEditView имеет форму для редактирования с сохранением
-  - [ ] NoteCard компонент показывает preview
-  - [ ] TypeScript strict mode, компоненты используют script setup lang="ts"
+  - [x] notesApi: fetchNotes/fetchNote/createNote/updateNote/deleteNote/togglePin/toggleArchive
+  - [x] useNotes (composable на ref): notes/isLoading + load/create/update/remove/pin/archive
+  - [x] NotesListView: список через NoteCard, поиск, фильтр архива, состояния
+  - [x] NoteEditView: форма create/edit + сохранение + удаление с подтверждением
+  - [x] NoteCard: превью (title, snippet, pin/archive)
+  - [x] script setup lang="ts", strict, snake_case; vue-tsc OK, Vitest 17 passed
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-3: NotePolicy (owner/foreign 403), Actions unit, API integration (CRUD+pin+archive+search)
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-2
 - **Блокирует:** —
@@ -484,15 +481,14 @@
 - **Реализация:** tests/Unit/Models/NotePolicyTest.php, tests/Feature/Notes/{CreateTest, UpdateTest, DeleteTest, PinTest, ArchiveTest, SearchTest}.php.
 - **Файлы:** `project/tests/Unit/Models/NotePolicyTest.php`, `project/tests/Feature/Notes/CreateTest.php`, `project/tests/Feature/Notes/UpdateTest.php`, `project/tests/Feature/Notes/DeleteTest.php`, `project/tests/Feature/Notes/PinTest.php`, `project/tests/Feature/Notes/ArchiveTest.php`, `project/tests/Feature/Notes/SearchTest.php`
 - **Критерии приёмки:**
-  - [ ] php artisan test все тесты проходят
-  - [ ] NotePolicy: owner 200, другой 403
-  - [ ] CreateNoteAction создаёт с uuid и server_revision
-  - [ ] SearchTest ищет по title (LIKE)
-  - [ ] ArchiveTest: toggle is_archived
-  - [ ] PinTest: toggle is_pinned
-  - [ ] SoftDelete: deleted_at заполняется
+  - [x] php artisan test — 53 passed, 206 assertions (вкл. 22 Auth из TEST-1)
+  - [x] NotePolicy: owner allow, чужой 403
+  - [x] Note Actions unit (Create/Update/TogglePin/ToggleArchive/Delete)
+  - [x] SearchTest по title/body (ts_search); Pin/Archive toggle; soft delete (deleted_at)
+  - [x] Create: 201, client uuid, 422 (unique/required), 401; Update/Delete 403/404
+  - [x] **Выявлен реальный баг client-uuid (статический listener) → устранён в [MBE-2] fix**
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
