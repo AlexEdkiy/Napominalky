@@ -9,6 +9,11 @@ use App\Models\User;
 
 final class NotePolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
     public function view(User $user, Note $note): bool
     {
         return $this->owns($user, $note);

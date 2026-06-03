@@ -7,6 +7,13 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\MeController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Notes\ArchiveController as NoteArchiveController;
+use App\Http\Controllers\Notes\DestroyController as NoteDestroyController;
+use App\Http\Controllers\Notes\IndexController as NoteIndexController;
+use App\Http\Controllers\Notes\PinController as NotePinController;
+use App\Http\Controllers\Notes\ShowController as NoteShowController;
+use App\Http\Controllers\Notes\StoreController as NoteStoreController;
+use App\Http\Controllers\Notes\UpdateController as NoteUpdateController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,15 +67,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         // Account deletion (FR-42)
         Route::delete('account', DeleteAccountController::class)->name('account.destroy');
 
-        // Notes (FR-5..FR-11)
+        // Notes (FR-5..FR-11) — route model binding {note} по uuid (getRouteKeyName)
         Route::prefix('notes')->name('notes.')->group(function (): void {
-            // GET    /api/v1/notes               → App\Http\Controllers\Notes\IndexController
-            // POST   /api/v1/notes               → App\Http\Controllers\Notes\StoreController
-            // GET    /api/v1/notes/{uuid}         → App\Http\Controllers\Notes\ShowController
-            // PUT    /api/v1/notes/{uuid}         → App\Http\Controllers\Notes\UpdateController
-            // DELETE /api/v1/notes/{uuid}         → App\Http\Controllers\Notes\DestroyController
-            // POST   /api/v1/notes/{uuid}/pin     → App\Http\Controllers\Notes\PinController
-            // POST   /api/v1/notes/{uuid}/archive → App\Http\Controllers\Notes\ArchiveController
+            Route::get('/', NoteIndexController::class)->name('index');
+            Route::post('/', NoteStoreController::class)->name('store');
+            Route::get('{note}', NoteShowController::class)->name('show');
+            Route::put('{note}', NoteUpdateController::class)->name('update');
+            Route::delete('{note}', NoteDestroyController::class)->name('destroy');
+            Route::post('{note}/pin', NotePinController::class)->name('pin');
+            Route::post('{note}/archive', NoteArchiveController::class)->name('archive');
         });
 
         // Shopping Lists (FR-12..FR-18)
