@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 14 |
+| Completed | 15 |
 | In Progress | 0 |
-| Pending | 52 |
+| Pending | 51 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -390,7 +390,7 @@
 
 ### MBE-2: Note контроллеры (Index/Store/Show/Update/Destroy/Pin/Archive) + requests + NoteResource + routes
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-4
 - **Блокирует:** MOB-5, WEB-3, TEST-3
@@ -399,18 +399,16 @@
 - **Реализация:** Notes контроллеры в app/Http/Controllers/Notes/, requests в app/Http/Requests/Note/, NoteResource. Маршруты: GET /notes (Index), POST /notes (Store), GET /notes/{uuid} (Show), PUT /notes/{uuid} (Update), DELETE /notes/{uuid} (Destroy), POST /notes/{uuid}/pin (Pin), POST /notes/{uuid}/archive (Archive).
 - **Файлы:** `project/app/Http/Controllers/Notes/IndexController.php`, `project/app/Http/Controllers/Notes/StoreController.php`, `project/app/Http/Controllers/Notes/ShowController.php`, `project/app/Http/Controllers/Notes/UpdateController.php`, `project/app/Http/Controllers/Notes/DestroyController.php`, `project/app/Http/Controllers/Notes/PinController.php`, `project/app/Http/Controllers/Notes/ArchiveController.php`, `project/app/Http/Requests/Note/StoreNoteRequest.php`, `project/app/Http/Requests/Note/UpdateNoteRequest.php`, `project/app/Http/Requests/Note/IndexNoteRequest.php`, `project/app/Http/Resources/NoteResource.php`, обновить `project/routes/api.php`
 - **Критерии приёмки:**
-  - [ ] GET /api/v1/notes возвращает 200 с paginated notes массивом
-  - [ ] POST /api/v1/notes с {uuid, title} возвращает 201 с NoteResource
-  - [ ] GET /api/v1/notes/{uuid} возвращает 200 с заметкой
-  - [ ] PUT /api/v1/notes/{uuid} обновляет и возвращает 200
-  - [ ] DELETE /api/v1/notes/{uuid} soft deletes и возвращает 204
-  - [ ] POST /api/v1/notes/{uuid}/pin переключает is_pinned
-  - [ ] POST /api/v1/notes/{uuid}/archive переключает is_archived
-  - [ ] NoteResource не сериализует server_revision, deleted_at для публичного API
-  - [ ] Все требуют auth:sanctum
-  - [ ] declare(strict_types=1) во всех файлах
+- (route:list подтверждён: 7 маршрутов api.v1.notes.*; авторизация runtime-проверена)
+  - [x] GET /api/v1/notes → 200 paginated; фильтр archived; поиск (ts_search); сортировка pinned-first
+  - [x] POST /api/v1/notes → 201 NoteResource (поддержка client uuid для sync)
+  - [x] GET/PUT/DELETE /api/v1/notes/{uuid} → 200/200/204 (soft delete)
+  - [x] POST .../pin и .../archive переключают флаги → 200
+  - [x] NoteResource без server_revision/deleted_at/id/user_id
+  - [x] Все под auth:sanctum, авторизация NotePolicy (чужая → 403)
+  - [x] declare(strict_types=1); доб. AuthorizesRequests в Controller, NotePolicy::viewAny
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-5: Drizzle schema notes + notesRepo
 - **Исполнитель:** mobile-developer
