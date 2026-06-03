@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 8 |
+| Completed | 10 |
 | In Progress | 0 |
-| Pending | 58 |
+| Pending | 56 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -177,7 +177,7 @@
 
 ### MOB-1: authStore (secure-store), client.ts (axios), QueryKeys, Config
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** OPS-2, MBE-1
 - **Блокирует:** MOB-2, MOB-3
@@ -185,17 +185,17 @@
 - **Описание:** Создать базовую инфраструктуру для мобильного приложения: Zustand authStore (token в expo-secure-store, user, guestMode, syncEnabled), axios HTTP client с interceptors для авторизации, constants для API endpoints и Query ключей.
 - **Реализация:** src/stores/authStore.ts (Zustand с persist, secure-store), src/api/client.ts (axios instance с interceptor для Authorization header), src/types/auth.ts (User, AuthResponse), src/types/api.ts (API response format), src/constants/QueryKeys.ts (TanStack Query ключи), src/constants/Config.ts (API_BASE_URL из .env).
 - **Файлы:** `mobile/src/stores/authStore.ts`, `mobile/src/api/client.ts`, `mobile/src/types/auth.ts`, `mobile/src/types/api.ts`, `mobile/src/constants/QueryKeys.ts`, `mobile/src/constants/Config.ts`, `mobile/src/api/authApi.ts`
-- **Критерии приёмки:**
-  - [ ] authStore инстанцируется без ошибок, методы setToken, setUser, logout работают
-  - [ ] Token сохраняется в expo-secure-store и восстанавливается при рестарте приложения
-  - [ ] axios client добавляет Authorization header со свожим token
-  - [ ] client.ts имеет interceptor для ошибки 401 (logout)
-  - [ ] QueryKeys экспортирует объекты для auth, notes, lists, reminders, sync, calendar
-  - [ ] Config.API_BASE_URL читается из .env (или default для разработки)
-  - [ ] authApi.ts экспортирует функции: register, login, logout, getMe
-  - [ ] TypeScript strict mode, импорты работают
+- **Критерии приёмки:** (npx tsc --noEmit — EXIT 0, без any)
+  - [x] authStore: setToken/setUser/logout/hydrate
+  - [x] Token в expo-secure-store, восстановление при старте (hydrate + isHydrated)
+  - [x] axios client добавляет Bearer-заголовок из authStore
+  - [x] interceptor на 401 → logout
+  - [x] QueryKeys для auth/notes/lists/reminders/sync/calendar
+  - [x] Config.API_BASE_URL из EXPO_PUBLIC_API_URL (+ дефолт)
+  - [x] authApi: register/login/logout/getMe (типизированы)
+  - [x] TypeScript strict (типы snake_case под UserResource, убран лишний id)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-2: Экраны login/register/onboarding + lock-заглушка + useAuth
 - **Исполнитель:** mobile-developer
@@ -220,7 +220,7 @@
 
 ### WEB-1: authStore (Pinia), client, router/guards, views (LoginView, RegisterView, AccountView)
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** OPS-3, MBE-1
 - **Блокирует:** WEB-3, WEB-4, WEB-5, WEB-6, WEB-8, WEB-9
@@ -228,16 +228,16 @@
 - **Описание:** Создать инфраструктуру для веб-приложения: Pinia authStore, axios client с interceptors, Vue Router guards для авторизации, страницы входа, регистрации и управления аккаунтом.
 - **Реализация:** src/stores/authStore.ts (Pinia, хранит token в localStorage, user), src/api/client.ts (axios + interceptor для 401), src/api/authApi.ts, src/router/guards.ts (requireAuth, requireGuest), src/pages/auth/LoginView.vue, src/pages/auth/RegisterView.vue, src/pages/lk/AccountView.vue. Router setup в src/router/index.ts с guards.
 - **Файлы:** `web/src/stores/authStore.ts`, `web/src/api/client.ts`, `web/src/api/authApi.ts`, `web/src/router/guards.ts`, `web/src/pages/auth/LoginView.vue`, `web/src/pages/auth/RegisterView.vue`, `web/src/pages/lk/AccountView.vue`, `web/src/router/index.ts`
-- **Критерии приёмки:**
-  - [ ] authStore (Pinia) инстанцируется, методы setToken, setUser, logout работают
-  - [ ] Token сохраняется в localStorage и восстанавливается при перезагрузке
-  - [ ] axios client добавляет Authorization header
-  - [ ] Router guard requireAuth блокирует доступ без токена
-  - [ ] LoginView, RegisterView, AccountView рендерятся без ошибок
-  - [ ] Переход /login → /lk с авторизацией работает через guard
-  - [ ] TypeScript strict mode, composables работают
+- **Критерии приёмки:** (vue-tsc --noEmit EXIT 0; Vitest 11 passed)
+  - [x] authStore (Pinia): setToken/setUser/logout, isAuthenticated/isAdmin
+  - [x] Token в localStorage, восстановление при перезагрузке (проверено тестом)
+  - [x] axios client добавляет Bearer-заголовок
+  - [x] guards: requireAuth/requireGuest/requireAdmin
+  - [x] LoginView/RegisterView/AccountView рендерятся, формы через store, ошибки 422
+  - [x] AccountView: logout + удаление аккаунта (с подтверждением)
+  - [x] TypeScript strict, snake_case типы, без any
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-1: Integration auth (register/login/logout/me/delete-account), Policy delete account
 - **Исполнитель:** test-engineer
