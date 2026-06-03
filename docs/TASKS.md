@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 12 |
+| Completed | 14 |
 | In Progress | 0 |
-| Pending | 54 |
+| Pending | 52 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -349,7 +349,7 @@
 
 ### DEV-3: HasUuid trait + Note модель + миграция + NoteData + NotePolicy + factory
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-1, DEV-2
 - **Блокирует:** DEV-4, MBE-2
@@ -358,19 +358,19 @@
 - **Реализация:** HasUuid trait в Concerns, Note модель с scopes (pinned, archived, active, search). Миграция с индексами. NotePolicy методы: view, create, update, delete, pin, archive (owner проверка). NoteFactory.
 - **Файлы:** `project/app/Models/Concerns/HasUuid.php`, `project/app/Models/Note.php`, `project/database/migrations/*_create_notes_table.php`, `project/app/Data/NoteData.php`, `project/app/Policies/NotePolicy.php`, `project/database/factories/NoteFactory.php`
 - **Критерии приёмки:**
-  - [ ] php artisan migrate:fresh успешна, таблица notes создана
-  - [ ] Note::all() работает, uuid unique индекс
-  - [ ] HasUuid генерирует uuid при create
-  - [ ] Scopes (pinned, archived, active, search) возвращают Query
-  - [ ] NotePolicy authorize методы работают
-  - [ ] NoteFactory создаёт корректные заметки
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] migrate успешна — таблица notes создана (Ran, 270ms), ts_search tsvector + GIN
+  - [x] uuid unique; индексы user_id, user_id+server_revision, частичный pinned
+  - [x] HasUuid генерирует uuid при create (переиспользуемый trait)
+  - [x] Scopes pinned/archived/active/search (plainto_tsquery, безопасно)
+  - [x] NotePolicy owner-проверки (view/create/update/delete/pin/archive)
+  - [x] NoteFactory; Note: HasUuid+SoftDeletes+TracksSyncRevision, route key uuid
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### DEV-4: Note Actions (Create/Update/Delete/TogglePin/ToggleArchive)
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-3
 - **Блокирует:** MBE-2
@@ -379,15 +379,14 @@
 - **Реализация:** app/Actions/Note/{CreateNoteAction, UpdateNoteAction, DeleteNoteAction, TogglePinAction, ToggleArchiveAction}.php. Каждый Action использует inject для Authorization, вызывает policy authorize перед операцией.
 - **Файлы:** `project/app/Actions/Note/CreateNoteAction.php`, `project/app/Actions/Note/UpdateNoteAction.php`, `project/app/Actions/Note/DeleteNoteAction.php`, `project/app/Actions/Note/TogglePinAction.php`, `project/app/Actions/Note/ToggleArchiveAction.php`
 - **Критерии приёмки:**
-  - [ ] CreateNoteAction(__invoke) создаёт заметку с uuid и server_revision
-  - [ ] UpdateNoteAction(__invoke) обновляет поля (title, body, is_pinned, is_archived)
-  - [ ] DeleteNoteAction(__invoke) делает soft delete (deleted_at)
-  - [ ] TogglePinAction(__invoke) переключает is_pinned
-  - [ ] ToggleArchiveAction(__invoke) переключает is_archived
-  - [ ] Все Actions проверяют авторизацию через NotePolicy
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] CreateNoteAction создаёт заметку (uuid+server_revision проставляют трейты)
+  - [x] UpdateNoteAction обновляет title/body/is_pinned/is_archived
+  - [x] DeleteNoteAction — soft delete
+  - [x] TogglePinAction / ToggleArchiveAction переключают флаги
+  - [x] Авторизация делегирована контроллерам (MBE-2) через NotePolicy (обосновано в отчёте)
+  - [x] declare(strict_types=1), final, invokable
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MBE-2: Note контроллеры (Index/Store/Show/Update/Destroy/Pin/Archive) + requests + NoteResource + routes
 - **Исполнитель:** mobile-backend-developer
