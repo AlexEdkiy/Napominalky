@@ -28,4 +28,15 @@ describe('router', () => {
     const route = router.getRoutes().find(r => r.name === 'lk-dashboard')
     expect(route?.meta.requiresAuth).toBe(true)
   })
+
+  it('registers lk notes routes under requiresAuth', () => {
+    const list = router.getRoutes().find(r => r.name === 'lk-notes')
+    const create = router.getRoutes().find(r => r.name === 'lk-note-create')
+    const edit = router.getRoutes().find(r => r.name === 'lk-note-edit')
+    expect(list?.meta.requiresAuth).toBe(true)
+    expect(create?.meta.requiresAuth).toBe(true)
+    expect(edit?.meta.requiresAuth).toBe(true)
+    expect(create?.path).toBe('/lk/notes/new')
+    expect(edit?.path).toBe('/lk/notes/:uuid')
+  })
 })
