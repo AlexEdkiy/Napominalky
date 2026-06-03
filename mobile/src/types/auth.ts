@@ -1,15 +1,27 @@
 export interface User {
-  id: number
   uuid: string
   name: string | null
   email: string
-  sync_enabled: boolean
   is_admin: boolean
+  sync_enabled: boolean
   created_at: string
 }
 
-export interface AuthTokenResponse {
+export interface AuthResponse {
   token: string
   token_type: string
   user: User
+}
+
+export interface RegisterPayload {
+  name: string
+  email: string
+  password: string
+  password_confirmation: string
+}
+
+export interface LoginPayload {
+  email: string
+  password: string
+  device_name?: string
 }
