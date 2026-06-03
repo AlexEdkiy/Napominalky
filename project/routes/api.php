@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Account\DeleteAccountController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Auth\MeController;
+use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,10 +41,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // ------------------------------------------------------------------
     // Auth — unauthenticated endpoints (register / login)
     // ------------------------------------------------------------------
-    Route::prefix('auth')->name('auth.')->group(function (): void {
-        // POST /api/v1/auth/register  → App\Http\Controllers\Auth\RegisterController
-        // POST /api/v1/auth/login     → App\Http\Controllers\Auth\LoginController
-        // (controllers added by MBE agent in task MBE-1)
+    Route::prefix('auth')->name('auth.')->middleware('throttle:auth')->group(function (): void {
+        Route::post('register', RegisterController::class)->name('register');
+        Route::post('login', LoginController::class)->name('login');
     });
 
     // ------------------------------------------------------------------
@@ -49,12 +53,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         // Auth — authenticated actions
         Route::prefix('auth')->name('auth.')->group(function (): void {
-            // DELETE /api/v1/auth/logout  → App\Http\Controllers\Auth\LogoutController
-            // GET    /api/v1/auth/me      → App\Http\Controllers\Auth\MeController
+            Route::delete('logout', LogoutController::class)->name('logout');
+            Route::get('me', MeController::class)->name('me');
         });
 
         // Account deletion (FR-42)
-        // DELETE /api/v1/account  → App\Http\Controllers\Account\DeleteAccountController
+        Route::delete('account', DeleteAccountController::class)->name('account.destroy');
 
         // Notes (FR-5..FR-11)
         Route::prefix('notes')->name('notes.')->group(function (): void {
