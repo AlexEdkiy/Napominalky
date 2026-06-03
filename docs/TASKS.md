@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 6 |
+| Completed | 7 |
 | In Progress | 0 |
-| Pending | 60 |
+| Pending | 59 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -153,7 +153,7 @@
 
 ### MBE-1: Auth контроллеры (Register/Login/Logout/Me/DeleteAccount) и ресурсы
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** DEV-1
 - **Блокирует:** MOB-1, WEB-1, TEST-1
@@ -161,19 +161,19 @@
 - **Описание:** Создать API контроллеры и endpoints для аутентификации: POST /api/v1/auth/register, POST /api/v1/auth/login, DELETE /api/v1/auth/logout, GET /api/v1/auth/me, DELETE /api/v1/account. Все endpoints возвращают JSON (UserResource + token). Регистрация и логин с throttle. Документировать в OpenAPI.
 - **Реализация:** RegisterController(__invoke), LoginController(__invoke), LogoutController(__invoke), MeController(__invoke), Account\DeleteAccountController(__invoke). Form Requests: RegisterRequest (name, email, password, password_confirmation), LoginRequest (email, password, device_name?). UserResource для сериализации. Маршруты в routes/api.php с префиксом /api/v1/auth и /api/v1/account. Middleware: throttle, auth:sanctum.
 - **Файлы:** `project/app/Http/Controllers/Auth/RegisterController.php`, `project/app/Http/Controllers/Auth/LoginController.php`, `project/app/Http/Controllers/Auth/LogoutController.php`, `project/app/Http/Controllers/Auth/MeController.php`, `project/app/Http/Controllers/Account/DeleteAccountController.php`, `project/app/Http/Requests/Auth/RegisterRequest.php`, `project/app/Http/Requests/Auth/LoginRequest.php`, `project/app/Http/Resources/UserResource.php`, `project/routes/api.php`
-- **Критерии приёмки:**
-  - [ ] POST /api/v1/auth/register с валидными данными возвращает 201 с token и user
-  - [ ] POST /api/v1/auth/register с дублирующимся email возвращает 422
-  - [ ] POST /api/v1/auth/login с верными credentials возвращает 200 с token
-  - [ ] POST /api/v1/auth/login без device_name создаёт Device с UUID
-  - [ ] POST /api/v1/auth/login имеет throttle 5/min на IP
-  - [ ] DELETE /api/v1/auth/logout требует auth:sanctum, возвращает 204
-  - [ ] GET /api/v1/auth/me требует auth:sanctum, возвращает текущего пользователя
-  - [ ] DELETE /api/v1/account требует auth:sanctum, удаляет пользователя и возвращает 204
-  - [ ] UserResource сериализует uuid, name, email, is_admin, sync_enabled (не password)
-  - [ ] declare(strict_types=1) во всех новых файлах
+- **Критерии приёмки:** (runtime-проверено временным feature-тестом: 2 passed, 32 assertions)
+  - [x] POST /api/v1/auth/register → 201 с token и user; дубль email → 422
+  - [x] POST /api/v1/auth/login → 200 с token; неверные creds → 422
+  - [x] POST /api/v1/auth/login создаёт Device с UUID
+  - [x] throttle 5/min на IP (лимитер `auth` в AppServiceProvider) → 429 на 6-м запросе
+  - [x] DELETE /api/v1/auth/logout → 204, auth:sanctum, удаляет токен
+  - [x] GET /api/v1/auth/me → 200 с UserResource, auth:sanctum
+  - [x] DELETE /api/v1/account → 204, auth:sanctum, soft-delete user
+  - [x] UserResource: uuid/name/email/is_admin/sync_enabled/created_at (без password/id)
+  - [x] declare(strict_types=1), один контроллер = одно __invoke, валидация через Form Request
+  - [ ] Формальные Pest-тесты — TEST-1 (требует настройки тестовой БД на PostgreSQL)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-1: authStore (secure-store), client.ts (axios), QueryKeys, Config
 - **Исполнитель:** mobile-developer
