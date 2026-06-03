@@ -1,0 +1,52 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'project/**'
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: project
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production Docker image
+        run: |
+          docker build \
+            --target production \
+            --tag reminders-backend:${{ github.sha }} \
+            --tag reminders-backend:latest \
+            -f docker/php/Dockerfile \
+            .
+
+      # Add deploy steps here (SSH, docker push, k8s, etc.)
+      # Example: push to registry
+      # - name: Push to registry
+      #   run: |
+      #     echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login registry.example.com -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+      #     docker push reminders-backend:${{ github.sha }}
+      #     docker push reminders-backend:latest
+
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+      #     script: |
+      #       cd /opt/reminders
+      #       docker compose -f docker-compose.prod.yml pull
+      #       docker compose -f docker-compose.prod.yml up -d --force-recreate
+      #       docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+
+      - name: Smoke test — build succeeded
+        run: echo "Production image built successfully. Configure deploy steps above."
