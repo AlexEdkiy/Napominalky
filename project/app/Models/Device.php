@@ -34,6 +34,15 @@ class Device extends Model
     }
 
     /**
+     * Маршрутизация и сериализация ведутся по публичному uuid, не по id:
+     * клиент знает устройство только по своему device_uuid (FR-35).
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
