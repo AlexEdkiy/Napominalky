@@ -1,0 +1,241 @@
+import { and, asc, between, eq, isNull } from 'drizzle-orm'
+import { db as defaultDb, type Database } from '../client'
+import { reminders, type ReminderRow } from '../schema/reminders'
+import { nextOccurrence, type RecurrenceType } from '../../utils/recurrence'
+import { BaseRepository, type SyncTable } from './baseRepo'
+
+/** Доменное напоминание: boolean is_completed вместо 0/1. */
+export interface Reminder {
+  uuid: string
+  userId: string | null
+  title: string
+  notes: string | null
+  remindAt: string
+  recurrence: RecurrenceType
+  isCompleted: boolean
+  completedAt: string | null
+  snoozedUntil: string | null
+  sourceUuid: string | null
+  sourceType: string | null
+  /** Локальный id запланированного уведомления (не синхронизируется). */
+  notificationId: string | null
+  serverRevision: number | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
+/** Данные для создания напоминания (sync-поля проставит baseRepo). */
+export interface CreateReminderData {
+  title: string
+  remindAt: string
+  notes?: string | null
+  recurrence?: RecurrenceType
+  userId?: string | null
+  sourceUuid?: string | null
+  sourceType?: string | null
+}
+
+/** Частичное обновление доменных полей напоминания. */
+export type UpdateReminderPatch = Partial<
+  Pick<
+    CreateReminderData,
+    'title' | 'remindAt' | 'notes' | 'recurrence' | 'userId'
+  >
+>
+
+/** Статус для фильтрации списка напоминаний. */
+export type ReminderStatus = 'pending' | 'completed' | 'all'
+
+interface ListRemindersOptions {
+  status?: ReminderStatus
+}
+
+const bool = (value: number): boolean => value === 1
+const flag = (value: boolean): number => (value ? 1 : 0)
+
+const nowIso = (): string => new Date().toISOString()
+
+/** Преобразует строку SQLite (0/1) в доменное напоминание с booleans. */
+const toReminder = (row: ReminderRow): Reminder => ({
+  uuid: row.uuid,
+  userId: row.userId,
+  title: row.title,
+  notes: row.notes,
+  remindAt: row.remindAt,
+  recurrence: row.recurrence as RecurrenceType,
+  isCompleted: bool(row.isCompleted),
+  completedAt: row.completedAt,
+  snoozedUntil: row.snoozedUntil,
+  sourceUuid: row.sourceUuid,
+  sourceType: row.sourceType,
+  notificationId: row.notificationId,
+  serverRevision: row.serverRevision,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+  deletedAt: row.deletedAt,
+})
+
+/**
+ * Репозиторий напоминаний поверх BaseRepository: мутации идут через base
+ * (доменная строка + запись в sync_outbox), чтения — напрямую через db.
+ * is_completed хранится как 0/1, конвертируется в boolean на чтении.
+ */
+export class RemindersRepository {
+  private readonly base: BaseRepository<typeof reminders & SyncTable>
+
+  public constructor(private readonly db: Database = defaultDb) {
+    this.base = new BaseRepository(
+      reminders as typeof reminders & SyncTable,
+      'reminder',
+      db,
+    )
+  }
+
+  public async createReminder(data: CreateReminderData): Promise<Reminder> {
+    const row = await this.base.insert({
+      title: data.title,
+      remindAt: data.remindAt,
+      notes: data.notes ?? null,
+      recurrence: data.recurrence ?? 'none',
+      userId: data.userId ?? null,
+      sourceUuid: data.sourceUuid ?? null,
+      sourceType: data.sourceType ?? null,
+      isCompleted: 0,
+    } as never)
+    return toReminder(row as ReminderRow)
+  }
+
+  public async updateReminder(
+    uuid: string,
+    patch: UpdateReminderPatch,
+  ): Promise<Reminder | null> {
+    const values: Record<string, unknown> = {}
+    if (patch.title !== undefined) values.title = patch.title
+    if (patch.remindAt !== undefined) values.remindAt = patch.remindAt
+    if (patch.notes !== undefined) values.notes = patch.notes
+    if (patch.recurrence !== undefined) values.recurrence = patch.recurrence
+    if (patch.userId !== undefined) values.userId = patch.userId
+
+    const row = await this.base.update(uuid, values as never)
+    return row === null ? null : toReminder(row as ReminderRow)
+  }
+
+  /** Мягкое удаление: tombstone (deleted_at) + delete-запись в outbox. */
+  public async deleteReminder(uuid: string): Promise<Reminder | null> {
+    const row = await this.base.softDelete(uuid)
+    return row === null ? null : toReminder(row as ReminderRow)
+  }
+
+  public async getReminderByUuid(uuid: string): Promise<Reminder | null> {
+    const row = await this.base.findById(uuid)
+    return row === null ? null : toReminder(row as ReminderRow)
+  }
+
+  /** Активные напоминания (без tombstone) с фильтром по статусу; по remind_at. */
+  public async listReminders(
+    opts: ListRemindersOptions = {},
+  ): Promise<Reminder[]> {
+    const status = opts.status ?? 'all'
+    const filters = [isNull(reminders.deletedAt)]
+    if (status === 'pending') filters.push(eq(reminders.isCompleted, 0))
+    if (status === 'completed') filters.push(eq(reminders.isCompleted, 1))
+
+    const rows = await this.db
+      .select()
+      .from(reminders)
+      .where(and(...filters))
+      .orderBy(asc(reminders.remindAt))
+    return rows.map(toReminder)
+  }
+
+  /**
+   * Помечает напоминание выполненным (is_completed=1, completed_at=now).
+   * Для повторяющегося (recurrence != none) создаёт следующее вхождение
+   * отдельной записью с remind_at = nextOccurrence(remind_at). Возвращает
+   * исходное (выполненное) напоминание.
+   */
+  public async completeReminder(uuid: string): Promise<Reminder | null> {
+    const current = await this.base.findById(uuid)
+    if (current === null) return null
+    const row = current as ReminderRow
+
+    const completed = await this.base.update(uuid, {
+      isCompleted: 1,
+      completedAt: nowIso(),
+      notificationId: null,
+    } as never)
+    if (completed === null) return null
+
+    const recurrence = row.recurrence as RecurrenceType
+    const nextRemindAt = nextOccurrence(recurrence, row.remindAt)
+    if (nextRemindAt !== null) {
+      await this.createReminder({
+        title: row.title,
+        remindAt: nextRemindAt,
+        notes: row.notes,
+        recurrence,
+        userId: row.userId,
+        sourceUuid: row.sourceUuid,
+        sourceType: row.sourceType,
+      })
+    }
+
+    return toReminder(completed as ReminderRow)
+  }
+
+  /**
+   * Откладывает напоминание: snoozed_until = переданная ISO-дата. Мутация
+   * идёт через base (запись в outbox), т.к. snoozed_until синхронизируется.
+   */
+  public async snoozeReminder(
+    uuid: string,
+    snoozedUntilIso: string,
+  ): Promise<Reminder | null> {
+    const row = await this.base.update(uuid, {
+      snoozedUntil: snoozedUntilIso,
+    } as never)
+    return row === null ? null : toReminder(row as ReminderRow)
+  }
+
+  /**
+   * Активные (не выполненные, без tombstone) напоминания в диапазоне
+   * remind_at — для календаря. Сортировка по remind_at.
+   */
+  public async remindersBetween(
+    fromIso: string,
+    toIso: string,
+  ): Promise<Reminder[]> {
+    const rows = await this.db
+      .select()
+      .from(reminders)
+      .where(
+        and(
+          isNull(reminders.deletedAt),
+          eq(reminders.isCompleted, 0),
+          between(reminders.remindAt, fromIso, toIso),
+        ),
+      )
+      .orderBy(asc(reminders.remindAt))
+    return rows.map(toReminder)
+  }
+
+  /**
+   * Сохраняет локальный id запланированного уведомления. Поле notification_id
+   * НЕ синхронизируется, поэтому пишем напрямую в таблицу, минуя outbox.
+   */
+  public async setNotificationId(
+    uuid: string,
+    notificationId: string | null,
+  ): Promise<Reminder | null> {
+    const [row] = await this.db
+      .update(reminders)
+      .set({ notificationId })
+      .where(eq(reminders.uuid, uuid))
+      .returning()
+    return row === undefined ? null : toReminder(row as ReminderRow)
+  }
+}
+
+/** Singleton поверх дефолтного клиента для использования в хуках/сторах. */
+export const remindersRepo = new RemindersRepository()

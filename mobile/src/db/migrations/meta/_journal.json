@@ -22,6 +22,13 @@
       "when": 1780572625562,
       "tag": "0002_bent_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780583787212,
+      "tag": "0003_freezing_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }
