@@ -31,7 +31,11 @@ use App\Http\Controllers\ShoppingLists\Items\UpdateController as ItemUpdateContr
 use App\Http\Controllers\ShoppingLists\ShowController as ListShowController;
 use App\Http\Controllers\ShoppingLists\StoreController as ListStoreController;
 use App\Http\Controllers\ShoppingLists\UpdateController as ListUpdateController;
+use App\Http\Controllers\Devices\DestroyController as DeviceDestroyController;
+use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Sync\ChangesController as SyncChangesController;
+use App\Http\Controllers\Sync\ConflictsController as SyncConflictsController;
+use App\Http\Controllers\Sync\PushController as SyncPushController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -132,13 +136,17 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // GET  /api/v1/sync/changes   → Sync\ChangesController  (pull: ?since={revision})
             Route::get('changes', SyncChangesController::class)->name('changes');
             // POST /api/v1/sync/push      → Sync\PushController     (push outbox batch)
+            Route::post('push', SyncPushController::class)->name('push');
             // GET  /api/v1/sync/conflicts → Sync\ConflictsController (view unresolved)
+            Route::get('conflicts', SyncConflictsController::class)->name('conflicts');
         });
 
         // Devices — multi-device sync bookkeeping (FR-35)
         Route::prefix('devices')->name('devices.')->group(function (): void {
             // PUT    /api/v1/devices/{uuid} → Devices\UpdateController
+            Route::put('{device}', DeviceUpdateController::class)->name('update');
             // DELETE /api/v1/devices/{uuid} → Devices\DestroyController
+            Route::delete('{device}', DeviceDestroyController::class)->name('destroy');
         });
 
         // Settings (FR-43..FR-45)
