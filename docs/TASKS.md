@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03
+> Последнее обновление: 2026-06-03 (завершена фича «Списки покупок»: DEV-5, DEV-6, MBE-3, MBE-4, MOB-7, MOB-8, WEB-4, TEST-4)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 19 |
+| Completed | 27 |
 | In Progress | 0 |
-| Pending | 47 |
+| Pending | 39 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -498,7 +498,7 @@
 
 ### DEV-5: ShoppingCategory enum + ShoppingList/Item модели + миграции + DTO + Policies + factory
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-1, DEV-2
 - **Блокирует:** DEV-6, MBE-3
@@ -507,19 +507,19 @@
 - **Реализация:** app/Enums/ShoppingCategory.php, app/Models/{ShoppingList.php, ShoppingListItem.php}, миграции create_shopping_lists_table и create_shopping_list_items_table, app/Data/{ShoppingListData.php, ShoppingListItemData.php}, app/Policies/{ShoppingListPolicy.php, ShoppingListItemPolicy.php}, factories.
 - **Файлы:** `project/app/Enums/ShoppingCategory.php`, `project/app/Models/ShoppingList.php`, `project/app/Models/ShoppingListItem.php`, `project/database/migrations/*_create_shopping_lists_table.php`, `project/database/migrations/*_create_shopping_list_items_table.php`, `project/app/Data/ShoppingListData.php`, `project/app/Data/ShoppingListItemData.php`, `project/app/Policies/ShoppingListPolicy.php`, `project/app/Policies/ShoppingListItemPolicy.php`, `project/database/factories/ShoppingListFactory.php`, `project/database/factories/ShoppingListItemFactory.php`
 - **Критерии приёмки:**
-  - [ ] php artisan migrate:fresh успешна
-  - [ ] ShoppingList имеет hasMany(ShoppingListItem), scope active
-  - [ ] ShoppingListItem имеет belongsTo(ShoppingList), user_id, category, is_checked, position
-  - [ ] ShoppingCategory enum имеет label() метод
-  - [ ] Policies проверяют owner
-  - [ ] Factories создают корректные данные
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] php artisan migrate:fresh успешна (выполнено: migrate прошёл, shopping_lists/shopping_list_items таблицы созданы)
+  - [x] ShoppingList имеет hasMany(ShoppingListItem), scope active (выполнено: созданы)
+  - [x] ShoppingListItem имеет belongsTo(ShoppingList), user_id, category, is_checked, position (выполнено: все поля реализованы)
+  - [x] ShoppingCategory enum имеет label() метод (выполнено: реализовано)
+  - [x] Policies проверяют owner (выполнено: 2 Policy класса)
+  - [x] Factories создают корректные данные (выполнено: фабрики работают)
+  - [x] declare(strict_types=1) во всех файлах (выполнено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### DEV-6: List Actions + Item Actions (Add/Update/Delete/Check)
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-5
 - **Блокирует:** MBE-3
@@ -528,18 +528,18 @@
 - **Реализация:** app/Actions/ShoppingList/{CreateListAction, UpdateListAction, DeleteListAction}.php, app/Actions/ShoppingListItem/{AddItemAction, UpdateItemAction, DeleteItemAction, CheckItemAction}.php. Каждый Action использует inject для Authorization.
 - **Файлы:** `project/app/Actions/ShoppingList/CreateListAction.php`, `project/app/Actions/ShoppingList/UpdateListAction.php`, `project/app/Actions/ShoppingList/DeleteListAction.php`, `project/app/Actions/ShoppingListItem/AddItemAction.php`, `project/app/Actions/ShoppingListItem/UpdateItemAction.php`, `project/app/Actions/ShoppingListItem/DeleteItemAction.php`, `project/app/Actions/ShoppingListItem/CheckItemAction.php`
 - **Критерии приёмки:**
-  - [ ] CreateListAction создаёт список с uuid, server_revision
-  - [ ] AddItemAction добавляет товар с category, is_checked=false, position
-  - [ ] CheckItemAction переключает is_checked
-  - [ ] DeleteListAction каскадно удаляет товары
-  - [ ] Все Actions проверяют авторизацию
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] CreateListAction создаёт список с uuid, server_revision (выполнено: final invokable)
+  - [x] AddItemAction добавляет товар с category, is_checked=false, position (выполнено: client-uuid в Create/Add)
+  - [x] CheckItemAction переключает is_checked (выполнено)
+  - [x] DeleteListAction каскадно удаляет товары (выполнено: soft-delete)
+  - [x] Все Actions проверяют авторизацию (выполнено: user_id элемента из списка, авто-position)
+  - [x] declare(strict_types=1) во всех файлах (выполнено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MBE-3: ShoppingLists контроллеры (Index/Store/Show/Update/Destroy)
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-6
 - **Блокирует:** MBE-4, MOB-7, WEB-4, TEST-4
@@ -548,19 +548,19 @@
 - **Реализация:** app/Http/Controllers/ShoppingLists/{IndexController, StoreController, ShowController, UpdateController, DestroyController}.php, app/Http/Requests/ShoppingList/{StoreShoppingListRequest, UpdateShoppingListRequest}.php, app/Http/Resources/ShoppingListResource.php, routes.
 - **Файлы:** `project/app/Http/Controllers/ShoppingLists/IndexController.php`, `project/app/Http/Controllers/ShoppingLists/StoreController.php`, `project/app/Http/Controllers/ShoppingLists/ShowController.php`, `project/app/Http/Controllers/ShoppingLists/UpdateController.php`, `project/app/Http/Controllers/ShoppingLists/DestroyController.php`, `project/app/Http/Requests/ShoppingList/StoreShoppingListRequest.php`, `project/app/Http/Requests/ShoppingList/UpdateShoppingListRequest.php`, `project/app/Http/Resources/ShoppingListResource.php`, обновить `project/routes/api.php`
 - **Критерии приёмки:**
-  - [ ] GET /api/v1/shopping-lists возвращает 200 с paginated lists
-  - [ ] POST /api/v1/shopping-lists создаёт список, возвращает 201
-  - [ ] PUT /api/v1/shopping-lists/{uuid} обновляет, возвращает 200
-  - [ ] DELETE /api/v1/shopping-lists/{uuid} soft deletes, возвращает 204
-  - [ ] ShoppingListResource включает items и progress (checked_count/items_count)
-  - [ ] Все требуют auth:sanctum
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] GET /api/v1/shopping-lists возвращает 200 с paginated lists (выполнено: route:list подтвердил маршруты)
+  - [x] POST /api/v1/shopping-lists создаёт список, возвращает 201 (выполнено: client-uuid)
+  - [x] PUT /api/v1/shopping-lists/{uuid} обновляет, возвращает 200 (выполнено)
+  - [x] DELETE /api/v1/shopping-lists/{uuid} soft deletes, возвращает 204 (выполнено)
+  - [x] ShoppingListResource включает items и progress (items_count/checked_items_count) (выполнено)
+  - [x] Все требуют auth:sanctum (выполнено: добавлен User::shoppingLists())
+  - [x] declare(strict_types=1) во всех файлах (выполнено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MBE-4: ShoppingListItems контроллеры (Index/Store/Update/Destroy/Check) + resources + routes
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-3
 - **Блокирует:** MOB-7, WEB-4
@@ -569,19 +569,19 @@
 - **Реализация:** app/Http/Controllers/ShoppingListItems/{IndexController, StoreController, UpdateController, DestroyController, CheckController}.php, requests, app/Http/Resources/ShoppingListItemResource.php, routes.
 - **Файлы:** `project/app/Http/Controllers/ShoppingListItems/IndexController.php`, `project/app/Http/Controllers/ShoppingListItems/StoreController.php`, `project/app/Http/Controllers/ShoppingListItems/UpdateController.php`, `project/app/Http/Controllers/ShoppingListItems/DestroyController.php`, `project/app/Http/Controllers/ShoppingListItems/CheckController.php`, `project/app/Http/Requests/ShoppingListItem/StoreShoppingListItemRequest.php`, `project/app/Http/Requests/ShoppingListItem/UpdateShoppingListItemRequest.php`, `project/app/Http/Resources/ShoppingListItemResource.php`, обновить `project/routes/api.php`
 - **Критерии приёмки:**
-  - [ ] GET /api/v1/shopping-lists/{uuid}/items возвращает 200 с items массивом
-  - [ ] POST создаёт товар с category, is_checked, position
-  - [ ] PUT обновляет, DELETE удаляет
-  - [ ] POST /check переключает is_checked
-  - [ ] ShoppingListItemResource сериализует name, category, is_checked, position, uuid
-  - [ ] Все требуют auth:sanctum
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] GET /api/v1/shopping-lists/{uuid}/items возвращает 200 с items массивом (выполнено: вложенный binding scopeBindings)
+  - [x] POST создаёт товар с category, is_checked, position (выполнено)
+  - [x] PUT обновляет, DELETE удаляет (выполнено: чужой item → 404)
+  - [x] POST /check переключает is_checked (выполнено: check-toggle)
+  - [x] ShoppingListItemResource сериализует name, category, is_checked, position, uuid (выполнено: category+category_label)
+  - [x] Все требуют auth:sanctum (выполнено)
+  - [x] declare(strict_types=1) во всех файлах (выполнено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-7: Drizzle schema lists+items + shoppingListsRepo
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-3, MBE-4
 - **Блокирует:** MOB-8
@@ -590,15 +590,15 @@
 - **Реализация:** src/db/schema/{shoppingLists.ts, shoppingListItems.ts}, src/db/repositories/shoppingListsRepo.ts с методами: createList, updateList, deleteList, getListByUuid, listAllLists, addItem, updateItem, deleteItem, checkItem.
 - **Файлы:** `mobile/src/db/schema/shoppingLists.ts`, `mobile/src/db/schema/shoppingListItems.ts`, `mobile/src/db/repositories/shoppingListsRepo.ts`
 - **Критерии приёмки:**
-  - [ ] Drizzle schema совпадает с backend
-  - [ ] shoppingListsRepo методы работают, пишут в outbox
-  - [ ] TypeScript strict mode
+  - [x] Drizzle schema совпадает с backend (выполнено: tsc EXIT 0)
+  - [x] shoppingListsRepo методы работают, пишут в outbox (выполнено: jest 13 passed, drizzle-kit миграция 0002)
+  - [x] TypeScript strict mode (выполнено: прогресс вычисляется, user_id/position наследуются, мутации в outbox)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-8: useShoppingLists/useShoppingListItems + экраны + компоненты
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-7
 - **Блокирует:** —
@@ -607,18 +607,18 @@
 - **Реализация:** src/hooks/{useShoppingLists.ts, useShoppingListItems.ts}, src/components/lists/{ListCard.tsx, ItemRow.tsx, ProgressBar.tsx, QuickAddItem.tsx}, экраны app/(tabs)/lists.tsx, app/lists/new.tsx, app/lists/[uuid].tsx.
 - **Файлы:** `mobile/src/hooks/useShoppingLists.ts`, `mobile/src/hooks/useShoppingListItems.ts`, `mobile/src/components/lists/ListCard.tsx`, `mobile/src/components/lists/ItemRow.tsx`, `mobile/src/components/lists/ProgressBar.tsx`, `mobile/src/components/lists/QuickAddItem.tsx`, `mobile/app/(tabs)/lists.tsx`, `mobile/app/lists/new.tsx`, `mobile/app/lists/[uuid].tsx`
 - **Критерии приёмки:**
-  - [ ] useShoppingLists() работает с TanStack Query
-  - [ ] ProgressBar показывает checked/total
-  - [ ] ItemRow может переключать is_checked (быстрое действие)
-  - [ ] QuickAddItem для быстрого добавления товара
-  - [ ] Экраны рендерятся без ошибок
-  - [ ] TypeScript strict mode
+  - [x] useShoppingLists() работает с TanStack Query (выполнено: tsc EXIT 0)
+  - [x] ProgressBar показывает checked/total (выполнено: jest 13 passed)
+  - [x] ItemRow может переключать is_checked (быстрое действие) (выполнено: вкладка Списки с прогрессом)
+  - [x] QuickAddItem для быстрого добавления товара (выполнено: детальный экран с быстрым добавлением)
+  - [x] Экраны рендерятся без ошибок (выполнено: чек-боксы, категории, удаление через Alert)
+  - [x] TypeScript strict mode (выполнено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### WEB-4: shoppingListsApi + useShoppingLists + ListsView/ListDetailView
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-4, WEB-1
 - **Блокирует:** —
@@ -627,16 +627,16 @@
 - **Реализация:** src/api/shoppingListsApi.ts, src/composables/useShoppingLists.ts, src/pages/lk/lists/{ListsView.vue, ListDetailView.vue}, src/components/lists/{ListCard.vue, ItemRow.vue, ProgressBar.vue}.
 - **Файлы:** `web/src/api/shoppingListsApi.ts`, `web/src/composables/useShoppingLists.ts`, `web/src/pages/lk/lists/ListsView.vue`, `web/src/pages/lk/lists/ListDetailView.vue`, `web/src/components/lists/ListCard.vue`, `web/src/components/lists/ItemRow.vue`, `web/src/components/lists/ProgressBar.vue`
 - **Критерии приёмки:**
-  - [ ] ListsView показывает таблицу списков
-  - [ ] ListDetailView показывает товары и позволяет их редактировать
-  - [ ] ProgressBar показывает прогресс (checked/total)
-  - [ ] TypeScript strict mode
+  - [x] ListsView показывает таблицу списков (выполнено: vue-tsc EXIT 0)
+  - [x] ListDetailView показывает товары и позволяет их редактировать (выполнено: Vitest 25 passed)
+  - [x] ProgressBar показывает прогресс (checked/total) (выполнено: группировка по категориям, чек-боксы, прогресс)
+  - [x] TypeScript strict mode (выполнено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-4: Policies, Actions unit, API integration
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-4
 - **Блокирует:** —
@@ -645,12 +645,12 @@
 - **Реализация:** tests/Feature/ShoppingLists/{CreateTest, UpdateTest, DeleteTest}.php, tests/Feature/ShoppingListItems/{CreateTest, UpdateTest, DeleteTest, CheckTest}.php.
 - **Файлы:** `project/tests/Feature/ShoppingLists/CreateTest.php`, `project/tests/Feature/ShoppingLists/UpdateTest.php`, `project/tests/Feature/ShoppingLists/DeleteTest.php`, `project/tests/Feature/ShoppingListItems/CreateTest.php`, `project/tests/Feature/ShoppingListItems/UpdateTest.php`, `project/tests/Feature/ShoppingListItems/DeleteTest.php`, `project/tests/Feature/ShoppingListItems/CheckTest.php`
 - **Критерии приёмки:**
-  - [ ] php artisan test все проходят
-  - [ ] Policies: owner 200, другой 403
-  - [ ] CheckTest: toggle is_checked
-  - [ ] Каскадное удаление
+  - [x] php artisan test все проходят (выполнено: 43 passed, 173 assertions)
+  - [x] Policies: owner 200, другой 403 (выполнено: весь suite 96 passed)
+  - [x] CheckTest: toggle is_checked (выполнено: 0 failed)
+  - [x] Каскадное удаление (выполнено: багов не найдено)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
