@@ -31,6 +31,7 @@ use App\Http\Controllers\ShoppingLists\Items\UpdateController as ItemUpdateContr
 use App\Http\Controllers\ShoppingLists\ShowController as ListShowController;
 use App\Http\Controllers\ShoppingLists\StoreController as ListStoreController;
 use App\Http\Controllers\ShoppingLists\UpdateController as ListUpdateController;
+use App\Http\Controllers\Sync\ChangesController as SyncChangesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -129,6 +130,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         // Sync — delta sync engine (FR-33..FR-37)
         Route::prefix('sync')->name('sync.')->group(function (): void {
             // GET  /api/v1/sync/changes   → Sync\ChangesController  (pull: ?since={revision})
+            Route::get('changes', SyncChangesController::class)->name('changes');
             // POST /api/v1/sync/push      → Sync\PushController     (push outbox batch)
             // GET  /api/v1/sync/conflicts → Sync\ConflictsController (view unresolved)
         });
