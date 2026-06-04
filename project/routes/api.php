@@ -14,6 +14,13 @@ use App\Http\Controllers\Notes\PinController as NotePinController;
 use App\Http\Controllers\Notes\ShowController as NoteShowController;
 use App\Http\Controllers\Notes\StoreController as NoteStoreController;
 use App\Http\Controllers\Notes\UpdateController as NoteUpdateController;
+use App\Http\Controllers\Reminders\CompleteController as ReminderCompleteController;
+use App\Http\Controllers\Reminders\DestroyController as ReminderDestroyController;
+use App\Http\Controllers\Reminders\IndexController as ReminderIndexController;
+use App\Http\Controllers\Reminders\ShowController as ReminderShowController;
+use App\Http\Controllers\Reminders\SnoozeController as ReminderSnoozeController;
+use App\Http\Controllers\Reminders\StoreController as ReminderStoreController;
+use App\Http\Controllers\Reminders\UpdateController as ReminderUpdateController;
 use App\Http\Controllers\ShoppingLists\DestroyController as ListDestroyController;
 use App\Http\Controllers\ShoppingLists\IndexController as ListIndexController;
 use App\Http\Controllers\ShoppingLists\Items\CheckController as ItemCheckController;
@@ -108,15 +115,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 });
         });
 
-        // Reminders (FR-19..FR-25)
+        // Reminders (FR-19..FR-25) — route model binding {reminder} по uuid (getRouteKeyName)
         Route::prefix('reminders')->name('reminders.')->group(function (): void {
-            // GET    /api/v1/reminders                 → Reminders\IndexController
-            // POST   /api/v1/reminders                 → Reminders\StoreController
-            // GET    /api/v1/reminders/{uuid}           → Reminders\ShowController
-            // PUT    /api/v1/reminders/{uuid}           → Reminders\UpdateController
-            // DELETE /api/v1/reminders/{uuid}           → Reminders\DestroyController
-            // POST   /api/v1/reminders/{uuid}/complete  → Reminders\CompleteController
-            // POST   /api/v1/reminders/{uuid}/snooze    → Reminders\SnoozeController
+            Route::get('/', ReminderIndexController::class)->name('index');
+            Route::post('/', ReminderStoreController::class)->name('store');
+            Route::get('{reminder}', ReminderShowController::class)->name('show');
+            Route::put('{reminder}', ReminderUpdateController::class)->name('update');
+            Route::delete('{reminder}', ReminderDestroyController::class)->name('destroy');
+            Route::post('{reminder}/complete', ReminderCompleteController::class)->name('complete');
+            Route::post('{reminder}/snooze', ReminderSnoozeController::class)->name('snooze');
         });
 
         // Sync — delta sync engine (FR-33..FR-37)
