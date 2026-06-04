@@ -3,3 +3,5 @@
 export * from './syncOutbox'
 export * from './syncMeta'
 export * from './notes'
+export * from './shoppingLists'
+export * from './shoppingListItems'
