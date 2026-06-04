@@ -14,6 +14,16 @@ use App\Http\Controllers\Notes\PinController as NotePinController;
 use App\Http\Controllers\Notes\ShowController as NoteShowController;
 use App\Http\Controllers\Notes\StoreController as NoteStoreController;
 use App\Http\Controllers\Notes\UpdateController as NoteUpdateController;
+use App\Http\Controllers\ShoppingLists\DestroyController as ListDestroyController;
+use App\Http\Controllers\ShoppingLists\IndexController as ListIndexController;
+use App\Http\Controllers\ShoppingLists\Items\CheckController as ItemCheckController;
+use App\Http\Controllers\ShoppingLists\Items\DestroyController as ItemDestroyController;
+use App\Http\Controllers\ShoppingLists\Items\IndexController as ItemIndexController;
+use App\Http\Controllers\ShoppingLists\Items\StoreController as ItemStoreController;
+use App\Http\Controllers\ShoppingLists\Items\UpdateController as ItemUpdateController;
+use App\Http\Controllers\ShoppingLists\ShowController as ListShowController;
+use App\Http\Controllers\ShoppingLists\StoreController as ListStoreController;
+use App\Http\Controllers\ShoppingLists\UpdateController as ListUpdateController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -78,18 +88,24 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('{note}/archive', NoteArchiveController::class)->name('archive');
         });
 
-        // Shopping Lists (FR-12..FR-18)
+        // Shopping Lists (FR-12..FR-18) — route model binding {shopping_list}/{item} по uuid
         Route::prefix('shopping-lists')->name('shopping-lists.')->group(function (): void {
-            // GET    /api/v1/shopping-lists                              → ShoppingLists\IndexController
-            // POST   /api/v1/shopping-lists                              → ShoppingLists\StoreController
-            // GET    /api/v1/shopping-lists/{uuid}                       → ShoppingLists\ShowController
-            // PUT    /api/v1/shopping-lists/{uuid}                       → ShoppingLists\UpdateController
-            // DELETE /api/v1/shopping-lists/{uuid}                       → ShoppingLists\DestroyController
-            // GET    /api/v1/shopping-lists/{uuid}/items                 → Items\IndexController
-            // POST   /api/v1/shopping-lists/{uuid}/items                 → Items\StoreController
-            // PUT    /api/v1/shopping-lists/{uuid}/items/{itemUuid}      → Items\UpdateController
-            // DELETE /api/v1/shopping-lists/{uuid}/items/{itemUuid}      → Items\DestroyController
-            // POST   /api/v1/shopping-lists/{uuid}/items/{itemUuid}/check → Items\CheckController
+            Route::get('/', ListIndexController::class)->name('index');
+            Route::post('/', ListStoreController::class)->name('store');
+            Route::get('{shopping_list}', ListShowController::class)->name('show');
+            Route::put('{shopping_list}', ListUpdateController::class)->name('update');
+            Route::delete('{shopping_list}', ListDestroyController::class)->name('destroy');
+
+            // Вложенные элементы: scopeBindings гарантирует, что {item}
+            // ищется внутри relation items() родительского {shopping_list}.
+            Route::prefix('{shopping_list}/items')->name('items.')->scopeBindings()
+                ->group(function (): void {
+                    Route::get('/', ItemIndexController::class)->name('index');
+                    Route::post('/', ItemStoreController::class)->name('store');
+                    Route::put('{item}', ItemUpdateController::class)->name('update');
+                    Route::delete('{item}', ItemDestroyController::class)->name('destroy');
+                    Route::post('{item}/check', ItemCheckController::class)->name('check');
+                });
         });
 
         // Reminders (FR-19..FR-25)
