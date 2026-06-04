@@ -109,6 +109,12 @@ const lkRoutes: RouteRecordRaw = {
       meta: { requiresAuth: true, title: 'Напоминания' },
     },
     {
+      path: 'reminders/new',
+      name: 'lk-reminder-create',
+      component: () => import('@/pages/lk/reminders/ReminderEditView.vue'),
+      meta: { requiresAuth: true, title: 'Новое напоминание' },
+    },
+    {
       path: 'reminders/:uuid',
       name: 'lk-reminder-edit',
       component: () => import('@/pages/lk/reminders/ReminderEditView.vue'),
