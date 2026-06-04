@@ -26,6 +26,15 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Напоминания"
+        onPress={() => router.push('/reminders')}
+        style={({ pressed }) => [styles.remindersLink, pressed && styles.remindersLinkPressed]}
+      >
+        <Text style={styles.remindersLinkText}>Ближайшие напоминания</Text>
+        <Text style={styles.remindersLinkArrow}>›</Text>
+      </Pressable>
       <TextInput
         accessibilityLabel="Поиск заметок"
         placeholder="Поиск"
@@ -76,6 +85,20 @@ const EmptyState = () => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f4f5' },
+  remindersLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
+  },
+  remindersLinkPressed: { opacity: 0.8 },
+  remindersLinkText: { fontSize: 16, fontWeight: '600', color: '#2563eb' },
+  remindersLinkArrow: { fontSize: 22, color: '#2563eb' },
   search: {
     margin: 16,
     minHeight: 44,
