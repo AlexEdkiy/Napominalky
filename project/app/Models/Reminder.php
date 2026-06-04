@@ -38,6 +38,17 @@ class Reminder extends Model
     ];
 
     /**
+     * Дефолты состояния (не из $fillable — устанавливаются доменными Actions).
+     * Гарантирует is_completed=false у только что созданной модели в памяти
+     * (а не null до перечитки из БД).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_completed' => false,
+    ];
+
+    /**
      * Маршрутизация и сериализация ведутся по публичному uuid, не по id.
      */
     public function getRouteKeyName(): string

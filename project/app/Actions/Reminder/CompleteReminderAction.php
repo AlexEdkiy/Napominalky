@@ -24,10 +24,11 @@ final class CompleteReminderAction
     public function __invoke(Reminder $reminder): Reminder
     {
         return DB::transaction(function () use ($reminder): Reminder {
-            $reminder->update([
-                'is_completed' => true,
-                'completed_at' => now(),
-            ]);
+            // Прямое присваивание: is_completed/completed_at вне $fillable
+            // (не принимаются из запроса), их выставляет только домен.
+            $reminder->is_completed = true;
+            $reminder->completed_at = now();
+            $reminder->save();
 
             if ($reminder->recurrence !== RecurrenceType::None) {
                 $this->createNextOccurrence($reminder);

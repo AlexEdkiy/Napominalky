@@ -19,9 +19,9 @@ final class SnoozeReminderAction
      */
     public function __invoke(Reminder $reminder, SnoozeOption $option): Reminder
     {
-        $reminder->update([
-            'snoozed_until' => now()->add($option->toInterval()),
-        ]);
+        // Прямое присваивание: snoozed_until вне $fillable (не из запроса).
+        $reminder->snoozed_until = now()->add($option->toInterval());
+        $reminder->save();
 
         return $reminder;
     }
