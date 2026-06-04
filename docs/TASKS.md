@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03 (завершено ядро фичи «Напоминания»: DEV-7, DEV-8, MBE-5, MOB-9, MOB-10, WEB-5, TEST-5)
+> Последнее обновление: 2026-06-03 (завершено ядро фичи «Синхронизация»: DEV-9, DEV-10, DEV-11, MBE-6, MBE-7, TEST-7)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 34 |
+| Completed | 40 |
 | In Progress | 0 |
-| Pending | 32 |
+| Pending | 26 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -850,7 +850,7 @@
 
 ### DEV-9: SyncConflict модель + миграция + Sync DTO (SyncChangeData, SyncPushResultData, ConflictData)
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** DEV-3, DEV-5, DEV-7, DEV-2
 - **Блокирует:** DEV-10, DEV-11
@@ -859,17 +859,17 @@
 - **Реализация:** app/Models/SyncConflict.php, миграция, app/Data/{SyncChangeData.php, SyncPushResultData.php, ConflictData.php}.
 - **Файлы:** `project/app/Models/SyncConflict.php`, `project/database/migrations/*_create_sync_conflicts_table.php`, `project/app/Data/SyncChangeData.php`, `project/app/Data/SyncPushResultData.php`, `project/app/Data/ConflictData.php`
 - **Критерии приёмки:**
-  - [ ] php artisan migrate:fresh успешна
-  - [ ] SyncConflict::all() работает
-  - [ ] uuid UNIQUE индекс
-  - [ ] DTO инстанцируются без ошибок
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] php artisan migrate:fresh успешна
+  - [x] SyncConflict::all() работает
+  - [x] uuid UNIQUE индекс
+  - [x] DTO инстанцируются без ошибок
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### DEV-10: SyncPullService + entity-to-Model map
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** DEV-9
 - **Блокирует:** MBE-6
@@ -878,17 +878,17 @@
 - **Реализация:** app/Services/Sync/SyncPullService.php с методом pull($user, $since): {notes, lists, listItems, reminders, cursor, hasMore}. Использовать лимит 200 записей на запрос.
 - **Файлы:** `project/app/Services/Sync/SyncPullService.php`
 - **Критерии приёмки:**
-  - [ ] SyncPullService::pull() возвращает корректную структуру
-  - [ ] Tombstones включены (deleted_at IS NOT NULL)
-  - [ ] Пагинация работает (has_more, cursor)
-  - [ ] Entity-to-Model map полный (4 типа)
-  - [ ] declare(strict_types=1)
+  - [x] SyncPullService::pull() возвращает корректную структуру
+  - [x] Tombstones включены (deleted_at IS NOT NULL)
+  - [x] Пагинация работает (has_more, cursor)
+  - [x] Entity-to-Model map полный (4 типа)
+  - [x] declare(strict_types=1)
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### DEV-11: SyncPushService + ConflictResolver (LWW+бэкап) + RegisterDeviceAction
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** DEV-9
 - **Блокирует:** MBE-7
@@ -897,17 +897,17 @@
 - **Реализация:** app/Services/Sync/SyncPushService.php, app/Services/Sync/ConflictResolver.php, app/Actions/Device/RegisterDeviceAction.php.
 - **Файлы:** `project/app/Services/Sync/SyncPushService.php`, `project/app/Services/Sync/ConflictResolver.php`, `project/app/Actions/Device/RegisterDeviceAction.php`
 - **Критерии приёмки:**
-  - [ ] SyncPushService::push($user, $changes) возвращает {applied, conflicts, cursor}
-  - [ ] LWW логика: если client_updated_at >= server_updated_at → apply, иначе → conflict
-  - [ ] Конфликты сохраняются в sync_conflicts с server_payload и client_payload
-  - [ ] RegisterDeviceAction обновляет last_synced_revision, last_synced_at
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] SyncPushService::push($user, $changes) возвращает {applied, conflicts, cursor}
+  - [x] LWW логика: если client_updated_at >= server_updated_at → apply, иначе → conflict
+  - [x] Конфликты сохраняются в sync_conflicts с server_payload и client_payload
+  - [x] RegisterDeviceAction обновляет last_synced_revision, last_synced_at
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MBE-6: ChangesController + ChangesRequest + SyncChangesResource + route
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** DEV-10
 - **Блокирует:** MOB-13, WEB-6, TEST-7
@@ -916,16 +916,16 @@
 - **Реализация:** app/Http/Controllers/Sync/ChangesController.php (__invoke), app/Http/Requests/Sync/ChangesRequest.php, app/Http/Resources/Sync/SyncChangesResource.php, routes.
 - **Файлы:** `project/app/Http/Controllers/Sync/ChangesController.php`, `project/app/Http/Requests/Sync/ChangesRequest.php`, `project/app/Http/Resources/Sync/SyncChangesResource.php`, обновить `project/routes/api.php`
 - **Критерии приёмки:**
-  - [ ] GET /api/v1/sync/changes?since=0 возвращает 200 с {data:{notes[],lists[],items[],reminders[]},meta:{cursor,has_more}}
-  - [ ] Требует auth:sanctum
-  - [ ] Tombstones включены
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] GET /api/v1/sync/changes?since=0 возвращает 200 с {data:{notes[],lists[],items[],reminders[]},meta:{cursor,has_more}}
+  - [x] Требует auth:sanctum
+  - [x] Tombstones включены
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MBE-7: PushController + PushRequest + результат-resource + ConflictsController + Device контроллеры + routes
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** DEV-11
 - **Блокирует:** MOB-13, WEB-6, TEST-7
@@ -934,14 +934,14 @@
 - **Реализация:** app/Http/Controllers/Sync/{PushController.php, ConflictsController.php}, app/Http/Controllers/Devices/{UpdateController.php, DestroyController.php}, requests, resources, routes.
 - **Файлы:** `project/app/Http/Controllers/Sync/PushController.php`, `project/app/Http/Controllers/Sync/ConflictsController.php`, `project/app/Http/Controllers/Devices/UpdateController.php`, `project/app/Http/Controllers/Devices/DestroyController.php`, `project/app/Http/Requests/Sync/PushRequest.php`, `project/app/Http/Resources/Sync/SyncPushResultResource.php`, `project/app/Http/Resources/Sync/ConflictResource.php`, `project/app/Http/Resources/DeviceResource.php`, обновить `project/routes/api.php`
 - **Критерии приёмки:**
-  - [ ] POST /api/v1/sync/push возвращает 200 с {data:{applied[],conflicts[],cursor}}
-  - [ ] GET /api/v1/sync/conflicts возвращает 200 с массивом конфликтов
-  - [ ] PUT /api/v1/devices/{uuid} обновляет name и last_synced_revision
-  - [ ] DELETE /api/v1/devices/{uuid} удаляет device (каскад или мягкое удаление)
-  - [ ] Все требуют auth:sanctum
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] POST /api/v1/sync/push возвращает 200 с {data:{applied[],conflicts[],cursor}}
+  - [x] GET /api/v1/sync/conflicts возвращает 200 с массивом конфликтов
+  - [x] PUT /api/v1/devices/{uuid} обновляет name и last_synced_revision
+  - [x] DELETE /api/v1/devices/{uuid} удаляет device (каскад или мягкое удаление)
+  - [x] Все требуют auth:sanctum
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-13: syncApi + types + applyChanges (LWW в SQLite)
 - **Исполнитель:** mobile-developer
@@ -1020,7 +1020,7 @@
 
 ### TEST-7: SyncPushService LWW (старее→конфликт/новее→применяется), идемпотентность, tombstone в pull, ConflictResolver unit
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-6, MBE-7
 - **Блокирует:** —
@@ -1029,13 +1029,13 @@
 - **Реализация:** tests/Unit/Services/Sync/{ConflictResolverTest.php, SyncPushServiceTest.php}, tests/Feature/Sync/{PushTest.php, PullTest.php}.
 - **Файлы:** `project/tests/Unit/Services/Sync/ConflictResolverTest.php`, `project/tests/Unit/Services/Sync/SyncPushServiceTest.php`, `project/tests/Feature/Sync/PushTest.php`, `project/tests/Feature/Sync/PullTest.php`
 - **Критерии приёмки:**
-  - [ ] php artisan test все проходят
-  - [ ] LWW: if client_updated_at >= server_updated_at → apply, else → conflict
-  - [ ] Двойной push с одинаковыми данными идемпотентен
-  - [ ] PULL включает tombstones (deleted_at IS NOT NULL)
-  - [ ] ConflictResolver сохраняет обе версии в sync_conflicts
+  - [x] php artisan test все проходят
+  - [x] LWW: if client_updated_at >= server_updated_at → apply, else → conflict
+  - [x] Двойной push с одинаковыми данными идемпотентен
+  - [x] PULL включает tombstones (deleted_at IS NOT NULL)
+  - [x] ConflictResolver сохраняет обе версии в sync_conflicts
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-8: applyChanges LWW unit, pushChanges очистка outbox, backoff
 - **Исполнитель:** test-engineer
