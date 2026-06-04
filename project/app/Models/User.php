@@ -84,6 +84,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Бэкапы спорных записей синхронизации (FR-37).
+     *
+     * @return HasMany<SyncConflict, $this>
+     */
+    public function syncConflicts(): HasMany
+    {
+        return $this->hasMany(SyncConflict::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
