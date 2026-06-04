@@ -47,6 +47,33 @@ final class SyncEntities
     ];
 
     /**
+     * entity_type → доменные колонки, принимаемые из клиентского payload при
+     * push (whitelist). Сюда НЕ входят id, user_id, uuid, server_revision и
+     * временные метки — они выставляются сервером (см. SyncPushService).
+     * Состав согласован с публичными полями SyncSerializer. Поле
+     * shopping_list_uuid — публичная ссылка на родителя, отдельно
+     * резолвится в shopping_list_id и в этот список не включается.
+     *
+     * @var array<string, list<string>>
+     */
+    public const FIELDS = [
+        'note' => ['title', 'body', 'is_pinned', 'is_archived'],
+        'shopping_list' => ['title'],
+        'shopping_list_item' => ['name', 'category', 'is_checked', 'position'],
+        'reminder' => [
+            'title',
+            'notes',
+            'remind_at',
+            'recurrence',
+            'is_completed',
+            'completed_at',
+            'snoozed_until',
+            'source_uuid',
+            'source_type',
+        ],
+    ];
+
+    /**
      * Все известные типы сущностей в порядке объявления.
      *
      * @return list<string>
@@ -86,5 +113,18 @@ final class SyncEntities
     public static function supports(string $entityType): bool
     {
         return isset(self::MAP[$entityType]);
+    }
+
+    /**
+     * Whitelist доменных колонок, принимаемых из payload для типа сущности.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidArgumentException на неизвестном типе
+     */
+    public static function fieldsFor(string $entityType): array
+    {
+        return self::FIELDS[$entityType]
+            ?? throw new InvalidArgumentException("Unknown sync entity type: {$entityType}");
     }
 }
