@@ -68,6 +68,14 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<ShoppingList, $this>
+     */
+    public function shoppingLists(): HasMany
+    {
+        return $this->hasMany(ShoppingList::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
