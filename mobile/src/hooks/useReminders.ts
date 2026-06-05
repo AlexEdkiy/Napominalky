@@ -76,6 +76,14 @@ export function useReminders(options: UseRemindersOptions = {}) {
   }
 }
 
+/** Пропущенные напоминания (remind_at < now, не выполнены) — для Главной (FR-28). */
+export function useMissedReminders() {
+  return useQuery<Reminder[]>({
+    queryKey: QueryKeys.reminders.missed,
+    queryFn: () => remindersRepo.missedReminders(),
+  })
+}
+
 /** Загрузка одного напоминания по uuid для экрана редактирования. */
 export function useReminder(uuid: string) {
   return useQuery<Reminder | null>({

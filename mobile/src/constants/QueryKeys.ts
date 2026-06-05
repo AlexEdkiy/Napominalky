@@ -22,6 +22,7 @@ export const QueryKeys = {
   reminders: {
     all: ['reminders'] as const,
     list: (params: ReminderListParams) => ['reminders', 'list', params] as const,
+    missed: ['reminders', 'missed'] as const,
     detail: (uuid: string) => ['reminders', uuid] as const,
   },
   notes: {
