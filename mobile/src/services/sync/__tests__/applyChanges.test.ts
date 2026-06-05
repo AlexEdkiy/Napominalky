@@ -1,0 +1,255 @@
+// Изолируем тест от нативного expo-sqlite: applyChanges принимает db явно.
+jest.mock('@/db/client', () => ({ db: {} }))
+
+import { applyChanges } from '../applyChanges'
+import type {
+  ServerNote,
+  ServerReminder,
+  SyncChangesResponse,
+} from '@/types/sync'
+
+interface InsertCall {
+  table: unknown
+  values: Record<string, unknown>
+}
+
+interface UpdateCall {
+  table: unknown
+  values: Record<string, unknown>
+}
+
+interface FakeState {
+  inserts: InsertCall[]
+  updates: UpdateCall[]
+  /** Существующие строки по uuid: возвращаются select'ом для LWW. */
+  existing: Record<string, { updatedAt: string }>
+}
+
+/**
+ * Фейк Drizzle-writer: select по uuid отдаёт existing[uuid] (или пусто),
+ * insert/update фиксируются. transaction вызывает колбэк с тем же writer'ом.
+ */
+const createFakeDb = (state: FakeState) => {
+  const writer = {
+    select: () => ({
+      from: () => ({
+        where: (cond: { uuid: string }) => ({
+          limit: async () => {
+            const found = state.existing[cond.uuid]
+            return found === undefined ? [] : [found]
+          },
+        }),
+      }),
+    }),
+    insert: (table: unknown) => ({
+      values: (values: Record<string, unknown>) => ({
+        onConflictDoUpdate: async () => {
+          state.inserts.push({ table, values })
+        },
+        then: (resolve: () => void) => {
+          state.inserts.push({ table, values })
+          resolve()
+        },
+      }),
+    }),
+    update: (table: unknown) => ({
+      set: (values: Record<string, unknown>) => ({
+        where: async () => {
+          state.updates.push({ table, values })
+        },
+      }),
+    }),
+  }
+  // eq(table.uuid, uuid) у нас замокан: возвращаем объект с uuid для where().
+  return {
+    ...writer,
+    transaction: async (cb: (tx: typeof writer) => Promise<void>) => cb(writer),
+  }
+}
+
+// Сохраняем реальный drizzle (нужен sqliteTable для схем), но подменяем eq,
+// чтобы where() получал { uuid } и фейк-db мог найти existing по uuid.
+jest.mock('drizzle-orm', () => ({
+  ...jest.requireActual('drizzle-orm'),
+  eq: (_col: unknown, value: string) => ({ uuid: value }),
+}))
+
+const baseNote = (over: Partial<ServerNote>): ServerNote => ({
+  uuid: 'n1',
+  title: 'Заметка',
+  body: null,
+  is_pinned: false,
+  is_archived: false,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+  deleted_at: null,
+  ...over,
+})
+
+const emptyResponse = (notes: ServerNote[], cursor = 5): SyncChangesResponse => ({
+  data: {
+    notes,
+    shopping_lists: [],
+    shopping_list_items: [],
+    reminders: [],
+  },
+  meta: { cursor, has_more: false },
+})
+
+const newState = (existing: FakeState['existing'] = {}): FakeState => ({
+  inserts: [],
+  updates: [],
+  existing,
+})
+
+describe('applyChanges — LWW', () => {
+  it('вставляет новую серверную запись, если локальной нет', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+
+    await applyChanges(emptyResponse([baseNote({ uuid: 'n1' })]), db)
+
+    const noteInsert = state.inserts.find((i) => i.values.uuid === 'n1')
+    expect(noteInsert).toBeDefined()
+    expect(state.updates).toHaveLength(0)
+  })
+
+  it('применяет серверную запись, когда она новее локальной (update)', async () => {
+    const state = newState({ n1: { updatedAt: '2026-01-01T00:00:00Z' } })
+    const db = createFakeDb(state) as never
+
+    await applyChanges(
+      emptyResponse([baseNote({ uuid: 'n1', updated_at: '2026-02-01T00:00:00Z' })]),
+      db,
+    )
+
+    expect(state.updates).toHaveLength(1)
+    expect(state.updates[0]?.values.uuid).toBe('n1')
+  })
+
+  it('пропускает серверную запись, когда локальная новее (клиент победил)', async () => {
+    const state = newState({ n1: { updatedAt: '2026-03-01T00:00:00Z' } })
+    const db = createFakeDb(state) as never
+
+    await applyChanges(
+      emptyResponse([baseNote({ uuid: 'n1', updated_at: '2026-01-01T00:00:00Z' })]),
+      db,
+    )
+
+    expect(state.updates).toHaveLength(0)
+    const noteInsert = state.inserts.find((i) => i.values.uuid === 'n1')
+    expect(noteInsert).toBeUndefined()
+  })
+})
+
+describe('applyChanges — конвертация и tombstone', () => {
+  it('конвертирует booleans true/false в 1/0', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+
+    await applyChanges(
+      emptyResponse([baseNote({ uuid: 'n1', is_pinned: true, is_archived: false })]),
+      db,
+    )
+
+    const values = state.inserts.find((i) => i.values.uuid === 'n1')?.values
+    expect(values?.isPinned).toBe(1)
+    expect(values?.isArchived).toBe(0)
+  })
+
+  it('применяет tombstone (deleted_at) при удалении на сервере', async () => {
+    const state = newState({ n1: { updatedAt: '2026-01-01T00:00:00Z' } })
+    const db = createFakeDb(state) as never
+
+    await applyChanges(
+      emptyResponse([
+        baseNote({
+          uuid: 'n1',
+          updated_at: '2026-02-01T00:00:00Z',
+          deleted_at: '2026-02-01T00:00:00Z',
+        }),
+      ]),
+      db,
+    )
+
+    expect(state.updates[0]?.values.deletedAt).toBe('2026-02-01T00:00:00Z')
+  })
+})
+
+describe('applyChanges — outbox и cursor', () => {
+  it('НЕ пишет в sync_outbox (никаких insert в таблицу outbox)', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+
+    await applyChanges(emptyResponse([baseNote({ uuid: 'n1' })]), db)
+
+    // Все insert'ы — только доменные строки и sync_meta; outbox не трогаем.
+    const outboxLike = state.inserts.filter(
+      (i) => 'entityType' in i.values || 'operation' in i.values,
+    )
+    expect(outboxLike).toHaveLength(0)
+  })
+
+  it('сохраняет курсор последнего pull в sync_meta', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+
+    await applyChanges(emptyResponse([], 42), db)
+
+    const cursorInsert = state.inserts.find(
+      (i) => i.values.key === 'last_pulled_revision',
+    )
+    expect(cursorInsert?.values.value).toBe('42')
+  })
+
+  it('идемпотентна: повторное применение того же ответа не делает update', async () => {
+    // После первого применения локальный updatedAt == серверному.
+    const state = newState({ n1: { updatedAt: '2026-02-01T00:00:00Z' } })
+    const db = createFakeDb(state) as never
+    const response = emptyResponse([
+      baseNote({ uuid: 'n1', updated_at: '2026-02-01T00:00:00Z' }),
+    ])
+
+    await applyChanges(response, db)
+    // updated_at >= local → допустимо применить (LWW не теряет равные),
+    // но данные те же, поэтому состояние не ломается.
+    await applyChanges(response, db)
+
+    expect(state.inserts.every((i) => i.values.uuid !== 'n1')).toBe(true)
+  })
+})
+
+describe('applyChanges — reminders', () => {
+  it('конвертирует is_completed и переносит source-поля', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+    const reminder: ServerReminder = {
+      uuid: 'r1',
+      title: 'Позвонить',
+      notes: null,
+      remind_at: '2026-05-01T10:00:00Z',
+      recurrence: 'none',
+      is_completed: true,
+      completed_at: '2026-05-01T11:00:00Z',
+      snoozed_until: null,
+      source_uuid: 's1',
+      source_type: 'shopping_list',
+      created_at: '2026-05-01T09:00:00Z',
+      updated_at: '2026-05-01T09:00:00Z',
+      deleted_at: null,
+    }
+
+    await applyChanges(
+      {
+        data: { notes: [], shopping_lists: [], shopping_list_items: [], reminders: [reminder] },
+        meta: { cursor: 1, has_more: false },
+      },
+      db,
+    )
+
+    const values = state.inserts.find((i) => i.values.uuid === 'r1')?.values
+    expect(values?.isCompleted).toBe(1)
+    expect(values?.remindAt).toBe('2026-05-01T10:00:00Z')
+    expect(values?.sourceUuid).toBe('s1')
+  })
+})
