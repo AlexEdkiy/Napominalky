@@ -8,6 +8,7 @@ import { syncMeta } from '@/db/schema/syncMeta'
 export const LAST_PULLED_REVISION = 'last_pulled_revision'
 export const DEVICE_UUID = 'device_uuid'
 export const DEVICE_NAME = 'device_name'
+export const LAST_SYNCED_AT = 'last_synced_at'
 
 type Writer = Pick<Database, 'select' | 'insert'>
 
@@ -65,3 +66,14 @@ export const getOrCreateDeviceUuid = async (
 export const getDeviceName = async (
   db: Writer = defaultDb,
 ): Promise<string | null> => getMeta(DEVICE_NAME, db)
+
+/** ISO-метка времени последней успешной синхронизации (null, если не было). */
+export const getLastSyncedAt = async (
+  db: Writer = defaultDb,
+): Promise<string | null> => getMeta(LAST_SYNCED_AT, db)
+
+/** Записывает ISO-метку времени последней успешной синхронизации. */
+export const setLastSyncedAt = async (
+  isoTime: string,
+  db: Writer = defaultDb,
+): Promise<void> => setMeta(LAST_SYNCED_AT, isoTime, db)

@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 
 import DbProvider from '@/providers/DbProvider'
 import { useAuthStore } from '@/stores/authStore'
+import { useSyncEngine } from '@/hooks/useSyncEngine'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,6 +15,15 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+/**
+ * Запускает движок синхронизации внутри провайдеров (БД готова): авто-sync
+ * при старте с токеном и syncEnabled и при возврате в онлайн. Ничего не рендерит.
+ */
+function SyncBootstrap(): null {
+  useSyncEngine()
+  return null
+}
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate)
@@ -25,6 +35,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <DbProvider>
+        <SyncBootstrap />
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
