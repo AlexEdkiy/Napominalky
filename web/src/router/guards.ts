@@ -14,11 +14,14 @@ export function setupGuards(router: Router): void {
   router.beforeEach((to) => {
     const auth = useAuthStore()
 
-    if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+    const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)
+
+    if (requiresAuth && !auth.isAuthenticated) {
       return { name: 'login', query: { redirect: to.fullPath } }
     }
 
-    if (to.meta.requiresAdmin && !auth.isAdmin) {
+    if (requiresAdmin && !auth.isAdmin) {
       return { name: 'lk-dashboard' }
     }
 
