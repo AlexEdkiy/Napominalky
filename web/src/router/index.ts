@@ -55,91 +55,95 @@ const adminRoutes: RouteRecordRaw = {
 // ---------------------------------------------------------------------------
 const lkRoutes: RouteRecordRaw = {
   path: '/lk',
+  component: () => import('@/layouts/LkLayout.vue'),
+  // requiresAuth на родителе — наследуется всеми дочерними разделами.
+  // Guard проверяет через to.matched.some(...), что корректно учитывает наследование.
+  meta: { requiresAuth: true },
   children: [
     {
       path: '',
       name: 'lk-dashboard',
       component: () => import('@/pages/lk/DashboardView.vue'),
-      meta: { requiresAuth: true, title: 'Личный кабинет' },
+      meta: { title: 'Личный кабинет' },
     },
     // Account
     {
       path: 'account',
       name: 'lk-account',
       component: () => import('@/pages/lk/AccountView.vue'),
-      meta: { requiresAuth: true, title: 'Аккаунт' },
+      meta: { title: 'Аккаунт' },
     },
     // Notes
     {
       path: 'notes',
       name: 'lk-notes',
       component: () => import('@/pages/lk/notes/NotesListView.vue'),
-      meta: { requiresAuth: true, title: 'Заметки' },
+      meta: { title: 'Заметки' },
     },
     {
       path: 'notes/new',
       name: 'lk-note-create',
       component: () => import('@/pages/lk/notes/NoteEditView.vue'),
-      meta: { requiresAuth: true, title: 'Новая заметка' },
+      meta: { title: 'Новая заметка' },
     },
     {
       path: 'notes/:uuid',
       name: 'lk-note-edit',
       component: () => import('@/pages/lk/notes/NoteEditView.vue'),
-      meta: { requiresAuth: true, title: 'Заметка' },
+      meta: { title: 'Заметка' },
     },
     // Shopping lists
     {
       path: 'lists',
       name: 'lk-lists',
       component: () => import('@/pages/lk/lists/ListsView.vue'),
-      meta: { requiresAuth: true, title: 'Списки покупок' },
+      meta: { title: 'Списки покупок' },
     },
     {
       path: 'lists/:uuid',
       name: 'lk-list-detail',
       component: () => import('@/pages/lk/lists/ListDetailView.vue'),
-      meta: { requiresAuth: true, title: 'Список покупок' },
+      meta: { title: 'Список покупок' },
     },
     // Reminders
     {
       path: 'reminders',
       name: 'lk-reminders',
       component: () => import('@/pages/lk/reminders/RemindersView.vue'),
-      meta: { requiresAuth: true, title: 'Напоминания' },
+      meta: { title: 'Напоминания' },
     },
     {
       path: 'reminders/new',
       name: 'lk-reminder-create',
       component: () => import('@/pages/lk/reminders/ReminderEditView.vue'),
-      meta: { requiresAuth: true, title: 'Новое напоминание' },
+      meta: { title: 'Новое напоминание' },
     },
     {
       path: 'reminders/:uuid',
       name: 'lk-reminder-edit',
       component: () => import('@/pages/lk/reminders/ReminderEditView.vue'),
-      meta: { requiresAuth: true, title: 'Напоминание' },
+      meta: { title: 'Напоминание' },
     },
     // Sync
     {
       path: 'sync',
       name: 'lk-sync',
       component: () => import('@/pages/lk/sync/SyncView.vue'),
-      meta: { requiresAuth: true, title: 'Синхронизация' },
+      meta: { title: 'Синхронизация' },
     },
     // Calendar
     {
       path: 'calendar',
       name: 'lk-calendar',
       component: () => import('@/pages/lk/calendar/CalendarView.vue'),
-      meta: { requiresAuth: true, title: 'Календарь' },
+      meta: { title: 'Календарь' },
     },
     // Settings
     {
       path: 'settings',
       name: 'lk-settings',
       component: () => import('@/pages/lk/SettingsView.vue'),
-      meta: { requiresAuth: true, title: 'Настройки' },
+      meta: { title: 'Настройки' },
     },
   ],
 }
