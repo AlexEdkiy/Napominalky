@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03 (завершено ядро фичи «Синхронизация»: DEV-9, DEV-10, DEV-11, MBE-6, MBE-7, TEST-7)
+> Последнее обновление: 2026-06-03 (завершена клиентская часть фичи «Синхронизация»: MOB-4, MOB-13, MOB-14, MOB-15, WEB-6, TEST-8)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 40 |
+| Completed | 46 |
 | In Progress | 0 |
-| Pending | 26 |
+| Pending | 20 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -307,7 +307,7 @@
 
 ### MOB-4: netStatus (NetInfo) + интеграция baseRepo→outbox
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-3
 - **Блокирует:** —
@@ -316,12 +316,12 @@
 - **Реализация:** src/services/netStatus.ts (useNetStatus хук, возвращает isConnected), интеграция в baseRepo: если офлайн, операция записывается только в outbox, если онлайн, можно пытаться синхронизировать.
 - **Файлы:** `mobile/src/services/netStatus.ts`, обновить `mobile/src/db/repositories/baseRepo.ts`
 - **Критерии приёмки:**
-  - [ ] useNetStatus() возвращает {isConnected: boolean}
-  - [ ] NetInfo слушатель добавляет/удаляет listener при mount/unmount
-  - [ ] baseRepo.insert() работает офлайн (пишет в outbox)
-  - [ ] TypeScript strict mode
+  - [x] useNetStatus() возвращает {isConnected: boolean}
+  - [x] NetInfo слушатель добавляет/удаляет listener при mount/unmount
+  - [x] baseRepo.insert() работает офлайн (пишет в outbox)
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-2: baseRepo unit (CRUD пишет в outbox), offline CRUD
 - **Исполнитель:** test-engineer
@@ -945,7 +945,7 @@
 
 ### MOB-13: syncApi + types + applyChanges (LWW в SQLite)
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** MOB-3, MBE-6, MBE-7
 - **Блокирует:** MOB-14
@@ -954,17 +954,17 @@
 - **Реализация:** src/api/syncApi.ts (functions: getChanges, pushChanges), src/types/sync.ts (SyncChange, SyncPushResult, Conflict), src/services/sync/applyChanges.ts (LWW логика для upsert/tombstone).
 - **Файлы:** `mobile/src/api/syncApi.ts`, `mobile/src/types/sync.ts`, `mobile/src/services/sync/applyChanges.ts`
 - **Критерии приёмки:**
-  - [ ] getChanges(since) возвращает structure {notes, lists, items, reminders, cursor, has_more}
-  - [ ] pushChanges(changes) возвращает {applied, conflicts, cursor}
-  - [ ] applyChanges(changes) применяет LWW к SQLite (новые или одновозрастные записи перезаписываются)
-  - [ ] Tombstones (deleted_at) корректно обрабатываются (soft delete в SQLite)
-  - [ ] TypeScript strict mode
+  - [x] getChanges(since) возвращает structure {notes, lists, items, reminders, cursor, has_more}
+  - [x] pushChanges(changes) возвращает {applied, conflicts, cursor}
+  - [x] applyChanges(changes) применяет LWW к SQLite (новые или одновозрастные записи перезаписываются)
+  - [x] Tombstones (deleted_at) корректно обрабатываются (soft delete в SQLite)
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-14: pushChanges + pullChanges + backoff
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** MOB-13
 - **Блокирует:** MOB-15
@@ -973,17 +973,17 @@
 - **Реализация:** src/services/sync/{pushChanges.ts, pullChanges.ts, backoff.ts}. pushChanges читает sync_outbox, отправляет на сервер, очищает применённые. pullChanges вызывает applyChanges. Backoff реализован как retry-декоратор.
 - **Файлы:** `mobile/src/services/sync/pushChanges.ts`, `mobile/src/services/sync/pullChanges.ts`, `mobile/src/services/sync/backoff.ts`
 - **Критерии приёмки:**
-  - [ ] pushChanges() читает outbox, отправляет, очищает применённые записи
-  - [ ] pullChanges() применяет LWW, обновляет last_pulled_revision
-  - [ ] Backoff: exponential delay (1s, 2s, 4s, 8s), макс 5 попыток
-  - [ ] При успехе: очистить outbox, обновить cursor в sync_meta
-  - [ ] TypeScript strict mode
+  - [x] pushChanges() читает outbox, отправляет, очищает применённые записи
+  - [x] pullChanges() применяет LWW, обновляет last_pulled_revision
+  - [x] Backoff: exponential delay (1s, 2s, 4s, 8s), макс 5 попыток
+  - [x] При успехе: очистить outbox, обновить cursor в sync_meta
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-15: syncEngine + useSyncEngine + триггеры (онлайн/ручной/full pull при логине)
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** MOB-14
 - **Блокирует:** —
@@ -992,18 +992,18 @@
 - **Реализация:** src/services/sync/syncEngine.ts, src/hooks/useSyncEngine.ts. syncEngine.sync() выполняет: if (sync_enabled && isOnline) { pushChanges → pullChanges → apply }. useSyncEngine подписывает на onChange событие. App.tsx/layout вызывает sync при старте с lastPulledRevision=0.
 - **Файлы:** `mobile/src/services/sync/syncEngine.ts`, `mobile/src/hooks/useSyncEngine.ts`, обновить `mobile/app/_layout.tsx` или основной App компонент
 - **Критерии приёмки:**
-  - [ ] syncEngine.sync() выполняет push → pull → apply последовательно
-  - [ ] useSyncEngine() возвращает {sync, isSyncing, lastError, lastSyncedAt}
-  - [ ] При логине: full pull (since=0)
-  - [ ] При возвращении онлайн: автоматич sync (с backoff)
-  - [ ] Кнопка Sync вручную может запустить syncEngine.sync()
-  - [ ] TypeScript strict mode
+  - [x] syncEngine.sync() выполняет push → pull → apply последовательно
+  - [x] useSyncEngine() возвращает {sync, isSyncing, lastError, lastSyncedAt}
+  - [x] При логине: full pull (since=0)
+  - [x] При возвращении онлайн: автоматич sync (с backoff)
+  - [x] Кнопка Sync вручную может запустить syncEngine.sync()
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### WEB-6: syncApi + useSync + SyncView (статус, устройства, конфликты)
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-6, MBE-7, WEB-1
 - **Блокирует:** —
@@ -1012,11 +1012,11 @@
 - **Реализация:** src/api/syncApi.ts, src/composables/useSync.ts, src/pages/lk/sync/SyncView.vue. SyncView показывает таблицу конфликтов с сервером payload, client payload, кнопка resolve.
 - **Файлы:** `web/src/api/syncApi.ts`, `web/src/composables/useSync.ts`, `web/src/pages/lk/sync/SyncView.vue`
 - **Критерии приёмки:**
-  - [ ] SyncView загружает и показывает конфликты
-  - [ ] Показывает список устройств с last_synced_at
-  - [ ] TypeScript strict mode
+  - [x] SyncView загружает и показывает конфликты
+  - [x] Показывает список устройств с last_synced_at
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-7: SyncPushService LWW (старее→конфликт/новее→применяется), идемпотентность, tombstone в pull, ConflictResolver unit
 - **Исполнитель:** test-engineer
@@ -1039,7 +1039,7 @@
 
 ### TEST-8: applyChanges LWW unit, pushChanges очистка outbox, backoff
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-14
 - **Блокирует:** —
@@ -1048,12 +1048,12 @@
 - **Реализация:** tests/services/sync/{applyChanges.test.ts, pushChanges.test.ts, backoff.test.ts}.
 - **Файлы:** `mobile/__tests__/services/sync/applyChanges.test.ts`, `mobile/__tests__/services/sync/pushChanges.test.ts`, `mobile/__tests__/services/sync/backoff.test.ts`
 - **Критерии приёмки:**
-  - [ ] npm test services/sync/*.test.ts все проходят
-  - [ ] applyChanges LWW корректно (новое перезаписывает старое)
-  - [ ] pushChanges очищает outbox после успешной отправки
-  - [ ] backoff exponential: 1s, 2s, 4s, 8s
+  - [x] npm test services/sync/*.test.ts все проходят (83 passed, 42 sync)
+  - [x] applyChanges LWW корректно (новое перезаписывает старое)
+  - [x] pushChanges очищает outbox после успешной отправки
+  - [x] backoff exponential: 1s, 2s, 4s, 8s
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
