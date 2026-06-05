@@ -17,20 +17,23 @@ export interface SchedulableReminder {
 interface ReminderNotificationData {
   type: 'reminder'
   uuid: string
+  [key: string]: unknown
 }
 
 let handlerConfigured = false
 
 /**
- * Настраивает поведение уведомлений в foreground (alert + sound). Идемпотентно:
- * повторные вызовы игнорируются. Вызывается один раз при старте приложения.
+ * Настраивает поведение уведомлений в foreground (баннер + список + sound).
+ * Идемпотентно: повторные вызовы игнорируются. Вызывается один раз при старте
+ * приложения. SDK 53+: shouldShowAlert заменён на shouldShowBanner + shouldShowList.
  */
 export const configureNotificationHandler = (): void => {
   if (handlerConfigured) return
   handlerConfigured = true
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
