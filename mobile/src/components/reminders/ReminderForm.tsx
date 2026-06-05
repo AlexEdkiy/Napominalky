@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
+import DateTimeField from '@/components/common/DateTimeField'
 import QuickTimePresets from '@/components/reminders/QuickTimePresets'
 import RecurrencePicker from '@/components/reminders/RecurrencePicker'
-import { formatDateTime, isValidIso } from '@/utils/datetime'
+import { isValidIso } from '@/utils/datetime'
 import type { RecurrenceType } from '@/utils/recurrence'
 
 export interface ReminderFormValues {
@@ -62,17 +63,12 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
         multiline
         style={styles.notes}
       />
-      <BaseInput
-        label="Дата и время (ISO 8601)"
+      <DateTimeField
+        label="Дата и время"
         value={remindAt}
-        onChangeText={setRemindAt}
-        placeholder="2026-06-04T18:00:00.000Z"
-        autoCapitalize="none"
+        onChange={setRemindAt}
         error={remindAt.length > 0 && !remindAtValid ? 'Некорректный формат даты' : undefined}
       />
-      {remindAtValid ? (
-        <Text style={styles.preview}>Напомнить: {formatDateTime(remindAt)}</Text>
-      ) : null}
       <QuickTimePresets onSelect={setRemindAt} />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <View style={styles.actions}>
@@ -91,7 +87,6 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
 const styles = StyleSheet.create({
   container: { gap: 16, padding: 16 },
   notes: { minHeight: 100, textAlignVertical: 'top', paddingTop: 12 },
-  preview: { fontSize: 14, color: '#2563eb', fontWeight: '500' },
   actions: { gap: 12, marginTop: 8 },
 })
 
