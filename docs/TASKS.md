@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03 (завершена клиентская часть фичи «Синхронизация»: MOB-4, MOB-13, MOB-14, MOB-15, WEB-6, TEST-8)
+> Последнее обновление: 2026-06-03 (завершена фича «Уведомления»: MOB-11, MOB-12, TEST-6)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 46 |
+| Completed | 49 |
 | In Progress | 0 |
-| Pending | 20 |
+| Pending | 17 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -793,7 +793,7 @@
 
 ### MOB-11: notifications.ts (schedule/cancel) + интеграция в remindersRepo
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-9
 - **Блокирует:** MOB-12
@@ -802,16 +802,16 @@
 - **Реализация:** src/services/notifications.ts с функциями scheduleReminder(reminder) и cancelReminder(notificationId). Вызывать из remindersRepo.createReminder() и remindersRepo.deleteReminder().
 - **Файлы:** `mobile/src/services/notifications.ts`, обновить `mobile/src/db/repositories/remindersRepo.ts`
 - **Критерии приёмки:**
-  - [ ] scheduleReminder() успешно планирует уведомление (можно проверить через Expo Go)
-  - [ ] notification_id сохраняется в БД
-  - [ ] cancelReminder() отменяет уведомление
-  - [ ] TypeScript strict mode
+  - [x] scheduleReminder() успешно планирует уведомление (можно проверить через Expo Go)
+  - [x] notification_id сохраняется в БД
+  - [x] cancelReminder() отменяет уведомление
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-12: useNotifications (permissions) + deepLinks + подписка в _layout + обработка пропущенных
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-11
 - **Блокирует:** —
@@ -820,16 +820,16 @@
 - **Реализация:** src/hooks/useNotifications.ts, src/services/deepLinks.ts (парсинг уведомлений), обновить app/_layout.tsx (подписка на notification response).
 - **Файлы:** `mobile/src/hooks/useNotifications.ts`, `mobile/src/services/deepLinks.ts`, обновить `mobile/app/_layout.tsx`
 - **Критерии приёмки:**
-  - [ ] useNotifications() запрашивает разрешения, возвращает {permissionStatus}
-  - [ ] Клик на уведомление → reminders/[uuid]
-  - [ ] Пропущенные напоминания отображаются на Главной
-  - [ ] TypeScript strict mode
+  - [x] useNotifications() запрашивает разрешения, возвращает {permissionStatus}
+  - [x] Клик на уведомление → reminders/[uuid]
+  - [x] Пропущенные напоминания отображаются на Главной
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-6: Jest unit schedule/cancel (mock expo-notifications), deep link parsing
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** medium
 - **Зависимости:** MOB-11
 - **Блокирует:** —
@@ -838,11 +838,11 @@
 - **Реализация:** tests/services/notifications.test.ts, tests/services/deepLinks.test.ts.
 - **Файлы:** `mobile/__tests__/services/notifications.test.ts`, `mobile/__tests__/services/deepLinks.test.ts`
 - **Критерии приёмки:**
-  - [ ] npm test services/notifications.test.ts проходит
-  - [ ] scheduleReminder мокируется без ошибок
-  - [ ] deepLink парсинг корректно извлекает uuid
+  - [x] npm test services/notifications.test.ts проходит
+  - [x] scheduleReminder мокируется без ошибок
+  - [x] deepLink парсинг корректно извлекает uuid
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
