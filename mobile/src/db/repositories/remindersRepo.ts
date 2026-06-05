@@ -3,6 +3,12 @@ import { db as defaultDb, type Database } from '../client'
 import { reminders, type ReminderRow } from '../schema/reminders'
 import { nextOccurrence, type RecurrenceType } from '../../utils/recurrence'
 import { BaseRepository, type SyncTable } from './baseRepo'
+import {
+  cancelReminder,
+  rescheduleReminder,
+  scheduleReminder,
+  type SchedulableReminder,
+} from '../../services/notifications'
 
 /** Доменное напоминание: boolean is_completed вместо 0/1. */
 export interface Reminder {
@@ -56,6 +62,15 @@ const flag = (value: boolean): number => (value ? 1 : 0)
 
 const nowIso = (): string => new Date().toISOString()
 
+/** Доменное напоминание → набор полей для планировщика уведомлений. */
+const toSchedulable = (reminder: Reminder): SchedulableReminder => ({
+  uuid: reminder.uuid,
+  title: reminder.title,
+  notes: reminder.notes,
+  remind_at: reminder.remindAt,
+  snoozed_until: reminder.snoozedUntil,
+})
+
 /** Преобразует строку SQLite (0/1) в доменное напоминание с booleans. */
 const toReminder = (row: ReminderRow): Reminder => ({
   uuid: row.uuid,
@@ -103,7 +118,10 @@ export class RemindersRepository {
       sourceType: data.sourceType ?? null,
       isCompleted: 0,
     } as never)
-    return toReminder(row as ReminderRow)
+    const reminder = toReminder(row as ReminderRow)
+    const nid = await scheduleReminder(toSchedulable(reminder))
+    if (nid !== null) await this.setNotificationId(reminder.uuid, nid)
+    return { ...reminder, notificationId: nid }
   }
 
   public async updateReminder(
@@ -117,14 +135,33 @@ export class RemindersRepository {
     if (patch.recurrence !== undefined) values.recurrence = patch.recurrence
     if (patch.userId !== undefined) values.userId = patch.userId
 
+    const current = await this.base.findById(uuid)
+    if (current === null) return null
+    const oldNotificationId = (current as ReminderRow).notificationId
+
     const row = await this.base.update(uuid, values as never)
-    return row === null ? null : toReminder(row as ReminderRow)
+    if (row === null) return null
+    const reminder = toReminder(row as ReminderRow)
+
+    // Перепланируем, только если изменилась дата срабатывания.
+    if (patch.remindAt === undefined) return reminder
+    const nid = await rescheduleReminder(
+      toSchedulable(reminder),
+      oldNotificationId,
+    )
+    await this.setNotificationId(uuid, nid)
+    return { ...reminder, notificationId: nid }
   }
 
   /** Мягкое удаление: tombstone (deleted_at) + delete-запись в outbox. */
   public async deleteReminder(uuid: string): Promise<Reminder | null> {
+    const current = await this.base.findById(uuid)
     const row = await this.base.softDelete(uuid)
-    return row === null ? null : toReminder(row as ReminderRow)
+    if (row === null) return null
+    if (current !== null) {
+      await cancelReminder((current as ReminderRow).notificationId)
+    }
+    return toReminder(row as ReminderRow)
   }
 
   public async getReminderByUuid(uuid: string): Promise<Reminder | null> {
@@ -167,6 +204,9 @@ export class RemindersRepository {
     } as never)
     if (completed === null) return null
 
+    // Выполненное напоминание не должно сработать — отменяем уведомление.
+    await cancelReminder(row.notificationId)
+
     const recurrence = row.recurrence as RecurrenceType
     const nextRemindAt = nextOccurrence(recurrence, row.remindAt)
     if (nextRemindAt !== null) {
@@ -192,10 +232,22 @@ export class RemindersRepository {
     uuid: string,
     snoozedUntilIso: string,
   ): Promise<Reminder | null> {
+    const current = await this.base.findById(uuid)
+    if (current === null) return null
+    const oldNotificationId = (current as ReminderRow).notificationId
+
     const row = await this.base.update(uuid, {
       snoozedUntil: snoozedUntilIso,
     } as never)
-    return row === null ? null : toReminder(row as ReminderRow)
+    if (row === null) return null
+    const reminder = toReminder(row as ReminderRow)
+
+    const nid = await rescheduleReminder(
+      toSchedulable(reminder),
+      oldNotificationId,
+    )
+    await this.setNotificationId(uuid, nid)
+    return { ...reminder, notificationId: nid }
   }
 
   /**
