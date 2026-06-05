@@ -153,7 +153,9 @@ describe('RemindersRepository.completeReminder', () => {
 describe('RemindersRepository.snoozeReminder', () => {
   it('ставит snoozed_until = переданная ISO и пишет update в outbox', async () => {
     const inserts: InsertCall[] = []
-    const repo = new RemindersRepository(createFakeDb(inserts) as never)
+    const repo = new RemindersRepository(
+      createFakeDb(inserts, [reminderRow()]) as never,
+    )
 
     const until = '2026-06-04T11:00:00.000Z'
     const reminder = await repo.snoozeReminder('u1', until)
