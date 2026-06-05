@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -11,17 +11,25 @@ import {
 import { router } from 'expo-router'
 
 import NoteCard from '@/components/notes/NoteCard'
+import ReminderCard from '@/components/reminders/ReminderCard'
 import { useNotes } from '@/hooks/useNotes'
+import { useMissedReminders } from '@/hooks/useReminders'
 import type { Note } from '@/db/repositories/notesRepo'
+import type { Reminder } from '@/db/repositories/remindersRepo'
 
 export default function HomeScreen() {
   const { notes, isLoading } = useNotes()
+  const { data: missed = [] } = useMissedReminders()
   const [search, setSearch] = useState('')
 
   const filtered = filterNotes(notes, search)
 
   const handleOpen = (uuid: string): void => {
     router.push(`/notes/${uuid}`)
+  }
+
+  const handleOpenReminder = (uuid: string): void => {
+    router.push(`/reminders/${uuid}`)
   }
 
   return (
@@ -35,6 +43,7 @@ export default function HomeScreen() {
         <Text style={styles.remindersLinkText}>Ближайшие напоминания</Text>
         <Text style={styles.remindersLinkArrow}>›</Text>
       </Pressable>
+      <MissedSection reminders={missed} onOpen={handleOpenReminder} />
       <TextInput
         accessibilityLabel="Поиск заметок"
         placeholder="Поиск"
@@ -83,6 +92,23 @@ const EmptyState = () => (
   </View>
 )
 
+interface MissedSectionProps {
+  reminders: Reminder[]
+  onOpen: (uuid: string) => void
+}
+
+const MissedSection: React.FC<MissedSectionProps> = ({ reminders, onOpen }) => {
+  if (reminders.length === 0) return null
+  return (
+    <View style={styles.missed}>
+      <Text style={styles.missedTitle}>Пропущенные</Text>
+      {reminders.map((reminder) => (
+        <ReminderCard key={reminder.uuid} reminder={reminder} onPress={onOpen} />
+      ))}
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f4f5' },
   remindersLink: {
@@ -99,6 +125,8 @@ const styles = StyleSheet.create({
   remindersLinkPressed: { opacity: 0.8 },
   remindersLinkText: { fontSize: 16, fontWeight: '600', color: '#2563eb' },
   remindersLinkArrow: { fontSize: 22, color: '#2563eb' },
+  missed: { marginHorizontal: 16, marginTop: 16, gap: 8 },
+  missedTitle: { fontSize: 16, fontWeight: '700', color: '#b91c1c' },
   search: {
     margin: 16,
     minHeight: 44,

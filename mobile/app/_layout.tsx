@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import DbProvider from '@/providers/DbProvider'
 import { useAuthStore } from '@/stores/authStore'
 import { useSyncEngine } from '@/hooks/useSyncEngine'
+import { useNotifications } from '@/hooks/useNotifications'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +26,15 @@ function SyncBootstrap(): null {
   return null
 }
 
+/**
+ * Инициализирует локальные уведомления (handler, разрешения) и навигацию по
+ * тапу на уведомление. Внутри провайдеров и контекста роутера. Ничего не рендерит.
+ */
+function NotificationsBootstrap(): null {
+  useNotifications()
+  return null
+}
+
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate)
 
@@ -36,6 +46,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <DbProvider>
         <SyncBootstrap />
+        <NotificationsBootstrap />
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />

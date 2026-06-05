@@ -1,4 +1,4 @@
-import { and, asc, between, eq, isNull } from 'drizzle-orm'
+import { and, asc, between, eq, isNull, lt } from 'drizzle-orm'
 import { db as defaultDb, type Database } from '../client'
 import { reminders, type ReminderRow } from '../schema/reminders'
 import { nextOccurrence, type RecurrenceType } from '../../utils/recurrence'
@@ -266,6 +266,25 @@ export class RemindersRepository {
           isNull(reminders.deletedAt),
           eq(reminders.isCompleted, 0),
           between(reminders.remindAt, fromIso, toIso),
+        ),
+      )
+      .orderBy(asc(reminders.remindAt))
+    return rows.map(toReminder)
+  }
+
+  /**
+   * Пропущенные напоминания (FR-28): активные (без tombstone), не выполненные,
+   * у которых remind_at уже прошёл (< now). Сортировка по remind_at.
+   */
+  public async missedReminders(): Promise<Reminder[]> {
+    const rows = await this.db
+      .select()
+      .from(reminders)
+      .where(
+        and(
+          isNull(reminders.deletedAt),
+          eq(reminders.isCompleted, 0),
+          lt(reminders.remindAt, nowIso()),
         ),
       )
       .orderBy(asc(reminders.remindAt))
