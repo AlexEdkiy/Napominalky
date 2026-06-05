@@ -217,6 +217,55 @@ describe('applyChanges — outbox и cursor', () => {
 
     expect(state.inserts.every((i) => i.values.uuid !== 'n1')).toBe(true)
   })
+
+  it('идемпотентна для insert: повторный вызов не создаёт дублей строки', async () => {
+    // Эмулируем реальную БД: после первого insert строка существует с тем же
+    // updatedAt, поэтому второй проход идёт по ветке LWW (>=), а не insert.
+    const state = newState()
+    const insertingDb = {
+      ...createFakeDb(state),
+    } as ReturnType<typeof createFakeDb>
+    const db = insertingDb as never
+    const response = emptyResponse([
+      baseNote({ uuid: 'n1', updated_at: '2026-02-01T00:00:00Z' }),
+    ])
+
+    await applyChanges(response, db)
+    // Регистрируем строку как существующую — имитация записи из первого прохода.
+    state.existing.n1 = { updatedAt: '2026-02-01T00:00:00Z' }
+    await applyChanges(response, db)
+
+    const inserts = state.inserts.filter((i) => i.values.uuid === 'n1')
+    expect(inserts).toHaveLength(1)
+  })
+
+  it('идемпотентна: не пишет outbox-подобных записей при повторном применении', async () => {
+    const state = newState({ n1: { updatedAt: '2026-02-01T00:00:00Z' } })
+    const db = createFakeDb(state) as never
+    const response = emptyResponse([
+      baseNote({ uuid: 'n1', updated_at: '2026-02-01T00:00:00Z' }),
+    ])
+
+    await applyChanges(response, db)
+    await applyChanges(response, db)
+
+    const outboxLike = state.inserts.filter(
+      (i) => 'entityType' in i.values || 'operation' in i.values,
+    )
+    expect(outboxLike).toHaveLength(0)
+  })
+
+  it('курсор в sync_meta равен meta.cursor ответа', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+
+    await applyChanges(emptyResponse([baseNote({ uuid: 'n1' })], 777), db)
+
+    const cursorInsert = state.inserts.find(
+      (i) => i.values.key === 'last_pulled_revision',
+    )
+    expect(cursorInsert?.values.value).toBe('777')
+  })
 })
 
 describe('applyChanges — reminders', () => {
