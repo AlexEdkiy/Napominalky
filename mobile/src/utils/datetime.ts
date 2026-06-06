@@ -26,3 +26,10 @@ export const formatDateTime = (iso: string): string => {
   const minutes = pad(date.getMinutes())
   return `${day}.${month}.${date.getFullYear()} ${hours}:${minutes}`
 }
+
+/** Локальное «чч:мм» для отображения. Для невалидного входа — исходная строка. */
+export const formatTime = (iso: string): string => {
+  const date = new Date(iso)
+  if (!Number.isFinite(date.getTime())) return iso
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
