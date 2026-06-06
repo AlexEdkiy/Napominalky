@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Alert, StyleSheet, View } from 'react-native'
 
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import DateTimeField from '@/components/common/DateTimeField'
 import QuickTimePresets from '@/components/reminders/QuickTimePresets'
 import RecurrencePicker from '@/components/reminders/RecurrencePicker'
+import { exportReminderToCalendar } from '@/services/systemCalendar'
 import { isValidIso } from '@/utils/datetime'
 import type { RecurrenceType } from '@/utils/recurrence'
 
@@ -43,6 +44,7 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
   const [notes, setNotes] = useState(start.notes)
   const [remindAt, setRemindAt] = useState(start.remindAt)
   const [recurrence, setRecurrence] = useState<RecurrenceType>(start.recurrence)
+  const [isExporting, setIsExporting] = useState(false)
 
   const remindAtValid = remindAt.trim().length > 0 && isValidIso(remindAt)
   const canSubmit = title.trim().length > 0 && remindAtValid
@@ -50,6 +52,21 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
   const handleSubmit = (): void => {
     if (!canSubmit) return
     onSubmit({ title: title.trim(), notes: notes.trim(), remindAt, recurrence })
+  }
+
+  const handleExport = async (): Promise<void> => {
+    if (!canSubmit) return
+    setIsExporting(true)
+    const eventId = await exportReminderToCalendar({
+      title: title.trim(),
+      notes: notes.trim() || null,
+      remind_at: remindAt,
+    })
+    setIsExporting(false)
+    Alert.alert(
+      eventId ? 'Добавлено в календарь' : 'Не удалось',
+      eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
+    )
   }
 
   return (
@@ -76,6 +93,13 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
           label={submitLabel}
           onPress={handleSubmit}
           loading={isSaving}
+          disabled={!canSubmit}
+        />
+        <BaseButton
+          label="Экспорт в календарь"
+          variant="secondary"
+          onPress={handleExport}
+          loading={isExporting}
           disabled={!canSubmit}
         />
         {onDelete ? <BaseButton label="Удалить" variant="secondary" onPress={onDelete} /> : null}
