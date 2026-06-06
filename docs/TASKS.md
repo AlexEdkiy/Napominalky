@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03 (завершена фича «Уведомления»: MOB-11, MOB-12, TEST-6)
+> Последнее обновление: 2026-06-03 (завершена фича «Календарь»: MOB-16, MOB-17, WEB-7, TEST-9)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 49 |
+| Completed | 53 |
 | In Progress | 0 |
-| Pending | 17 |
+| Pending | 13 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -1061,73 +1061,73 @@
 
 ### MOB-16: useCalendar (выборка SQLite по диапазону) + MonthGrid/DayCell/DayRemindersSheet + calendar.tsx
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** medium
 - **Зависимости:** MOB-9
 - **Блокирует:** MOB-17
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
 - **Описание:** Создать useCalendar хук для выборки напоминаний по месяцу из SQLite. Компоненты MonthGrid (месячный календарь), DayCell (ячейка дня), DayRemindersSheet (всплывающая панель с напоминаниями дня). Экран (tabs)/calendar.tsx.
-- **Реализация:** src/hooks/useCalendar.ts (getDaysInMonth, getRemindersByMonth), src/components/calendar/{MonthGrid.tsx, DayCell.tsx, DayRemindersSheet.tsx}, app/(tabs)/calendar.tsx. Используется utils/dateRange для выборки дат.
+- **Реализация:** src/hooks/useCalendar.ts (getDaysInMonth, getRemindersByMonth), src/components/calendar/{MonthGrid.tsx, DayCell.tsx, DayRemindersSheet.tsx}, app/(tabs)/calendar.tsx. Используется utils/dateRange для выборки дат. Результат: dateRange utils (monthRange/getCalendarDays Пн-Вс/sameDay/ymd), useCalendar (byDay из remindersBetween), месячный экран с навигацией и списком дня → /reminders/[uuid]; tsc OK, jest 116.
 - **Файлы:** `mobile/src/hooks/useCalendar.ts`, `mobile/src/components/calendar/MonthGrid.tsx`, `mobile/src/components/calendar/DayCell.tsx`, `mobile/src/components/calendar/DayRemindersSheet.tsx`, `mobile/app/(tabs)/calendar.tsx`
 - **Критерии приёмки:**
-  - [ ] MonthGrid показывает 6 недель (календарь на месяц)
-  - [ ] DayCell подсвечивает дни с напоминаниями
-  - [ ] DayRemindersSheet всплывает при клике на день
-  - [ ] useCalendar возвращает reminders filtered по месяцу
-  - [ ] TypeScript strict mode
+  - [x] MonthGrid показывает 6 недель (календарь на месяц)
+  - [x] DayCell подсвечивает дни с напоминаниями
+  - [x] DayRemindersSheet всплывает при клике на день
+  - [x] useCalendar возвращает reminders filtered по месяцу
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-17: systemCalendar (expo-calendar экспорт) + кнопка в ReminderForm
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** medium
 - **Зависимости:** MOB-16
 - **Блокирует:** —
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
 - **Описание:** Создать сервис systemCalendar для экспорта напоминания в системный календарь (iOS Calendar, Android Calendar) через expo-calendar. Добавить кнопку в ReminderForm для экспорта.
-- **Реализация:** src/services/systemCalendar.ts (requestCalendarPermissions, createEvent из reminder), обновить src/components/reminders/ReminderForm.tsx с кнопкой Export.
+- **Реализация:** src/services/systemCalendar.ts (requestCalendarPermissions, createEvent из reminder), обновить src/components/reminders/ReminderForm.tsx с кнопкой Export. Результат: экспорт напоминания в системный календарь (expo-calendar, кросс-платформенно, FR-38), кнопка + Alert; tsc OK, jest 137.
 - **Файлы:** `mobile/src/services/systemCalendar.ts`, обновить `mobile/src/components/reminders/ReminderForm.tsx`
 - **Критерии приёмки:**
-  - [ ] systemCalendar.createEvent(reminder) экспортирует событие в системный календарь
-  - [ ] Запрашиваются права на доступ к календарю
-  - [ ] Кнопка Export видна в ReminderForm
-  - [ ] TypeScript strict mode
+  - [x] systemCalendar.createEvent(reminder) экспортирует событие в системный календарь
+  - [x] Запрашиваются права на доступ к календарю
+  - [x] Кнопка Export видна в ReminderForm
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### WEB-7: useCalendar + CalendarView + MonthGrid
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** medium
 - **Зависимости:** WEB-5
 - **Блокирует:** —
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
 - **Описание:** Создать composable useCalendar (read-only выборка из API), компоненты MonthGrid, страницу CalendarView в ЛК.
-- **Реализация:** src/composables/useCalendar.ts, src/components/calendar/MonthGrid.vue, src/pages/lk/calendar/CalendarView.vue.
+- **Реализация:** src/composables/useCalendar.ts, src/components/calendar/MonthGrid.vue, src/pages/lk/calendar/CalendarView.vue. Результат: read-only месячный вид в ЛК, byDay группировка, навигация, список дня → /lk/reminders/:uuid; vue-tsc OK, Vitest 44.
 - **Файлы:** `web/src/composables/useCalendar.ts`, `web/src/components/calendar/MonthGrid.vue`, `web/src/pages/lk/calendar/CalendarView.vue`
 - **Критерии приёмки:**
-  - [ ] CalendarView показывает месячный вид с напоминаниями
-  - [ ] TypeScript strict mode
+  - [x] CalendarView показывает месячный вид с напоминаниями
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-9: dateRange utils unit, useCalendar выборка (mock sqlite)
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** medium
 - **Зависимости:** MOB-16
 - **Блокирует:** —
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
 - **Описание:** Jest unit тесты для dateRange utils и useCalendar выборки.
-- **Реализация:** tests/utils/dateRange.test.ts, tests/hooks/useCalendar.test.ts.
+- **Реализация:** tests/utils/dateRange.test.ts, tests/hooks/useCalendar.test.ts. Результат: dateRange.test (24) + calendarGrouping.test (6); mobile-suite 137 passed, багов нет.
 - **Файлы:** `mobile/__tests__/utils/dateRange.test.ts`, `mobile/__tests__/hooks/useCalendar.test.ts`
 - **Критерии приёмки:**
-  - [ ] npm test utils/dateRange.test.ts проходит
-  - [ ] getDaysInMonth возвращает правильное количество дней
-  - [ ] useCalendar выборка корректна
+  - [x] npm test utils/dateRange.test.ts проходит
+  - [x] getDaysInMonth возвращает правильное количество дней
+  - [x] useCalendar выборка корректна
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
