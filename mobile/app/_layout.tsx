@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
 
 import DbProvider from '@/providers/DbProvider'
+import LockProvider from '@/providers/LockProvider'
 import { useAuthStore } from '@/stores/authStore'
 import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -45,17 +46,20 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <DbProvider>
-        <SyncBootstrap />
-        <NotificationsBootstrap />
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="notes" options={{ headerShown: false }} />
-          <Stack.Screen name="lock" options={{ headerShown: false }} />
-        </Stack>
-        <StatusBar style="auto" />
+        <LockProvider>
+          <SyncBootstrap />
+          <NotificationsBootstrap />
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="notes" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="lock" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </LockProvider>
       </DbProvider>
     </QueryClientProvider>
   )
