@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03 (завершена фича «Календарь»: MOB-16, MOB-17, WEB-7, TEST-9)
+> Последнее обновление: 2026-06-03 (завершена фича «Безопасность»: MOB-18, MOB-19, TEST-10)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 53 |
+| Completed | 56 |
 | In Progress | 0 |
-| Pending | 13 |
+| Pending | 10 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -1135,58 +1135,68 @@
 
 ### MOB-18: lockStore + appLock (secure-store PIN + biometric) + useAppLock
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-1
 - **Блокирует:** MOB-19
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
-- **Описание:** Создать Zustand lockStore (pinSet, isLocked, biometricEnabled). Сервис appLock с методами: setPin (хеш в expo-secure-store), verifyPin, enableBiometric, disableBiometric. Хук useAppLock.
-- **Реализация:** src/stores/lockStore.ts (Zustand + persist), src/services/appLock.ts (crypto для PIN-хеша, expo-local-authentication для биометрии), src/hooks/useAppLock.ts.
+- **Описание:** Создать Zustand lockStore (pinSet, isLocked, biometricEnabled). Сервис appLock с методами: setPin (хеш в expo-secure-store), verifyPin, enableBiometric, disableBiometric. Хок useAppLock.
+- **Реализация:** src/stores/lockStore.ts (Zustand + persist), src/services/appLock.ts (crypto для PIN-хеша, expo-local-authentication для биометрии), src/hooks/useAppLock.ts. Результат: lockStore (pinSet/biometricEnabled/isLocked/isHydrated + hydrate/lock/unlock), appLock (setPin с SHA256+salt, verifyPin, isPinSet, clearPin, биометрия включается через requestBiometricPermission), useAppLock; tsc OK, jest 137.
 - **Файлы:** `mobile/src/stores/lockStore.ts`, `mobile/src/services/appLock.ts`, `mobile/src/hooks/useAppLock.ts`
 - **Критерии приёмки:**
-  - [ ] setPin(pin) хеширует и сохраняет в secure-store
-  - [ ] verifyPin(pin) проверяет хеш
-  - [ ] enableBiometric() запрашивает разрешение на биометрию
-  - [ ] useAppLock() работает
-  - [ ] TypeScript strict mode
+  - [x] setPin(pin) хеширует с солью и сохраняет в expo-secure-store (без plaintext)
+  - [x] verifyPin(pin) проверяет хеш (SHA256)
+  - [x] enableBiometric() запрашивает разрешение через expo-local-authentication
+  - [x] isPinSet() возвращает boolean
+  - [x] clearPin() удаляет PIN
+  - [x] useAppLock() работает (хук для использования в компонентах)
+  - [x] TypeScript strict mode
+  - [x] lockStore гидрируется при старте, persist работает
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### MOB-19: lock.tsx + LockProvider (AppState gate) + settings/security.tsx
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-18
 - **Блокирует:** —
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
 - **Описание:** Реализовать lock.tsx с PIN-вводом и биометрией. Создать LockProvider, который подписывается на AppState (при переходе в фон → lock, при возврате → проверить PIN). Страница settings/security.tsx для установки PIN и включения биометрии.
-- **Реализация:** app/lock.tsx (экран введения PIN с кнопками 0-9), src/providers/LockProvider.tsx (AppState listener), app/settings/security.tsx (toggle для PIN и биометрии). _layout.tsx оборачивает приложение в LockProvider.
+- **Реализация:** app/lock.tsx (PinPad component с кнопками 0-9, PinDots для визуализации, автоматич. биометрия при попытке), src/providers/LockProvider.tsx (AppState listener, скрывает экран при фоне, требует разблокировки при возврате), app/settings/security.tsx (toggles для PIN и биометрии, форма установки PIN, смена PIN). _layout.tsx оборачивает приложение в LockProvider. Результат: lock.tsx (PIN-pad + autofocus биометрия, Попытка 0), LockProvider (оверлей над children, AppState→lock, гидрация перед splash), settings/security.tsx (вкл/выкл PIN, биометрия, смена PIN); tsc OK, jest 149.
 - **Файлы:** `mobile/app/lock.tsx`, `mobile/src/providers/LockProvider.tsx`, `mobile/app/settings/security.tsx`, обновить `mobile/app/_layout.tsx`
 - **Критерии приёмки:**
-  - [ ] lock.tsx показывает PIN-pad, проверяет PIN через useAppLock
-  - [ ] LockProvider подписывается на AppState (background→locked)
-  - [ ] security.tsx имеет toggles для PIN и биометрии
-  - [ ] После рестарта приложения требуется PIN (если установлен)
-  - [ ] TypeScript strict mode
+  - [x] lock.tsx показывает PinPad + PinDots, проверяет PIN через useAppLock
+  - [x] Автоматич. попытка биометрии при первом отобразении
+  - [x] LockProvider подписывается на AppState (background→isLocked=true при возврате требуется разблокировка)
+  - [x] security.tsx имеет toggles для PIN и биометрии, форма для установки нового PIN
+  - [x] После рестарта приложения требуется PIN (если установлен, гидрация до splash)
+  - [x] TypeScript strict mode
+  - [x] Оверлей LockProvider корректно блокирует доступ до разблокировки
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ### TEST-10: appLock unit (verify PIN, mock secure-store/local-auth)
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** medium
 - **Зависимости:** MOB-18
 - **Блокирует:** —
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
 - **Описание:** Jest unit тесты для appLock с mock expo-secure-store и expo-local-authentication.
-- **Реализация:** tests/services/appLock.test.ts.
+- **Реализация:** tests/services/appLock.test.ts (19 кейсов: setPin, verifyPin, isPinSet, clearPin, биометрия enable/disable/check, ошибки). Результат: 19 unit-тестов (setPin SHA256+salt, verifyPin валидация, биометрия мокируется через jest.mock), mobile-suite 168 passed, багов нет.
 - **Файлы:** `mobile/__tests__/services/appLock.test.ts`
 - **Критерии приёмки:**
-  - [ ] npm test services/appLock.test.ts проходит
-  - [ ] setPin/verifyPin работают с мокированным secure-store
-  - [ ] Биометрия мокируется корректно
+  - [x] npm test services/appLock.test.ts проходит (19/19 passed)
+  - [x] setPin хеширует и сохраняет в secure-store (моки работают)
+  - [x] verifyPin проверяет хеш правильно (match/no-match)
+  - [x] isPinSet возвращает boolean
+  - [x] clearPin удаляет PIN из secure-store
+  - [x] enableBiometric, disableBiometric, isBiometricAvailable работают с mocks
+  - [x] Ошибки (invalid pin, secure-store error) обрабатываются
+  - [x] Jest мокирует expo-secure-store и expo-local-authentication
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
