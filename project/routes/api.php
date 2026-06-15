@@ -36,6 +36,9 @@ use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Sync\ChangesController as SyncChangesController;
 use App\Http\Controllers\Sync\ConflictsController as SyncConflictsController;
 use App\Http\Controllers\Sync\PushController as SyncPushController;
+use App\Http\Controllers\Settings\ToggleSyncController;
+use App\Http\Controllers\Admin\UsersIndexController;
+use App\Http\Controllers\Admin\UserShowController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -152,12 +155,17 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         // Settings (FR-43..FR-45)
         Route::prefix('settings')->name('settings.')->group(function (): void {
             // PATCH /api/v1/settings/sync → Settings\ToggleSyncController
+            Route::patch('sync', ToggleSyncController::class)->name('sync');
         });
 
-        // Admin — requires is_admin (enforced via AdminPolicy in each controller)
-        Route::prefix('admin')->name('admin.')->group(function (): void {
-            // GET /api/v1/admin/users      → Admin\Users\IndexController
-            // GET /api/v1/admin/users/{id} → Admin\Users\ShowController
+        // Admin — requires is_admin (enforced via EnsureAdmin middleware + Gate in each controller)
+        Route::prefix('admin')->name('admin.')->middleware('admin')->group(function (): void {
+            Route::prefix('users')->name('users.')->group(function (): void {
+                // GET /api/v1/admin/users        → Admin\UsersIndexController
+                Route::get('/', UsersIndexController::class)->name('index');
+                // GET /api/v1/admin/users/{user} → Admin\UserShowController
+                Route::get('{user}', UserShowController::class)->name('show');
+            });
         });
     });
 });
