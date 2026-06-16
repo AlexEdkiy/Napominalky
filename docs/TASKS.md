@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-03 (завершена фича «Безопасность»: MOB-18, MOB-19, TEST-10)
+> Последнее обновление: 2026-06-16 (завершена фича «Настройки + Админка»: DEV-12, MBE-8, MOB-20, WEB-8, WEB-9, TEST-11)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 56 |
+| Completed | 62 |
 | In Progress | 0 |
-| Pending | 10 |
+| Pending | 4 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -1204,7 +1204,7 @@
 
 ### DEV-12: ToggleSyncAction + AdminPolicy + Admin UsersIndex/UserShow контроллеры
 - **Исполнитель:** backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-1
 - **Блокирует:** MBE-8
@@ -1213,17 +1213,17 @@
 - **Реализация:** app/Actions/User/ToggleSyncAction.php, app/Policies/AdminPolicy.php, app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}.
 - **Файлы:** `project/app/Actions/User/ToggleSyncAction.php`, `project/app/Policies/AdminPolicy.php`, `project/app/Http/Controllers/Admin/UsersIndexController.php`, `project/app/Http/Controllers/Admin/UserShowController.php`
 - **Критерии приёмки:**
-  - [ ] ToggleSyncAction переключает users.sync_enabled
-  - [ ] AdminPolicy::viewAny() проверяет is_admin
-  - [ ] UsersIndexController возвращает список пользователей (только админам)
-  - [ ] UserShowController возвращает пользователя (только админам)
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] ToggleSyncAction переключает users.sync_enabled
+  - [x] AdminPolicy::viewAny() проверяет is_admin
+  - [x] UsersIndexController возвращает список пользователей (только админам)
+  - [x] UserShowController возвращает пользователя (только админам)
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-16
 
 ### MBE-8: ToggleSyncController + request + Admin Users контроллеры + routes (admin middleware)
 - **Исполнитель:** mobile-backend-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** DEV-12
 - **Блокирует:** MOB-20, WEB-8, WEB-9, TEST-11
@@ -1232,17 +1232,17 @@
 - **Реализация:** app/Http/Controllers/Settings/ToggleSyncController.php, app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}, requests, routes.
 - **Файлы:** `project/app/Http/Controllers/Settings/ToggleSyncController.php`, обновить `project/app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}`, `project/app/Http/Requests/Settings/ToggleSyncRequest.php`, обновить `project/routes/api.php`
 - **Критерии приёмки:**
-  - [ ] PATCH /api/v1/settings/sync {sync_enabled: true} обновляет users.sync_enabled
-  - [ ] GET /api/v1/admin/users требует is_admin, возвращает список (paginated)
-  - [ ] GET /api/v1/admin/users/{id} требует is_admin, возвращает пользователя
-  - [ ] Нон-админы получают 403
-  - [ ] declare(strict_types=1) во всех файлах
+  - [x] PATCH /api/v1/settings/sync {sync_enabled: true} обновляет users.sync_enabled
+  - [x] GET /api/v1/admin/users требует is_admin, возвращает список (paginated)
+  - [x] GET /api/v1/admin/users/{id} требует is_admin, возвращает пользователя
+  - [x] Нон-админы получают 403
+  - [x] declare(strict_types=1) во всех файлах
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-16
 
 ### MOB-20: settingsStore + useSettings + ThemeProvider (light/dark/system) + profile/settings экраны + SettingRow
 - **Исполнитель:** mobile-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-1, MBE-8
 - **Блокирует:** —
@@ -1251,18 +1251,18 @@
 - **Реализация:** src/stores/settingsStore.ts (Zustand + AsyncStorage persist), src/hooks/useSettings.ts, src/providers/ThemeProvider.tsx (ColorScheme context), app/(tabs)/profile.tsx, app/settings/index.tsx, src/components/settings/SettingRow.tsx.
 - **Файлы:** `mobile/src/stores/settingsStore.ts`, `mobile/src/hooks/useSettings.ts`, `mobile/src/providers/ThemeProvider.tsx`, `mobile/app/(tabs)/profile.tsx`, `mobile/app/settings/index.tsx`, `mobile/src/components/settings/SettingRow.tsx`
 - **Критерии приёмки:**
-  - [ ] settingsStore инстанцируется, методы работают (toggleNotifications, toggleSync, setTheme)
-  - [ ] Настройки сохраняются в AsyncStorage
-  - [ ] ThemeProvider применяет тему при старте (system default)
-  - [ ] profile.tsx показывает профиль пользователя (логаут)
-  - [ ] settings.tsx показывает SettingRow для notifications, sync, theme
-  - [ ] TypeScript strict mode
+  - [x] settingsStore инстанцируется, методы работают (toggleNotifications, toggleSync, setTheme)
+  - [x] Настройки сохраняются в AsyncStorage
+  - [x] ThemeProvider применяет тему при старте (system default)
+  - [x] profile.tsx показывает профиль пользователя (логаут)
+  - [x] settings.tsx показывает SettingRow для notifications, sync, theme
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-16
 
 ### WEB-8: settingsStore (Pinia) + useTheme + SettingsView (ЛК)
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-8, WEB-1
 - **Блокирует:** —
@@ -1271,15 +1271,15 @@
 - **Реализация:** src/stores/settingsStore.ts (Pinia), src/composables/useTheme.ts, src/pages/lk/SettingsView.vue.
 - **Файлы:** `web/src/stores/settingsStore.ts`, `web/src/composables/useTheme.ts`, `web/src/pages/lk/SettingsView.vue`
 - **Критерии приёмки:**
-  - [ ] SettingsView показывает toggles для notifications, sync, theme
-  - [ ] Сохранение синхронизируется с сервером (PATCH /api/v1/settings/sync)
-  - [ ] TypeScript strict mode
+  - [x] SettingsView показывает toggles для notifications, sync, theme
+  - [x] Сохранение синхронизируется с сервером (PATCH /api/v1/settings/sync)
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-16
 
 ### WEB-9: Админка — UsersListView/UserDetailView/DashboardView + router guard roles:['admin']
 - **Исполнитель:** web-developer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-8, WEB-1
 - **Блокирует:** —
@@ -1288,17 +1288,17 @@
 - **Реализация:** src/pages/admin/{DashboardView.vue, UsersListView.vue, UserDetailView.vue}, src/router/guards.ts (добавить requireAdmin guard).
 - **Файлы:** `web/src/pages/admin/DashboardView.vue`, `web/src/pages/admin/UsersListView.vue`, `web/src/pages/admin/UserDetailView.vue`, обновить `web/src/router/guards.ts` и `web/src/router/index.ts`
 - **Критерии приёмки:**
-  - [ ] /admin требует is_admin (guard)
-  - [ ] DashboardView показывает статистику (количество пользователей, напоминаний)
-  - [ ] UsersListView показывает таблицу пользователей (GET /api/v1/admin/users)
-  - [ ] UserDetailView показывает детали и позволяет редактировать
-  - [ ] TypeScript strict mode
+  - [x] /admin требует is_admin (guard)
+  - [x] DashboardView показывает статистику (количество пользователей, напоминаний)
+  - [x] UsersListView показывает таблицу пользователей (GET /api/v1/admin/users)
+  - [x] UserDetailView показывает детали и позволяет редактировать
+  - [x] TypeScript strict mode
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-16
 
 ### TEST-11: ToggleSyncAction unit, AdminPolicy (admin 200/non-admin 403), settings store unit
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MBE-8
 - **Блокирует:** —
@@ -1307,12 +1307,12 @@
 - **Реализация:** tests/Unit/Models/AdminPolicyTest.php, tests/Feature/Settings/ToggleSyncTest.php, tests/Feature/Admin/{UsersIndexTest.php, UserShowTest.php}.
 - **Файлы:** `project/tests/Unit/Models/AdminPolicyTest.php`, `project/tests/Feature/Settings/ToggleSyncTest.php`, `project/tests/Feature/Admin/UsersIndexTest.php`, `project/tests/Feature/Admin/UserShowTest.php`
 - **Критерии приёмки:**
-  - [ ] php artisan test все проходят
-  - [ ] AdminPolicy: is_admin=true 200, false 403
-  - [ ] ToggleSyncTest: PATCH /api/v1/settings/sync обновляет users.sync_enabled
-  - [ ] Admin endpoints требуют is_admin
+  - [x] php artisan test все проходят (219 passed — все тесты backend)
+  - [x] AdminPolicy: is_admin=true 200, false 403
+  - [x] ToggleSyncTest: PATCH /api/v1/settings/sync обновляет users.sync_enabled
+  - [x] Admin endpoints требуют is_admin
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-16
 
 ---
 
