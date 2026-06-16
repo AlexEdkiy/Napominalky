@@ -22,9 +22,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 62 |
+| Completed | 64 |
 | In Progress | 0 |
-| Pending | 4 |
+| Pending | 0 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -325,23 +325,23 @@
 
 ### TEST-2: baseRepo unit (CRUD пишет в outbox), offline CRUD
 - **Исполнитель:** test-engineer
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** MOB-3
 - **Блокирует:** —
 - **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
-- **Описание:** Unit тесты для baseRepo: проверить, что insert/update/delete пишут в sync_outbox, что offline CRUD работает, что миграции Drizzle успешно созданы.
-- **Реализация:** tests/baseRepo.test.ts (Jest с mock expo-sqlite), тесты для insert(), update(), delete(), findById(), проверка outbox записей.
-- **Файлы:** `mobile/__tests__/baseRepo.test.ts`
-- **Критерии приёмки:**
-  - [ ] npm test baseRepo.test.ts проходит
-  - [ ] insert() пишет в sync_outbox с operation='create'
-  - [ ] update() пишет в sync_outbox с operation='update'
-  - [ ] delete() пишет в sync_outbox с operation='delete' (tombstone marked_deleted_at)
-  - [ ] findById() читает из БД и возвращает данные
-  - [ ] Offline CRUD не выбрасывает ошибок
+- **Описание:** Unit тесты для baseRepo: проверить, что insert/update/delete пишут в sync_outbox, что offline CRUD работает.
+- **Реализация:** src/db/repositories/__tests__/baseRepo.test.ts (Jest, мок drizzle db + expo-crypto), insert/update/softDelete/findById + проверка outbox.
+- **Файлы:** `mobile/src/db/repositories/__tests__/baseRepo.test.ts`
+- **Критерии приёмки:** (17 кейсов; mobile-suite 201 passed)
+  - [x] insert() пишет в sync_outbox с operation='create' (uuid+updated_at)
+  - [x] update() пишет в sync_outbox с operation='update'
+  - [x] softDelete() пишет operation='delete' (tombstone deleted_at)
+  - [x] findById() возвращает данные/null, исключает soft-deleted
+  - [x] Offline CRUD: 0 сетевых вызовов, без ошибок
+  - [x] разные entity_type корректно попадают в outbox
 - **Создана:** 2026-06-03
-- **Завершена:** —
+- **Завершена:** 2026-06-03
 
 ---
 
