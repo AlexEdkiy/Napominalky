@@ -1,4 +1,23 @@
 /**
+ * Форматирует ISO 8601-строку в локальную дату (без времени) для отображения.
+ * Возвращает пустую строку, если значение пустое или некорректное.
+ */
+export function formatDate(iso: string | null): string {
+  if (!iso) {
+    return ''
+  }
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  return date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+/**
  * Форматирует ISO 8601-строку в локальную дату/время для отображения.
  * Возвращает пустую строку, если значение пустое или некорректное.
  */
