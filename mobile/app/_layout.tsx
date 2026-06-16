@@ -5,7 +5,9 @@ import { useEffect } from 'react'
 
 import DbProvider from '@/providers/DbProvider'
 import LockProvider from '@/providers/LockProvider'
+import ThemeProvider from '@/theme/ThemeProvider'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useNotifications } from '@/hooks/useNotifications'
 
@@ -38,28 +40,32 @@ function NotificationsBootstrap(): null {
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate)
+  const hydrateSettings = useSettingsStore((state) => state.hydrate)
 
   useEffect(() => {
     void hydrate()
-  }, [hydrate])
+    void hydrateSettings()
+  }, [hydrate, hydrateSettings])
 
   return (
     <QueryClientProvider client={queryClient}>
       <DbProvider>
-        <LockProvider>
-          <SyncBootstrap />
-          <NotificationsBootstrap />
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="notes" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
-            <Stack.Screen name="lock" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </LockProvider>
+        <ThemeProvider>
+          <LockProvider>
+            <SyncBootstrap />
+            <NotificationsBootstrap />
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="notes" options={{ headerShown: false }} />
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
+              <Stack.Screen name="lock" options={{ headerShown: false }} />
+            </Stack>
+            <StatusBar style="auto" />
+          </LockProvider>
+        </ThemeProvider>
       </DbProvider>
     </QueryClientProvider>
   )
