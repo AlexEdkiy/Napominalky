@@ -1,8 +1,9 @@
 import React, { createContext, useContext, type ReactNode } from 'react'
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator'
 import { db, type Database } from '@/db/client'
 import migrations from '@/db/migrations/migrations'
+import ErrorScreen from '@/components/ErrorScreen'
 
 const DbContext = createContext<Database | null>(null)
 
@@ -13,15 +14,18 @@ interface DbProviderProps {
 /**
  * Применяет Drizzle-миграции к локальной SQLite и предоставляет
  * типизированный `db` через контекст. Дети рендерятся после успешной миграции.
+ * При ошибке миграции показывает полный message и stack для диагностики.
  */
 const DbProvider: React.FC<DbProviderProps> = ({ children }) => {
   const { success, error } = useMigrations(db, migrations)
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Ошибка инициализации базы данных</Text>
-      </View>
+      <ErrorScreen
+        title="Ошибка инициализации базы данных"
+        message={error.message}
+        stack={error.stack ?? null}
+      />
     )
   }
 
@@ -49,10 +53,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  error: {
-    color: '#b00020',
-    fontSize: 16,
   },
 })
 
