@@ -62,6 +62,7 @@ export default function RootLayout() {
               <Stack.Screen name="notes" options={{ headerShown: false }} />
               <Stack.Screen name="settings" options={{ headerShown: false }} />
               <Stack.Screen name="lock" options={{ headerShown: false }} />
+              <Stack.Screen name="create" options={{ presentation: 'modal', headerShown: false }} />
             </Stack>
             <StatusBar style="auto" />
           </LockProvider>
