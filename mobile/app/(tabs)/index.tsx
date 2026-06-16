@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native'
 import { router } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 
 import NoteCard from '@/components/notes/NoteCard'
 import ReminderCard from '@/components/reminders/ReminderCard'
@@ -44,14 +45,17 @@ export default function HomeScreen() {
         <Text style={styles.remindersLinkArrow}>›</Text>
       </Pressable>
       <MissedSection reminders={missed} onOpen={handleOpenReminder} />
-      <TextInput
-        accessibilityLabel="Поиск заметок"
-        placeholder="Поиск"
-        placeholderTextColor="#9a9a9a"
-        value={search}
-        onChangeText={setSearch}
-        style={styles.search}
-      />
+      <View style={styles.searchRow}>
+        <Ionicons name="search-outline" size={18} color="#9a9a9a" style={styles.searchIcon} />
+        <TextInput
+          accessibilityLabel="Поиск заметок"
+          placeholder="Поиск"
+          placeholderTextColor="#9a9a9a"
+          value={search}
+          onChangeText={setSearch}
+          style={styles.search}
+        />
+      </View>
       {isLoading ? (
         <ActivityIndicator size="large" style={styles.loader} />
       ) : (
@@ -128,15 +132,10 @@ const styles = StyleSheet.create({
   missed: { marginHorizontal: 16, marginTop: 16, gap: 8 },
   missedTitle: { fontSize: 16, fontWeight: '700', color: '#b91c1c' },
   search: {
-    margin: 16,
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: '#d4d4d8',
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    flex: 1,
     fontSize: 16,
-    backgroundColor: '#fff',
     color: '#1a1a1a',
+    paddingVertical: 8,
   },
   loader: { marginTop: 32 },
   list: { paddingHorizontal: 16, paddingBottom: 96, gap: 12 },
@@ -156,4 +155,16 @@ const styles = StyleSheet.create({
   },
   fabPressed: { opacity: 0.85 },
   fabIcon: { color: '#fff', fontSize: 32, lineHeight: 36 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 16,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: '#d4d4d8',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    backgroundColor: '#fff',
+  },
+  searchIcon: { marginRight: 8 },
 })

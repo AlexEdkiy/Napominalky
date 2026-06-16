@@ -1,5 +1,6 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 
 import type {
   ItemCategory,
@@ -29,8 +30,12 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onToggle, onDelete }) => {
         onPress={() => onToggle(item.uuid, !item.isChecked)}
         style={styles.main}
       >
-        <View style={[styles.box, item.isChecked && styles.boxChecked]}>
-          {item.isChecked ? <Text style={styles.tick}>✓</Text> : null}
+        <View style={styles.checkBox}>
+          <Ionicons
+            name={item.isChecked ? 'checkbox' : 'square-outline'}
+            size={24}
+            color={item.isChecked ? '#16a34a' : '#a1a1aa'}
+          />
         </View>
         <View style={styles.texts}>
           <Text
@@ -66,17 +71,12 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  box: {
+  checkBox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#a1a1aa',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  boxChecked: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  tick: { color: '#fff', fontSize: 14, fontWeight: '700' },
   texts: { flex: 1, gap: 2 },
   name: { fontSize: 16, color: '#1a1a1a' },
   nameChecked: { textDecorationLine: 'line-through', color: '#a1a1aa' },
