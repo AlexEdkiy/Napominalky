@@ -1,5 +1,5 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 interface DayCellProps {
   date: Date
@@ -28,18 +28,27 @@ const DayCell: React.FC<DayCellProps> = ({
       onPress={() => onPress(date)}
       style={styles.cell}
     >
-      <View style={[styles.inner, isSelected && styles.selected, isToday && styles.today]}>
+      <View
+        style={[
+          styles.inner,
+          isSelected && styles.selected,
+          isToday && !isSelected && styles.today,
+        ]}
+      >
         <Text
           style={[
             styles.day,
             !inMonth && styles.muted,
+            isToday && !isSelected && styles.todayText,
             isSelected && styles.selectedText,
           ]}
         >
           {label}
         </Text>
       </View>
-      {count > 0 ? <View style={[styles.dot, isSelected && styles.dotSelected]} /> : null}
+      {count > 0 ? (
+        <View style={[styles.dot, isSelected && styles.dotSelected]} />
+      ) : null}
     </Pressable>
   )
 }
@@ -53,19 +62,32 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   inner: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selected: { backgroundColor: '#2563eb' },
-  today: { borderWidth: 1, borderColor: '#2563eb' },
-  day: { fontSize: 15, color: '#1a1a1a' },
-  muted: { color: '#c4c4c8' },
-  selectedText: { color: '#fff', fontWeight: '600' },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#2563eb' },
-  dotSelected: { backgroundColor: '#2563eb' },
+  selected: {
+    backgroundColor: '#0D9488',
+    shadowColor: '#0D9488',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: Platform.OS === 'android' ? 4 : 0,
+  },
+  today: { borderWidth: 1.5, borderColor: '#0D9488' },
+  day: { fontSize: 15, fontWeight: '500', color: '#3D4A57' },
+  muted: { color: '#C3CCD6' },
+  todayText: { color: '#0D9488', fontWeight: '700' },
+  selectedText: { color: '#fff', fontWeight: '700' },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#0D9488',
+  },
+  dotSelected: { backgroundColor: '#ffffff' },
 })
 
 export default DayCell

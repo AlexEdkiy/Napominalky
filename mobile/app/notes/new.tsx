@@ -4,8 +4,11 @@ import { Stack } from 'expo-router'
 
 import NoteForm, { type NoteFormValues } from '@/components/notes/NoteForm'
 import { useNotes } from '@/hooks/useNotes'
+import { useTheme } from '@/theme'
+import { typography } from '@/theme/typography'
 
 export default function NewNoteScreen() {
+  const { colors } = useTheme()
   const { createNote, updateNote } = useNotes()
   const createdUuid = useRef<string | null>(null)
 
@@ -26,9 +29,17 @@ export default function NewNoteScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.screenBg }]}
     >
-      <Stack.Screen options={{ title: 'Новая заметка' }} />
+      <Stack.Screen
+        options={{
+          title: 'Новая заметка',
+          headerStyle: { backgroundColor: colors.screenBg },
+          headerShadowVisible: false,
+          headerTitleStyle: styles.headerTitle,
+          headerTintColor: colors.textPrimary,
+        }}
+      />
       <ScrollView keyboardShouldPersistTaps="handled">
         <NoteForm onAutoSave={handleAutoSave} />
       </ScrollView>
@@ -37,5 +48,6 @@ export default function NewNoteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
+  headerTitle: { ...typography.cardTitle, fontSize: 17 },
 })

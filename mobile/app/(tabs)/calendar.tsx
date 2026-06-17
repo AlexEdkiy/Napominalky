@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 
 import DayRemindersSheet from '@/components/calendar/DayRemindersSheet'
 import MonthGrid from '@/components/calendar/MonthGrid'
 import { useCalendar } from '@/hooks/useCalendar'
+import { useTheme } from '@/theme'
+import { typography } from '@/theme/typography'
 import { formatMonthTitle, ymd } from '@/utils/dateRange'
 
 const startOfMonth = (date: Date): { year: number; month: number } => ({
@@ -13,6 +16,7 @@ const startOfMonth = (date: Date): { year: number; month: number } => ({
 })
 
 export default function CalendarScreen() {
+  const { colors } = useTheme()
   const [{ year, month }, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => new Date())
 
@@ -26,76 +30,79 @@ export default function CalendarScreen() {
   const dayReminders = byDay.get(ymd(selectedDate)) ?? []
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Предыдущий месяц"
-          onPress={() => stepMonth(-1)}
-          style={styles.arrow}
-        >
-          <Text style={styles.arrowIcon}>‹</Text>
-        </Pressable>
-        <Text style={styles.monthTitle}>{formatMonthTitle(year, month)}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Следующий месяц"
-          onPress={() => stepMonth(1)}
-          style={styles.arrow}
-        >
-          <Text style={styles.arrowIcon}>›</Text>
-        </Pressable>
-      </View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
+      <View style={[styles.calCard, { backgroundColor: colors.surface }]}>
+        <View style={styles.calHeader}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Предыдущий месяц"
+            onPress={() => stepMonth(-1)}
+            style={styles.arrowBtn}
+          >
+            <Ionicons name="chevron-back" size={20} color="#3D4A57" />
+          </Pressable>
+          <Text style={[styles.monthTitle, { color: colors.textPrimary }]}>
+            {formatMonthTitle(year, month)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Следующий месяц"
+            onPress={() => stepMonth(1)}
+            style={styles.arrowBtn}
+          >
+            <Ionicons name="chevron-forward" size={20} color="#3D4A57" />
+          </Pressable>
+        </View>
 
-      <MonthGrid
-        year={year}
-        month={month}
-        byDay={byDay}
-        selectedDate={selectedDate}
-        onSelectDay={setSelectedDate}
-      />
+        <MonthGrid
+          year={year}
+          month={month}
+          byDay={byDay}
+          selectedDate={selectedDate}
+          onSelectDay={setSelectedDate}
+        />
+      </View>
 
       <DayRemindersSheet
         date={selectedDate}
         reminders={dayReminders}
         onOpenReminder={(uuid) => router.push(`/reminders/${uuid}`)}
       />
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Создать напоминание"
-        onPress={() => router.push('/reminders/new')}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Text style={styles.fabIcon}>+</Text>
-      </Pressable>
-    </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f4f5' },
-  header: {
+  safe: { flex: 1 },
+  calCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    paddingBottom: 12,
+    shadowColor: '#101828',
+    shadowOpacity: 0.05,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: Platform.OS === 'android' ? 3 : 0,
+  },
+  calHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  arrow: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  arrowIcon: { fontSize: 28, color: '#2563eb', lineHeight: 30 },
-  monthTitle: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2563eb',
+  arrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F4F7F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fabPressed: { opacity: 0.85 },
-  fabIcon: { color: '#fff', fontSize: 32, lineHeight: 36 },
+  monthTitle: {
+    ...typography.screenTitle,
+    fontSize: 18,
+  },
 })

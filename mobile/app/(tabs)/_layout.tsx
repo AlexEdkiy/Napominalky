@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react'
 import {
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -41,7 +42,7 @@ const CreateButton: React.FC = () => {
           pressed && styles.createBtnPressed,
         ]}
       >
-        <Ionicons name="add" size={28} color="#ffffff" />
+        <Ionicons name="add" size={30} color="#ffffff" />
       </Pressable>
     </View>
   )
@@ -52,25 +53,25 @@ export default function TabsLayout() {
 
   const tabBarStyle = {
     backgroundColor: colors.surface,
-    borderTopColor: colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  }
-
-  const headerStyle = {
-    backgroundColor: colors.surface,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSubtle,
+    borderTopWidth: 1,
+    shadowColor: '#101828',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 4,
+    height: Platform.OS === 'ios' ? 88 : 64,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
   }
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle,
-        headerStyle,
-        headerTintColor: colors.text,
-        headerShadowVisible: false,
+        tabBarLabelStyle: styles.tabLabel,
+        headerShown: false,
       }}
     >
       <Tabs.Screen
@@ -128,17 +129,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   createBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 4,
+    marginTop: -26,
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
   createBtnPressed: { opacity: 0.85 },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
 })

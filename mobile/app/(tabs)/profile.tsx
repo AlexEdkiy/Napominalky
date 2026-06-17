@@ -2,19 +2,30 @@ import { router } from 'expo-router'
 import React from 'react'
 import {
   Alert,
+  Platform,
+  Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 
 import BaseButton from '@/components/common/BaseButton'
+import IconSquare from '@/components/ui/IconSquare'
+import ScreenTitle from '@/components/ui/ScreenTitle'
+import SectionLabel from '@/components/ui/SectionLabel'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/theme'
+import { typography } from '@/theme/typography'
 
 export default function ProfileScreen() {
+  const { colors } = useTheme()
   const { user, isAuthenticated, guestMode, logout } = useAuth()
 
   const displayName = user?.name ?? user?.email ?? 'Гость'
+  const initial = displayName.charAt(0).toUpperCase()
   const isGuest = guestMode || !isAuthenticated
 
   const handleLogout = (): void => {
@@ -28,113 +39,171 @@ export default function ProfileScreen() {
     ])
   }
 
-  const handleSettings = (): void => {
-    router.push('/settings')
-  }
-
-  const handleSecurity = (): void => {
-    router.push('/settings/security')
-  }
-
-  const handleLogin = (): void => {
-    router.push('/(auth)/login')
-  }
-
-  const handleRegister = (): void => {
-    router.push('/(auth)/register')
-  }
-
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-    >
-      <View style={styles.avatarSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {displayName.charAt(0).toUpperCase()}
-          </Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <ScreenTitle text="Профиль" color={colors.textPrimary} />
         </View>
-        <Text style={styles.displayName}>{displayName}</Text>
-        {user?.email !== undefined ? (
-          <Text style={styles.email}>{user.email}</Text>
-        ) : null}
-        {isGuest ? <Text style={styles.guestBadge}>Гость</Text> : null}
-      </View>
 
-      {isGuest ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Аккаунт</Text>
-          <BaseButton label="Войти" onPress={handleLogin} />
-          <BaseButton
-            label="Зарегистрироваться"
-            onPress={handleRegister}
-            variant="secondary"
-          />
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Аккаунт</Text>
-          <BaseButton
-            label="Выйти"
-            onPress={handleLogout}
-            variant="secondary"
-            loading={logout.isPending}
-          />
-        </View>
-      )}
+        <AvatarSection
+          initial={initial}
+          displayName={displayName}
+          email={user?.email}
+          isGuest={isGuest}
+        />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Приложение</Text>
-        <BaseButton
-          label="Настройки"
-          onPress={handleSettings}
-          variant="secondary"
-        />
-        <BaseButton
-          label="Безопасность"
-          onPress={handleSecurity}
-          variant="secondary"
-        />
-      </View>
-    </ScrollView>
+        <View style={styles.section}>
+          <SectionLabel text="АККАУНТ" color={colors.textTertiary} />
+          {isGuest ? (
+            <View style={styles.authButtons}>
+              <BaseButton label="Войти" onPress={() => router.push('/(auth)/login')} />
+              <BaseButton
+                label="Зарегистрироваться"
+                onPress={() => router.push('/(auth)/register')}
+                variant="secondary"
+              />
+            </View>
+          ) : (
+            <BaseButton
+              label="Выйти"
+              onPress={handleLogout}
+              variant="secondary"
+              loading={logout.isPending}
+            />
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <SectionLabel text="О ПРИЛОЖЕНИИ" color={colors.textTertiary} />
+          <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+            <MenuRow
+              icon="settings-outline"
+              iconBg="#DDF1ED"
+              iconColor="#0D9488"
+              label="Настройки"
+              onPress={() => router.push('/settings')}
+            />
+            <View style={[styles.separator, { backgroundColor: colors.borderSubtle }]} />
+            <MenuRow
+              icon="lock-closed-outline"
+              iconBg="#FCE7E1"
+              iconColor="#E26A4D"
+              label="Безопасность"
+              onPress={() => router.push('/settings/security')}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
+interface AvatarSectionProps {
+  initial: string
+  displayName: string
+  email: string | undefined
+  isGuest: boolean
+}
+
+const AvatarSection: React.FC<AvatarSectionProps> = ({
+  initial,
+  displayName,
+  email,
+  isGuest,
+}) => (
+  <View style={styles.avatarSection}>
+    <View style={styles.avatarWrap}>
+      <Text style={styles.avatarText}>{initial}</Text>
+    </View>
+    <Text style={styles.displayName}>{displayName}</Text>
+    {email !== undefined ? <Text style={styles.email}>{email}</Text> : null}
+    {isGuest ? (
+      <View style={styles.guestBadge}>
+        <Text style={styles.guestText}>Гостевой режим</Text>
+      </View>
+    ) : null}
+  </View>
+)
+
+interface MenuRowProps {
+  icon: React.ComponentProps<typeof Ionicons>['name']
+  iconBg: string
+  iconColor: string
+  label: string
+  onPress: () => void
+}
+
+const MenuRow: React.FC<MenuRowProps> = ({ icon, iconBg, iconColor, label, onPress }) => (
+  <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    onPress={onPress}
+    style={({ pressed }) => [styles.menuRow, pressed && styles.menuPressed]}
+  >
+    <IconSquare
+      icon={icon}
+      bgColor={iconBg}
+      iconColor={iconColor}
+      size={38}
+      radius={10}
+    />
+    <Text style={styles.menuLabel}>{label}</Text>
+    <Ionicons name="chevron-forward" size={18} color="#9AA6B2" />
+  </Pressable>
+)
+
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { padding: 16, gap: 16 },
-  avatarSection: { alignItems: 'center', paddingVertical: 24, gap: 8 },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#2563eb',
+  safe: { flex: 1 },
+  container: { paddingBottom: 32 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  avatarSection: { alignItems: 'center', paddingVertical: 24, gap: 10 },
+  avatarWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 32,
+    backgroundColor: '#0D9488',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: Platform.OS === 'android' ? 6 : 0,
   },
-  avatarText: { fontSize: 32, fontWeight: '600', color: '#ffffff' },
-  displayName: { fontSize: 20, fontWeight: '600', color: '#1a1a1a' },
-  email: { fontSize: 14, color: '#6a6a6a' },
+  avatarText: {
+    fontSize: 38,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  displayName: { ...typography.h2, fontSize: 24, color: '#1B2733' },
+  email: { ...typography.body, color: '#76828F' },
   guestBadge: {
-    fontSize: 12,
-    color: '#94a3b8',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 12,
+    backgroundColor: '#EEF2F6',
+    borderRadius: 99,
+    paddingHorizontal: 14,
     paddingVertical: 4,
-    borderRadius: 12,
   },
-  section: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
+  guestText: { ...typography.bodySm, color: '#76828F', fontWeight: '600' },
+  section: { marginHorizontal: 16, marginTop: 20, gap: 10 },
+  authButtons: { gap: 10 },
+  menuCard: {
+    borderRadius: 22,
+    shadowColor: '#101828',
+    shadowOpacity: 0.05,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: Platform.OS === 'android' ? 3 : 0,
+    overflow: 'hidden',
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6a6a6a',
-    textTransform: 'uppercase',
-    marginBottom: 4,
+  separator: { height: 1, marginHorizontal: 16 },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
+  menuPressed: { opacity: 0.8 },
+  menuLabel: { flex: 1, ...typography.body, color: '#1B2733', fontWeight: '600' },
 })

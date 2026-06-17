@@ -1,7 +1,7 @@
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
+  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -9,9 +9,13 @@ import {
 import { router } from 'expo-router'
 
 import ListCard from '@/components/lists/ListCard'
+import ScreenTitle from '@/components/ui/ScreenTitle'
 import { useShoppingLists } from '@/hooks/useShoppingLists'
+import { useTheme } from '@/theme'
+import { typography } from '@/theme/typography'
 
 export default function ListsScreen() {
+  const { colors } = useTheme()
   const { lists, isLoading } = useShoppingLists()
 
   const handleOpen = (uuid: string): void => {
@@ -19,55 +23,38 @@ export default function ListsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
+      <View style={styles.header}>
+        <ScreenTitle text="Списки" color={colors.textPrimary} />
+      </View>
       {isLoading ? (
-        <ActivityIndicator size="large" style={styles.loader} />
+        <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
       ) : (
         <FlatList
           data={lists}
           keyExtractor={(item) => item.uuid}
           renderItem={({ item }) => <ListCard list={item} onPress={handleOpen} />}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={<EmptyState color={colors.textSecondary} />}
         />
       )}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Создать список"
-        onPress={() => router.push('/lists/new')}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Text style={styles.fabIcon}>+</Text>
-      </Pressable>
-    </View>
+    </SafeAreaView>
   )
 }
 
-const EmptyState = () => (
+const EmptyState: React.FC<{ color: string }> = ({ color }) => (
   <View style={styles.empty}>
-    <Text style={styles.emptyTitle}>Списков покупок пока нет</Text>
-    <Text style={styles.emptyHint}>Нажмите «+», чтобы создать первый</Text>
+    <Text style={[styles.emptyTitle, { color }]}>Списков покупок пока нет</Text>
+    <Text style={[styles.emptyHint, { color }]}>Нажмите «+», чтобы создать первый</Text>
   </View>
 )
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f4f5' },
+  safe: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   loader: { marginTop: 32 },
-  list: { padding: 16, paddingBottom: 96, gap: 12 },
+  list: { padding: 16, paddingBottom: 24, gap: 12 },
   empty: { alignItems: 'center', paddingTop: 64, gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
-  emptyHint: { fontSize: 14, color: '#71717a' },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2563eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fabPressed: { opacity: 0.85 },
-  fabIcon: { color: '#fff', fontSize: 32, lineHeight: 36 },
+  emptyTitle: { ...typography.cardTitle },
+  emptyHint: { ...typography.body },
 })

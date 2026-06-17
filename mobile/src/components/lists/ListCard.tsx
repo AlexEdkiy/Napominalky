@@ -1,8 +1,11 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 
 import ProgressBar from '@/components/lists/ProgressBar'
+import IconSquare from '@/components/ui/IconSquare'
 import type { ShoppingList } from '@/db/repositories/shoppingListsRepo'
+import { typography } from '@/theme/typography'
 
 interface ListCardProps {
   list: ShoppingList
@@ -20,36 +23,46 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress }) => {
       onPress={() => onPress(list.uuid)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <View style={styles.header}>
-        <Text numberOfLines={1} style={styles.title}>
-          {title}
-        </Text>
-        <Text style={styles.counter}>
-          {checked}/{total}
-        </Text>
+      <View style={styles.topRow}>
+        <IconSquare
+          icon="checkmark-circle-outline"
+          bgColor="#DDF1ED"
+          iconColor="#0D9488"
+          size={44}
+          radius={12}
+        />
+        <View style={styles.info}>
+          <Text numberOfLines={1} style={styles.title}>{title}</Text>
+          <Text style={styles.counter}>{checked}/{total}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#9AA6B2" />
       </View>
-      <ProgressBar value={checked} total={total} />
+      <ProgressBar value={checked} total={total} color="#0D9488" />
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    padding: 16,
-    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    gap: 14,
+    shadowColor: '#101828',
+    shadowOpacity: 0.05,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
   pressed: { opacity: 0.85 },
-  header: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 14,
   },
-  title: { flex: 1, fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  counter: { fontSize: 14, color: '#71717a', marginLeft: 8 },
+  info: { flex: 1, gap: 3 },
+  title: { ...typography.cardTitle, color: '#1B2733' },
+  counter: { ...typography.bodySm, color: '#76828F' },
 })
 
 export default ListCard
