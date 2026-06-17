@@ -1,7 +1,9 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 
 import type { Note } from '@/db/repositories/notesRepo'
+import { typography } from '@/theme/typography'
 
 interface NoteCardProps {
   note: Note
@@ -26,9 +28,14 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onPress }) => {
           {title}
         </Text>
         {note.isPinned ? (
-          <Text accessibilityLabel="Закреплено" style={styles.pin}>
-            📌
-          </Text>
+          <View style={styles.pinBadge}>
+            <Ionicons
+              name="pin"
+              size={14}
+              color="#E26A4D"
+              accessibilityLabel="Закреплено"
+            />
+          </View>
         ) : null}
       </View>
       {snippet.length > 0 ? (
@@ -42,18 +49,41 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
-    padding: 16,
-    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    gap: 8,
+    shadowColor: '#101828',
+    shadowOpacity: 0.05,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
   pressed: { opacity: 0.85 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { flex: 1, fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  pin: { fontSize: 14, marginLeft: 8 },
-  snippet: { fontSize: 14, color: '#52525b' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: {
+    flex: 1,
+    ...typography.cardTitle,
+    color: '#1B2733',
+    fontSize: 18,
+  },
+  pinBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FCE7E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  snippet: {
+    ...typography.body,
+    color: '#76828F',
+  },
 })
 
 export default NoteCard

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
@@ -52,7 +53,12 @@ const NoteForm: React.FC<NoteFormProps> = ({
 
   return (
     <View style={styles.container}>
-      <BaseInput label="Заголовок" value={title} onChangeText={handleTitle} placeholder="Заголовок" />
+      <BaseInput
+        label="Заголовок"
+        value={title}
+        onChangeText={handleTitle}
+        placeholder="Введите заголовок"
+      />
       <BaseInput
         label="Текст"
         value={body}
@@ -76,7 +82,9 @@ const NoteForm: React.FC<NoteFormProps> = ({
             onPress={onToggleArchive}
           />
         ) : null}
-        {onDelete ? <BaseButton label="Удалить" variant="secondary" onPress={onDelete} /> : null}
+        {onDelete ? (
+          <BaseButton label="Удалить" variant="danger" onPress={onDelete} />
+        ) : null}
       </View>
     </View>
   )
@@ -84,7 +92,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
 
 const styles = StyleSheet.create({
   container: { gap: 16, padding: 16 },
-  body: { minHeight: 160, textAlignVertical: 'top', paddingTop: 12 },
+  body: { minHeight: 120, textAlignVertical: 'top', paddingTop: 12 },
   actions: { gap: 12 },
 })
 

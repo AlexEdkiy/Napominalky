@@ -1,10 +1,11 @@
 import React from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from 'react-native'
+import { typography } from '@/theme/typography'
 
 interface BaseButtonProps {
   label: string
   onPress: () => void
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'danger'
   loading?: boolean
   disabled?: boolean
 }
@@ -18,6 +19,7 @@ const BaseButton: React.FC<BaseButtonProps> = ({
 }) => {
   const isDisabled = disabled || loading
   const isPrimary = variant === 'primary'
+  const isDanger = variant === 'danger'
 
   return (
     <Pressable
@@ -28,15 +30,24 @@ const BaseButton: React.FC<BaseButtonProps> = ({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        isPrimary ? styles.primary : styles.secondary,
+        isPrimary && styles.primary,
+        isDanger && styles.dangerBtn,
+        !isPrimary && !isDanger && styles.secondary,
         pressed && styles.pressed,
         isDisabled && styles.disabled,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#fff' : '#1a1a1a'} />
+        <ActivityIndicator color={isPrimary ? '#fff' : '#0D9488'} />
       ) : (
-        <Text style={[styles.label, isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
+        <Text
+          style={[
+            styles.label,
+            isPrimary && styles.primaryLabel,
+            isDanger && styles.dangerLabel,
+            !isPrimary && !isDanger && styles.secondaryLabel,
+          ]}
+        >
           {label}
         </Text>
       )}
@@ -47,18 +58,33 @@ const BaseButton: React.FC<BaseButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     minHeight: 52,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
-  primary: { backgroundColor: '#2563eb' },
-  secondary: { backgroundColor: '#f1f5f9' },
+  primary: {
+    backgroundColor: '#0D9488',
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: Platform.OS === 'android' ? 4 : 0,
+  },
+  secondary: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#EFF3F6',
+  },
+  dangerBtn: {
+    backgroundColor: '#FCE9E5',
+  },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.5 },
-  label: { fontSize: 16, fontWeight: '600' },
+  label: { ...typography.buttonLabel },
   primaryLabel: { color: '#fff' },
-  secondaryLabel: { color: '#1a1a1a' },
+  secondaryLabel: { color: '#0D9488' },
+  dangerLabel: { color: '#D9583C' },
 })
 
 export default BaseButton

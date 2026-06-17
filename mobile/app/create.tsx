@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -7,16 +8,21 @@ import {
   View,
 } from 'react-native'
 import { router, Stack } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 
 import { useTheme } from '@/theme'
+import { typography } from '@/theme/typography'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
+type MaterialName = React.ComponentProps<typeof MaterialIcons>['name']
 
 interface CreateOption {
   label: string
   hint: string
-  icon: IoniconsName
+  icon: IoniconsName | MaterialName
+  iconSet: 'ionicons' | 'material'
+  iconColor: string
+  iconBg: string
   route: '/notes/new' | '/lists/new' | '/reminders/new'
 }
 
@@ -24,30 +30,38 @@ const OPTIONS: CreateOption[] = [
   {
     label: 'Заметка',
     hint: 'Текст, идеи, мысли',
-    icon: 'document-text-outline',
+    icon: 'edit-note' as MaterialName,
+    iconSet: 'material',
+    iconColor: '#0D9488',
+    iconBg: '#DDF1ED',
     route: '/notes/new',
   },
   {
     label: 'Список',
     hint: 'Список покупок или задач',
-    icon: 'list-outline',
+    icon: 'list' as IoniconsName,
+    iconSet: 'ionicons',
+    iconColor: '#7C6CF0',
+    iconBg: '#E9E7FB',
     route: '/lists/new',
   },
   {
     label: 'Напоминание',
     hint: 'Уведомление в нужное время',
-    icon: 'alarm-outline',
+    icon: 'alarm' as IoniconsName,
+    iconSet: 'ionicons',
+    iconColor: '#D9962A',
+    iconBg: '#FBEFD6',
     route: '/reminders/new',
   },
 ]
 
-interface OptionRowProps {
+interface OptionCardProps {
   option: CreateOption
+  colors: { surface: string; textPrimary: string; textSecondary: string; borderSubtle: string }
 }
 
-const OptionRow: React.FC<OptionRowProps> = ({ option }) => {
-  const { colors } = useTheme()
-
+const OptionCard: React.FC<OptionCardProps> = ({ option, colors }) => {
   const handlePress = (): void => {
     router.back()
     router.push(option.route)
@@ -59,19 +73,23 @@ const OptionRow: React.FC<OptionRowProps> = ({ option }) => {
       accessibilityLabel={option.label}
       onPress={handlePress}
       style={({ pressed }) => [
-        styles.optionRow,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-        pressed && styles.optionPressed,
+        styles.card,
+        { backgroundColor: colors.surface },
+        pressed && styles.cardPressed,
       ]}
     >
-      <View style={[styles.iconWrap, { backgroundColor: colors.accent + '1A' }]}>
-        <Ionicons name={option.icon} size={28} color={colors.accent} />
+      <View style={[styles.iconWrap, { backgroundColor: option.iconBg }]}>
+        {option.iconSet === 'material' ? (
+          <MaterialIcons name={option.icon as MaterialName} size={28} color={option.iconColor} />
+        ) : (
+          <Ionicons name={option.icon as IoniconsName} size={28} color={option.iconColor} />
+        )}
       </View>
-      <View style={styles.optionTexts}>
-        <Text style={[styles.optionLabel, { color: colors.text }]}>{option.label}</Text>
+      <View style={styles.texts}>
+        <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{option.label}</Text>
         <Text style={[styles.optionHint, { color: colors.textSecondary }]}>{option.hint}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+      <Ionicons name="chevron-forward" size={20} color="#9AA6B2" />
     </Pressable>
   )
 }
@@ -79,32 +97,39 @@ const OptionRow: React.FC<OptionRowProps> = ({ option }) => {
 export default function CreateScreen() {
   const { colors } = useTheme()
 
-  const handleClose = (): void => { router.back() }
-
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
       <Stack.Screen
         options={{
           presentation: 'modal',
-          title: 'Создать',
-          headerStyle: { backgroundColor: colors.surface },
-          headerTintColor: colors.text,
-          headerShadowVisible: false,
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Закрыть"
-              onPress={handleClose}
-              style={styles.closeBtn}
-            >
-              <Ionicons name="close" size={24} color={colors.textSecondary} />
-            </Pressable>
-          ),
+          headerShown: false,
         }}
       />
+      <View style={styles.dragHandle} />
+      <View style={styles.appBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Назад"
+          onPress={() => router.back()}
+          style={[styles.backBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+        >
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+        </Pressable>
+        <Text style={[styles.appBarTitle, { color: colors.textPrimary }]}>Создать</Text>
+        <View style={styles.appBarSpacer} />
+      </View>
       <View style={styles.list}>
         {OPTIONS.map((opt) => (
-          <OptionRow key={opt.route} option={opt} />
+          <OptionCard
+            key={opt.route}
+            option={opt}
+            colors={{
+              surface: colors.surface,
+              textPrimary: colors.textPrimary,
+              textSecondary: colors.textSecondary,
+              borderSubtle: colors.borderSubtle,
+            }}
+          />
         ))}
       </View>
     </SafeAreaView>
@@ -113,26 +138,55 @@ export default function CreateScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  list: { padding: 16, gap: 12 },
-  optionRow: {
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#C3CCD6',
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  appBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 16,
-    minHeight: 72,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
   },
-  optionPressed: { opacity: 0.8 },
-  iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionTexts: { flex: 1, gap: 2 },
-  optionLabel: { fontSize: 17, fontWeight: '600' },
-  optionHint: { fontSize: 13 },
-  closeBtn: { padding: 4 },
+  appBarTitle: { ...typography.screenTitle, fontSize: 22, flex: 1 },
+  appBarSpacer: { width: 40 },
+  list: { padding: 16, gap: 12 },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderRadius: 22,
+    padding: 18,
+    minHeight: 80,
+    shadowColor: '#101828',
+    shadowOpacity: 0.05,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: Platform.OS === 'android' ? 3 : 0,
+  },
+  cardPressed: { opacity: 0.8 },
+  iconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  texts: { flex: 1, gap: 4 },
+  optionLabel: { ...typography.cardTitleLg },
+  optionHint: { ...typography.bodySm },
 })

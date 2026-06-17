@@ -5,10 +5,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 're
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/theme'
+import { typography } from '@/theme/typography'
 import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
 
 export default function RegisterScreen() {
   const { register } = useAuth()
+  const { colors } = useTheme()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,50 +31,28 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.screenBg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Регистрация</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Регистрация</Text>
 
-        {generalError ? <Text style={styles.generalError}>{generalError}</Text> : null}
+        {generalError ? (
+          <Text style={[styles.generalError, { color: colors.danger }]}>{generalError}</Text>
+        ) : null}
 
-        <BaseInput
-          label="Имя"
-          value={name}
-          onChangeText={setName}
-          error={fieldErrors['name']?.[0]}
-          autoComplete="name"
-          textContentType="name"
-        />
-        <BaseInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          error={fieldErrors['email']?.[0]}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-        />
-        <BaseInput
-          label="Пароль"
-          value={password}
-          onChangeText={setPassword}
-          error={fieldErrors['password']?.[0]}
-          secureTextEntry
-          autoComplete="password-new"
-          textContentType="newPassword"
-        />
-        <BaseInput
-          label="Повтор пароля"
-          value={passwordConfirmation}
+        <BaseInput label="Имя" value={name} onChangeText={setName}
+          error={fieldErrors['name']?.[0]} autoComplete="name" textContentType="name" />
+        <BaseInput label="Email" value={email} onChangeText={setEmail}
+          error={fieldErrors['email']?.[0]} autoCapitalize="none"
+          autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
+        <BaseInput label="Пароль" value={password} onChangeText={setPassword}
+          error={fieldErrors['password']?.[0]} secureTextEntry
+          autoComplete="password-new" textContentType="newPassword" />
+        <BaseInput label="Повтор пароля" value={passwordConfirmation}
           onChangeText={setPasswordConfirmation}
           error={fieldErrors['password_confirmation']?.[0]}
-          secureTextEntry
-          autoComplete="password-new"
-          textContentType="newPassword"
-        />
+          secureTextEntry autoComplete="password-new" textContentType="newPassword" />
 
         <BaseButton
           label="Создать аккаунт"
@@ -79,7 +60,7 @@ export default function RegisterScreen() {
           loading={register.isPending}
         />
 
-        <Link href="/(auth)/login" style={styles.link}>
+        <Link href="/(auth)/login" style={[styles.link, { color: colors.accent }]}>
           Уже есть аккаунт? Войти
         </Link>
       </ScrollView>
@@ -88,9 +69,9 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   form: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 16 },
-  title: { fontSize: 28, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
-  generalError: { fontSize: 14, color: '#dc2626' },
-  link: { fontSize: 15, color: '#2563eb', textAlign: 'center', marginTop: 8 },
+  title: { ...typography.h2, marginBottom: 8 },
+  generalError: { ...typography.body },
+  link: { ...typography.body, textAlign: 'center', marginTop: 8 },
 })

@@ -3,7 +3,8 @@ import { lightColors, darkColors } from '../colors'
 describe('lightColors', () => {
   it('has all required keys', () => {
     const keys: Array<keyof typeof lightColors> = [
-      'background', 'surface', 'text', 'textSecondary', 'accent', 'border', 'error',
+      'background', 'surface', 'text', 'border', 'error',
+      'accent', 'textSecondary',
     ]
     keys.forEach((key) => {
       expect(lightColors[key]).toBeDefined()
@@ -11,16 +12,17 @@ describe('lightColors', () => {
     })
   })
 
-  it('background is light', () => {
-    expect(lightColors.background).toBe('#f8fafc')
-    expect(lightColors.surface).toBe('#ffffff')
+  it('has correct accent color', () => {
+    expect(lightColors.accent).toBe('#0D9488')
+    expect(lightColors.surface).toBe('#FFFFFF')
   })
 })
 
 describe('darkColors', () => {
   it('has all required keys', () => {
     const keys: Array<keyof typeof darkColors> = [
-      'background', 'surface', 'text', 'textSecondary', 'accent', 'border', 'error',
+      'background', 'surface', 'text', 'border', 'error',
+      'accent', 'textSecondary',
     ]
     keys.forEach((key) => {
       expect(darkColors[key]).toBeDefined()
@@ -29,6 +31,7 @@ describe('darkColors', () => {
   })
 
   it('background is dark', () => {
-    expect(darkColors.background).toBe('#0f172a')
+    expect(darkColors.background).toBe('#0F1923')
+    expect(darkColors.accent).toBe('#0D9488')
   })
 })

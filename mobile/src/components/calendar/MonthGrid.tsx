@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import type { Reminder } from '@/db/repositories/remindersRepo'
 import { getCalendarDays, sameDay, ymd } from '@/utils/dateRange'
+import { typography } from '@/theme/typography'
 import DayCell from './DayCell'
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const
@@ -53,8 +54,17 @@ const MonthGrid: React.FC<MonthGridProps> = ({
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 8, paddingTop: 8 },
-  weekRow: { flexDirection: 'row' },
-  weekday: { flex: 1, textAlign: 'center', fontSize: 12, color: '#71717a', paddingVertical: 6 },
+  weekRow: { flexDirection: 'row', marginBottom: 4 },
+  weekday: {
+    flex: 1,
+    textAlign: 'center',
+    ...typography.sectionLabel,
+    color: '#9AA6B2',
+    paddingVertical: 6,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
 })
 

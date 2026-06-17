@@ -1,7 +1,8 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { formatDateTime } from '@/utils/datetime'
+import { typography } from '@/theme/typography'
 import type { Reminder } from '@/db/repositories/remindersRepo'
 
 interface ReminderCardProps {
@@ -23,7 +24,11 @@ const ReminderCard: React.FC<ReminderCardProps> = ({ reminder, onPress }) => {
         <Text numberOfLines={1} style={[styles.title, reminder.isCompleted && styles.done]}>
           {title}
         </Text>
-        {reminder.isCompleted ? <Text style={styles.badge}>Выполнено</Text> : null}
+        {reminder.isCompleted ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Выполнено</Text>
+          </View>
+        ) : null}
       </View>
       <Text style={styles.time}>{formatDateTime(reminder.remindAt)}</Text>
     </Pressable>
@@ -32,12 +37,15 @@ const ReminderCard: React.FC<ReminderCardProps> = ({ reminder, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e4e4e7',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     padding: 16,
     gap: 6,
+    shadowColor: '#101828',
+    shadowOpacity: 0.05,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
   pressed: { opacity: 0.85 },
   header: {
@@ -45,10 +53,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  title: { flex: 1, fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  done: { textDecorationLine: 'line-through', color: '#9a9a9a' },
-  badge: { fontSize: 12, color: '#16a34a', marginLeft: 8 },
-  time: { fontSize: 14, color: '#71717a' },
+  title: {
+    flex: 1,
+    ...typography.cardTitle,
+    color: '#1B2733',
+  },
+  done: { textDecorationLine: 'line-through', color: '#9AA6B2' },
+  badge: {
+    backgroundColor: '#DDF1ED',
+    borderRadius: 99,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginLeft: 8,
+  },
+  badgeText: { ...typography.bodySm, color: '#0D9488', fontWeight: '600' },
+  time: { ...typography.body, color: '#76828F' },
 })
 
 export default ReminderCard
