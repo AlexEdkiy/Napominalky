@@ -3,10 +3,18 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Account\DeleteAccountController;
+use App\Http\Controllers\Admin\UserDestroyController;
+use App\Http\Controllers\Admin\UserPasswordController;
+use App\Http\Controllers\Admin\UserRolesController;
+use App\Http\Controllers\Admin\UserSetStatusController;
+use App\Http\Controllers\Admin\UserShowController;
+use App\Http\Controllers\Admin\UsersIndexController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\MeController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Devices\DestroyController as DeviceDestroyController;
+use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Notes\ArchiveController as NoteArchiveController;
 use App\Http\Controllers\Notes\DestroyController as NoteDestroyController;
 use App\Http\Controllers\Notes\IndexController as NoteIndexController;
@@ -21,6 +29,7 @@ use App\Http\Controllers\Reminders\ShowController as ReminderShowController;
 use App\Http\Controllers\Reminders\SnoozeController as ReminderSnoozeController;
 use App\Http\Controllers\Reminders\StoreController as ReminderStoreController;
 use App\Http\Controllers\Reminders\UpdateController as ReminderUpdateController;
+use App\Http\Controllers\Settings\ToggleSyncController;
 use App\Http\Controllers\ShoppingLists\DestroyController as ListDestroyController;
 use App\Http\Controllers\ShoppingLists\IndexController as ListIndexController;
 use App\Http\Controllers\ShoppingLists\Items\CheckController as ItemCheckController;
@@ -31,14 +40,9 @@ use App\Http\Controllers\ShoppingLists\Items\UpdateController as ItemUpdateContr
 use App\Http\Controllers\ShoppingLists\ShowController as ListShowController;
 use App\Http\Controllers\ShoppingLists\StoreController as ListStoreController;
 use App\Http\Controllers\ShoppingLists\UpdateController as ListUpdateController;
-use App\Http\Controllers\Devices\DestroyController as DeviceDestroyController;
-use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Sync\ChangesController as SyncChangesController;
 use App\Http\Controllers\Sync\ConflictsController as SyncConflictsController;
 use App\Http\Controllers\Sync\PushController as SyncPushController;
-use App\Http\Controllers\Settings\ToggleSyncController;
-use App\Http\Controllers\Admin\UsersIndexController;
-use App\Http\Controllers\Admin\UserShowController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -158,13 +162,33 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::patch('sync', ToggleSyncController::class)->name('sync');
         });
 
-        // Admin — requires is_admin (enforced via EnsureAdmin middleware + Gate in each controller)
-        Route::prefix('admin')->name('admin.')->middleware('admin')->group(function (): void {
+        // Admin — read-only routes require is_admin; mutating routes require is_super_admin
+        Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::prefix('users')->name('users.')->group(function (): void {
-                // GET /api/v1/admin/users        → Admin\UsersIndexController
-                Route::get('/', UsersIndexController::class)->name('index');
-                // GET /api/v1/admin/users/{user} → Admin\UserShowController
-                Route::get('{user}', UserShowController::class)->name('show');
+                // GET  /api/v1/admin/users        → Admin\UsersIndexController   (admin)
+                Route::get('/', UsersIndexController::class)
+                    ->middleware('admin')
+                    ->name('index');
+                // GET  /api/v1/admin/users/{user} → Admin\UserShowController     (admin)
+                Route::get('{user}', UserShowController::class)
+                    ->middleware('admin')
+                    ->name('show');
+                // PATCH /api/v1/admin/users/{user}/status   → UserSetStatusController (superadmin)
+                Route::patch('{user}/status', UserSetStatusController::class)
+                    ->middleware('superadmin')
+                    ->name('status');
+                // PATCH /api/v1/admin/users/{user}/password → UserPasswordController  (superadmin)
+                Route::patch('{user}/password', UserPasswordController::class)
+                    ->middleware('superadmin')
+                    ->name('password');
+                // PATCH /api/v1/admin/users/{user}/roles    → UserRolesController     (superadmin)
+                Route::patch('{user}/roles', UserRolesController::class)
+                    ->middleware('superadmin')
+                    ->name('roles');
+                // DELETE /api/v1/admin/users/{user}         → UserDestroyController   (superadmin)
+                Route::delete('{user}', UserDestroyController::class)
+                    ->middleware('superadmin')
+                    ->name('destroy');
             });
         });
     });
