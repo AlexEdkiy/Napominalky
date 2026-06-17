@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,6 +18,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens;
+
     use HasFactory;
     use Notifiable;
     use SoftDeletes;
@@ -32,6 +34,8 @@ class User extends Authenticatable
         'password',
         'sync_enabled',
         'is_admin',
+        'is_super_admin',
+        'is_active',
     ];
 
     /**
@@ -49,6 +53,30 @@ class User extends Authenticatable
         static::creating(function (self $user): void {
             $user->uuid ??= (string) Str::uuid();
         });
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_super_admin;
+    }
+
+    public function isActive(): bool
+    {
+        return (bool) $this->is_active;
+    }
+
+    public function revokeTokens(): void
+    {
+        $this->tokens()->delete();
+    }
+
+    /**
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
     }
 
     /**
@@ -105,6 +133,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'sync_enabled' => 'boolean',
             'is_admin' => 'boolean',
+            'is_super_admin' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 }

@@ -12,7 +12,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class LoginController extends Controller
 {
@@ -32,6 +32,10 @@ final class LoginController extends Controller
             ]);
         }
 
+        if (! $user->isActive()) {
+            abort(HttpResponse::HTTP_FORBIDDEN, 'Аккаунт отключён. Обратитесь к администратору.');
+        }
+
         $deviceName = $request->filled('device_name')
             ? $request->string('device_name')->toString()
             : self::DEFAULT_DEVICE_NAME;
@@ -46,7 +50,7 @@ final class LoginController extends Controller
                 'token_type' => 'Bearer',
                 'user' => new UserResource($user),
             ],
-        ], Response::HTTP_OK);
+        ], HttpResponse::HTTP_OK);
     }
 
     private function registerDevice(User $user, string $deviceName): void
