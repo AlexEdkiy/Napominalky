@@ -1,15 +1,52 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useAuthStore } from '@/stores/authStore'
 import { useAdminUsers } from '@/composables/useAdminUsers'
 import { formatDateTime } from '@/utils/datetime'
+import type { AdminUser } from '@/types/admin'
 
 const router = useRouter()
-const { users, meta, page, isLoading, error, load, nextPage, prevPage } = useAdminUsers()
+const auth = useAuthStore()
+const { users, meta, page, isLoading, error, load, nextPage, prevPage, toggleStatus } = useAdminUsers()
+
+const toastMessage = ref<string | null>(null)
+const toastType = ref<'success' | 'error'>('success')
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+function showToast(message: string, type: 'success' | 'error'): void {
+  if (toastTimer !== null) clearTimeout(toastTimer)
+  toastMessage.value = message
+  toastType.value = type
+  toastTimer = setTimeout(() => { toastMessage.value = null }, 4000)
+}
 
 function handleRowClick(uuid: string): void {
   void router.push({ name: 'admin-user-detail', params: { id: uuid } })
+}
+
+function roleBadgeClass(user: AdminUser): string {
+  if (user.is_super_admin) return 'badge--superadmin'
+  if (user.is_admin) return 'badge--admin'
+  return 'badge--user'
+}
+
+function roleLabel(user: AdminUser): string {
+  if (user.is_super_admin) return 'Суперадмин'
+  if (user.is_admin) return 'Админ'
+  return 'Пользователь'
+}
+
+async function handleToggleStatus(event: Event, user: AdminUser): Promise<void> {
+  event.stopPropagation()
+  const result = await toggleStatus(user)
+  if (result.ok) {
+    const label = user.is_active ? 'заблокирован' : 'разблокирован'
+    showToast(`Пользователь ${label}.`, 'success')
+  } else {
+    showToast(result.error ?? 'Ошибка.', 'error')
+  }
 }
 
 onMounted(() => load(1))
@@ -21,6 +58,14 @@ onMounted(() => load(1))
       <h1>Пользователи</h1>
       <p v-if="meta" class="users-list__total">Всего: {{ meta.total }}</p>
     </header>
+
+    <div
+      v-if="toastMessage"
+      role="status"
+      :class="['toast', toastType === 'error' ? 'toast--error' : 'toast--success']"
+    >
+      {{ toastMessage }}
+    </div>
 
     <p v-if="error" role="alert" class="users-list__error">{{ error }}</p>
 
@@ -35,9 +80,13 @@ onMounted(() => load(1))
             <tr>
               <th scope="col">Имя</th>
               <th scope="col">Email</th>
+              <th scope="col">Статус</th>
               <th scope="col">Роль</th>
-              <th scope="col">Синхронизация</th>
+              <th scope="col">Заметок</th>
+              <th scope="col">Напоминаний</th>
+              <th scope="col">Списков</th>
               <th scope="col">Дата регистрации</th>
+              <th v-if="auth.isSuperAdmin" scope="col">Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -56,14 +105,33 @@ onMounted(() => load(1))
               <td>{{ user.email }}</td>
               <td>
                 <span
-                  :class="['badge', user.is_admin ? 'badge--admin' : 'badge--user']"
-                  :aria-label="user.is_admin ? 'Администратор' : 'Пользователь'"
+                  :class="['badge', user.is_active ? 'badge--active' : 'badge--blocked']"
+                  :aria-label="user.is_active ? 'Активен' : 'Заблокирован'"
                 >
-                  {{ user.is_admin ? 'Админ' : 'Пользователь' }}
+                  {{ user.is_active ? 'Активен' : 'Заблокирован' }}
                 </span>
               </td>
-              <td>{{ user.sync_enabled ? 'Вкл' : 'Выкл' }}</td>
+              <td>
+                <span :class="['badge', roleBadgeClass(user)]">
+                  {{ roleLabel(user) }}
+                </span>
+              </td>
+              <td>{{ user.notes_count ?? '—' }}</td>
+              <td>{{ user.reminders_count ?? '—' }}</td>
+              <td>{{ user.lists_count ?? '—' }}</td>
               <td>{{ formatDateTime(user.created_at) }}</td>
+              <td v-if="auth.isSuperAdmin" @click.stop>
+                <button
+                  type="button"
+                  :class="['action-btn', user.is_active ? 'action-btn--block' : 'action-btn--unblock']"
+                  :disabled="user.id === undefined"
+                  :title="user.id === undefined ? 'Недоступно: backend не вернул id' : (user.is_active ? 'Заблокировать' : 'Разблокировать')"
+                  :aria-label="user.is_active ? 'Заблокировать пользователя' : 'Разблокировать пользователя'"
+                  @click="(e) => handleToggleStatus(e, user)"
+                >
+                  {{ user.is_active ? 'Блок.' : 'Разблок.' }}
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -94,7 +162,7 @@ onMounted(() => load(1))
 
 <style scoped>
 .users-list {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -165,6 +233,21 @@ onMounted(() => load(1))
   white-space: nowrap;
 }
 
+.badge--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge--blocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge--superadmin {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
 .badge--admin {
   background: #dbeafe;
   color: #1e40af;
@@ -173,6 +256,32 @@ onMounted(() => load(1))
 .badge--user {
   background: #f3f4f6;
   color: #374151;
+}
+
+.action-btn {
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-btn--block {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.action-btn--unblock {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
 }
 
 .users-list__pagination {
@@ -198,5 +307,29 @@ onMounted(() => load(1))
 .users-list__page-info {
   color: #555;
   font-size: 0.9rem;
+}
+
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: 360px;
+}
+
+.toast--success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.toast--error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 </style>

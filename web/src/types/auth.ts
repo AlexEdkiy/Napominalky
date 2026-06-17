@@ -1,11 +1,14 @@
 /**
  * Пользователь — зеркало UserResource (snake_case).
+ * GET /auth/me возвращает is_super_admin и is_active начиная с фичи суперадмина.
  */
 export interface User {
   uuid: string
   name: string | null
   email: string
   is_admin: boolean
+  is_super_admin: boolean
+  is_active: boolean
   sync_enabled: boolean
   created_at: string
 }

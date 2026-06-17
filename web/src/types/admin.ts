@@ -2,21 +2,25 @@
  * Пользователь в представлении администратора.
  * Зеркало AdminUserResource (snake_case).
  *
- * ЗАМЕЧАНИЕ ПО КОНТРАКТУ (id vs uuid):
- * AdminUserResource возвращает только uuid, числовой id не включён.
- * Однако GET /api/v1/admin/users/{user} использует route model binding
- * по числовому id (User::getRouteKeyName() не переопределён).
- * Это рассинхрон: построить ссылку на detail-страницу по числовому id
- * из списка невозможно. MVP-решение: используем uuid в роуте /admin/users/:id
- * и передаём uuid в fetchUser. Если backend принимает uuid — работает.
- * Если нет — баг контракта, требует правки AdminUserResource (добавить id)
- * или переопределения getRouteKeyName() в модели User.
+ * БЛОКЕР ДЛЯ БЭКЕНДА:
+ * AdminUserResource не возвращает числовой id — только uuid.
+ * Все action-эндпоинты (/status, /password, /roles, DELETE) требуют числового id
+ * в URL (Laravel route model binding по id).
+ * Без id в ответе ресурса эти действия невозможны.
+ * Требуется: добавить `"id"` в AdminUserResource или переопределить
+ * getRouteKeyName() в модели User на 'uuid'.
+ * Поле id? помечено optional — до правки бэкенда будет undefined,
+ * UI будет блокировать кнопки действий при отсутствии id.
  */
 export interface AdminUser {
+  /** Числовой первичный ключ. ОТСУТСТВУЕТ в текущем AdminUserResource — БЛОКЕР. */
+  id?: number
   uuid: string
   name: string | null
   email: string
   is_admin: boolean
+  is_super_admin: boolean
+  is_active: boolean
   sync_enabled: boolean
   created_at: string
   /** Доступно только в detail-запросе (с loadCount) */
