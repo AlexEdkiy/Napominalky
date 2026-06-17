@@ -1,22 +1,15 @@
 /**
  * Пользователь в представлении администратора.
  * Зеркало AdminUserResource (snake_case).
- *
- * ЗАМЕЧАНИЕ ПО КОНТРАКТУ (id vs uuid):
- * AdminUserResource возвращает только uuid, числовой id не включён.
- * Однако GET /api/v1/admin/users/{user} использует route model binding
- * по числовому id (User::getRouteKeyName() не переопределён).
- * Это рассинхрон: построить ссылку на detail-страницу по числовому id
- * из списка невозможно. MVP-решение: используем uuid в роуте /admin/users/:id
- * и передаём uuid в fetchUser. Если backend принимает uuid — работает.
- * Если нет — баг контракта, требует правки AdminUserResource (добавить id)
- * или переопределения getRouteKeyName() в модели User.
+ * Идентификатор для всех action-эндпоинтов — uuid (route model binding по uuid).
  */
 export interface AdminUser {
   uuid: string
   name: string | null
   email: string
   is_admin: boolean
+  is_super_admin: boolean
+  is_active: boolean
   sync_enabled: boolean
   created_at: string
   /** Доступно только в detail-запросе (с loadCount) */

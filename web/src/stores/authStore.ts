@@ -14,6 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isAuthenticated = computed(() => token.value !== null)
   const isAdmin = computed(() => user.value?.is_admin ?? false)
+  const isSuperAdmin = computed(() => user.value?.is_super_admin ?? false)
 
   // Actions
   function setToken(newToken: string | null): void {
@@ -62,6 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isAuthenticated,
     isAdmin,
+    isSuperAdmin,
     setToken,
     setUser,
     register,

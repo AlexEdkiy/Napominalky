@@ -23,6 +23,8 @@ final class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'is_admin' => $this->is_admin,
+            'is_super_admin' => $this->is_super_admin,
+            'is_active' => $this->is_active,
             'sync_enabled' => $this->sync_enabled,
             'created_at' => $this->created_at?->toISOString(),
         ];

@@ -22,15 +22,17 @@ final class AdminUserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'uuid'            => $this->uuid,
-            'name'            => $this->name,
-            'email'           => $this->email,
-            'is_admin'        => $this->is_admin,
-            'sync_enabled'    => $this->sync_enabled,
-            'created_at'      => $this->created_at?->toISOString(),
-            'notes_count'     => $this->whenNotNull($this->notes_count),
+            'uuid' => $this->uuid,
+            'name' => $this->name,
+            'email' => $this->email,
+            'is_admin' => $this->is_admin,
+            'is_super_admin' => $this->is_super_admin,
+            'is_active' => $this->is_active,
+            'sync_enabled' => $this->sync_enabled,
+            'created_at' => $this->created_at?->toISOString(),
+            'notes_count' => $this->whenNotNull($this->notes_count),
             'reminders_count' => $this->whenNotNull($this->reminders_count),
-            'lists_count'     => $this->whenNotNull($this->shopping_lists_count),
+            'lists_count' => $this->whenNotNull($this->shopping_lists_count),
         ];
     }
 }

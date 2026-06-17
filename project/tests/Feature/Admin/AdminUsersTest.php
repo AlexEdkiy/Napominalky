@@ -65,7 +65,7 @@ it('returns 200 with user detail and counters for admin', function (): void {
 
     Sanctum::actingAs($admin);
 
-    $response = $this->getJson("/api/v1/admin/users/{$target->id}");
+    $response = $this->getJson("/api/v1/admin/users/{$target->uuid}");
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -85,7 +85,7 @@ it('returns zero counters when user has no related data', function (): void {
     $target = User::factory()->create();
     Sanctum::actingAs($admin);
 
-    $response = $this->getJson("/api/v1/admin/users/{$target->id}");
+    $response = $this->getJson("/api/v1/admin/users/{$target->uuid}");
 
     $response->assertOk()
         ->assertJsonPath('data.notes_count', 0)
@@ -98,20 +98,20 @@ it('returns 403 for a regular user on admin show', function (): void {
     $target = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $this->getJson("/api/v1/admin/users/{$target->id}")->assertForbidden();
+    $this->getJson("/api/v1/admin/users/{$target->uuid}")->assertForbidden();
 });
 
 it('returns 401 without token on admin show', function (): void {
     $target = User::factory()->create();
 
-    $this->getJson("/api/v1/admin/users/{$target->id}")->assertUnauthorized();
+    $this->getJson("/api/v1/admin/users/{$target->uuid}")->assertUnauthorized();
 });
 
-it('returns 404 for a non-existent user id for admin', function (): void {
+it('returns 404 for a non-existent user uuid for admin', function (): void {
     $admin = User::factory()->admin()->create();
     Sanctum::actingAs($admin);
 
-    $this->getJson('/api/v1/admin/users/99999')->assertNotFound();
+    $this->getJson('/api/v1/admin/users/00000000-0000-0000-0000-000000000000')->assertNotFound();
 });
 
 // ---------------------------------------------------------------------------

@@ -9,6 +9,8 @@ const user: User = {
   name: 'Ivan',
   email: 'ivan@example.com',
   is_admin: false,
+  is_super_admin: false,
+  is_active: true,
   sync_enabled: true,
   created_at: '2026-01-01T00:00:00Z',
 }
@@ -53,6 +55,13 @@ describe('authStore', () => {
     expect(auth.isAdmin).toBe(false)
     auth.setUser({ ...user, is_admin: true })
     expect(auth.isAdmin).toBe(true)
+  })
+
+  it('setUser drives the isSuperAdmin getter', () => {
+    const auth = useAuthStore()
+    expect(auth.isSuperAdmin).toBe(false)
+    auth.setUser({ ...user, is_admin: true, is_super_admin: true })
+    expect(auth.isSuperAdmin).toBe(true)
   })
 
   it('logout clears local state without calling API when no token', async () => {

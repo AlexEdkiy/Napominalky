@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-16 (завершена фича «Настройки + Админка»: DEV-12, MBE-8, MOB-20, WEB-8, WEB-9, TEST-11)
+> Последнее обновление: 2026-06-17 (завершена фича «Суперадмин»: DEV-13, MBE-9, WEB-10, TEST-12)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -8,21 +8,21 @@
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
-| DEV     | 12           | backend-developer         |
+| DEV     | 14           | backend-developer         |
 | MBE     | 10           | mobile-backend-developer  |
-| MOB     | 20           | mobile-developer          |
-| WEB     | 9            | web-developer             |
-| TEST    | 11           | test-engineer             |
+| MOB     | 21           | mobile-developer          |
+| WEB     | 11           | web-developer             |
+| TEST    | 13           | test-engineer             |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 3            | devops-engineer           |
-| DOC     | 2            | technical-writer          |
+| DOC     | 3            | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 64 |
+| Completed | 68 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1313,6 +1313,111 @@
   - [x] Admin endpoints требуют is_admin
 - **Создана:** 2026-06-03
 - **Завершена:** 2026-06-16
+
+---
+
+## Feature: Суперадмин (управление пользователями в ЛК)
+
+### DEV-13: is_super_admin + is_active флаги, Actions (SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction, DeleteUserAction), seeder
+- **Исполнитель:** backend-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** DEV-1
+- **Блокирует:** MBE-9
+- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Описание:** Добавить флаги is_super_admin (bool, default false) и is_active (bool, default true) в миграцию users. Реализовать методы модели User: isSuperAdmin(), isActive(), revokeTokens(). Создать Actions: SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction (assign/revoke админской роли), DeleteUserAction. Реализовать блокировку входа неактивного пользователя в LoginController. Создать seeder с суперадмин пользователем admin@demo.local.
+- **Реализация:** Миграция ALTER users ADD is_super_admin/is_active. User модель с методами и casts. Actions в app/Actions/{User,Admin}/ (SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction, DeleteUserAction), каждый invokable. LoginController проверка !user.isActive() → 403. DatabaseSeeder с create admin@demo.local → is_super_admin=true, is_active=true.
+- **Файлы:** `project/database/migrations/*_add_super_admin_fields_to_users_table.php`, `project/app/Models/User.php` (обновить), `project/app/Actions/Admin/SetUserActiveAction.php`, `project/app/Actions/Admin/ChangeUserPasswordAction.php`, `project/app/Actions/Admin/SetUserRolesAction.php`, `project/app/Actions/Admin/DeleteUserAction.php`, `project/app/Http/Controllers/Auth/LoginController.php` (обновить), `project/database/seeders/DatabaseSeeder.php` (обновить)
+- **Критерии приёмки:**
+  - [x] php artisan migrate успешна: users.is_super_admin, users.is_active (BOOLEAN типы)
+  - [x] User::isSuperAdmin() возвращает is_super_admin
+  - [x] User::isActive() возвращает is_active
+  - [x] User::revokeTokens() отзывает все Sanctum токены пользователя
+  - [x] SetUserActiveAction переключает is_active, возвращает User
+  - [x] ChangeUserPasswordAction обновляет password (хеширование)
+  - [x] SetUserRolesAction: assign admin role + user_roles.is_admin = true; revoke role
+  - [x] DeleteUserAction soft-delete user (soft deletes уже в миграции DEV-1)
+  - [x] LoginController проверка user.isActive() === false → 403 (не может войти)
+  - [x] Seeder создаёт admin@demo.local с is_super_admin=true (password=password)
+  - [x] php artisan db:seed успешен, admin@demo.local готов к логину
+  - [x] declare(strict_types=1) во всех файлах
+- **Создана:** 2026-06-17
+- **Завершена:** 2026-06-17
+
+### MBE-9: EnsureSuperAdmin middleware, контроллеры (UserSetStatus/UserPassword/UserRoles/UserDestroy), Form Requests + guard'ы, ресурсы (AdminUserResource, UserResource +is_super_admin/+is_active), маршруты
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** DEV-13
+- **Блокирует:** WEB-10, TEST-12
+- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Описание:** Создать middleware EnsureSuperAdmin (alias superadmin) для проверки is_super_admin=true (403 иначе). Реализовать контроллеры для управления пользователями: UserSetStatusController (PATCH {uuid}/status), UserPasswordController (PATCH {uuid}/password), UserRolesController (PATCH {uuid}/roles), UserDestroyController (DELETE {uuid}). Form Requests с guard'ами: нельзя менять статус/пароль/удалить самого себя, нельзя отозвать последнего активного суперадмина. Расширить UserResource полями is_super_admin, is_active. Создать AdminUserResource для списков. Маршруты под /api/v1/admin/users с middleware superadmin.
+- **Реализация:** app/Http/Middleware/EnsureSuperAdmin.php → check auth()->user()->isSuperAdmin(). Контроллеры в app/Http/Controllers/Admin/{UserSetStatusController, UserPasswordController, UserRolesController, UserDestroyController}.php (invokable). Form Requests: SetUserStatusRequest, ChangeUserPasswordRequest, SetUserRolesRequest, DestroyUserRequest с authorize() методами (self-check, last-active-superadmin-check). Resources: AdminUserResource, обновить UserResource. Routes в routes/api.php: PATCH {user:uuid}/status|password|roles, DELETE {uuid}, все под middleware superadmin.
+- **Файлы:** `project/app/Http/Middleware/EnsureSuperAdmin.php`, `project/app/Http/Controllers/Admin/UserSetStatusController.php`, `project/app/Http/Controllers/Admin/UserPasswordController.php`, `project/app/Http/Controllers/Admin/UserRolesController.php`, `project/app/Http/Controllers/Admin/UserDestroyController.php`, `project/app/Http/Requests/Admin/SetUserStatusRequest.php`, `project/app/Http/Requests/Admin/ChangeUserPasswordRequest.php`, `project/app/Http/Requests/Admin/SetUserRolesRequest.php`, `project/app/Http/Requests/Admin/DestroyUserRequest.php`, `project/app/Http/Resources/AdminUserResource.php`, `project/app/Http/Resources/UserResource.php` (обновить), `project/routes/api.php` (обновить)
+- **Критерии приёмки:**
+  - [x] Middleware EnsureSuperAdmin проверяет is_super_admin → 403 иначе
+  - [x] PATCH /api/v1/admin/users/{uuid}/status → 200, обновляет is_active (guard: не self)
+  - [x] PATCH /api/v1/admin/users/{uuid}/password → 200, хеширует (guard: не self)
+  - [x] PATCH /api/v1/admin/users/{uuid}/roles → 200, assign/revoke admin (guard: не self, не последний активный суперадмин)
+  - [x] DELETE /api/v1/admin/users/{uuid} → 204, soft delete (guard: не self, не последний активный суперадмин)
+  - [x] AdminUserResource: uuid, name, email, is_admin, is_super_admin, is_active, created_at
+  - [x] UserResource: добавлены is_super_admin, is_active
+  - [x] Маршруты в /api/v1/admin/users с route model binding {user:uuid}
+  - [x] Все контроллеры требуют auth:sanctum + superadmin middleware
+  - [x] declare(strict_types=1) во всех файлах
+- **Создана:** 2026-06-17
+- **Завершена:** 2026-06-17
+
+### WEB-10: Страница управления пользователями (UsersListView, UserDetailView), API-методы (fetchUsers, fetchUser, setUserStatus, changeUserPassword, setUserRoles, deleteUser), composable useUsers, гейтинг по is_super_admin
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** MBE-9, WEB-1
+- **Блокирует:** TEST-12
+- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Создать API функции для управления пользователями в суперадмин панели. Composable useUsers для управления состоянием. Страницы: UsersListView (таблица пользователей со статусом, ролями, действиями), UserDetailView (детальный просмотр + редактирование). Добавить guard в router для проверки is_super_admin. При заблокированном входе показать сообщение на LoginView.
+- **Реализация:** src/api/usersApi.ts (fetchUsers, fetchUser, setUserStatus, changeUserPassword, setUserRoles, deleteUser). src/composables/useUsers.ts (состояние пользователей). src/pages/admin/UsersListView.vue (таблица со статусом/ролями, кнопки действий — блокировка, смена пароля, права, удаление). src/pages/admin/UserDetailView.vue (форма редактирования). src/router/guards.ts + requireSuperAdmin. src/pages/auth/LoginView.vue (обновить — сообщение если account blocked).
+- **Файлы:** `web/src/api/usersApi.ts`, `web/src/composables/useUsers.ts`, `web/src/pages/admin/UsersListView.vue`, `web/src/pages/admin/UserDetailView.vue`, `web/src/router/guards.ts` (обновить), `web/src/pages/auth/LoginView.vue` (обновить), `web/src/types/admin.ts`
+- **Критерии приёмки:**
+  - [x] usersApi: fetchUsers (paginated), fetchUser, setUserStatus, changeUserPassword, setUserRoles, deleteUser
+  - [x] useUsers composable: users/isLoading + load/setStatus/changePassword/setRoles/remove методы
+  - [x] UsersListView: таблица (uuid, name, email, is_admin, is_super_admin, is_active), кнопки (блокировка, смена пароля, права, удаление)
+  - [x] Быстрые toggle: статус (активный/неактивный) переключается в строке, админ-роль toggle
+  - [x] Модальные окна/подтверждения для смены пароля, удаления
+  - [x] UserDetailView: полные поля редактирования + сохранение
+  - [x] Guard requireSuperAdmin проверяет auth store is_super_admin
+  - [x] Доступ /admin/* требует is_super_admin (иначе редирект на /lk)
+  - [x] LoginView: сообщение «Аккаунт заблокирован» если is_active=false
+  - [x] script setup lang="ts", strict, без any; vue-tsc OK, Vitest тесты
+- **Создана:** 2026-06-17
+- **Завершена:** 2026-06-17
+
+### TEST-12: Pest-тесты для суперадмин функционала (Actions, Policies, API endpoints, form guards)
+- **Исполнитель:** test-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** MBE-9
+- **Блокирует:** нет
+- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Описание:** Написать 35 Pest-тестов для фичи суперадмин: Actions unit (SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction, DeleteUserAction), form guard'ы (self-check, last-active-superadmin-check), API endpoints (PATCH/DELETE статус/пароль/роли/удаление), авторизация (только суперадмин, только на других юзеров). Проверить всю функциональность end-to-end.
+- **Реализация:** tests/Feature/Admin/SuperAdminUserManagementTest.php с 35 кейсами: SetUserActive (active/inactive), ChangePassword (valid/invalid), SetRoles (assign/revoke admin), DeleteUser (soft delete). Form guards: нельзя над собой, нельзя отозвать последнего активного суперадмина. API: 200 на success, 403 на non-superadmin, 404 на юзер не найден, 422 на валидация. Все тесты против PostgreSQL (RefreshDatabase).
+- **Файлы:** `project/tests/Feature/Admin/SuperAdminUserManagementTest.php`
+- **Критерии приёмки:**
+  - [x] php artisan test — все 35 тестов зелёные (254 passed всего, 911 assertions)
+  - [x] SetUserActiveAction unit: активирует/деактивирует, возвращает User
+  - [x] ChangeUserPasswordAction unit: обновляет password (хеш)
+  - [x] SetUserRolesAction unit: assign/revoke admin роль
+  - [x] DeleteUserAction unit: soft delete
+  - [x] Form guard: нельзя менять себя → 422
+  - [x] Form guard: нельзя отозвать последнего активного суперадмина → 422
+  - [x] PATCH /api/v1/admin/users/{uuid}/status: 200 на success, 403 на non-superadmin, 404 на not found
+  - [x] PATCH /api/v1/admin/users/{uuid}/password: 200, 403, 404
+  - [x] PATCH /api/v1/admin/users/{uuid}/roles: 200, 403, 404, 422 (last-active-superadmin)
+  - [x] DELETE /api/v1/admin/users/{uuid}: 204 на success, 403, 404, 422 (self/last-active)
+  - [x] GET /api/v1/admin/users, GET /admin/users/{uuid}: 200 на admin, 403 на non-admin
+  - [x] declare(strict_types=1), RefreshDatabase, против PostgreSQL
+- **Создана:** 2026-06-17
+- **Завершена:** 2026-06-17
 
 ---
 

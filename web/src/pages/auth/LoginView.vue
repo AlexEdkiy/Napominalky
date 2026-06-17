@@ -40,6 +40,15 @@ function handleError(error: unknown): void {
     generalError.value = 'Неверный email или пароль.'
     return
   }
+  // 403 — аккаунт заблокирован (is_active=false), показываем message из ответа
+  if (isAxiosError(error) && error.response?.status === 403) {
+    const body = error.response.data as Record<string, unknown>
+    const msg = typeof body.message === 'string' && body.message.length > 0
+      ? body.message
+      : 'Ваш аккаунт отключён. Обратитесь к администратору.'
+    generalError.value = msg
+    return
+  }
   generalError.value = 'Не удалось войти. Попробуйте позже.'
 }
 </script>
