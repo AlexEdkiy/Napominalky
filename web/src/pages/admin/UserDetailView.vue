@@ -132,8 +132,6 @@ function handleBack(): void {
 
 // Computed flags
 const canDoActions = computed(() => auth.isSuperAdmin)
-const hasNumericId = computed(() => user.value?.id !== undefined)
-const actionsBlocked = computed(() => !hasNumericId.value)
 
 onMounted(async () => {
   await load()
@@ -166,12 +164,6 @@ onMounted(async () => {
     </p>
 
     <template v-else-if="user">
-      <!-- Warning: no numeric id (backend blocker) -->
-      <div v-if="canDoActions && actionsBlocked" class="user-detail__blocker" role="alert">
-        Управляющие действия недоступны: сервер не вернул числовой id пользователя.
-        Требуется правка бэкенда (добавить id в AdminUserResource).
-      </div>
-
       <section class="user-detail__card" aria-label="Данные пользователя">
         <dl class="user-detail__fields">
           <div class="user-detail__field">
@@ -261,7 +253,7 @@ onMounted(async () => {
             <button
               type="button"
               :class="['btn', user.is_active ? 'btn--danger' : 'btn--success']"
-              :disabled="actionPending || actionsBlocked"
+              :disabled="actionPending"
               @click="handleToggleStatus"
             >
               {{ user.is_active ? 'Заблокировать' : 'Разблокировать' }}
@@ -277,7 +269,7 @@ onMounted(async () => {
             <button
               type="button"
               class="btn btn--secondary"
-              :disabled="actionPending || actionsBlocked"
+              :disabled="actionPending"
               @click="openPasswordModal"
             >
               Сменить пароль
@@ -297,7 +289,7 @@ onMounted(async () => {
                 <input
                   v-model="rolesIsAdmin"
                   type="checkbox"
-                  :disabled="rolesIsSuperAdmin || actionPending || actionsBlocked"
+                  :disabled="rolesIsSuperAdmin || actionPending"
                   @change="onAdminChange"
                 />
                 Администратор
@@ -306,7 +298,7 @@ onMounted(async () => {
                 <input
                   v-model="rolesIsSuperAdmin"
                   type="checkbox"
-                  :disabled="actionPending || actionsBlocked"
+                  :disabled="actionPending"
                   @change="onSuperAdminChange"
                 />
                 Суперадминистратор
@@ -314,7 +306,7 @@ onMounted(async () => {
               <button
                 type="button"
                 class="btn btn--primary"
-                :disabled="actionPending || actionsBlocked"
+                :disabled="actionPending"
                 @click="handleUpdateRoles"
               >
                 Сохранить права
@@ -331,7 +323,7 @@ onMounted(async () => {
             <button
               type="button"
               class="btn btn--danger"
-              :disabled="actionPending || actionsBlocked"
+              :disabled="actionPending"
               @click="openDeleteModal"
             >
               Удалить пользователя
@@ -439,16 +431,6 @@ onMounted(async () => {
 .user-detail__empty {
   color: var(--color-text-secondary, #666);
   padding: 1rem 0;
-}
-
-.user-detail__blocker {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  color: #7d5a00;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
 }
 
 .user-detail__card {

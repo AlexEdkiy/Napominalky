@@ -124,8 +124,7 @@ onMounted(() => load(1))
                 <button
                   type="button"
                   :class="['action-btn', user.is_active ? 'action-btn--block' : 'action-btn--unblock']"
-                  :disabled="user.id === undefined"
-                  :title="user.id === undefined ? 'Недоступно: backend не вернул id' : (user.is_active ? 'Заблокировать' : 'Разблокировать')"
+                  :title="user.is_active ? 'Заблокировать' : 'Разблокировать'"
                   :aria-label="user.is_active ? 'Заблокировать пользователя' : 'Разблокировать пользователя'"
                   @click="(e) => handleToggleStatus(e, user)"
                 >

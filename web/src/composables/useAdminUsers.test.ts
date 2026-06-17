@@ -14,7 +14,6 @@ vi.mock('@/api/adminApi', () => ({
 }))
 
 const user: AdminUser = {
-  id: 1,
   uuid: 'u-1',
   name: 'Иван Иванов',
   email: 'ivan@example.com',
@@ -111,7 +110,7 @@ describe('useAdminUsers', () => {
     expect(isLoading.value).toBe(false)
   })
 
-  it('toggleStatus calls setUserStatus and updates list entry', async () => {
+  it('toggleStatus calls setUserStatus with uuid and updates list entry', async () => {
     vi.mocked(adminApi.fetchUsers).mockResolvedValue(paginatedResponse)
     const updatedUser: AdminUser = { ...user, is_active: false }
     vi.mocked(adminApi.setUserStatus).mockResolvedValue(updatedUser)
@@ -122,22 +121,21 @@ describe('useAdminUsers', () => {
     const result = await toggleStatus(user)
 
     expect(result.ok).toBe(true)
-    expect(adminApi.setUserStatus).toHaveBeenCalledWith(1, false)
+    expect(adminApi.setUserStatus).toHaveBeenCalledWith('u-1', false)
     expect(users.value[0]?.is_active).toBe(false)
   })
 
-  it('toggleStatus returns error when user has no numeric id', async () => {
-    const { id: _id, ...userNoId } = user
-    vi.mocked(adminApi.fetchUsers).mockResolvedValue({ ...paginatedResponse, data: [userNoId] })
+  it('toggleStatus returns error when API call fails', async () => {
+    vi.mocked(adminApi.fetchUsers).mockResolvedValue(paginatedResponse)
+    vi.mocked(adminApi.setUserStatus).mockRejectedValue(new Error('server error'))
 
     const { load, toggleStatus } = useAdminUsers()
     await load(1)
 
-    const result = await toggleStatus(userNoId)
+    const result = await toggleStatus(user)
 
     expect(result.ok).toBe(false)
-    expect(result.error).toContain('числовой id')
-    expect(adminApi.setUserStatus).not.toHaveBeenCalled()
+    expect(result.error).toBe('server error')
   })
 })
 
@@ -146,7 +144,7 @@ describe('useAdminUser', () => {
     vi.clearAllMocks()
   })
 
-  it('load fetches user by id and populates reactive state', async () => {
+  it('load fetches user by uuid and populates reactive state', async () => {
     const detailUser: AdminUser = {
       ...user,
       notes_count: 5,
@@ -174,7 +172,7 @@ describe('useAdminUser', () => {
     expect(isLoading.value).toBe(false)
   })
 
-  it('toggleStatus calls setUserStatus and updates user state', async () => {
+  it('toggleStatus calls setUserStatus with composable uuid and updates user state', async () => {
     const activeUser: AdminUser = { ...user, is_active: true }
     vi.mocked(adminApi.fetchUser).mockResolvedValue(activeUser)
     const blockedUser: AdminUser = { ...user, is_active: false }
@@ -186,7 +184,7 @@ describe('useAdminUser', () => {
     const result = await toggleStatus()
 
     expect(result.ok).toBe(true)
-    expect(adminApi.setUserStatus).toHaveBeenCalledWith(1, false)
+    expect(adminApi.setUserStatus).toHaveBeenCalledWith('u-1', false)
     expect(storeUser.value?.is_active).toBe(false)
   })
 
@@ -200,10 +198,10 @@ describe('useAdminUser', () => {
     const result = await changePassword('newpass1', 'newpass1')
 
     expect(result.ok).toBe(true)
-    expect(adminApi.setUserPassword).toHaveBeenCalledWith(1, 'newpass1', 'newpass1')
+    expect(adminApi.setUserPassword).toHaveBeenCalledWith('u-1', 'newpass1', 'newpass1')
   })
 
-  it('updateRoles calls setUserRoles and updates user', async () => {
+  it('updateRoles calls setUserRoles with uuid and updates user', async () => {
     vi.mocked(adminApi.fetchUser).mockResolvedValue(user)
     const adminUser: AdminUser = { ...user, is_admin: true, is_super_admin: false }
     vi.mocked(adminApi.setUserRoles).mockResolvedValue(adminUser)
@@ -214,11 +212,11 @@ describe('useAdminUser', () => {
     const result = await updateRoles(true, false)
 
     expect(result.ok).toBe(true)
-    expect(adminApi.setUserRoles).toHaveBeenCalledWith(1, true, false)
+    expect(adminApi.setUserRoles).toHaveBeenCalledWith('u-1', true, false)
     expect(storeUser.value?.is_admin).toBe(true)
   })
 
-  it('removeUser calls deleteUser', async () => {
+  it('removeUser calls deleteUser with uuid', async () => {
     vi.mocked(adminApi.fetchUser).mockResolvedValue(user)
     vi.mocked(adminApi.deleteUser).mockResolvedValue(undefined)
 
@@ -228,31 +226,7 @@ describe('useAdminUser', () => {
     const result = await removeUser()
 
     expect(result.ok).toBe(true)
-    expect(adminApi.deleteUser).toHaveBeenCalledWith(1)
-  })
-
-  it('actions return error when user has no numeric id', async () => {
-    const { id: _id, ...userNoId } = user
-    vi.mocked(adminApi.fetchUser).mockResolvedValue(userNoId)
-
-    const { load, toggleStatus, changePassword, updateRoles, removeUser } = useAdminUser('u-1')
-    await load()
-
-    const results = await Promise.all([
-      toggleStatus(),
-      changePassword('pass', 'pass'),
-      updateRoles(true, false),
-      removeUser(),
-    ])
-
-    for (const r of results) {
-      expect(r.ok).toBe(false)
-      expect(r.error).toContain('числовой id')
-    }
-    expect(adminApi.setUserStatus).not.toHaveBeenCalled()
-    expect(adminApi.setUserPassword).not.toHaveBeenCalled()
-    expect(adminApi.setUserRoles).not.toHaveBeenCalled()
-    expect(adminApi.deleteUser).not.toHaveBeenCalled()
+    expect(adminApi.deleteUser).toHaveBeenCalledWith('u-1')
   })
 
   it('toggleStatus propagates API error message', async () => {
@@ -266,5 +240,44 @@ describe('useAdminUser', () => {
 
     expect(result.ok).toBe(false)
     expect(result.error).toBe('guard failed')
+  })
+
+  it('changePassword propagates API error message', async () => {
+    vi.mocked(adminApi.fetchUser).mockResolvedValue(user)
+    vi.mocked(adminApi.setUserPassword).mockRejectedValue(new Error('validation failed'))
+
+    const { load, changePassword } = useAdminUser('u-1')
+    await load()
+
+    const result = await changePassword('short', 'short')
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('validation failed')
+  })
+
+  it('updateRoles propagates API error message', async () => {
+    vi.mocked(adminApi.fetchUser).mockResolvedValue(user)
+    vi.mocked(adminApi.setUserRoles).mockRejectedValue(new Error('last superadmin'))
+
+    const { load, updateRoles } = useAdminUser('u-1')
+    await load()
+
+    const result = await updateRoles(false, false)
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('last superadmin')
+  })
+
+  it('removeUser propagates API error message', async () => {
+    vi.mocked(adminApi.fetchUser).mockResolvedValue(user)
+    vi.mocked(adminApi.deleteUser).mockRejectedValue(new Error('cannot delete self'))
+
+    const { load, removeUser } = useAdminUser('u-1')
+    await load()
+
+    const result = await removeUser()
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('cannot delete self')
   })
 })

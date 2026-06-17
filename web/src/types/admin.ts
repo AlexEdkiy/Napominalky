@@ -1,20 +1,9 @@
 /**
  * Пользователь в представлении администратора.
  * Зеркало AdminUserResource (snake_case).
- *
- * БЛОКЕР ДЛЯ БЭКЕНДА:
- * AdminUserResource не возвращает числовой id — только uuid.
- * Все action-эндпоинты (/status, /password, /roles, DELETE) требуют числового id
- * в URL (Laravel route model binding по id).
- * Без id в ответе ресурса эти действия невозможны.
- * Требуется: добавить `"id"` в AdminUserResource или переопределить
- * getRouteKeyName() в модели User на 'uuid'.
- * Поле id? помечено optional — до правки бэкенда будет undefined,
- * UI будет блокировать кнопки действий при отсутствии id.
+ * Идентификатор для всех action-эндпоинтов — uuid (route model binding по uuid).
  */
 export interface AdminUser {
-  /** Числовой первичный ключ. ОТСУТСТВУЕТ в текущем AdminUserResource — БЛОКЕР. */
-  id?: number
   uuid: string
   name: string | null
   email: string

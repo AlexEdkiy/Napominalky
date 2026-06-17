@@ -163,30 +163,31 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
         // Admin — read-only routes require is_admin; mutating routes require is_super_admin
+        // Route model binding uses {user:uuid} — public UUID, not sequential id.
         Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::prefix('users')->name('users.')->group(function (): void {
-                // GET  /api/v1/admin/users        → Admin\UsersIndexController   (admin)
+                // GET  /api/v1/admin/users          → Admin\UsersIndexController   (admin)
                 Route::get('/', UsersIndexController::class)
                     ->middleware('admin')
                     ->name('index');
-                // GET  /api/v1/admin/users/{user} → Admin\UserShowController     (admin)
-                Route::get('{user}', UserShowController::class)
+                // GET  /api/v1/admin/users/{uuid}   → Admin\UserShowController     (admin)
+                Route::get('{user:uuid}', UserShowController::class)
                     ->middleware('admin')
                     ->name('show');
-                // PATCH /api/v1/admin/users/{user}/status   → UserSetStatusController (superadmin)
-                Route::patch('{user}/status', UserSetStatusController::class)
+                // PATCH /api/v1/admin/users/{uuid}/status   → UserSetStatusController (superadmin)
+                Route::patch('{user:uuid}/status', UserSetStatusController::class)
                     ->middleware('superadmin')
                     ->name('status');
-                // PATCH /api/v1/admin/users/{user}/password → UserPasswordController  (superadmin)
-                Route::patch('{user}/password', UserPasswordController::class)
+                // PATCH /api/v1/admin/users/{uuid}/password → UserPasswordController  (superadmin)
+                Route::patch('{user:uuid}/password', UserPasswordController::class)
                     ->middleware('superadmin')
                     ->name('password');
-                // PATCH /api/v1/admin/users/{user}/roles    → UserRolesController     (superadmin)
-                Route::patch('{user}/roles', UserRolesController::class)
+                // PATCH /api/v1/admin/users/{uuid}/roles    → UserRolesController     (superadmin)
+                Route::patch('{user:uuid}/roles', UserRolesController::class)
                     ->middleware('superadmin')
                     ->name('roles');
-                // DELETE /api/v1/admin/users/{user}         → UserDestroyController   (superadmin)
-                Route::delete('{user}', UserDestroyController::class)
+                // DELETE /api/v1/admin/users/{uuid}         → UserDestroyController   (superadmin)
+                Route::delete('{user:uuid}', UserDestroyController::class)
                     ->middleware('superadmin')
                     ->name('destroy');
             });

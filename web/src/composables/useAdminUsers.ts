@@ -81,11 +81,8 @@ export function useAdminUsers() {
    * Обновляет запись in-place без перезагрузки страницы.
    */
   async function toggleStatus(user: AdminUser): Promise<ActionResult> {
-    if (user.id === undefined) {
-      return { ok: false, error: 'Действие недоступно: сервер не вернул числовой id пользователя.' }
-    }
     try {
-      const updated = await setUserStatus(user.id, !user.is_active)
+      const updated = await setUserStatus(user.uuid, !user.is_active)
       const idx = users.value.findIndex((u) => u.uuid === user.uuid)
       if (idx !== -1) {
         users.value[idx] = updated
@@ -102,7 +99,7 @@ export function useAdminUsers() {
 /**
  * Состояние детальной карточки одного пользователя + управляющие действия.
  */
-export function useAdminUser(id: string | number) {
+export function useAdminUser(uuid: string) {
   const user = ref<AdminUser | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -113,7 +110,7 @@ export function useAdminUser(id: string | number) {
     isLoading.value = true
     error.value = null
     try {
-      user.value = await fetchUser(id)
+      user.value = await fetchUser(uuid)
     } catch (e) {
       error.value = extractError(e)
     } finally {
@@ -122,14 +119,10 @@ export function useAdminUser(id: string | number) {
   }
 
   async function toggleStatus(): Promise<ActionResult> {
-    const numericId = user.value?.id
-    if (numericId === undefined) {
-      return { ok: false, error: 'Действие недоступно: сервер не вернул числовой id пользователя.' }
-    }
     actionPending.value = true
     actionError.value = null
     try {
-      const updated = await setUserStatus(numericId, !user.value?.is_active)
+      const updated = await setUserStatus(uuid, !user.value?.is_active)
       user.value = updated
       return { ok: true, error: null }
     } catch (e) {
@@ -141,14 +134,10 @@ export function useAdminUser(id: string | number) {
   }
 
   async function changePassword(password: string, passwordConfirmation: string): Promise<ActionResult> {
-    const numericId = user.value?.id
-    if (numericId === undefined) {
-      return { ok: false, error: 'Действие недоступно: сервер не вернул числовой id пользователя.' }
-    }
     actionPending.value = true
     actionError.value = null
     try {
-      await setUserPassword(numericId, password, passwordConfirmation)
+      await setUserPassword(uuid, password, passwordConfirmation)
       return { ok: true, error: null }
     } catch (e) {
       actionError.value = extractError(e)
@@ -159,14 +148,10 @@ export function useAdminUser(id: string | number) {
   }
 
   async function updateRoles(isAdmin: boolean, isSuperAdmin: boolean): Promise<ActionResult> {
-    const numericId = user.value?.id
-    if (numericId === undefined) {
-      return { ok: false, error: 'Действие недоступно: сервер не вернул числовой id пользователя.' }
-    }
     actionPending.value = true
     actionError.value = null
     try {
-      const updated = await setUserRoles(numericId, isAdmin, isSuperAdmin)
+      const updated = await setUserRoles(uuid, isAdmin, isSuperAdmin)
       user.value = updated
       return { ok: true, error: null }
     } catch (e) {
@@ -178,14 +163,10 @@ export function useAdminUser(id: string | number) {
   }
 
   async function removeUser(): Promise<ActionResult> {
-    const numericId = user.value?.id
-    if (numericId === undefined) {
-      return { ok: false, error: 'Действие недоступно: сервер не вернул числовой id пользователя.' }
-    }
     actionPending.value = true
     actionError.value = null
     try {
-      await deleteUser(numericId)
+      await deleteUser(uuid)
       return { ok: true, error: null }
     } catch (e) {
       actionError.value = extractError(e)

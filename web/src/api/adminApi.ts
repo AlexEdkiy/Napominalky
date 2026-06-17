@@ -15,25 +15,20 @@ export async function fetchUsers(page = 1): Promise<PaginatedResponse<AdminUser>
 
 /**
  * Получить данные одного пользователя с агрегатами (notes/reminders/lists count).
- * GET /api/v1/admin/users/{id}
- *
- * Принимает числовой id (route model binding) или uuid (если backend исправлен).
- * БЛОКЕР: текущий AdminUserResource не отдаёт числовой id, поэтому
- * переход на деталь возможен только если backend добавит id в ресурс.
+ * GET /api/v1/admin/users/{uuid}
  */
-export async function fetchUser(id: string | number): Promise<AdminUser> {
-  const { data } = await apiClient.get<{ data: AdminUser }>(`/admin/users/${String(id)}`)
+export async function fetchUser(uuid: string): Promise<AdminUser> {
+  const { data } = await apiClient.get<{ data: AdminUser }>(`/admin/users/${uuid}`)
   return data.data
 }
 
 /**
  * Обновить статус активности пользователя.
- * PATCH /api/v1/admin/users/{id}/status
- * Требует числовой id в URL — БЛОКЕР пока AdminUserResource не отдаёт id.
+ * PATCH /api/v1/admin/users/{uuid}/status
  */
-export async function setUserStatus(id: number, isActive: boolean): Promise<AdminUser> {
+export async function setUserStatus(uuid: string, isActive: boolean): Promise<AdminUser> {
   const { data } = await apiClient.patch<{ data: AdminUser }>(
-    `/admin/users/${id}/status`,
+    `/admin/users/${uuid}/status`,
     { is_active: isActive },
   )
   return data.data
@@ -41,14 +36,14 @@ export async function setUserStatus(id: number, isActive: boolean): Promise<Admi
 
 /**
  * Сменить пароль пользователя.
- * PATCH /api/v1/admin/users/{id}/password → 204 No Content
+ * PATCH /api/v1/admin/users/{uuid}/password → 204 No Content
  */
 export async function setUserPassword(
-  id: number,
+  uuid: string,
   password: string,
   passwordConfirmation: string,
 ): Promise<void> {
-  await apiClient.patch(`/admin/users/${id}/password`, {
+  await apiClient.patch(`/admin/users/${uuid}/password`, {
     password,
     password_confirmation: passwordConfirmation,
   })
@@ -56,16 +51,16 @@ export async function setUserPassword(
 
 /**
  * Обновить роли пользователя.
- * PATCH /api/v1/admin/users/{id}/roles
+ * PATCH /api/v1/admin/users/{uuid}/roles
  * Инвариант: is_super_admin=true ⇒ is_admin=true (бэкенд выставит автоматически).
  */
 export async function setUserRoles(
-  id: number,
+  uuid: string,
   isAdmin: boolean,
   isSuperAdmin: boolean,
 ): Promise<AdminUser> {
   const { data } = await apiClient.patch<{ data: AdminUser }>(
-    `/admin/users/${id}/roles`,
+    `/admin/users/${uuid}/roles`,
     { is_admin: isAdmin, is_super_admin: isSuperAdmin },
   )
   return data.data
@@ -73,8 +68,8 @@ export async function setUserRoles(
 
 /**
  * Удалить пользователя.
- * DELETE /api/v1/admin/users/{id} → 204 No Content
+ * DELETE /api/v1/admin/users/{uuid} → 204 No Content
  */
-export async function deleteUser(id: number): Promise<void> {
-  await apiClient.delete(`/admin/users/${id}`)
+export async function deleteUser(uuid: string): Promise<void> {
+  await apiClient.delete(`/admin/users/${uuid}`)
 }
