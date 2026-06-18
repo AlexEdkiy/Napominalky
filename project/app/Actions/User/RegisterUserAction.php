@@ -15,6 +15,7 @@ final class RegisterUserAction
             'name' => $data->name,
             'email' => $data->email,
             'password' => $data->password,
+            'sync_enabled' => true,
         ]);
     }
 }

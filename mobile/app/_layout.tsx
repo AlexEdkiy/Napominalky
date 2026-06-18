@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useNotifications } from '@/hooks/useNotifications'
 import { installGlobalErrorHandler } from '@/services/globalErrorHandler'
+import { authApi } from '@/api/authApi'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,13 +44,14 @@ function NotificationsBootstrap(): null {
 
 function RootLayout(): React.JSX.Element {
   const hydrate = useAuthStore((state) => state.hydrate)
+  const rehydrateUser = useAuthStore((state) => state.rehydrateUser)
   const hydrateSettings = useSettingsStore((state) => state.hydrate)
   const [globalError, setGlobalError] = useState<Error | null>(null)
 
   useEffect(() => {
-    void hydrate()
+    void hydrate().then(() => rehydrateUser(authApi.getMe))
     void hydrateSettings()
-  }, [hydrate, hydrateSettings])
+  }, [hydrate, rehydrateUser, hydrateSettings])
 
   useEffect(() => {
     const uninstall = installGlobalErrorHandler((error) => {
