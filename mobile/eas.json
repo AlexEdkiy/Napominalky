@@ -22,7 +22,7 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.staging.remindersapp.local/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://jemsoft.ru/napominalki"
       },
       "ios": {
         "simulator": false
