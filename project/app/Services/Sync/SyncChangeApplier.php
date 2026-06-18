@@ -20,6 +20,15 @@ use Illuminate\Database\Eloquent\Model;
 final class SyncChangeApplier
 {
     /**
+     * NOT NULL строковые доменные колонки: при null в клиентском payload
+     * коерсятся в '' (заметка/список без заголовка), иначе нарушился бы
+     * constraint и весь push батча падал бы 500.
+     *
+     * @var list<string>
+     */
+    private const array NON_NULLABLE_STRINGS = ['title', 'name'];
+
+    /**
      * Создаёт новую запись из изменения (operation create/update/delete).
      * Для delete сразу ставит tombstone (deleted_at = updated_at).
      *
@@ -84,7 +93,16 @@ final class SyncChangeApplier
 
         foreach ($allowed as $field) {
             if (array_key_exists($field, $change->payload)) {
-                $model->forceFill([$field => $change->payload[$field]]);
+                $value = $change->payload[$field];
+
+                // NOT NULL строковые колонки (title/name) не принимают null из
+                // клиента: заметка/список без заголовка приходит с null, что
+                // нарушало бы constraint и блокировало весь push. Коерсим в ''.
+                if ($value === null && in_array($field, self::NON_NULLABLE_STRINGS, true)) {
+                    $value = '';
+                }
+
+                $model->forceFill([$field => $value]);
             }
         }
 
