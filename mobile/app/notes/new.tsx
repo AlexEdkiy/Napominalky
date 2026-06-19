@@ -1,11 +1,10 @@
 import { useRef } from 'react'
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native'
-import { Stack } from 'expo-router'
+import { router } from 'expo-router'
 
 import NoteForm, { type NoteFormValues } from '@/components/notes/NoteForm'
 import { useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/theme'
-import { typography } from '@/theme/typography'
 
 export default function NewNoteScreen() {
   const { colors } = useTheme()
@@ -17,7 +16,7 @@ export default function NewNoteScreen() {
 
     if (createdUuid.current === null) {
       createNote.mutate(
-        { title: values.title, body: values.body },
+        { title: values.title, body: values.body, color: values.color ?? null },
         { onSuccess: (note) => (createdUuid.current = note.uuid) },
       )
       return
@@ -26,22 +25,21 @@ export default function NewNoteScreen() {
     updateNote.mutate({ uuid: createdUuid.current, patch: values })
   }
 
+  const handleSave = (): void => {
+    router.back()
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: colors.screenBg }]}
     >
-      <Stack.Screen
-        options={{
-          title: 'Новая заметка',
-          headerStyle: { backgroundColor: colors.screenBg },
-          headerShadowVisible: false,
-          headerTitleStyle: styles.headerTitle,
-          headerTintColor: colors.textPrimary,
-        }}
-      />
-      <ScrollView keyboardShouldPersistTaps="handled">
-        <NoteForm onAutoSave={handleAutoSave} />
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <NoteForm
+          onAutoSave={handleAutoSave}
+          onSave={handleSave}
+          onBack={() => router.back()}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -49,5 +47,5 @@ export default function NewNoteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerTitle: { ...typography.cardTitle, fontSize: 17 },
+  content: { flexGrow: 1 },
 })

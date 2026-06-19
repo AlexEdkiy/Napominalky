@@ -66,6 +66,27 @@ describe('NotesRepository.createNote', () => {
     expect(note.isPinned).toBe(true)
     expect(note.isArchived).toBe(false)
   })
+
+  it('сохраняет color и отдаёт его как NoteColor', async () => {
+    const inserts: InsertCall[] = []
+    const fakeDb = createFakeDb(inserts, [], []) as never
+    const repo = new NotesRepository(fakeDb)
+
+    const note = await repo.createNote({ title: 'Заметка', color: 'teal' })
+
+    const domain = inserts[0]?.values as Record<string, unknown>
+    expect(domain.color).toBe('teal')
+    expect(note.color).toBe('teal')
+  })
+
+  it('color по умолчанию null', async () => {
+    const inserts: InsertCall[] = []
+    const fakeDb = createFakeDb(inserts, [], []) as never
+    const repo = new NotesRepository(fakeDb)
+
+    const note = await repo.createNote({ title: 'Заметка' })
+    expect(note.color).toBeNull()
+  })
 })
 
 describe('NotesRepository.deleteNote', () => {
@@ -91,6 +112,7 @@ describe('NotesRepository.searchNotes', () => {
         userId: null,
         title: 'Хлеб',
         body: null,
+        color: null,
         isPinned: 1,
         isArchived: 0,
         serverRevision: null,
@@ -107,6 +129,53 @@ describe('NotesRepository.searchNotes', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.isPinned).toBe(true)
+    expect(result[0]?.color).toBeNull()
     expect(queries).toHaveLength(1)
+  })
+
+  it('маппит корректный NoteColor из строки', async () => {
+    const rows = [
+      {
+        uuid: 'u2',
+        userId: null,
+        title: 'Заметка',
+        body: null,
+        color: 'coral',
+        isPinned: 0,
+        isArchived: 0,
+        serverRevision: null,
+        createdAt: 't',
+        updatedAt: 't',
+        deletedAt: null,
+      },
+    ]
+    const fakeDb = createFakeDb([], rows, []) as never
+    const repo = new NotesRepository(fakeDb)
+
+    const result = await repo.searchNotes('Заметка')
+    expect(result[0]?.color).toBe('coral')
+  })
+
+  it('игнорирует невалидный color и возвращает null', async () => {
+    const rows = [
+      {
+        uuid: 'u3',
+        userId: null,
+        title: 'Тест',
+        body: null,
+        color: 'unknown_value',
+        isPinned: 0,
+        isArchived: 0,
+        serverRevision: null,
+        createdAt: 't',
+        updatedAt: 't',
+        deletedAt: null,
+      },
+    ]
+    const fakeDb = createFakeDb([], rows, []) as never
+    const repo = new NotesRepository(fakeDb)
+
+    const result = await repo.searchNotes('Тест')
+    expect(result[0]?.color).toBeNull()
   })
 })

@@ -19,6 +19,7 @@ export interface ServerNote {
   uuid: string
   title: string
   body: string | null
+  color: string | null
   is_pinned: boolean
   is_archived: boolean
   created_at: string

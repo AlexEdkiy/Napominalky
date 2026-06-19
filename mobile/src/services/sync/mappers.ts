@@ -29,6 +29,7 @@ const noteMapper: EntityMapper<ServerNote> = {
     uuid: s.uuid,
     title: s.title,
     body: s.body,
+    color: s.color ?? null,
     isPinned: flag(s.is_pinned),
     isArchived: flag(s.is_archived),
     createdAt: s.created_at,
