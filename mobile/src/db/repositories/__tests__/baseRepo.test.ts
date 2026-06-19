@@ -393,3 +393,154 @@ describe('BaseRepository — entityType в outbox', () => {
     }
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// outbox payload — snake_case (контракт API)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('BaseRepository — outbox payload в snake_case', () => {
+  it('note: is_pinned и is_archived в snake_case, значения 0/1 сохранены', async () => {
+    const log = makeLog()
+    // Фейк-db возвращает строку с camelCase-полями (как хранит Drizzle SQLite).
+    const camelRow = {
+      uuid: 'n1',
+      userId: 'u1',
+      title: 'Заметка',
+      body: null,
+      isPinned: 1,
+      isArchived: 0,
+      serverRevision: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-02T00:00:00Z',
+      deletedAt: null,
+    }
+    const db = {
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          log.inserts.push({ values })
+          return { returning: async () => [camelRow] }
+        },
+      }),
+      update: () => ({ set: () => ({ where: () => ({ returning: async () => [] }) }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    }
+    const repo = new BaseRepository(notes as unknown as SyncTable, 'note', db as never)
+
+    await repo.insert({ title: 'Заметка' } as never)
+
+    const outbox = log.inserts[1]?.values as Record<string, unknown>
+    const payload = JSON.parse(outbox.payload as string) as Record<string, unknown>
+
+    // snake_case ключи присутствуют.
+    expect(payload['is_pinned']).toBe(1)
+    expect(payload['is_archived']).toBe(0)
+    expect(payload['user_id']).toBe('u1')
+    expect(payload['updated_at']).toBe('2026-01-02T00:00:00Z')
+
+    // camelCase ключи отсутствуют.
+    expect(Object.keys(payload)).not.toContain('isPinned')
+    expect(Object.keys(payload)).not.toContain('isArchived')
+    expect(Object.keys(payload)).not.toContain('userId')
+    expect(Object.keys(payload)).not.toContain('updatedAt')
+  })
+
+  it('shopping_list_item: shopping_list_uuid и is_checked в snake_case', async () => {
+    const log = makeLog()
+    const camelRow = {
+      uuid: 'i1',
+      shoppingListUuid: 'l1',
+      userId: 'u1',
+      name: 'Молоко',
+      category: 'products',
+      isChecked: 0,
+      position: 3,
+      serverRevision: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-02T00:00:00Z',
+      deletedAt: null,
+    }
+    const db = {
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          log.inserts.push({ values })
+          return { returning: async () => [camelRow] }
+        },
+      }),
+      update: () => ({ set: () => ({ where: () => ({ returning: async () => [] }) }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    }
+    const repo = new BaseRepository(
+      notes as unknown as SyncTable,
+      'shopping_list_item',
+      db as never,
+    )
+
+    await repo.insert({ name: 'Молоко' } as never)
+
+    const outbox = log.inserts[1]?.values as Record<string, unknown>
+    const payload = JSON.parse(outbox.payload as string) as Record<string, unknown>
+
+    expect(payload['shopping_list_uuid']).toBe('l1')
+    expect(payload['is_checked']).toBe(0)
+    expect(payload['name']).toBe('Молоко')
+    expect(payload['position']).toBe(3)
+
+    expect(Object.keys(payload)).not.toContain('shoppingListUuid')
+    expect(Object.keys(payload)).not.toContain('isChecked')
+  })
+
+  it('reminder: remind_at, is_completed, snoozed_until, source_uuid в snake_case', async () => {
+    const log = makeLog()
+    const camelRow = {
+      uuid: 'r1',
+      userId: 'u1',
+      title: 'Позвонить врачу',
+      notes: 'Срочно',
+      remindAt: '2026-06-10T09:00:00Z',
+      recurrence: 'none',
+      isCompleted: 0,
+      completedAt: null,
+      snoozedUntil: null,
+      sourceUuid: null,
+      sourceType: null,
+      notificationId: null,
+      serverRevision: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-02T00:00:00Z',
+      deletedAt: null,
+    }
+    const db = {
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          log.inserts.push({ values })
+          return { returning: async () => [camelRow] }
+        },
+      }),
+      update: () => ({ set: () => ({ where: () => ({ returning: async () => [] }) }) }),
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    }
+    const repo = new BaseRepository(
+      notes as unknown as SyncTable,
+      'reminder',
+      db as never,
+    )
+
+    await repo.insert({ title: 'Позвонить врачу' } as never)
+
+    const outbox = log.inserts[1]?.values as Record<string, unknown>
+    const payload = JSON.parse(outbox.payload as string) as Record<string, unknown>
+
+    expect(payload['remind_at']).toBe('2026-06-10T09:00:00Z')
+    expect(payload['is_completed']).toBe(0)
+    expect(payload['snoozed_until']).toBeNull()
+    expect(payload['source_uuid']).toBeNull()
+    expect(payload['source_type']).toBeNull()
+    expect(payload['notification_id']).toBeNull()
+
+    const camelKeys = ['remindAt', 'isCompleted', 'snoozedUntil',
+      'sourceUuid', 'sourceType', 'notificationId', 'completedAt']
+    for (const key of camelKeys) {
+      expect(Object.keys(payload)).not.toContain(key)
+    }
+  })
+})
