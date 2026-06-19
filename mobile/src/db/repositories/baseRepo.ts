@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core'
 import { db as defaultDb, type Database } from '../client'
 import { enqueueOutbox } from './outbox'
+import { toSnakeCaseKeys } from '../../utils/snakeCase'
 
 /**
  * Контракт синхронизируемой таблицы: каждая доменная таблица (notes,
@@ -107,7 +108,7 @@ export class BaseRepository<TTable extends SyncTable> {
       entityType: this.entityType,
       entityUuid: uuid,
       operation,
-      payload: row as Record<string, unknown>,
+      payload: toSnakeCaseKeys(row as Record<string, unknown>),
       updatedAt,
     })
   }
