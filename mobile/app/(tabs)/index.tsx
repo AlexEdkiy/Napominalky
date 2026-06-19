@@ -1,9 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   ActivityIndicator,
-  FlatList,
-  Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,208 +11,183 @@ import {
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
-import NoteCard from '@/components/notes/NoteCard'
-import ReminderCard from '@/components/reminders/ReminderCard'
-import ScreenTitle from '@/components/ui/ScreenTitle'
+import FeedCard from '@/components/home/FeedCard'
+import FeedSection from '@/components/home/FeedSection'
+import FilterChips, { type FeedFilter } from '@/components/home/FilterChips'
 import { useNotes } from '@/hooks/useNotes'
-import { useMissedReminders } from '@/hooks/useReminders'
+import { useReminders } from '@/hooks/useReminders'
+import { useShoppingLists } from '@/hooks/useShoppingLists'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import { formatRelativeReminder, formatUpdatedAt, isReminderUrgent } from '@/utils/datetime'
 import type { Note } from '@/db/repositories/notesRepo'
 import type { Reminder } from '@/db/repositories/remindersRepo'
+import type { ShoppingList } from '@/db/repositories/shoppingListsRepo'
+
+const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] => {
+  const query = q.trim().toLowerCase()
+  if (query.length === 0) return items
+  return items.filter((i) => i.title.toLowerCase().includes(query))
+}
+
+const listSubtitle = (list: ShoppingList): string => {
+  if (list.itemsCount === 0) return 'Список'
+  return `${list.itemsCount} пунктов · ${list.checkedItemsCount} куплено`
+}
 
 export default function HomeScreen() {
   const { colors } = useTheme()
-  const { notes, isLoading } = useNotes()
-  const { data: missed = [] } = useMissedReminders()
+  const { notes, isLoading: notesLoading } = useNotes()
+  const { reminders, isLoading: remindersLoading } = useReminders({ status: 'pending' })
+  const { lists, isLoading: listsLoading } = useShoppingLists()
+
   const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<FeedFilter>('all')
 
-  const filtered = filterNotes(notes, search)
+  const isLoading = notesLoading || remindersLoading || listsLoading
 
-  const handleOpen = (uuid: string): void => { router.push(`/notes/${uuid}`) }
-  const handleOpenReminder = (uuid: string): void => { router.push(`/reminders/${uuid}`) }
+  const filteredNotes = useMemo(() => filterByTitle(notes, search), [notes, search])
+  const filteredReminders = useMemo(() => filterByTitle(reminders, search), [reminders, search])
+  const filteredLists = useMemo(() => filterByTitle(lists, search), [lists, search])
+
+  const showLists = filter === 'all' || filter === 'lists'
+  const showReminders = filter === 'all' || filter === 'reminders'
+  const showNotes = filter === 'all' || filter === 'notes'
+
+  const hasContent =
+    (showLists && filteredLists.length > 0) ||
+    (showReminders && filteredReminders.length > 0) ||
+    (showNotes && filteredNotes.length > 0)
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <ScreenTitle text="Главная" color={colors.textPrimary} />
-        </View>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Главная</Text>
+      </View>
 
-        <RemindersLinkCard
-          missedCount={missed.length}
-          onPress={() => router.push('/reminders')}
-          colors={colors}
-        />
-
-        <MissedSection reminders={missed} onOpen={handleOpenReminder} />
-
-        <SearchBar
+      <View style={[styles.searchRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
+        <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
+        <TextInput
+          accessibilityLabel="Поиск"
+          placeholder="Поиск"
+          placeholderTextColor={colors.textTertiary}
           value={search}
           onChangeText={setSearch}
-          colors={colors}
+          style={[styles.searchInput, { color: colors.textPrimary }]}
         />
-
-        {isLoading ? (
-          <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.uuid}
-            renderItem={({ item }) => <NoteCard note={item} onPress={handleOpen} />}
-            contentContainerStyle={styles.list}
-            ListEmptyComponent={<EmptyState color={colors.textSecondary} />}
-          />
-        )}
       </View>
+
+      <FilterChips active={filter} onSelect={setFilter} colors={colors} />
+
+      {isLoading ? (
+        <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {showLists && filteredLists.length > 0 && (
+            <FeedSection title="Списки" count={filteredLists.length} dotColor={colors.accent} colors={colors}>
+              {filteredLists.map((list: ShoppingList) => (
+                <FeedCard
+                  key={list.uuid}
+                  uuid={list.uuid}
+                  title={list.title}
+                  subtitle={listSubtitle(list)}
+                  iconName="checkmark-done"
+                  iconColor={colors.accent}
+                  iconBg={colors.accentSoftBg}
+                  onPress={(uuid) => router.push(`/lists/${uuid}`)}
+                  colors={colors}
+                />
+              ))}
+            </FeedSection>
+          )}
+
+          {showReminders && filteredReminders.length > 0 && (
+            <FeedSection title="Напоминания" count={filteredReminders.length} dotColor={colors.amber} colors={colors}>
+              {filteredReminders.map((reminder: Reminder) => (
+                <FeedCard
+                  key={reminder.uuid}
+                  uuid={reminder.uuid}
+                  title={reminder.title}
+                  subtitle={formatRelativeReminder(reminder.remindAt)}
+                  subtitleColor={isReminderUrgent(reminder.remindAt) ? colors.amber : undefined}
+                  iconName="alarm"
+                  iconColor={colors.amber}
+                  iconBg={colors.amberBg}
+                  onPress={(uuid) => router.push(`/reminders/${uuid}`)}
+                  colors={colors}
+                />
+              ))}
+            </FeedSection>
+          )}
+
+          {showNotes && filteredNotes.length > 0 && (
+            <FeedSection title="Заметки" count={filteredNotes.length} dotColor={colors.noteBlue} colors={colors}>
+              {filteredNotes.map((note: Note) => (
+                <FeedCard
+                  key={note.uuid}
+                  uuid={note.uuid}
+                  title={note.title.trim().length > 0 ? note.title : 'Без названия'}
+                  subtitle={formatUpdatedAt(note.updatedAt)}
+                  iconName="document-text"
+                  iconColor={colors.noteBlue}
+                  iconBg={colors.noteBlueBg}
+                  onPress={(uuid) => router.push(`/notes/${uuid}`)}
+                  colors={colors}
+                />
+              ))}
+            </FeedSection>
+          )}
+
+          {!hasContent && (
+            <View style={styles.empty}>
+              <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+                {search.length > 0 ? 'Ничего не найдено' : 'Пока нет записей'}
+              </Text>
+              <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>
+                {search.length > 0
+                  ? 'Попробуйте изменить запрос или фильтр'
+                  : 'Нажмите «+», чтобы создать первую запись'}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
-  )
-}
-
-function filterNotes(notes: Note[], query: string): Note[] {
-  const trimmed = query.trim().toLowerCase()
-  if (trimmed.length === 0) return notes
-  return notes.filter(
-    (n) =>
-      n.title.toLowerCase().includes(trimmed) ||
-      (n.body ?? '').toLowerCase().includes(trimmed),
-  )
-}
-
-interface ColorsArg {
-  accent: string
-  accentDark: string
-  accentSoftBg: string
-  accentOnSoft: string
-  surface: string
-  borderSubtle: string
-  textPrimary: string
-  textTertiary: string
-  textSecondary: string
-}
-
-interface RemindersLinkCardProps {
-  missedCount: number
-  onPress: () => void
-  colors: ColorsArg
-}
-
-const RemindersLinkCard: React.FC<RemindersLinkCardProps> = ({ missedCount, onPress, colors }) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="Ближайшие напоминания"
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.remindersCard,
-      { backgroundColor: colors.accentSoftBg },
-      pressed && styles.pressed,
-    ]}
-  >
-    <View style={[styles.remindersIcon, { backgroundColor: colors.accent }]}>
-      <Ionicons name="notifications" size={22} color="#fff" />
-    </View>
-    <View style={styles.remindersTexts}>
-      <Text style={[styles.remindersTitle, { color: colors.accentDark }]}>
-        Ближайшие напоминания
-      </Text>
-      <Text style={[styles.remindersHint, { color: colors.accentOnSoft }]}>
-        {missedCount > 0 ? `Пропущено · ${missedCount}` : 'Сегодня'}
-      </Text>
-    </View>
-    <Ionicons name="chevron-forward" size={20} color={colors.accentDark} />
-  </Pressable>
-)
-
-interface SearchBarProps {
-  value: string
-  onChangeText: (text: string) => void
-  colors: ColorsArg
-}
-
-const SearchBar: React.FC<SearchBarProps> = ({ value, onChangeText, colors }) => (
-  <View style={[styles.searchRow, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
-    <Ionicons name="search-outline" size={18} color={colors.textTertiary} style={styles.searchIcon} />
-    <TextInput
-      accessibilityLabel="Поиск заметок"
-      placeholder="Поиск заметок"
-      placeholderTextColor={colors.textTertiary}
-      value={value}
-      onChangeText={onChangeText}
-      style={[styles.search, { color: colors.textPrimary }]}
-    />
-  </View>
-)
-
-const EmptyState: React.FC<{ color: string }> = ({ color }) => (
-  <View style={styles.empty}>
-    <Text style={[styles.emptyTitle, { color }]}>Заметок пока нет</Text>
-    <Text style={[styles.emptyHint, { color }]}>Нажмите «+», чтобы создать первую</Text>
-  </View>
-)
-
-interface MissedSectionProps {
-  reminders: Reminder[]
-  onOpen: (uuid: string) => void
-}
-
-const MissedSection: React.FC<MissedSectionProps> = ({ reminders, onOpen }) => {
-  if (reminders.length === 0) return null
-  return (
-    <View style={styles.missed}>
-      <Text style={styles.missedTitle}>Пропущенные</Text>
-      {reminders.map((r) => (
-        <ReminderCard key={r.uuid} reminder={r} onPress={onOpen} />
-      ))}
-    </View>
   )
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  remindersCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginHorizontal: 16,
-    marginBottom: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 22,
-    shadowColor: '#101828',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+  header: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10 },
+  title: {
+    ...typography.h2,
+    fontWeight: '900',
   },
-  remindersIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  remindersTexts: { flex: 1, gap: 2 },
-  remindersTitle: { ...typography.cardTitle, fontSize: 15 },
-  remindersHint: { ...typography.bodySm },
-  pressed: { opacity: 0.82 },
-  missed: { marginHorizontal: 16, marginTop: 12, gap: 8 },
-  missedTitle: { ...typography.sectionLabel, color: '#D9583C' },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    minHeight: 46,
+    marginHorizontal: 18,
+    marginBottom: 10,
     borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 14,
+    borderRadius: 26,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
   },
   searchIcon: { marginRight: 8 },
-  search: { flex: 1, ...typography.body, paddingVertical: 8 },
-  loader: { marginTop: 32 },
-  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
+  searchInput: { flex: 1, ...typography.body, paddingVertical: 0 },
+  loader: { marginTop: 40 },
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 32,
+    gap: 20,
+  },
   empty: { alignItems: 'center', paddingTop: 64, gap: 8 },
   emptyTitle: { ...typography.cardTitle },
-  emptyHint: { ...typography.body },
+  emptyHint: { ...typography.body, textAlign: 'center' },
 })

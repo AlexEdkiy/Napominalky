@@ -22,6 +22,8 @@ export interface ColorPalette {
   purpleBg: string
   amber: string
   amberBg: string
+  noteBlue: string
+  noteBlueBg: string
 
   // Текст
   textPrimary: string
@@ -61,6 +63,8 @@ export const lightColors: ColorPalette = {
   purpleBg: '#E9E7FB',
   amber: '#D9962A',
   amberBg: '#FBEFD6',
+  noteBlue: '#4067a8',
+  noteBlueBg: '#dde6f3',
 
   textPrimary: '#1B2733',
   textSecondary: '#76828F',
@@ -97,6 +101,8 @@ export const darkColors: ColorPalette = {
   purpleBg: '#1E1A3C',
   amber: '#D9962A',
   amberBg: '#2E2310',
+  noteBlue: '#6E8FD0',
+  noteBlueBg: '#1A2740',
 
   textPrimary: '#E8EFF5',
   textSecondary: '#8A9BB0',
