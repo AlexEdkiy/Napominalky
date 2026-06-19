@@ -10,7 +10,7 @@
 | ARCH    | 1            | architect                 |
 | DEV     | 15           | backend-developer         |
 | MBE     | 10           | mobile-backend-developer  |
-| MOB     | 23           | mobile-developer          |
+| MOB     | 24           | mobile-developer          |
 | WEB     | 11           | web-developer             |
 | TEST    | 14           | test-engineer             |
 | REVIEW  | 0            | code-reviewer             |
