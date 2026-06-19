@@ -3,12 +3,16 @@ import { db as defaultDb, type Database } from '../client'
 import { notes, type NoteRow } from '../schema/notes'
 import { BaseRepository, type SyncTable } from './baseRepo'
 
+/** Допустимые токены цветовой метки заметки (синхронизированы с backend). */
+export type NoteColor = 'teal' | 'coral' | 'amber' | 'purple'
+
 /** Доменная заметка: booleans вместо 0/1, как наружу отдаёт репозиторий. */
 export interface Note {
   uuid: string
   userId: string | null
   title: string
   body: string | null
+  color: NoteColor | null
   isPinned: boolean
   isArchived: boolean
   serverRevision: number | null
@@ -21,6 +25,7 @@ export interface Note {
 export interface CreateNoteData {
   title: string
   body?: string | null
+  color?: NoteColor | null
   userId?: string | null
   isPinned?: boolean
   isArchived?: boolean
@@ -36,12 +41,17 @@ interface ListNotesOptions {
 const bool = (value: number): boolean => value === 1
 const flag = (value: boolean): number => (value ? 1 : 0)
 
+/** Проверяет, является ли строка допустимым NoteColor. */
+const isNoteColor = (value: string | null | undefined): value is NoteColor =>
+  value === 'teal' || value === 'coral' || value === 'amber' || value === 'purple'
+
 /** Преобразует строку SQLite (0/1) в доменную заметку с booleans. */
 const toNote = (row: NoteRow): Note => ({
   uuid: row.uuid,
   userId: row.userId,
   title: row.title,
   body: row.body,
+  color: isNoteColor(row.color) ? row.color : null,
   isPinned: bool(row.isPinned),
   isArchived: bool(row.isArchived),
   serverRevision: row.serverRevision,
@@ -54,6 +64,7 @@ const toNote = (row: NoteRow): Note => ({
  * Репозиторий заметок поверх BaseRepository: мутации идут через base
  * (доменная строка + запись в sync_outbox), чтения — напрямую через db.
  * is_pinned/is_archived хранятся как 0/1, конвертируются в boolean на чтении.
+ * color — текстовый токен ('teal'|'coral'|'amber'|'purple'|null).
  */
 export class NotesRepository {
   private readonly base: BaseRepository<typeof notes & SyncTable>
@@ -66,6 +77,7 @@ export class NotesRepository {
     const row = await this.base.insert({
       title: data.title,
       body: data.body ?? null,
+      color: data.color ?? null,
       userId: data.userId ?? null,
       isPinned: flag(data.isPinned ?? false),
       isArchived: flag(data.isArchived ?? false),
@@ -77,6 +89,7 @@ export class NotesRepository {
     const values: Record<string, unknown> = {}
     if (patch.title !== undefined) values.title = patch.title
     if (patch.body !== undefined) values.body = patch.body
+    if (patch.color !== undefined) values.color = patch.color
     if (patch.userId !== undefined) values.userId = patch.userId
     if (patch.isPinned !== undefined) values.isPinned = flag(patch.isPinned)
     if (patch.isArchived !== undefined) values.isArchived = flag(patch.isArchived)

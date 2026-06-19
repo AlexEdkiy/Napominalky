@@ -30,6 +30,7 @@ final class NoteResource extends JsonResource
             'body' => $this->body,
             'is_pinned' => $this->is_pinned,
             'is_archived' => $this->is_archived,
+            'color' => $this->color,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

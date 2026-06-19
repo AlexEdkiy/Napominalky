@@ -17,6 +17,7 @@ class Note extends Model
 {
     /** @use HasFactory<NoteFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
     use TracksSyncRevision;
@@ -31,6 +32,7 @@ class Note extends Model
         'body',
         'is_pinned',
         'is_archived',
+        'color',
     ];
 
     /**
@@ -50,7 +52,7 @@ class Note extends Model
     }
 
     /**
-     * @param Builder<Note> $query
+     * @param  Builder<Note>  $query
      * @return Builder<Note>
      */
     public function scopePinned(Builder $query): Builder
@@ -59,7 +61,7 @@ class Note extends Model
     }
 
     /**
-     * @param Builder<Note> $query
+     * @param  Builder<Note>  $query
      * @return Builder<Note>
      */
     public function scopeArchived(Builder $query): Builder
@@ -70,7 +72,7 @@ class Note extends Model
     /**
      * Активные заметки: не в архиве (мягко удалённые исключает SoftDeletes).
      *
-     * @param Builder<Note> $query
+     * @param  Builder<Note>  $query
      * @return Builder<Note>
      */
     public function scopeActive(Builder $query): Builder
@@ -85,7 +87,7 @@ class Note extends Model
      * безопасно экранирует операторы tsquery, поэтому пользовательский ввод
      * передаётся параметром без риска инъекций.
      *
-     * @param Builder<Note> $query
+     * @param  Builder<Note>  $query
      * @return Builder<Note>
      */
     public function scopeSearch(Builder $query, string $term): Builder

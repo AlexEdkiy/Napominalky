@@ -16,6 +16,7 @@ final class UpdateNoteAction
             'body' => $data->body,
             'is_pinned' => $data->isPinned,
             'is_archived' => $data->isArchived,
+            'color' => $data->color,
         ]);
 
         return $note;
