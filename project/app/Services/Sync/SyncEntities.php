@@ -8,6 +8,7 @@ use App\Models\Note;
 use App\Models\Reminder;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
@@ -25,7 +26,7 @@ final class SyncEntities
     /**
      * entity_type → класс Eloquent-модели.
      *
-     * @var array<string, class-string<\Illuminate\Database\Eloquent\Model>>
+     * @var array<string, class-string<Model>>
      */
     public const MAP = [
         'note' => Note::class,
@@ -57,7 +58,7 @@ final class SyncEntities
      * @var array<string, list<string>>
      */
     public const FIELDS = [
-        'note' => ['title', 'body', 'is_pinned', 'is_archived'],
+        'note' => ['title', 'body', 'is_pinned', 'is_archived', 'color'],
         'shopping_list' => ['title'],
         'shopping_list_item' => ['name', 'category', 'is_checked', 'position'],
         'reminder' => [
@@ -86,7 +87,7 @@ final class SyncEntities
     /**
      * Класс модели для типа сущности.
      *
-     * @return class-string<\Illuminate\Database\Eloquent\Model>
+     * @return class-string<Model>
      *
      * @throws InvalidArgumentException на неизвестном типе
      */

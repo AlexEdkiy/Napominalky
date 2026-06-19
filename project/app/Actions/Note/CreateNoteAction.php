@@ -17,6 +17,7 @@ final class CreateNoteAction
             'body' => $data->body,
             'is_pinned' => $data->isPinned,
             'is_archived' => $data->isArchived,
+            'color' => $data->color,
         ]);
 
         // Клиентский uuid (offline-создание) задаётся до save; HasUuid (??=)

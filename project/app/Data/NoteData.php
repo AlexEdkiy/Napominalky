@@ -11,5 +11,6 @@ readonly class NoteData
         public ?string $body = null,
         public bool $isPinned = false,
         public bool $isArchived = false,
+        public ?string $color = null,
     ) {}
 }

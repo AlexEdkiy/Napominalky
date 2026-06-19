@@ -17,8 +17,7 @@ final class StoreController extends Controller
 {
     public function __construct(
         private readonly CreateNoteAction $createNote,
-    ) {
-    }
+    ) {}
 
     public function __invoke(StoreNoteRequest $request): JsonResponse
     {
@@ -44,6 +43,7 @@ final class StoreController extends Controller
             body: $request->filled('body') ? $request->string('body')->toString() : null,
             isPinned: $request->boolean('is_pinned'),
             isArchived: $request->boolean('is_archived'),
+            color: $request->filled('color') ? $request->string('color')->toString() : null,
         );
     }
 }

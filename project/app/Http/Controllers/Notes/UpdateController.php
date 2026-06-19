@@ -38,6 +38,9 @@ final class UpdateController extends Controller
                 : $note->body,
             isPinned: $request->has('is_pinned') ? $request->boolean('is_pinned') : $note->is_pinned,
             isArchived: $request->has('is_archived') ? $request->boolean('is_archived') : $note->is_archived,
+            color: $request->has('color')
+                ? ($request->filled('color') ? $request->string('color')->toString() : null)
+                : $note->color,
         );
     }
 }
