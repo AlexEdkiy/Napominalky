@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useEffect, useState } from 'react'
 
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -71,8 +72,9 @@ function RootLayout(): React.JSX.Element {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <DbProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <DbProvider>
         <ThemeProvider>
           <LockProvider>
             <SyncBootstrap />
@@ -90,8 +92,9 @@ function RootLayout(): React.JSX.Element {
             <StatusBar style="auto" />
           </LockProvider>
         </ThemeProvider>
-      </DbProvider>
-    </QueryClientProvider>
+        </DbProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   )
 }
 

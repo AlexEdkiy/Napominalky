@@ -7,6 +7,7 @@ import {
 } from 'react-native'
 import { Tabs, router, type RelativePathString } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useTheme } from '@/theme'
 
@@ -50,7 +51,11 @@ const CreateButton: React.FC = () => {
 
 export default function TabsLayout() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
 
+  // Высота бара + нижний инсет, чтобы кнопки/жесты Android и home-indicator iOS
+  // не перекрывали навигацию.
+  const baseHeight = Platform.OS === 'ios' ? 60 : 64
   const tabBarStyle = {
     backgroundColor: colors.surface,
     borderTopColor: colors.borderSubtle,
@@ -60,8 +65,9 @@ export default function TabsLayout() {
     shadowRadius: 8,
     shadowOffset: { width: 0, height: -2 },
     elevation: 4,
-    height: Platform.OS === 'ios' ? 88 : 64,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+    height: baseHeight + insets.bottom,
+    paddingBottom: insets.bottom + 8,
+    paddingTop: 6,
   }
 
   return (

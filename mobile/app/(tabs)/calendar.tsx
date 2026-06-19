@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -30,7 +31,7 @@ export default function CalendarScreen() {
   const dayReminders = byDay.get(ymd(selectedDate)) ?? []
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
       <View style={[styles.calCard, { backgroundColor: colors.surface }]}>
         <View style={styles.calHeader}>
           <Pressable
