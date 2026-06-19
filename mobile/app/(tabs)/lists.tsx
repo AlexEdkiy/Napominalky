@@ -1,11 +1,11 @@
 import {
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 
 import ListCard from '@/components/lists/ListCard'
@@ -23,7 +23,7 @@ export default function ListsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.screenBg }]}>
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
       <View style={styles.header}>
         <ScreenTitle text="Списки" color={colors.textPrimary} />
       </View>
