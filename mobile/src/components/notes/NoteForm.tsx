@@ -66,6 +66,9 @@ const NoteForm: React.FC<NoteFormProps> = ({
 
   const handleSave = (): void => {
     if (title.trim().length === 0 && body.trim().length === 0) return
+    // Явное сохранение по кнопке: сбрасываем отложенный (debounced) автосейв,
+    // чтобы быстрая заметка не потерялась при немедленном переходе назад.
+    onAutoSave({ title, body, color })
     onSave?.()
   }
 
