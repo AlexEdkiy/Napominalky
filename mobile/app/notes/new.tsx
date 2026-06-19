@@ -10,14 +10,24 @@ export default function NewNoteScreen() {
   const { colors } = useTheme()
   const { createNote, updateNote } = useNotes()
   const createdUuid = useRef<string | null>(null)
+  const creating = useRef(false)
 
   const handleAutoSave = (values: NoteFormValues): void => {
     if (values.title.trim().length === 0 && values.body.trim().length === 0) return
 
     if (createdUuid.current === null) {
+      if (creating.current) return // создание уже в полёте — не дублируем
+      creating.current = true
       createNote.mutate(
         { title: values.title, body: values.body, color: values.color ?? null },
-        { onSuccess: (note) => (createdUuid.current = note.uuid) },
+        {
+          onSuccess: (note) => {
+            createdUuid.current = note.uuid
+          },
+          onSettled: () => {
+            creating.current = false
+          },
+        },
       )
       return
     }
