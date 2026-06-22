@@ -18,6 +18,7 @@ class ShoppingList extends Model
 {
     /** @use HasFactory<ShoppingListFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
     use TracksSyncRevision;
@@ -29,6 +30,7 @@ class ShoppingList extends Model
      */
     protected $fillable = [
         'title',
+        'type',
     ];
 
     /**
@@ -58,7 +60,7 @@ class ShoppingList extends Model
     /**
      * Активные списки (мягко удалённые исключает SoftDeletes).
      *
-     * @param Builder<ShoppingList> $query
+     * @param  Builder<ShoppingList>  $query
      * @return Builder<ShoppingList>
      */
     public function scopeActive(Builder $query): Builder
@@ -72,7 +74,7 @@ class ShoppingList extends Model
      * Подгружает агрегаты items_count и checked_items_count через withCount;
      * счётчики читаются как атрибуты модели после загрузки.
      *
-     * @param Builder<ShoppingList> $query
+     * @param  Builder<ShoppingList>  $query
      * @return Builder<ShoppingList>
      */
     public function scopeWithProgress(Builder $query): Builder

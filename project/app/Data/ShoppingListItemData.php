@@ -13,5 +13,7 @@ readonly class ShoppingListItemData
         public ShoppingCategory $category = ShoppingCategory::Other,
         public bool $isChecked = false,
         public int $position = 0,
+        public int $quantity = 1,
+        public ?string $deadline = null,
     ) {}
 }

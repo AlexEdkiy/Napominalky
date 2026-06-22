@@ -16,6 +16,8 @@ final class UpdateItemAction
             'category' => $data->category,
             'is_checked' => $data->isChecked,
             'position' => $data->position,
+            'quantity' => $data->quantity,
+            'deadline' => $data->deadline,
         ]);
 
         return $item;

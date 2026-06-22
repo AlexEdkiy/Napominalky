@@ -11,7 +11,10 @@ final class UpdateListAction
 {
     public function __invoke(ShoppingList $list, ShoppingListData $data): ShoppingList
     {
-        $list->update(['title' => $data->title]);
+        $list->update([
+            'title' => $data->title,
+            'type' => $data->type,
+        ]);
 
         return $list;
     }

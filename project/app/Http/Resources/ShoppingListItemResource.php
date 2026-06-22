@@ -31,6 +31,8 @@ final class ShoppingListItemResource extends JsonResource
             'category_label' => $this->category->label(),
             'is_checked' => $this->is_checked,
             'position' => $this->position,
+            'quantity' => $this->quantity,
+            'deadline' => $this->deadline?->toDateString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

@@ -20,6 +20,8 @@ final class AddItemAction
             'category' => $data->category,
             'is_checked' => $data->isChecked,
             'position' => $this->nextPosition($list, $data),
+            'quantity' => $data->quantity,
+            'deadline' => $data->deadline,
         ]);
 
         // user_id денормализуется из владельца списка для sync-фильтра.
