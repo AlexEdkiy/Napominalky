@@ -36,6 +36,13 @@
       "when": 1750339200000,
       "tag": "0004_notes_color",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1750425600000,
+      "tag": "0005_lists_type_quantity_deadline",
+      "breakpoints": true
     }
   ]
 }

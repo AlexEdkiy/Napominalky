@@ -10,11 +10,15 @@ import { BaseRepository, type SyncTable } from './baseRepo'
 /** Категории элемента списка покупок (зеркало backend ShoppingListItem). */
 export type ItemCategory = 'products' | 'household' | 'pharmacy' | 'other'
 
+/** Тип списка: товары или задачи. */
+export type ListType = 'goods' | 'tasks'
+
 /** Доменный список покупок с рассчитанным прогрессом (checked/total). */
 export interface ShoppingList {
   uuid: string
   userId: string | null
   title: string
+  type: ListType
   serverRevision: number | null
   createdAt: string
   updatedAt: string
@@ -30,6 +34,8 @@ export interface ShoppingListItem {
   userId: string | null
   name: string
   category: ItemCategory
+  quantity: number
+  deadline: string | null
   isChecked: boolean
   position: number
   serverRevision: number | null
@@ -41,23 +47,26 @@ export interface ShoppingListItem {
 /** Данные для создания списка (sync-поля проставит baseRepo). */
 export interface CreateListData {
   title: string
+  type?: ListType
   userId?: string | null
 }
 
 /** Частичное обновление доменных полей списка. */
-export type UpdateListPatch = Partial<CreateListData>
+export type UpdateListPatch = Partial<Pick<CreateListData, 'title' | 'type' | 'userId'>>
 
 /** Данные для добавления элемента (position наследуется автоматически). */
 export interface CreateItemData {
   name: string
   category?: ItemCategory
+  quantity?: number
+  deadline?: string | null
   isChecked?: boolean
   userId?: string | null
 }
 
 /** Частичное обновление доменных полей элемента. */
 export type UpdateItemPatch = Partial<
-  Pick<CreateItemData, 'name' | 'category' | 'isChecked' | 'userId'>
+  Pick<CreateItemData, 'name' | 'category' | 'quantity' | 'deadline' | 'isChecked' | 'userId'>
 > & { position?: number }
 
 interface ListItemsOptions {
@@ -73,6 +82,8 @@ const toItem = (row: ShoppingListItemRow): ShoppingListItem => ({
   userId: row.userId,
   name: row.name,
   category: row.category as ItemCategory,
+  quantity: row.quantity,
+  deadline: row.deadline ?? null,
   isChecked: bool(row.isChecked),
   position: row.position,
   serverRevision: row.serverRevision,
@@ -89,6 +100,7 @@ const toList = (
   uuid: row.uuid,
   userId: row.userId,
   title: row.title,
+  type: (row.type as ListType) ?? 'goods',
   serverRevision: row.serverRevision,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
@@ -125,6 +137,7 @@ export class ShoppingListsRepository {
   public async createList(data: CreateListData): Promise<ShoppingList> {
     const row = await this.lists.insert({
       title: data.title,
+      type: data.type ?? 'goods',
       userId: data.userId ?? null,
     } as never)
     return toList(row as ShoppingListRow, 0, 0)
@@ -136,6 +149,7 @@ export class ShoppingListsRepository {
   ): Promise<ShoppingList | null> {
     const values: Record<string, unknown> = {}
     if (patch.title !== undefined) values.title = patch.title
+    if (patch.type !== undefined) values.type = patch.type
     if (patch.userId !== undefined) values.userId = patch.userId
 
     const row = await this.lists.update(uuid, values as never)
@@ -187,6 +201,8 @@ export class ShoppingListsRepository {
       userId,
       name: data.name,
       category: data.category ?? 'other',
+      quantity: data.quantity ?? 1,
+      deadline: data.deadline ?? null,
       isChecked: flag(data.isChecked ?? false),
       position,
     } as never)
@@ -200,6 +216,8 @@ export class ShoppingListsRepository {
     const values: Record<string, unknown> = {}
     if (patch.name !== undefined) values.name = patch.name
     if (patch.category !== undefined) values.category = patch.category
+    if (patch.quantity !== undefined) values.quantity = patch.quantity
+    if (patch.deadline !== undefined) values.deadline = patch.deadline
     if (patch.userId !== undefined) values.userId = patch.userId
     if (patch.position !== undefined) values.position = patch.position
     if (patch.isChecked !== undefined) values.isChecked = flag(patch.isChecked)
@@ -271,7 +289,7 @@ export class ShoppingListsRepository {
     return toList(row, rows.length, checked)
   }
 
-  /** Активные (не удалённые) строки-элементы списка. */
+  /** Активные (не удалённые tombstone) строки-элементы списка. */
   private async activeItemRows(
     listUuid: string,
   ): Promise<ShoppingListItemRow[]> {

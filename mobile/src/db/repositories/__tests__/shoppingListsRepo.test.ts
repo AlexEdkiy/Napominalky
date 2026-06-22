@@ -62,6 +62,8 @@ const itemRow = (over: Partial<Record<string, unknown>> = {}) => ({
   userId: null,
   name: 'Хлеб',
   category: 'products',
+  quantity: 1,
+  deadline: null,
   isChecked: 0,
   position: 0,
   serverRevision: null,
@@ -75,6 +77,7 @@ const listRow = (over: Partial<Record<string, unknown>> = {}) => ({
   uuid: 'l1',
   userId: null,
   title: 'Продукты',
+  type: 'goods',
   serverRevision: null,
   createdAt: 't',
   updatedAt: 't',
@@ -83,44 +86,64 @@ const listRow = (over: Partial<Record<string, unknown>> = {}) => ({
 })
 
 describe('ShoppingListsRepository.createList', () => {
-  it('создаёт список, пишет create в outbox, прогресс 0/0', async () => {
+  it('создаёт список с type=goods по умолчанию, пишет create в outbox, прогресс 0/0', async () => {
     const inserts: InsertCall[] = []
     const repo = new ShoppingListsRepository(createFakeDb(inserts) as never)
 
     const list = await repo.createList({ title: 'Продукты' })
 
     expect(inserts).toHaveLength(2)
-    expect((inserts[0]?.values as Record<string, unknown>).title).toBe('Продукты')
+    const domain = inserts[0]?.values as Record<string, unknown>
+    expect(domain.title).toBe('Продукты')
+    expect(domain.type).toBe('goods')
     const outbox = inserts[1]?.values as Record<string, unknown>
     expect(outbox.entityType).toBe('shopping_list')
     expect(outbox.operation).toBe('create')
     expect(list.itemsCount).toBe(0)
     expect(list.checkedItemsCount).toBe(0)
   })
+
+  it('создаёт список с type=tasks при явной передаче', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(createFakeDb(inserts) as never)
+
+    await repo.createList({ title: 'Задачи', type: 'tasks' })
+
+    const domain = inserts[0]?.values as Record<string, unknown>
+    expect(domain.type).toBe('tasks')
+  })
 })
 
 describe('ShoppingListsRepository.addItem', () => {
-  it('хранит is_checked 0/1, наследует position (max+1) и user_id', async () => {
+  it('хранит is_checked 0/1, quantity, deadline; наследует position (max+1) и user_id', async () => {
     const inserts: InsertCall[] = []
     const repo = new ShoppingListsRepository(
-      // projection обслуживает и nextPosition (value), и listUserId (userId).
       createFakeDb(inserts, { projection: [{ value: 2, userId: 'owner' }] }) as never,
     )
 
-    const item = await repo.addItem('l1', { name: 'Молоко', isChecked: true })
+    const item = await repo.addItem('l1', {
+      name: 'Молоко',
+      isChecked: true,
+      quantity: 3,
+      deadline: '2024-12-31',
+    })
 
     const domain = inserts[0]?.values as Record<string, unknown>
     expect(domain.position).toBe(3)
     expect(domain.userId).toBe('owner')
     expect(domain.isChecked).toBe(1)
     expect(domain.category).toBe('other')
+    expect(domain.quantity).toBe(3)
+    expect(domain.deadline).toBe('2024-12-31')
 
     const outbox = inserts[1]?.values as Record<string, unknown>
     expect(outbox.entityType).toBe('shopping_list_item')
     expect(item.isChecked).toBe(true)
+    expect(item.quantity).toBe(3)
+    expect(item.deadline).toBe('2024-12-31')
   })
 
-  it('position = 0, когда в списке ещё нет элементов (max = null)', async () => {
+  it('position = 0, quantity = 1, deadline = null по умолчанию', async () => {
     const inserts: InsertCall[] = []
     const repo = new ShoppingListsRepository(
       createFakeDb(inserts, { projection: [{ value: null, userId: null }] }) as never,
@@ -131,6 +154,24 @@ describe('ShoppingListsRepository.addItem', () => {
     const domain = inserts[0]?.values as Record<string, unknown>
     expect(domain.position).toBe(0)
     expect(domain.category).toBe('products')
+    expect(domain.quantity).toBe(1)
+    expect(domain.deadline).toBeNull()
+  })
+})
+
+describe('ShoppingListsRepository.updateItem', () => {
+  it('обновляет quantity и deadline', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(createFakeDb(inserts) as never)
+
+    const item = await repo.updateItem('i1', { quantity: 5, deadline: '2025-01-15' })
+
+    expect(inserts).toHaveLength(1)
+    const outbox = inserts[0]?.values as Record<string, unknown>
+    expect(outbox.operation).toBe('update')
+    // item вернул данные из fake update (isChecked=undefined → bool(0)=false)
+    expect(item?.quantity).toBe(5)
+    expect(item?.deadline).toBe('2025-01-15')
   })
 })
 
@@ -141,12 +182,10 @@ describe('ShoppingListsRepository.checkItem', () => {
 
     const item = await repo.checkItem('i1', true)
 
-    // update идёт через db.update().set() (не insert) → в inserts только outbox.
     expect(inserts).toHaveLength(1)
     const outbox = inserts[0]?.values as Record<string, unknown>
     expect(outbox.operation).toBe('update')
     expect(outbox.entityUuid).toBe('i1')
-    // is_checked записан как 1 в set-values → returning отдаёт его, repo → bool.
     expect(item?.isChecked).toBe(true)
   })
 })
@@ -168,7 +207,6 @@ describe('ShoppingListsRepository.deleteItem', () => {
 describe('ShoppingListsRepository.deleteList', () => {
   it('tombstone списка и его активных элементов (каскад delete в outbox)', async () => {
     const inserts: InsertCall[] = []
-    // activeItemRows вернёт один элемент → его softDelete + softDelete списка.
     const repo = new ShoppingListsRepository(
       createFakeDb(inserts, { rows: [itemRow()] }) as never,
     )
@@ -188,9 +226,11 @@ describe('ShoppingListsRepository.deleteList', () => {
 })
 
 describe('ShoppingListsRepository.listItems', () => {
-  it('конвертирует 0/1 в booleans и category в union для строк', async () => {
+  it('конвертирует 0/1 в booleans, маппит quantity и deadline', async () => {
     const repo = new ShoppingListsRepository(
-      createFakeDb([], { rows: [itemRow({ isChecked: 1, category: 'pharmacy' })] }) as never,
+      createFakeDb([], {
+        rows: [itemRow({ isChecked: 1, category: 'pharmacy', quantity: 2, deadline: '2024-06-01' })],
+      }) as never,
     )
 
     const result = await repo.listItems('l1')
@@ -198,31 +238,29 @@ describe('ShoppingListsRepository.listItems', () => {
     expect(result).toHaveLength(1)
     expect(result[0]?.isChecked).toBe(true)
     expect(result[0]?.category).toBe('pharmacy')
+    expect(result[0]?.quantity).toBe(2)
+    expect(result[0]?.deadline).toBe('2024-06-01')
   })
 })
 
 describe('ShoppingListsRepository.getListByUuid', () => {
-  it('считает прогресс checked/total из активных элементов', async () => {
-    // findById (полные строки) вернёт список; activeItemRows (полные строки)
-    // вернёт те же rows — потому подаём СПИСОК как первую строку и элементы
-    // отдельным расчётом. Проще: rows содержат элементы, а find(limit) тоже их
-    // вернёт — поэтому проверяем listLists, где список и items различимы.
+  it('возвращает тип списка и считает прогресс checked/total', async () => {
     const repo = new ShoppingListsRepository(
-      createFakeDb([], { rows: [listRow()] }) as never,
+      createFakeDb([], { rows: [listRow({ type: 'tasks' })] }) as never,
     )
 
     const list = await repo.getListByUuid('l1')
 
     expect(list).not.toBeNull()
     expect(list?.title).toBe('Продукты')
-    // activeItemRows получит listRow без isChecked → checked 0, total 1.
+    expect(list?.type).toBe('tasks')
     expect(list?.checkedItemsCount).toBe(0)
     expect(list?.itemsCount).toBe(1)
   })
 })
 
 describe('ShoppingListsRepository.listLists', () => {
-  it('возвращает активные списки с рассчитанным прогрессом', async () => {
+  it('возвращает активные списки с типом и рассчитанным прогрессом', async () => {
     const repo = new ShoppingListsRepository(
       createFakeDb([], { rows: [listRow()] }) as never,
     )
@@ -231,6 +269,7 @@ describe('ShoppingListsRepository.listLists', () => {
 
     expect(lists).toHaveLength(1)
     expect(lists[0]?.title).toBe('Продукты')
+    expect(lists[0]?.type).toBe('goods')
     expect(lists[0]?.itemsCount).toBe(1)
     expect(lists[0]?.checkedItemsCount).toBe(0)
   })

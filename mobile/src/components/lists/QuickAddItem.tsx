@@ -1,115 +1,85 @@
 import React, { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, TextInput, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 
-import type { ItemCategory } from '@/db/repositories/shoppingListsRepo'
+import type { ListType } from '@/db/repositories/shoppingListsRepo'
+import { useTheme } from '@/theme'
 
 interface QuickAddItemProps {
-  onAdd: (name: string, category: ItemCategory) => void
+  listType: ListType
+  onAdd: (name: string) => void
+  autoFocus?: boolean
 }
 
-interface CategoryOption {
-  value: ItemCategory
-  label: string
-}
-
-const CATEGORIES: readonly CategoryOption[] = [
-  { value: 'products', label: 'Продукты' },
-  { value: 'household', label: 'Хозтовары' },
-  { value: 'pharmacy', label: 'Аптека' },
-  { value: 'other', label: 'Прочее' },
-]
-
-const QuickAddItem: React.FC<QuickAddItemProps> = ({ onAdd }) => {
+const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus = false }) => {
+  const { colors } = useTheme()
   const [name, setName] = useState('')
-  const [category, setCategory] = useState<ItemCategory>('products')
+  const accentColor = listType === 'tasks' ? colors.amber : colors.accent
+  const placeholder = listType === 'tasks' ? 'Добавить задачу...' : 'Добавить товар...'
 
   const handleAdd = (): void => {
     const trimmed = name.trim()
     if (trimmed.length === 0) return
-    onAdd(trimmed, category)
+    onAdd(trimmed)
     setName('')
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.inputRow}>
-        <TextInput
-          accessibilityLabel="Название товара"
-          placeholder="Добавить товар"
-          placeholderTextColor="#9a9a9a"
-          value={name}
-          onChangeText={setName}
-          onSubmitEditing={handleAdd}
-          returnKeyType="done"
-          style={styles.input}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Добавить товар"
-          onPress={handleAdd}
-          style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.addIcon}>+</Text>
-        </Pressable>
-      </View>
-      <View style={styles.chips}>
-        {CATEGORIES.map((option) => {
-          const active = option.value === category
-          return (
-            <Pressable
-              key={option.value}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={option.label}
-              onPress={() => setCategory(option.value)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
-                {option.label}
-              </Text>
-            </Pressable>
-          )
-        })}
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <TextInput
+        accessibilityLabel={placeholder}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textTertiary}
+        value={name}
+        onChangeText={setName}
+        onSubmitEditing={handleAdd}
+        returnKeyType="done"
+        autoFocus={autoFocus}
+        style={[
+          styles.input,
+          { color: colors.textPrimary, borderColor: colors.borderInput },
+        ]}
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Добавить"
+        onPress={handleAdd}
+        style={({ pressed }) => [
+          styles.addButton,
+          { backgroundColor: accentColor },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Ionicons name="add" size={24} color="#fff" />
+      </Pressable>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 10, padding: 16, backgroundColor: '#fff' },
-  inputRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  container: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   input: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 44,
     borderWidth: 1,
-    borderColor: '#d4d4d8',
     borderRadius: 10,
     paddingHorizontal: 14,
-    fontSize: 16,
-    color: '#1a1a1a',
+    fontSize: 15,
   },
   addButton: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 10,
-    backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pressed: { opacity: 0.85 },
-  addIcon: { color: '#fff', fontSize: 28, lineHeight: 30 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#d4d4d8',
-    backgroundColor: '#f4f4f5',
-  },
-  chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  chipLabel: { fontSize: 13, color: '#52525b' },
-  chipLabelActive: { color: '#fff', fontWeight: '600' },
 })
 
 export default QuickAddItem
