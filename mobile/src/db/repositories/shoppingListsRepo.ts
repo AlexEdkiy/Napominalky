@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, like, max } from 'drizzle-orm'
+import { and, asc, eq, isNull, like, max, min, sql } from 'drizzle-orm'
 import { db as defaultDb, type Database } from '../client'
 import {
   shoppingListItems,
@@ -36,12 +36,40 @@ export interface ShoppingListItem {
   category: ItemCategory
   quantity: number
   deadline: string | null
+  reminderAt: string | null
+  link: string | null
+  comment: string | null
+  tags: string | null
   isChecked: boolean
   position: number
   serverRevision: number | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null
+}
+
+/**
+ * Парсит JSON-строку тегов в массив строк.
+ * Некорректный JSON или null → пустой массив.
+ */
+export const parseTags = (tags: string | null): string[] => {
+  if (tags === null) return []
+  try {
+    const parsed: unknown = JSON.parse(tags)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((t): t is string => typeof t === 'string')
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Сериализует массив тегов в JSON-строку для хранения.
+ * Пустой массив → null.
+ */
+export const serializeTags = (arr: string[]): string | null => {
+  if (arr.length === 0) return null
+  return JSON.stringify(arr)
 }
 
 /** Данные для создания списка (sync-поля проставит baseRepo). */
@@ -60,13 +88,29 @@ export interface CreateItemData {
   category?: ItemCategory
   quantity?: number
   deadline?: string | null
+  reminderAt?: string | null
+  link?: string | null
+  comment?: string | null
+  tags?: string | null
   isChecked?: boolean
   userId?: string | null
 }
 
 /** Частичное обновление доменных полей элемента. */
 export type UpdateItemPatch = Partial<
-  Pick<CreateItemData, 'name' | 'category' | 'quantity' | 'deadline' | 'isChecked' | 'userId'>
+  Pick<
+    CreateItemData,
+    | 'name'
+    | 'category'
+    | 'quantity'
+    | 'deadline'
+    | 'reminderAt'
+    | 'link'
+    | 'comment'
+    | 'tags'
+    | 'isChecked'
+    | 'userId'
+  >
 > & { position?: number }
 
 interface ListItemsOptions {
@@ -84,6 +128,10 @@ const toItem = (row: ShoppingListItemRow): ShoppingListItem => ({
   category: row.category as ItemCategory,
   quantity: row.quantity,
   deadline: row.deadline ?? null,
+  reminderAt: row.reminderAt ?? null,
+  link: row.link ?? null,
+  comment: row.comment ?? null,
+  tags: row.tags ?? null,
   isChecked: bool(row.isChecked),
   position: row.position,
   serverRevision: row.serverRevision,
@@ -203,6 +251,10 @@ export class ShoppingListsRepository {
       category: data.category ?? 'other',
       quantity: data.quantity ?? 1,
       deadline: data.deadline ?? null,
+      reminderAt: data.reminderAt ?? null,
+      link: data.link ?? null,
+      comment: data.comment ?? null,
+      tags: data.tags ?? null,
       isChecked: flag(data.isChecked ?? false),
       position,
     } as never)
@@ -218,6 +270,10 @@ export class ShoppingListsRepository {
     if (patch.category !== undefined) values.category = patch.category
     if (patch.quantity !== undefined) values.quantity = patch.quantity
     if (patch.deadline !== undefined) values.deadline = patch.deadline
+    if (patch.reminderAt !== undefined) values.reminderAt = patch.reminderAt
+    if (patch.link !== undefined) values.link = patch.link
+    if (patch.comment !== undefined) values.comment = patch.comment
+    if (patch.tags !== undefined) values.tags = patch.tags
     if (patch.userId !== undefined) values.userId = patch.userId
     if (patch.position !== undefined) values.position = patch.position
     if (patch.isChecked !== undefined) values.isChecked = flag(patch.isChecked)
@@ -327,6 +383,35 @@ export class ShoppingListsRepository {
       .where(eq(shoppingLists.uuid, listUuid))
       .limit(1)
     return row?.userId ?? null
+  }
+
+  /**
+   * Сгруппированный запрос ближайших невыполненных дедлайнов для списков-задач.
+   * Один SQL вместо N+1. Возвращает Map uuid → ISO-строка минимального дедлайна.
+   */
+  public async nearestDeadlines(): Promise<Map<string, string>> {
+    const rows = await this.db
+      .select({
+        listUuid: shoppingListItems.shoppingListUuid,
+        minDeadline: min(shoppingListItems.deadline),
+      })
+      .from(shoppingListItems)
+      .where(
+        and(
+          isNull(shoppingListItems.deletedAt),
+          sql`${shoppingListItems.isChecked} = 0`,
+          sql`${shoppingListItems.deadline} IS NOT NULL`,
+        ),
+      )
+      .groupBy(shoppingListItems.shoppingListUuid)
+
+    const map = new Map<string, string>()
+    for (const row of rows) {
+      if (row.minDeadline !== null && row.minDeadline !== undefined) {
+        map.set(row.listUuid, row.minDeadline)
+      }
+    }
+    return map
   }
 }
 

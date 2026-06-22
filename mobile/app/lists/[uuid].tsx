@@ -13,7 +13,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
-import ItemRow from '@/components/lists/ItemRow'
+import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
 import ProgressRing from '@/components/lists/ProgressRing'
 import QuickAddItem from '@/components/lists/QuickAddItem'
 import type { ListType, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
@@ -36,11 +36,22 @@ const filterItems = (items: ShoppingListItem[], filter: ItemFilter): ShoppingLis
   return items
 }
 
-const formatDate = (date: Date): string => {
+const formatDateLocal = (date: Date): string => {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+// ---- Reminder picker state machine -----------------------------------------
+// iOS requires two-step date+time selection; Android shows combined picker.
+
+type ReminderStep = 'date' | 'time'
+
+interface ReminderPickerState {
+  itemUuid: string
+  step: ReminderStep
+  date: Date
 }
 
 export default function ListDetailScreen() {
@@ -54,6 +65,7 @@ export default function ListDetailScreen() {
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null)
   const [datePickerItem, setDatePickerItem] = useState<string | null>(null)
+  const [reminderPicker, setReminderPicker] = useState<ReminderPickerState | null>(null)
 
   const accentColor = list?.type === 'tasks' ? colors.amber : colors.accent
   const accentBg = list?.type === 'tasks' ? colors.amberBg : colors.accentSoftBg
@@ -79,16 +91,63 @@ export default function ListDetailScreen() {
     setDatePickerItem(itemUuid)
   }
 
+  const handleReminderPress = (itemUuid: string): void => {
+    const item = items.find((i) => i.uuid === itemUuid)
+    const initial =
+      item?.reminderAt !== null && item?.reminderAt !== undefined
+        ? new Date(item.reminderAt)
+        : new Date()
+    setReminderPicker({ itemUuid, step: 'date', date: initial })
+  }
+
+  const handleUpdateMeta = (itemUuid: string, patch: MetaPatch): void => {
+    updateItem.mutate({ uuid: itemUuid, patch })
+  }
+
   const handleDateChange = (_: unknown, date?: Date): void => {
     if (Platform.OS === 'android') setDatePickerItem(null)
     if (date !== undefined && datePickerItem !== null) {
-      updateItem.mutate({ uuid: datePickerItem, patch: { deadline: formatDate(date) } })
+      updateItem.mutate({ uuid: datePickerItem, patch: { deadline: formatDateLocal(date) } })
     }
     if (Platform.OS === 'ios' && date === undefined) setDatePickerItem(null)
   }
 
   const handleDateDismiss = (): void => {
     setDatePickerItem(null)
+  }
+
+  const handleReminderDateChange = (_: unknown, date?: Date): void => {
+    if (reminderPicker === null) return
+    if (date === undefined) {
+      setReminderPicker(null)
+      return
+    }
+    if (Platform.OS === 'android') {
+      // Android: combined datetime mode
+      const iso = date.toISOString()
+      updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
+      setReminderPicker(null)
+      return
+    }
+    // iOS: step 1 (date) → step 2 (time)
+    if (reminderPicker.step === 'date') {
+      setReminderPicker({ ...reminderPicker, step: 'time', date })
+    } else {
+      const iso = date.toISOString()
+      updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
+      setReminderPicker(null)
+    }
+  }
+
+  const handleReminderDone = (): void => {
+    if (reminderPicker === null) return
+    if (reminderPicker.step === 'date') {
+      setReminderPicker({ ...reminderPicker, step: 'time' })
+      return
+    }
+    const iso = reminderPicker.date.toISOString()
+    updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
+    setReminderPicker(null)
   }
 
   const confirmDeleteList = (): void => {
@@ -130,7 +189,7 @@ export default function ListDetailScreen() {
   const progressSubtitle =
     listType === 'tasks' ? 'Отмечайте выполненные задачи' : 'Отмечайте купленные товары'
 
-  const pickerItem = items.find((i) => i.uuid === datePickerItem)
+  const deadlinePickerItem = items.find((i) => i.uuid === datePickerItem)
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
@@ -154,6 +213,8 @@ export default function ListDetailScreen() {
             isExpanded={expandedUuid === item.uuid}
             onQuantityChange={handleQuantityChange}
             onDeadlinePress={handleDeadlinePress}
+            onReminderPress={handleReminderPress}
+            onUpdateMeta={handleUpdateMeta}
           />
         )}
         contentContainerStyle={styles.list}
@@ -175,13 +236,15 @@ export default function ListDetailScreen() {
             emptySubHint={emptySubHint}
           />
         }
-        ListEmptyComponent={items.length > 0 ? (
-          <View style={styles.emptyFilter}>
-            <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
-              Нет пунктов в этой категории
-            </Text>
-          </View>
-        ) : null}
+        ListEmptyComponent={
+          items.length > 0 ? (
+            <View style={styles.emptyFilter}>
+              <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
+                Нет пунктов в этой категории
+              </Text>
+            </View>
+          ) : null
+        }
       />
 
       {datePickerItem !== null && (
@@ -192,7 +255,11 @@ export default function ListDetailScreen() {
                 <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>Готово</Text>
               </Pressable>
               <DateTimePicker
-                value={pickerItem?.deadline != null ? new Date(pickerItem.deadline) : new Date()}
+                value={
+                  deadlinePickerItem?.deadline != null
+                    ? new Date(deadlinePickerItem.deadline)
+                    : new Date()
+                }
                 mode="date"
                 display="spinner"
                 onChange={handleDateChange}
@@ -201,7 +268,11 @@ export default function ListDetailScreen() {
           )}
           {Platform.OS === 'android' && (
             <DateTimePicker
-              value={pickerItem?.deadline != null ? new Date(pickerItem.deadline) : new Date()}
+              value={
+                deadlinePickerItem?.deadline != null
+                  ? new Date(deadlinePickerItem.deadline)
+                  : new Date()
+              }
               mode="date"
               display="default"
               onChange={handleDateChange}
@@ -209,9 +280,44 @@ export default function ListDetailScreen() {
           )}
         </>
       )}
+
+      {reminderPicker !== null && (
+        <>
+          {Platform.OS === 'ios' && (
+            <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
+              <View style={styles.iosPickerHeader}>
+                <Text style={[styles.iosPickerTitle, { color: colors.textSecondary }]}>
+                  {reminderPicker.step === 'date' ? 'Дата напоминания' : 'Время напоминания'}
+                </Text>
+                <Pressable onPress={handleReminderDone} style={styles.iosPickerDone}>
+                  <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>
+                    {reminderPicker.step === 'date' ? 'Далее' : 'Готово'}
+                  </Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={reminderPicker.date}
+                mode={reminderPicker.step}
+                display="spinner"
+                onChange={handleReminderDateChange}
+              />
+            </View>
+          )}
+          {Platform.OS === 'android' && (
+            <DateTimePicker
+              value={reminderPicker.date}
+              mode="time"
+              display="default"
+              onChange={handleReminderDateChange}
+            />
+          )}
+        </>
+      )}
     </View>
   )
 }
+
+// ---- Sub-components --------------------------------------------------------
 
 interface ListHeaderProps {
   list: { title: string; checkedItemsCount: number; itemsCount: number; type: ListType }
@@ -267,7 +373,13 @@ const ListHeader: React.FC<ListHeaderProps> = ({
       <QuickAddItem listType={listType} onAdd={onAdd} autoFocus={false} />
 
       {isEmpty ? (
-        <EmptyBanner accentBg={accentBg} accentColor={accentColor} listType={listType} hint={emptyHint} subHint={emptySubHint} />
+        <EmptyBanner
+          accentBg={accentBg}
+          accentColor={accentColor}
+          listType={listType}
+          hint={emptyHint}
+          subHint={emptySubHint}
+        />
       ) : (
         <ItemFilterSegment
           filters={ITEM_FILTERS}
@@ -299,7 +411,12 @@ const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accen
             onPress={() => onTypeChange(t)}
             style={[
               styles.typeSegmentItem,
-              isActive && { backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4 },
+              isActive && {
+                backgroundColor: colors.surface,
+                shadowColor: '#000',
+                shadowOpacity: 0.08,
+                shadowRadius: 4,
+              },
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
@@ -468,6 +585,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
-  iosPickerDone: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 12 },
+  iosPickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  iosPickerTitle: { ...typography.bodySm },
+  iosPickerDone: { alignItems: 'flex-end', paddingVertical: 4 },
   iosPickerDoneText: { ...typography.body, fontWeight: '700' },
 })

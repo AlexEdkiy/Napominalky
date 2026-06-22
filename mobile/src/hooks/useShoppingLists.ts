@@ -59,3 +59,16 @@ export function useShoppingList(uuid: string) {
     enabled: uuid.length > 0,
   })
 }
+
+/**
+ * Один сгруппированный запрос ближайших невыполненных дедлайнов для
+ * списков-задач. Возвращает Map uuid→ISO-строка без N+1.
+ */
+export function useNearestDeadlines(): Map<string, string> {
+  const { data } = useQuery<Map<string, string>>({
+    queryKey: QueryKeys.lists.nearestDeadlines,
+    queryFn: () => shoppingListsRepo.nearestDeadlines(),
+    staleTime: 30_000,
+  })
+  return data ?? new Map()
+}
