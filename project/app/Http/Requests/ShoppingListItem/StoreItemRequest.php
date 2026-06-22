@@ -29,6 +29,8 @@ final class StoreItemRequest extends FormRequest
             'category' => ['nullable', Rule::enum(ShoppingCategory::class)],
             'is_checked' => ['nullable', 'boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            'deadline' => ['nullable', 'date'],
         ];
     }
 }

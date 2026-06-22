@@ -17,6 +17,8 @@ export const shoppingListItems = sqliteTable(
     userId: text('user_id'),
     name: text('name').notNull(),
     category: text('category').notNull().default('other'),
+    quantity: integer('quantity').notNull().default(1),
+    deadline: text('deadline'),
     isChecked: integer('is_checked').notNull().default(0),
     position: integer('position').notNull().default(0),
     serverRevision: integer('server_revision'),

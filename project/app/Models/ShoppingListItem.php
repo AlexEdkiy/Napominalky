@@ -17,6 +17,7 @@ class ShoppingListItem extends Model
 {
     /** @use HasFactory<ShoppingListItemFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
     use TracksSyncRevision;
@@ -31,6 +32,8 @@ class ShoppingListItem extends Model
         'category',
         'is_checked',
         'position',
+        'quantity',
+        'deadline',
     ];
 
     /**
@@ -68,6 +71,8 @@ class ShoppingListItem extends Model
             'category' => ShoppingCategory::class,
             'is_checked' => 'boolean',
             'position' => 'integer',
+            'quantity' => 'integer',
+            'deadline' => 'immutable_date',
             'server_revision' => 'integer',
         ];
     }

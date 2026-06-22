@@ -46,6 +46,8 @@ final class StoreController extends Controller
                 : ShoppingCategory::Other,
             isChecked: $request->boolean('is_checked'),
             position: (int) $request->integer('position'),
+            quantity: $request->filled('quantity') ? (int) $request->integer('quantity') : 1,
+            deadline: $request->filled('deadline') ? $request->string('deadline')->toString() : null,
         );
     }
 }

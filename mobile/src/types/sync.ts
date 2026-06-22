@@ -31,6 +31,7 @@ export interface ServerNote {
 export interface ServerShoppingList {
   uuid: string
   title: string
+  type: string
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -42,6 +43,8 @@ export interface ServerShoppingListItem {
   shopping_list_uuid: string
   name: string
   category: string
+  quantity: number
+  deadline: string | null
   is_checked: boolean
   position: number
   created_at: string

@@ -8,5 +8,6 @@ readonly class ShoppingListData
 {
     public function __construct(
         public string $title,
+        public string $type = 'goods',
     ) {}
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\ShoppingList;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdateListRequest extends FormRequest
 {
@@ -23,6 +24,7 @@ final class UpdateListRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
+            'type' => ['nullable', 'string', Rule::in(['goods', 'tasks'])],
         ];
     }
 }

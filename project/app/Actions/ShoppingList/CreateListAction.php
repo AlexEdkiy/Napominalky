@@ -12,7 +12,10 @@ final class CreateListAction
 {
     public function __invoke(User $user, ShoppingListData $data, ?string $uuid = null): ShoppingList
     {
-        $list = new ShoppingList(['title' => $data->title]);
+        $list = new ShoppingList([
+            'title' => $data->title,
+            'type' => $data->type,
+        ]);
         $list->user_id = $user->id;
 
         // Клиентский uuid (offline-создание) задаётся до save; HasUuid (??=)

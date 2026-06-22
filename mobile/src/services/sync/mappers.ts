@@ -43,6 +43,7 @@ const shoppingListMapper: EntityMapper<ServerShoppingList> = {
   toRow: (s) => ({
     uuid: s.uuid,
     title: s.title,
+    type: s.type ?? 'goods',
     createdAt: s.created_at,
     updatedAt: s.updated_at,
     deletedAt: s.deleted_at,
@@ -56,6 +57,8 @@ const shoppingListItemMapper: EntityMapper<ServerShoppingListItem> = {
     shoppingListUuid: s.shopping_list_uuid,
     name: s.name,
     category: s.category,
+    quantity: s.quantity ?? 1,
+    deadline: s.deadline ?? null,
     isChecked: flag(s.is_checked),
     position: s.position,
     createdAt: s.created_at,

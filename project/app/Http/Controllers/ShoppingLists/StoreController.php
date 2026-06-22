@@ -29,7 +29,10 @@ final class StoreController extends Controller
             ? $request->string('uuid')->toString()
             : null;
 
-        $data = new ShoppingListData(title: $request->string('title')->toString());
+        $data = new ShoppingListData(
+            title: $request->string('title')->toString(),
+            type: $request->filled('type') ? $request->string('type')->toString() : 'goods',
+        );
 
         $list = ($this->createList)($request->user(), $data, $uuid);
 

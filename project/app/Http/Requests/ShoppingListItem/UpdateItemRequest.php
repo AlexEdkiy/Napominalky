@@ -28,6 +28,8 @@ final class UpdateItemRequest extends FormRequest
             'category' => ['sometimes', Rule::enum(ShoppingCategory::class)],
             'is_checked' => ['sometimes', 'boolean'],
             'position' => ['sometimes', 'integer', 'min:0'],
+            'quantity' => ['sometimes', 'integer', 'min:1', 'max:9999'],
+            'deadline' => ['sometimes', 'nullable', 'date'],
         ];
     }
 }

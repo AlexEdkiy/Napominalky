@@ -21,7 +21,12 @@ final class UpdateController extends Controller
     {
         $this->authorize('update', $shoppingList);
 
-        $data = new ShoppingListData(title: $request->string('title')->toString());
+        $data = new ShoppingListData(
+            title: $request->string('title')->toString(),
+            type: $request->has('type')
+                ? $request->string('type')->toString()
+                : $shoppingList->type,
+        );
 
         $updated = ($this->updateList)($shoppingList, $data);
 

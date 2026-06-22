@@ -43,6 +43,10 @@ final class UpdateController extends Controller
                 : $item->category,
             isChecked: $request->has('is_checked') ? $request->boolean('is_checked') : $item->is_checked,
             position: $request->has('position') ? (int) $request->integer('position') : $item->position,
+            quantity: $request->has('quantity') ? (int) $request->integer('quantity') : $item->quantity,
+            deadline: $request->has('deadline')
+                ? ($request->filled('deadline') ? $request->string('deadline')->toString() : null)
+                : $item->deadline?->toDateString(),
         );
     }
 }
