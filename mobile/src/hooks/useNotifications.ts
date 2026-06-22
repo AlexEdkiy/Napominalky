@@ -3,7 +3,11 @@ import * as Notifications from 'expo-notifications'
 import { router, type Href } from 'expo-router'
 
 import { configureNotificationHandler } from '@/services/notifications'
-import { parseNotificationData, reminderRoute } from '@/services/deepLinks'
+import {
+  listRoute,
+  parseNotificationData,
+  reminderRoute,
+} from '@/services/deepLinks'
 
 interface UseNotificationsResult {
   granted: boolean
@@ -13,14 +17,22 @@ interface UseNotificationsResult {
 const responseData = (response: Notifications.NotificationResponse): unknown =>
   response.notification.request.content.data
 
-/** Парсит ответ и переходит на экран напоминания, если это deep link. */
+/** Парсит ответ и переходит на нужный экран по типу deep link. */
 const navigateFromResponse = (
   response: Notifications.NotificationResponse | null,
 ): void => {
   if (response === null) return
   const link = parseNotificationData(responseData(response))
   if (link === null) return
-  router.push(reminderRoute(link.uuid) as Href)
+
+  if (link.type === 'reminder') {
+    router.push(reminderRoute(link.uuid) as Href)
+    return
+  }
+
+  if (link.type === 'list_item') {
+    router.push(listRoute(link.listUuid) as Href)
+  }
 }
 
 /** Запрашивает разрешения, повторно не дёргая системный диалог, если уже granted. */
