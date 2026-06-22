@@ -25,6 +25,8 @@ export const shoppingListItems = sqliteTable(
     tags: text('tags'),
     isChecked: integer('is_checked').notNull().default(0),
     position: integer('position').notNull().default(0),
+    /** Локальный id запланированного уведомления (не синхронизируется). */
+    notificationId: text('notification_id'),
     serverRevision: integer('server_revision'),
     createdAt: text('created_at')
       .notNull()

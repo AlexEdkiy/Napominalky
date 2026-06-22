@@ -8,6 +8,7 @@ import m0003 from './0003_freezing_doctor_spectrum.sql';
 import m0004 from './0004_notes_color.sql';
 import m0005 from './0005_lists_type_quantity_deadline.sql';
 import m0006 from './0006_lists_item_meta.sql';
+import m0007 from './0007_item_notification_id.sql';
 
   export default {
     journal,
@@ -18,6 +19,7 @@ m0002,
 m0003,
 m0004,
 m0005,
-m0006
+m0006,
+m0007
     }
   }

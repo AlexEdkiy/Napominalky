@@ -6,6 +6,12 @@ import {
 } from '../schema/shoppingListItems'
 import { shoppingLists, type ShoppingListRow } from '../schema/shoppingLists'
 import { BaseRepository, type SyncTable } from './baseRepo'
+import {
+  cancelReminder,
+  rescheduleItemReminder,
+  scheduleItemReminder,
+  type SchedulableListItem,
+} from '../../services/notifications'
 
 /** Категории элемента списка покупок (зеркало backend ShoppingListItem). */
 export type ItemCategory = 'products' | 'household' | 'pharmacy' | 'other'
@@ -42,6 +48,8 @@ export interface ShoppingListItem {
   tags: string | null
   isChecked: boolean
   position: number
+  /** Локальный id запланированного уведомления (не синхронизируется). */
+  notificationId: string | null
   serverRevision: number | null
   createdAt: string
   updatedAt: string
@@ -134,6 +142,7 @@ const toItem = (row: ShoppingListItemRow): ShoppingListItem => ({
   tags: row.tags ?? null,
   isChecked: bool(row.isChecked),
   position: row.position,
+  notificationId: row.notificationId ?? null,
   serverRevision: row.serverRevision,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
@@ -157,11 +166,21 @@ const toList = (
   checkedItemsCount,
 })
 
+/** Строит объект для планировщика уведомлений из доменного пункта. */
+const toSchedulableItem = (item: ShoppingListItem): SchedulableListItem => ({
+  uuid: item.uuid,
+  listUuid: item.shoppingListUuid,
+  name: item.name,
+  comment: item.comment,
+  reminderAt: item.reminderAt ?? '',
+})
+
 /**
  * Репозиторий списков покупок поверх двух BaseRepository (списки и элементы):
  * мутации идут через base (доменная строка + запись в sync_outbox), чтения —
  * напрямую через db. is_checked хранится как 0/1, конвертируется в boolean на
  * чтении. Прогресс (checked/total) считается из активных элементов списка.
+ * notification_id — ЛОКАЛЬНОЕ поле: не синхронизируется, не проходит outbox.
  */
 export class ShoppingListsRepository {
   private readonly lists: BaseRepository<typeof shoppingLists & SyncTable>
@@ -209,6 +228,7 @@ export class ShoppingListsRepository {
   public async deleteList(uuid: string): Promise<ShoppingList | null> {
     const children = await this.activeItemRows(uuid)
     for (const child of children) {
+      await cancelReminder(child.notificationId ?? null)
       await this.items.softDelete(child.uuid)
     }
 
@@ -223,7 +243,7 @@ export class ShoppingListsRepository {
     return this.withProgress(row as ShoppingListRow)
   }
 
-  /** Активные списки (без tombstone) с прогрессом, новые сверху. */
+  /** Активные списки (без tombstone) с прогрессом, по алфавиту. */
   public async listLists(): Promise<ShoppingList[]> {
     const rows = await this.db
       .select()
@@ -236,7 +256,8 @@ export class ShoppingListsRepository {
 
   // ---- Элементы -----------------------------------------------------------
 
-  /** Добавляет элемент в конец списка (position = max+1), наследуя user_id. */
+  /** Добавляет элемент в конец списка (position = max+1). Если reminderAt в
+   *  будущем — планирует локальное уведомление и сохраняет notificationId. */
   public async addItem(
     listUuid: string,
     data: CreateItemData,
@@ -258,13 +279,26 @@ export class ShoppingListsRepository {
       isChecked: flag(data.isChecked ?? false),
       position,
     } as never)
-    return toItem(row as ShoppingListItemRow)
+    const item = toItem(row as ShoppingListItemRow)
+
+    if (item.reminderAt !== null) {
+      const nid = await scheduleItemReminder(toSchedulableItem(item))
+      if (nid !== null) await this.setItemNotificationId(item.uuid, nid)
+      return { ...item, notificationId: nid }
+    }
+
+    return item
   }
 
   public async updateItem(
     uuid: string,
     patch: UpdateItemPatch,
   ): Promise<ShoppingListItem | null> {
+    const current = await this.items.findById(uuid)
+    const oldNid = current !== null
+      ? (current as ShoppingListItemRow).notificationId ?? null
+      : null
+
     const values: Record<string, unknown> = {}
     if (patch.name !== undefined) values.name = patch.name
     if (patch.category !== undefined) values.category = patch.category
@@ -279,20 +313,60 @@ export class ShoppingListsRepository {
     if (patch.isChecked !== undefined) values.isChecked = flag(patch.isChecked)
 
     const row = await this.items.update(uuid, values as never)
-    return row === null ? null : toItem(row as ShoppingListItemRow)
+    if (row === null) return null
+    const item = toItem(row as ShoppingListItemRow)
+
+    if (patch.reminderAt === undefined) return item
+
+    if (patch.reminderAt === null) {
+      await cancelReminder(oldNid)
+      await this.setItemNotificationId(uuid, null)
+      return { ...item, notificationId: null }
+    }
+
+    const nid = await rescheduleItemReminder(toSchedulableItem(item), oldNid)
+    await this.setItemNotificationId(uuid, nid)
+    return { ...item, notificationId: nid }
   }
 
-  /** Мягкое удаление элемента: tombstone (deleted_at) + delete в outbox. */
+  /** Мягкое удаление элемента: отменяет уведомление + tombstone + outbox. */
   public async deleteItem(uuid: string): Promise<ShoppingListItem | null> {
+    const current = await this.items.findById(uuid)
+    if (current !== null) {
+      await cancelReminder((current as ShoppingListItemRow).notificationId ?? null)
+    }
     const row = await this.items.softDelete(uuid)
     return row === null ? null : toItem(row as ShoppingListItemRow)
   }
 
+  /**
+   * Отмечает/снимает отметку пункта. При checked=true отменяет уведомление;
+   * при checked=false перепланирует (если reminderAt в будущем).
+   */
   public async checkItem(
     uuid: string,
     checked: boolean,
   ): Promise<ShoppingListItem | null> {
-    return this.updateItem(uuid, { isChecked: checked })
+    const current = await this.items.findById(uuid)
+    const oldNid = (current as ShoppingListItemRow | null)?.notificationId ?? null
+
+    const row = await this.items.update(uuid, { isChecked: flag(checked) } as never)
+    if (row === null) return null
+    const item = toItem(row as ShoppingListItemRow)
+
+    if (checked) {
+      await cancelReminder(oldNid)
+      await this.setItemNotificationId(uuid, null)
+      return { ...item, notificationId: null }
+    }
+
+    if (item.reminderAt !== null) {
+      const nid = await rescheduleItemReminder(toSchedulableItem(item), oldNid)
+      await this.setItemNotificationId(uuid, nid)
+      return { ...item, notificationId: nid }
+    }
+
+    return item
   }
 
   /** Активные элементы списка по position; опц. фильтр по категории. */
@@ -383,6 +457,22 @@ export class ShoppingListsRepository {
       .where(eq(shoppingLists.uuid, listUuid))
       .limit(1)
     return row?.userId ?? null
+  }
+
+  /**
+   * Сохраняет локальный id уведомления пункта. Поле notification_id НЕ
+   * синхронизируется — пишем напрямую в таблицу, минуя outbox.
+   */
+  public async setItemNotificationId(
+    uuid: string,
+    notificationId: string | null,
+  ): Promise<ShoppingListItem | null> {
+    const [row] = await this.db
+      .update(shoppingListItems)
+      .set({ notificationId } as never)
+      .where(eq(shoppingListItems.uuid, uuid))
+      .returning()
+    return row === undefined ? null : toItem(row as ShoppingListItemRow)
   }
 
   /**

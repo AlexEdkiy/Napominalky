@@ -2,7 +2,9 @@ import * as Notifications from 'expo-notifications'
 import {
   cancelReminder,
   configureNotificationHandler,
+  rescheduleItemReminder,
   rescheduleReminder,
+  scheduleItemReminder,
   scheduleReminder,
 } from '../notifications'
 
@@ -101,5 +103,77 @@ describe('configureNotificationHandler', () => {
     configureNotificationHandler()
     configureNotificationHandler()
     expect(mockSetHandler).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('scheduleItemReminder', () => {
+  it('планирует уведомление на будущую дату с data.type=list_item', async () => {
+    const id = await scheduleItemReminder({
+      uuid: 'i1',
+      listUuid: 'l1',
+      name: 'Купить молоко',
+      comment: 'Без жира',
+      reminderAt: future(),
+    })
+
+    expect(id).toBe('notif-1')
+    const arg = mockSchedule.mock.calls[0]?.[0]
+    expect(arg.content.data).toEqual({
+      type: 'list_item',
+      itemUuid: 'i1',
+      listUuid: 'l1',
+    })
+    expect(arg.content.title).toBe('Купить молоко')
+    expect(arg.content.body).toBe('Без жира')
+    expect(arg.trigger.type).toBe('date')
+    expect(arg.trigger.date).toBeInstanceOf(Date)
+  })
+
+  it('прошедшая дата → null, уведомление не планируется', async () => {
+    const id = await scheduleItemReminder({
+      uuid: 'i1',
+      listUuid: 'l1',
+      name: 'Хлеб',
+      reminderAt: past(),
+    })
+
+    expect(id).toBeNull()
+    expect(mockSchedule).not.toHaveBeenCalled()
+  })
+
+  it('пустой comment даёт пустой body', async () => {
+    await scheduleItemReminder({
+      uuid: 'i1',
+      listUuid: 'l1',
+      name: 'Соль',
+      reminderAt: future(),
+    })
+
+    expect(mockSchedule.mock.calls[0]?.[0].content.body).toBe('')
+  })
+
+  it('null comment даёт пустой body', async () => {
+    await scheduleItemReminder({
+      uuid: 'i1',
+      listUuid: 'l1',
+      name: 'Соль',
+      comment: null,
+      reminderAt: future(),
+    })
+
+    expect(mockSchedule.mock.calls[0]?.[0].content.body).toBe('')
+  })
+})
+
+describe('rescheduleItemReminder', () => {
+  it('отменяет старое и планирует новое уведомление', async () => {
+    const id = await rescheduleItemReminder(
+      { uuid: 'i1', listUuid: 'l1', name: 'Молоко', reminderAt: future() },
+      'old-id',
+    )
+
+    expect(mockCancel).toHaveBeenCalledWith('old-id')
+    expect(mockSchedule).toHaveBeenCalled()
+    expect(id).toBe('notif-1')
   })
 })

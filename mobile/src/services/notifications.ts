@@ -20,6 +20,23 @@ interface ReminderNotificationData {
   [key: string]: unknown
 }
 
+/** Полезная нагрузка уведомления пункта списка покупок для deep link. */
+interface ItemNotificationData {
+  type: 'list_item'
+  itemUuid: string
+  listUuid: string
+  [key: string]: unknown
+}
+
+/** Минимальный набор полей пункта списка для планирования уведомления. */
+export interface SchedulableListItem {
+  uuid: string
+  listUuid: string
+  name: string
+  comment?: string | null
+  reminderAt: string
+}
+
 let handlerConfigured = false
 
 /**
@@ -88,4 +105,38 @@ export const rescheduleReminder = async (
 ): Promise<string | null> => {
   await cancelReminder(oldNotificationId)
   return scheduleReminder(reminder)
+}
+
+/**
+ * Планирует локальное DATE-уведомление для пункта списка покупок.
+ * title = item.name, body = item.comment ?? '', data.type = 'list_item'.
+ * Прошедшая дата (<= now) → null (не ставится в очередь).
+ */
+export const scheduleItemReminder = async (
+  item: SchedulableListItem,
+): Promise<string | null> => {
+  const date = new Date(item.reminderAt)
+  if (date.getTime() <= Date.now()) return null
+
+  const data: ItemNotificationData = {
+    type: 'list_item',
+    itemUuid: item.uuid,
+    listUuid: item.listUuid,
+  }
+  return Notifications.scheduleNotificationAsync({
+    content: { title: item.name, body: item.comment ?? '', data },
+    trigger: { type: SchedulableTriggerInputTypes.DATE, date },
+  })
+}
+
+/**
+ * Перепланирует уведомление пункта: отменяет старое и планирует новое.
+ * Возвращает identifier нового уведомления или null (прошедшая дата).
+ */
+export const rescheduleItemReminder = async (
+  item: SchedulableListItem,
+  oldNotificationId: string | null,
+): Promise<string | null> => {
+  await cancelReminder(oldNotificationId)
+  return scheduleItemReminder(item)
 }

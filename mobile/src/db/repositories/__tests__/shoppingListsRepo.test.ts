@@ -1,6 +1,8 @@
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
 jest.mock('../../client', () => ({ db: {} }))
 
+// expo-notifications мокается глобально в jest.setup.js
+
 // parseTags / serializeTags экспортируются из репозитория
 
 
@@ -73,6 +75,7 @@ const itemRow = (over: Partial<Record<string, unknown>> = {}) => ({
   tags: null,
   isChecked: 0,
   position: 0,
+  notificationId: null,
   serverRevision: null,
   createdAt: 't',
   updatedAt: 't',
@@ -279,6 +282,228 @@ describe('ShoppingListsRepository.listLists', () => {
     expect(lists[0]?.type).toBe('goods')
     expect(lists[0]?.itemsCount).toBe(1)
     expect(lists[0]?.checkedItemsCount).toBe(0)
+  })
+})
+
+// ---- Уведомления пунктов (notificationId) ------------------------------------
+
+import * as Notifications from 'expo-notifications'
+
+const mockSchedule = Notifications.scheduleNotificationAsync as jest.Mock
+const mockCancel = Notifications.cancelScheduledNotificationAsync as jest.Mock
+const futureIso = (): string => new Date(Date.now() + 60_000).toISOString()
+const pastIso = (): string => new Date(Date.now() - 60_000).toISOString()
+
+/**
+ * Расширенный fakeDb для тестов уведомлений: update возвращает строку из rows
+ * (чтобы toItem получал полный контекст reminderAt/notificationId).
+ */
+const createFakeDbNotif = (inserts: InsertCall[], rows: Record<string, unknown>[] = []) => ({
+  insert: () => ({
+    values: (values: Record<string, unknown>) => {
+      inserts.push({ values })
+      return { returning: async () => [{ ...itemRow(), ...values }] }
+    },
+  }),
+  update: () => ({
+    set: (values: Record<string, unknown>) => ({
+      where: () => ({ returning: async () => [{ ...rows[0], ...values }] }),
+    }),
+  }),
+  select: (proj?: unknown) => ({
+    from: () => ({
+      where: (_w: unknown) => {
+        const result = proj === undefined ? rows : [{ value: null, userId: null }]
+        const chain = Promise.resolve(result) as Promise<Record<string, unknown>[]> & {
+          orderBy: () => Promise<Record<string, unknown>[]>
+          limit: () => Promise<Record<string, unknown>[]>
+        }
+        chain.orderBy = () => Promise.resolve(result)
+        chain.limit = () => Promise.resolve(result)
+        return chain
+      },
+    }),
+  }),
+})
+
+describe('ShoppingListsRepository.addItem — уведомление при reminderAt в будущем', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('scheduleNotificationAsync вызывается; data.type=list_item, listUuid корректен', async () => {
+    const inserts: InsertCall[] = []
+    mockSchedule.mockResolvedValueOnce('notif-item-1')
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow()]) as never,
+    )
+
+    const item = await repo.addItem('l1', {
+      name: 'Молоко',
+      reminderAt: futureIso(),
+    })
+
+    expect(mockSchedule).toHaveBeenCalledTimes(1)
+    const arg = mockSchedule.mock.calls[0]?.[0]
+    expect(arg.content.data.type).toBe('list_item')
+    expect(arg.content.data.listUuid).toBe('l1')
+    expect(item.notificationId).toBe('notif-item-1')
+  })
+
+  it('прошедшая reminderAt → scheduleNotificationAsync не вызывается', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow()]) as never,
+    )
+
+    const item = await repo.addItem('l1', { name: 'Соль', reminderAt: pastIso() })
+
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(item.notificationId).toBeNull()
+  })
+
+  it('reminderAt = null → уведомление не планируется', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow()]) as never,
+    )
+
+    const item = await repo.addItem('l1', { name: 'Хлеб', reminderAt: null })
+
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(item.notificationId).toBeNull()
+  })
+})
+
+describe('ShoppingListsRepository.updateItem — перепланирование при смене reminderAt', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('новая будущая reminderAt → reschedule (cancel+schedule)', async () => {
+    const inserts: InsertCall[] = []
+    mockSchedule.mockResolvedValueOnce('notif-new')
+    const row = itemRow({ notificationId: 'notif-old', reminderAt: futureIso() })
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [row]) as never,
+    )
+
+    const item = await repo.updateItem('i1', { reminderAt: futureIso() })
+
+    expect(mockCancel).toHaveBeenCalledWith('notif-old')
+    expect(mockSchedule).toHaveBeenCalled()
+    expect(item?.notificationId).toBe('notif-new')
+  })
+
+  it('reminderAt → null: cancel, notificationId = null', async () => {
+    const inserts: InsertCall[] = []
+    const row = itemRow({ notificationId: 'notif-old' })
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [row]) as never,
+    )
+
+    const item = await repo.updateItem('i1', { reminderAt: null })
+
+    expect(mockCancel).toHaveBeenCalledWith('notif-old')
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(item?.notificationId).toBeNull()
+  })
+
+  it('patch без reminderAt → уведомление не трогается', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow()]) as never,
+    )
+
+    await repo.updateItem('i1', { name: 'Сыр' })
+
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(mockCancel).not.toHaveBeenCalled()
+  })
+})
+
+describe('ShoppingListsRepository.checkItem — управление уведомлением', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('checked=true: cancelReminder вызывается, notificationId → null', async () => {
+    const inserts: InsertCall[] = []
+    const row = itemRow({ notificationId: 'notif-1', reminderAt: futureIso() })
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [row]) as never,
+    )
+
+    const item = await repo.checkItem('i1', true)
+
+    expect(mockCancel).toHaveBeenCalledWith('notif-1')
+    expect(item?.isChecked).toBe(true)
+    expect(item?.notificationId).toBeNull()
+  })
+
+  it('checked=false с будущей reminderAt → reschedule', async () => {
+    const inserts: InsertCall[] = []
+    mockSchedule.mockResolvedValueOnce('notif-rescheduled')
+    const row = itemRow({ reminderAt: futureIso(), notificationId: null })
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [row]) as never,
+    )
+
+    const item = await repo.checkItem('i1', false)
+
+    expect(mockSchedule).toHaveBeenCalled()
+    expect(item?.notificationId).toBe('notif-rescheduled')
+  })
+
+  it('checked=false без reminderAt → уведомление не планируется', async () => {
+    const inserts: InsertCall[] = []
+    const row = itemRow({ reminderAt: null, notificationId: null })
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [row]) as never,
+    )
+
+    const item = await repo.checkItem('i1', false)
+
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(item?.notificationId).toBeNull()
+  })
+})
+
+describe('ShoppingListsRepository.deleteItem — отмена уведомления', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('deleteItem вызывает cancelReminder по notificationId', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow({ notificationId: 'notif-del' })]) as never,
+    )
+
+    await repo.deleteItem('i1')
+
+    expect(mockCancel).toHaveBeenCalledWith('notif-del')
+    const outbox = inserts[0]?.values as Record<string, unknown>
+    expect(outbox.operation).toBe('delete')
+  })
+
+  it('deleteItem без уведомления — не падает', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow({ notificationId: null })]) as never,
+    )
+
+    await expect(repo.deleteItem('i1')).resolves.not.toThrow()
+  })
+})
+
+// ---- ShoppingListsRepository.setItemNotificationId --------------------------
+
+describe('ShoppingListsRepository.setItemNotificationId', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('пишет notification_id напрямую без записи в outbox', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDbNotif(inserts, [itemRow()]) as never,
+    )
+
+    const item = await repo.setItemNotificationId('i1', 'notif-123')
+
+    expect(item?.notificationId).toBe('notif-123')
+    expect(inserts).toHaveLength(0)
   })
 })
 
