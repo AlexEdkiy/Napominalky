@@ -31,6 +31,10 @@ final class StoreItemRequest extends FormRequest
             'position' => ['nullable', 'integer', 'min:0'],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:9999'],
             'deadline' => ['nullable', 'date'],
+            'reminder_at' => ['nullable', 'date'],
+            'link' => ['nullable', 'string', 'max:2048'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+            'tags' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

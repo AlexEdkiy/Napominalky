@@ -34,6 +34,10 @@ class ShoppingListItem extends Model
         'position',
         'quantity',
         'deadline',
+        'reminder_at',
+        'link',
+        'comment',
+        'tags',
     ];
 
     /**
@@ -73,6 +77,7 @@ class ShoppingListItem extends Model
             'position' => 'integer',
             'quantity' => 'integer',
             'deadline' => 'immutable_date',
+            'reminder_at' => 'immutable_datetime',
             'server_revision' => 'integer',
         ];
     }

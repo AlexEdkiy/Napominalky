@@ -33,6 +33,10 @@ final class ShoppingListItemResource extends JsonResource
             'position' => $this->position,
             'quantity' => $this->quantity,
             'deadline' => $this->deadline?->toDateString(),
+            'reminder_at' => $this->reminder_at?->toISOString(),
+            'link' => $this->link,
+            'comment' => $this->comment,
+            'tags' => $this->tags,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

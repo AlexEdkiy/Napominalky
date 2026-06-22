@@ -30,6 +30,10 @@ final class UpdateItemRequest extends FormRequest
             'position' => ['sometimes', 'integer', 'min:0'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:9999'],
             'deadline' => ['sometimes', 'nullable', 'date'],
+            'reminder_at' => ['sometimes', 'nullable', 'date'],
+            'link' => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'comment' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'tags' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
 }

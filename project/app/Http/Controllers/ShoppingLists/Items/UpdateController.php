@@ -47,6 +47,18 @@ final class UpdateController extends Controller
             deadline: $request->has('deadline')
                 ? ($request->filled('deadline') ? $request->string('deadline')->toString() : null)
                 : $item->deadline?->toDateString(),
+            reminderAt: $request->has('reminder_at')
+                ? ($request->filled('reminder_at') ? $request->string('reminder_at')->toString() : null)
+                : $item->reminder_at?->toISOString(),
+            link: $request->has('link')
+                ? ($request->filled('link') ? $request->string('link')->toString() : null)
+                : $item->link,
+            comment: $request->has('comment')
+                ? ($request->filled('comment') ? $request->string('comment')->toString() : null)
+                : $item->comment,
+            tags: $request->has('tags')
+                ? ($request->filled('tags') ? $request->string('tags')->toString() : null)
+                : $item->tags,
         );
     }
 }
