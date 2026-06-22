@@ -22,6 +22,10 @@ final class AddItemAction
             'position' => $this->nextPosition($list, $data),
             'quantity' => $data->quantity,
             'deadline' => $data->deadline,
+            'reminder_at' => $data->reminderAt,
+            'link' => $data->link,
+            'comment' => $data->comment,
+            'tags' => $data->tags,
         ]);
 
         // user_id денормализуется из владельца списка для sync-фильтра.

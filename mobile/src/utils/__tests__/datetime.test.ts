@@ -1,4 +1,11 @@
-import { formatDateTime, formatRelativeReminder, formatUpdatedAt, isReminderUrgent, isValidIso } from '../datetime'
+import {
+  formatDateTime,
+  formatDeadlineChip,
+  formatRelativeReminder,
+  formatUpdatedAt,
+  isReminderUrgent,
+  isValidIso,
+} from '../datetime'
 
 describe('isValidIso', () => {
   it('принимает корректную ISO-строку', () => {
@@ -66,5 +73,24 @@ describe('formatUpdatedAt', () => {
 
   it('возвращает пустую строку для невалидного входа', () => {
     expect(formatUpdatedAt('bad')).toBe('')
+  })
+})
+
+describe('formatDeadlineChip', () => {
+  it('форматирует YYYY-MM-DD как «до D мес»', () => {
+    // 2026-07-05
+    const result = formatDeadlineChip('2026-07-05')
+    expect(result).toMatch(/до \d+ .+/)
+    expect(result).toContain('до 5')
+  })
+
+  it('возвращает исходную строку для невалидного входа', () => {
+    expect(formatDeadlineChip('not-a-date')).toBe('not-a-date')
+  })
+
+  it('форматирует ISO 8601 дату', () => {
+    // конкретная дата: 2026-07-01
+    const result = formatDeadlineChip('2026-07-01T00:00:00.000Z')
+    expect(result).toMatch(/^до \d+ .+$/)
   })
 })

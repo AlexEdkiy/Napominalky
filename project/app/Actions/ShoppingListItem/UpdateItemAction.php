@@ -18,6 +18,10 @@ final class UpdateItemAction
             'position' => $data->position,
             'quantity' => $data->quantity,
             'deadline' => $data->deadline,
+            'reminder_at' => $data->reminderAt,
+            'link' => $data->link,
+            'comment' => $data->comment,
+            'tags' => $data->tags,
         ]);
 
         return $item;

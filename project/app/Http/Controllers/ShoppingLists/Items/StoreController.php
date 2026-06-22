@@ -48,6 +48,10 @@ final class StoreController extends Controller
             position: (int) $request->integer('position'),
             quantity: $request->filled('quantity') ? (int) $request->integer('quantity') : 1,
             deadline: $request->filled('deadline') ? $request->string('deadline')->toString() : null,
+            reminderAt: $request->filled('reminder_at') ? $request->string('reminder_at')->toString() : null,
+            link: $request->filled('link') ? $request->string('link')->toString() : null,
+            comment: $request->filled('comment') ? $request->string('comment')->toString() : null,
+            tags: $request->filled('tags') ? $request->string('tags')->toString() : null,
         );
     }
 }

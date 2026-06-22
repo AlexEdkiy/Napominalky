@@ -1,7 +1,10 @@
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
 jest.mock('../../client', () => ({ db: {} }))
 
-import { ShoppingListsRepository } from '../shoppingListsRepo'
+// parseTags / serializeTags экспортируются из репозитория
+
+
+import { ShoppingListsRepository, parseTags, serializeTags } from '../shoppingListsRepo'
 
 interface InsertCall {
   values: Record<string, unknown>
@@ -64,6 +67,10 @@ const itemRow = (over: Partial<Record<string, unknown>> = {}) => ({
   category: 'products',
   quantity: 1,
   deadline: null,
+  reminderAt: null,
+  link: null,
+  comment: null,
+  tags: null,
   isChecked: 0,
   position: 0,
   serverRevision: null,
@@ -272,5 +279,140 @@ describe('ShoppingListsRepository.listLists', () => {
     expect(lists[0]?.type).toBe('goods')
     expect(lists[0]?.itemsCount).toBe(1)
     expect(lists[0]?.checkedItemsCount).toBe(0)
+  })
+})
+
+// ---- parseTags / serializeTags -----------------------------------------------
+
+describe('parseTags', () => {
+  it('null → пустой массив', () => {
+    expect(parseTags(null)).toEqual([])
+  })
+
+  it('валидный JSON-массив тегов', () => {
+    expect(parseTags('["обувь","одежда"]')).toEqual(['обувь', 'одежда'])
+  })
+
+  it('пустой JSON-массив', () => {
+    expect(parseTags('[]')).toEqual([])
+  })
+
+  it('невалидный JSON → пустой массив', () => {
+    expect(parseTags('not-json')).toEqual([])
+  })
+
+  it('JSON не-массив → пустой массив', () => {
+    expect(parseTags('{"key":"val"}')).toEqual([])
+  })
+})
+
+describe('serializeTags', () => {
+  it('пустой массив → null', () => {
+    expect(serializeTags([])).toBeNull()
+  })
+
+  it('массив тегов → JSON-строка', () => {
+    expect(serializeTags(['обувь', 'одежда'])).toBe('["обувь","одежда"]')
+  })
+
+  it('один тег', () => {
+    expect(serializeTags(['акция'])).toBe('["акция"]')
+  })
+})
+
+// ---- Маппинг новых полей в toItem ------------------------------------------
+
+describe('ShoppingListsRepository.listItems — маппинг мета-полей', () => {
+  it('маппит reminderAt, link, comment, tags из строки БД', async () => {
+    const repo = new ShoppingListsRepository(
+      createFakeDb([], {
+        rows: [itemRow({
+          reminderAt: '2026-07-01T18:00:00.000Z',
+          link: 'https://example.com',
+          comment: 'Не забыть',
+          tags: '["обувь"]',
+        })],
+      }) as never,
+    )
+
+    const result = await repo.listItems('l1')
+
+    expect(result[0]?.reminderAt).toBe('2026-07-01T18:00:00.000Z')
+    expect(result[0]?.link).toBe('https://example.com')
+    expect(result[0]?.comment).toBe('Не забыть')
+    expect(result[0]?.tags).toBe('["обувь"]')
+  })
+
+  it('null-поля → null в доменном объекте', async () => {
+    const repo = new ShoppingListsRepository(
+      createFakeDb([], { rows: [itemRow()] }) as never,
+    )
+
+    const result = await repo.listItems('l1')
+
+    expect(result[0]?.reminderAt).toBeNull()
+    expect(result[0]?.link).toBeNull()
+    expect(result[0]?.comment).toBeNull()
+    expect(result[0]?.tags).toBeNull()
+  })
+})
+
+// ---- addItem сохраняет мета-поля ------------------------------------------
+
+describe('ShoppingListsRepository.addItem — мета-поля', () => {
+  it('сохраняет reminderAt, link, comment, tags при создании', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDb(inserts, { projection: [{ value: null, userId: null }] }) as never,
+    )
+
+    await repo.addItem('l1', {
+      name: 'Кроссовки',
+      reminderAt: '2026-07-01T18:00:00.000Z',
+      link: 'https://shop.ru',
+      comment: 'Размер 42',
+      tags: '["обувь"]',
+    })
+
+    const domain = inserts[0]?.values as Record<string, unknown>
+    expect(domain.reminderAt).toBe('2026-07-01T18:00:00.000Z')
+    expect(domain.link).toBe('https://shop.ru')
+    expect(domain.comment).toBe('Размер 42')
+    expect(domain.tags).toBe('["обувь"]')
+  })
+
+  it('по умолчанию все мета-поля null', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(
+      createFakeDb(inserts, { projection: [{ value: null, userId: null }] }) as never,
+    )
+
+    await repo.addItem('l1', { name: 'Хлеб' })
+
+    const domain = inserts[0]?.values as Record<string, unknown>
+    expect(domain.reminderAt).toBeNull()
+    expect(domain.link).toBeNull()
+    expect(domain.comment).toBeNull()
+    expect(domain.tags).toBeNull()
+  })
+})
+
+// ---- updateItem принимает мета-патч ----------------------------------------
+
+describe('ShoppingListsRepository.updateItem — мета-патч', () => {
+  it('передаёт reminderAt/link/comment/tags в update', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(createFakeDb(inserts) as never)
+
+    await repo.updateItem('i1', {
+      reminderAt: '2026-08-01T10:00:00.000Z',
+      link: 'https://new.ru',
+      comment: 'Обновлено',
+      tags: '["новый"]',
+    })
+
+    // outbox insert
+    const outbox = inserts[0]?.values as Record<string, unknown>
+    expect(outbox.operation).toBe('update')
   })
 })

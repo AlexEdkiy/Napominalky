@@ -13,9 +13,10 @@ import { Ionicons } from '@expo/vector-icons'
 
 import ListCard from '@/components/lists/ListCard'
 import type { ListType, ShoppingList } from '@/db/repositories/shoppingListsRepo'
-import { useShoppingLists } from '@/hooks/useShoppingLists'
+import { useNearestDeadlines, useShoppingLists } from '@/hooks/useShoppingLists'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import { formatDeadlineChip } from '@/utils/datetime'
 
 type FilterTab = 'all' | ListType
 
@@ -36,12 +37,15 @@ const filterLists = (lists: ShoppingList[], tab: FilterTab): ShoppingList[] => {
   return lists.filter((l) => l.type === tab)
 }
 
-/** Находит минимальный невыполненный дедлайн среди пунктов задачного списка. */
-const nearestDeadline = (_list: ShoppingList): string | null => null
+const formatDeadlineLabel = (deadline: string | null): string | null => {
+  if (deadline === null) return null
+  return formatDeadlineChip(deadline)
+}
 
 export default function ListsScreen() {
   const { colors } = useTheme()
   const { lists, isLoading, isError } = useShoppingLists()
+  const deadlinesMap = useNearestDeadlines()
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
 
   const goodsCount = lists.filter((l) => l.type === 'goods').length
@@ -100,7 +104,11 @@ export default function ListsScreen() {
               <ListCard
                 list={item}
                 onPress={handleOpen}
-                nearestDeadline={item.type === 'tasks' ? nearestDeadline(item) : null}
+                nearestDeadline={
+                  item.type === 'tasks'
+                    ? formatDeadlineLabel(deadlinesMap.get(item.uuid) ?? null)
+                    : null
+                }
               />
               {index < filtered.length - 1 && (
                 <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />

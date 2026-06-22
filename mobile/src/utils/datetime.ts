@@ -71,3 +71,20 @@ export const formatUpdatedAt = (iso: string): string => {
   const month = pad(date.getMonth() + 1)
   return `Изменено ${day}.${month}.${date.getFullYear()}`
 }
+
+const MONTH_NAMES = [
+  'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+] as const
+
+/**
+ * Форматирует дедлайн пункта задачи в краткий вид «до DD мес»
+ * (например «до 5 июл»). Принимает строку YYYY-MM-DD или ISO 8601.
+ * Для невалидного входа возвращает исходную строку.
+ */
+export const formatDeadlineChip = (dateStr: string): string => {
+  const date = new Date(dateStr)
+  if (!Number.isFinite(date.getTime())) return dateStr
+  const month = MONTH_NAMES[date.getMonth()]
+  return `до ${date.getDate()} ${month ?? ''}`
+}

@@ -15,5 +15,9 @@ readonly class ShoppingListItemData
         public int $position = 0,
         public int $quantity = 1,
         public ?string $deadline = null,
+        public ?string $reminderAt = null,
+        public ?string $link = null,
+        public ?string $comment = null,
+        public ?string $tags = null,
     ) {}
 }
