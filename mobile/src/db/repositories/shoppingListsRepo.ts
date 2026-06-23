@@ -25,6 +25,8 @@ export interface ShoppingList {
   userId: string | null
   title: string
   type: ListType
+  /** Теги списка: JSON-строка массива (null = нет тегов). */
+  tags: string | null
   serverRevision: number | null
   createdAt: string
   updatedAt: string
@@ -84,11 +86,12 @@ export const serializeTags = (arr: string[]): string | null => {
 export interface CreateListData {
   title: string
   type?: ListType
+  tags?: string | null
   userId?: string | null
 }
 
 /** Частичное обновление доменных полей списка. */
-export type UpdateListPatch = Partial<Pick<CreateListData, 'title' | 'type' | 'userId'>>
+export type UpdateListPatch = Partial<Pick<CreateListData, 'title' | 'type' | 'tags' | 'userId'>>
 
 /** Данные для добавления элемента (position наследуется автоматически). */
 export interface CreateItemData {
@@ -158,6 +161,7 @@ const toList = (
   userId: row.userId,
   title: row.title,
   type: (row.type as ListType) ?? 'goods',
+  tags: row.tags ?? null,
   serverRevision: row.serverRevision,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
@@ -205,6 +209,7 @@ export class ShoppingListsRepository {
     const row = await this.lists.insert({
       title: data.title,
       type: data.type ?? 'goods',
+      tags: data.tags ?? null,
       userId: data.userId ?? null,
     } as never)
     return toList(row as ShoppingListRow, 0, 0)
@@ -217,6 +222,7 @@ export class ShoppingListsRepository {
     const values: Record<string, unknown> = {}
     if (patch.title !== undefined) values.title = patch.title
     if (patch.type !== undefined) values.type = patch.type
+    if (patch.tags !== undefined) values.tags = patch.tags
     if (patch.userId !== undefined) values.userId = patch.userId
 
     const row = await this.lists.update(uuid, values as never)

@@ -26,6 +26,9 @@ final class UpdateController extends Controller
             type: $request->has('type')
                 ? $request->string('type')->toString()
                 : $shoppingList->type,
+            tags: $request->has('tags')
+                ? ($request->filled('tags') ? $request->string('tags')->toString() : null)
+                : $shoppingList->tags,
         );
 
         $updated = ($this->updateList)($shoppingList, $data);

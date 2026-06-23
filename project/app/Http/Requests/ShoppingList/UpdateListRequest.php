@@ -25,6 +25,7 @@ final class UpdateListRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'type' => ['nullable', 'string', Rule::in(['goods', 'tasks'])],
+            'tags' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

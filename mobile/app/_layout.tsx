@@ -85,6 +85,7 @@ function RootLayout(): React.JSX.Element {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="notes" options={{ headerShown: false }} />
+              <Stack.Screen name="lists" options={{ headerShown: false }} />
               <Stack.Screen name="settings" options={{ headerShown: false }} />
               <Stack.Screen name="lock" options={{ headerShown: false }} />
               <Stack.Screen name="create" options={{ presentation: 'modal', headerShown: false }} />

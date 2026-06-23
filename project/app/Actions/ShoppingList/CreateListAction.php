@@ -15,6 +15,7 @@ final class CreateListAction
         $list = new ShoppingList([
             'title' => $data->title,
             'type' => $data->type,
+            'tags' => $data->tags,
         ]);
         $list->user_id = $user->id;
 

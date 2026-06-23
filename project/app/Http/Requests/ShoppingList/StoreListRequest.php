@@ -26,6 +26,7 @@ final class StoreListRequest extends FormRequest
             'uuid' => ['nullable', 'uuid', 'unique:shopping_lists,uuid'],
             'title' => ['required', 'string', 'max:255'],
             'type' => ['nullable', 'string', Rule::in(['goods', 'tasks'])],
+            'tags' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

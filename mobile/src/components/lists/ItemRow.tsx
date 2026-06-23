@@ -15,6 +15,7 @@ import { parseTags, serializeTags } from '@/db/repositories/shoppingListsRepo'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import { formatDeadlineDisplay } from '@/utils/datetime'
 
 interface ItemRowProps {
   item: ShoppingListItem
@@ -57,7 +58,12 @@ const ItemRow: React.FC<ItemRowProps> = ({
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
       <View style={styles.row}>
-        <View style={[styles.accent, { backgroundColor: accentColor, opacity: item.isChecked ? 0.4 : 1 }]} />
+        <View
+          style={[
+            styles.accent,
+            { backgroundColor: accentColor, opacity: item.isChecked ? 0.4 : 1 },
+          ]}
+        />
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: item.isChecked }}
@@ -93,9 +99,7 @@ const ItemRow: React.FC<ItemRowProps> = ({
             </Text>
             {firstTag !== undefined && (
               <View style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
-                <Text style={[styles.chipText, { color: colors.textSecondary }]}>
-                  #{firstTag}
-                </Text>
+                <Text style={[styles.chipText, { color: colors.textSecondary }]}>#{firstTag}</Text>
               </View>
             )}
             {listType === 'goods' && item.quantity > 1 && (
@@ -103,15 +107,19 @@ const ItemRow: React.FC<ItemRowProps> = ({
                 <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
               </View>
             )}
+            {/* DEF-05: форматированная дата вместо raw YYYY-MM-DD */}
             {listType === 'tasks' && item.deadline != null && (
               <View style={[styles.chip, { backgroundColor: accentBg }]}>
                 <Ionicons name="calendar-outline" size={11} color={accentColor} />
-                <Text style={[styles.chipText, { color: accentColor }]}>{item.deadline}</Text>
+                <Text style={[styles.chipText, { color: accentColor }]}>
+                  {formatDeadlineDisplay(item.deadline)}
+                </Text>
               </View>
             )}
           </View>
           <MetaIndicators item={item} />
         </Pressable>
+        {/* DEF-01: убран Pressable с close-circle-outline; chevron — единственный правый элемент */}
         {onExpand !== undefined && (
           <Pressable
             onPress={() => onExpand(item.uuid)}
@@ -126,14 +134,6 @@ const ItemRow: React.FC<ItemRowProps> = ({
             />
           </Pressable>
         )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Удалить ${item.name}`}
-          onPress={() => onDelete(item.uuid)}
-          style={styles.delete}
-        >
-          <Ionicons name="close-circle-outline" size={20} color={colors.danger} />
-        </Pressable>
       </View>
       {isExpanded && (
         <ExpandedEditor
@@ -144,6 +144,7 @@ const ItemRow: React.FC<ItemRowProps> = ({
           onDeadlinePress={onDeadlinePress}
           onReminderPress={onReminderPress}
           onUpdateMeta={onUpdateMeta}
+          onDelete={onDelete}
         />
       )}
     </View>
@@ -171,9 +172,7 @@ const MetaIndicators: React.FC<MetaIndicatorsProps> = ({ item }) => {
       {hasComment && (
         <Ionicons name="chatbubble-outline" size={12} color={colors.textTertiary} />
       )}
-      {hasLink && (
-        <Ionicons name="link-outline" size={12} color={colors.textTertiary} />
-      )}
+      {hasLink && <Ionicons name="link-outline" size={12} color={colors.textTertiary} />}
     </View>
   )
 }
@@ -188,6 +187,7 @@ interface ExpandedEditorProps {
   onDeadlinePress: ((uuid: string) => void) | undefined
   onReminderPress: ((uuid: string) => void) | undefined
   onUpdateMeta: ((uuid: string, patch: MetaPatch) => void) | undefined
+  onDelete: (uuid: string) => void
 }
 
 const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
@@ -198,6 +198,7 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
   onDeadlinePress,
   onReminderPress,
   onUpdateMeta,
+  onDelete,
 }) => {
   const { colors } = useTheme()
   const [tagInput, setTagInput] = useState('')
@@ -236,13 +237,15 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
   ]
 
   return (
-    <View style={[styles.expanded, { borderTopColor: colors.borderSubtle, backgroundColor: colors.screenBg }]}>
+    <View
+      style={[
+        styles.expanded,
+        { borderTopColor: colors.borderSubtle, backgroundColor: colors.screenBg },
+      ]}
+    >
+      {/* DEF-02: компактные строки «иконка + значение» без uppercase-лейблов */}
       {listType === 'goods' ? (
-        <QuantityRow
-          item={item}
-          accentColor={accentColor}
-          onQuantityChange={onQuantityChange}
-        />
+        <QuantityRow item={item} accentColor={accentColor} onQuantityChange={onQuantityChange} />
       ) : (
         <DeadlineRow item={item} accentColor={accentColor} onDeadlinePress={onDeadlinePress} />
       )}
@@ -254,9 +257,12 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Установить напоминание"
         >
-          <Text style={[styles.deadlineBtnText, {
-            color: item.reminderAt !== null ? colors.textPrimary : colors.textTertiary,
-          }]}>
+          <Text
+            style={[
+              styles.deadlineBtnText,
+              { color: item.reminderAt !== null ? colors.textPrimary : colors.textTertiary },
+            ]}
+          >
             {item.reminderAt !== null ? formatReminderAt(item.reminderAt) : 'Добавить напоминание'}
           </Text>
           {item.reminderAt !== null && (
@@ -275,10 +281,7 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
       <MetaRow icon="link-outline" color={accentColor}>
         {item.link !== null && item.link.length > 0 ? (
           <Pressable onPress={handleOpenLink} style={styles.linkPressable}>
-            <Text
-              numberOfLines={1}
-              style={[styles.linkText, { color: accentColor }]}
-            >
+            <Text numberOfLines={1} style={[styles.linkText, { color: accentColor }]}>
               {item.link}
             </Text>
           </Pressable>
@@ -343,6 +346,16 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
           </View>
         </View>
       </MetaRow>
+
+      {/* DEF-01: кнопка удаления перенесена в раскрытый редактор */}
+      <Pressable
+        onPress={() => onDelete(item.uuid)}
+        accessibilityRole="button"
+        accessibilityLabel={`Удалить пункт ${item.name}`}
+        style={styles.deleteItemBtn}
+      >
+        <Text style={[styles.deleteItemText, { color: colors.danger }]}>Удалить пункт</Text>
+      </Pressable>
     </View>
   )
 }
@@ -360,9 +373,7 @@ const MetaRow: React.FC<MetaRowProps> = ({ icon, color, children }) => {
   return (
     <View style={styles.metaRow}>
       <Ionicons name={icon} size={16} color={color} style={styles.metaIcon} />
-      <View style={styles.metaContent}>
-        {children}
-      </View>
+      <View style={styles.metaContent}>{children}</View>
     </View>
   )
 }
@@ -373,10 +384,11 @@ interface QuantityRowProps {
   onQuantityChange: ((uuid: string, quantity: number) => void) | undefined
 }
 
+// DEF-02: expandLabel без uppercase — компактная строка «иконка + лейбл + степпер»
 const QuantityRow: React.FC<QuantityRowProps> = ({ item, accentColor, onQuantityChange }) => {
   const { colors } = useTheme()
   return (
-    <View style={styles.metaRowPlain}>
+    <View style={styles.metaRowCompact}>
       <Text style={[styles.expandLabel, { color: colors.textSecondary }]}>Количество</Text>
       <View style={styles.stepper}>
         <Pressable
@@ -407,10 +419,14 @@ interface DeadlineRowProps {
   onDeadlinePress: ((uuid: string) => void) | undefined
 }
 
+// DEF-02: компактная строка дедлайна — без uppercase-лейбла
 const DeadlineRow: React.FC<DeadlineRowProps> = ({ item, accentColor, onDeadlinePress }) => {
   const { colors } = useTheme()
+  // DEF-05: форматированная дата в раскрытии
+  const deadlineText =
+    item.deadline !== null ? formatDeadlineDisplay(item.deadline) : 'Указать дедлайн'
   return (
-    <View style={styles.metaRowPlain}>
+    <View style={styles.metaRowCompact}>
       <Text style={[styles.expandLabel, { color: colors.textSecondary }]}>Дедлайн</Text>
       <Pressable
         onPress={() => onDeadlinePress?.(item.uuid)}
@@ -419,10 +435,13 @@ const DeadlineRow: React.FC<DeadlineRowProps> = ({ item, accentColor, onDeadline
         accessibilityLabel="Указать дедлайн"
       >
         <Ionicons name="calendar-outline" size={16} color={accentColor} />
-        <Text style={[styles.deadlineBtnText, {
-          color: item.deadline !== null ? colors.textPrimary : colors.textTertiary,
-        }]}>
-          {item.deadline ?? 'Указать дедлайн'}
+        <Text
+          style={[
+            styles.deadlineBtnText,
+            { color: item.deadline !== null ? colors.textPrimary : colors.textTertiary },
+          ]}
+        >
+          {deadlineText}
         </Text>
       </Pressable>
     </View>
@@ -492,7 +511,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   chevronBtn: { padding: 6 },
-  delete: { padding: 6, marginLeft: 2 },
   expanded: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -501,9 +519,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },
-  metaRowPlain: {
-    gap: 8,
-    paddingVertical: 8,
+  // DEF-02: компактная строка (горизонтальный ряд)
+  metaRowCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
   },
   metaRow: {
     flexDirection: 'row',
@@ -513,7 +534,8 @@ const styles = StyleSheet.create({
   },
   metaIcon: { marginTop: 2 },
   metaContent: { flex: 1 },
-  expandLabel: { ...typography.bodySm, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  // DEF-02: убраны textTransform/letterSpacing
+  expandLabel: { ...typography.bodySm, fontWeight: '600', color: undefined },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepBtn: {
     width: 36,
@@ -532,7 +554,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignSelf: 'flex-start',
   },
   deadlineBtnText: { ...typography.body },
@@ -573,6 +595,14 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   tagInputText: { ...typography.bodySm, fontSize: 12 },
+  // DEF-01: кнопка удаления в раскрытом редакторе
+  deleteItemBtn: {
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 4,
+  },
+  deleteItemText: { ...typography.bodySm, fontWeight: '500' },
 })
 
 export default ItemRow

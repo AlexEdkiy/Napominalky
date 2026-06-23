@@ -5,18 +5,21 @@ import {
   FlatList,
   Platform,
   Pressable,
+  SafeAreaView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
 import ProgressRing from '@/components/lists/ProgressRing'
 import QuickAddItem from '@/components/lists/QuickAddItem'
-import type { ListType, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
+import type { ListType, ShoppingList, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
+import { parseTags, serializeTags } from '@/db/repositories/shoppingListsRepo'
 import { useShoppingList, useShoppingLists } from '@/hooks/useShoppingLists'
 import { useShoppingListItems } from '@/hooks/useShoppingListItems'
 import { useTheme } from '@/theme'
@@ -44,7 +47,6 @@ const formatDateLocal = (date: Date): string => {
 }
 
 // ---- Reminder picker state machine -----------------------------------------
-// iOS requires two-step date+time selection; Android shows combined picker.
 
 type ReminderStep = 'date' | 'time'
 
@@ -104,6 +106,10 @@ export default function ListDetailScreen() {
     updateItem.mutate({ uuid: itemUuid, patch })
   }
 
+  const handleUpdateListTags = (tags: string[]): void => {
+    updateList.mutate({ uuid: listUuid, patch: { tags: serializeTags(tags) } })
+  }
+
   const handleDateChange = (_: unknown, date?: Date): void => {
     if (Platform.OS === 'android') setDatePickerItem(null)
     if (date !== undefined && datePickerItem !== null) {
@@ -123,13 +129,11 @@ export default function ListDetailScreen() {
       return
     }
     if (Platform.OS === 'android') {
-      // Android: combined datetime mode
       const iso = date.toISOString()
       updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
       setReminderPicker(null)
       return
     }
-    // iOS: step 1 (date) → step 2 (time)
     if (reminderPicker.step === 'date') {
       setReminderPicker({ ...reminderPicker, step: 'time', date })
     } else {
@@ -181,7 +185,6 @@ export default function ListDetailScreen() {
   }
 
   const filtered = filterItems(items, itemFilter)
-  const ratio = list.itemsCount > 0 ? list.checkedItemsCount / list.itemsCount : 0
   const doneLabel = listType === 'tasks' ? 'сделано' : 'куплено'
   const emptyHint = listType === 'tasks' ? 'Задач пока нет' : 'Список пока пуст'
   const emptySubHint =
@@ -192,68 +195,85 @@ export default function ListDetailScreen() {
   const deadlinePickerItem = items.find((i) => i.uuid === datePickerItem)
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <Stack.Screen
-        options={{
-          title: list.title,
-          headerRight: () => <DeleteButton onPress={confirmDeleteList} color={colors.danger} />,
-        }}
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.screenBg }]}>
+      {/* DEF-06: кастомная шапка — ← + название + «Удалить» */}
+      <CustomHeader
+        title={list.title}
+        onBack={() => router.back()}
+        onDelete={confirmDeleteList}
+        deleteColor={colors.danger}
+        bg={colors.screenBg}
+        textPrimary={colors.textPrimary}
       />
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.uuid}
-        renderItem={({ item }) => (
-          <ItemRow
-            item={item}
-            listType={listType}
-            onToggle={(itemUuid, checked) => checkItem.mutate({ uuid: itemUuid, checked })}
-            onDelete={confirmDeleteItem}
-            onExpand={handleExpand}
-            isExpanded={expandedUuid === item.uuid}
-            onQuantityChange={handleQuantityChange}
-            onDeadlinePress={handleDeadlinePress}
-            onReminderPress={handleReminderPress}
-            onUpdateMeta={handleUpdateMeta}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <ListHeader
-            list={list}
-            listType={listType}
-            ratio={ratio}
-            accentColor={accentColor}
-            accentBg={accentBg}
-            doneLabel={doneLabel}
-            progressSubtitle={progressSubtitle}
-            itemFilter={itemFilter}
-            onFilterChange={setItemFilter}
-            onTypeChange={handleToggleType}
-            onAdd={handleAdd}
-            isEmpty={items.length === 0}
-            emptyHint={emptyHint}
-            emptySubHint={emptySubHint}
-          />
-        }
-        ListEmptyComponent={
-          items.length > 0 ? (
-            <View style={styles.emptyFilter}>
-              <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
-                Нет пунктов в этой категории
-              </Text>
-            </View>
-          ) : null
-        }
-      />
+      <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.uuid}
+          renderItem={({ item }) => (
+            <ItemRow
+              item={item}
+              listType={listType}
+              onToggle={(itemUuid, checked) => checkItem.mutate({ uuid: itemUuid, checked })}
+              onDelete={confirmDeleteItem}
+              onExpand={handleExpand}
+              isExpanded={expandedUuid === item.uuid}
+              onQuantityChange={handleQuantityChange}
+              onDeadlinePress={handleDeadlinePress}
+              onReminderPress={handleReminderPress}
+              onUpdateMeta={handleUpdateMeta}
+            />
+          )}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <ListHeader
+              list={list}
+              listType={listType}
+              accentColor={accentColor}
+              accentBg={accentBg}
+              doneLabel={doneLabel}
+              progressSubtitle={progressSubtitle}
+              itemFilter={itemFilter}
+              onFilterChange={setItemFilter}
+              onTypeChange={handleToggleType}
+              onAdd={handleAdd}
+              onUpdateListTags={handleUpdateListTags}
+              isEmpty={items.length === 0}
+              emptyHint={emptyHint}
+              emptySubHint={emptySubHint}
+            />
+          }
+          ListEmptyComponent={
+            items.length > 0 ? (
+              <View style={styles.emptyFilter}>
+                <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
+                  Нет пунктов в этой категории
+                </Text>
+              </View>
+            ) : null
+          }
+        />
 
-      {datePickerItem !== null && (
-        <>
-          {Platform.OS === 'ios' && (
-            <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
-              <Pressable onPress={handleDateDismiss} style={styles.iosPickerDone}>
-                <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>Готово</Text>
-              </Pressable>
+        {datePickerItem !== null && (
+          <>
+            {Platform.OS === 'ios' && (
+              <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
+                <Pressable onPress={handleDateDismiss} style={styles.iosPickerDone}>
+                  <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>Готово</Text>
+                </Pressable>
+                <DateTimePicker
+                  value={
+                    deadlinePickerItem?.deadline != null
+                      ? new Date(deadlinePickerItem.deadline)
+                      : new Date()
+                  }
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
+                />
+              </View>
+            )}
+            {Platform.OS === 'android' && (
               <DateTimePicker
                 value={
                   deadlinePickerItem?.deadline != null
@@ -261,68 +281,97 @@ export default function ListDetailScreen() {
                     : new Date()
                 }
                 mode="date"
-                display="spinner"
+                display="default"
                 onChange={handleDateChange}
               />
-            </View>
-          )}
-          {Platform.OS === 'android' && (
-            <DateTimePicker
-              value={
-                deadlinePickerItem?.deadline != null
-                  ? new Date(deadlinePickerItem.deadline)
-                  : new Date()
-              }
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-            />
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
 
-      {reminderPicker !== null && (
-        <>
-          {Platform.OS === 'ios' && (
-            <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
-              <View style={styles.iosPickerHeader}>
-                <Text style={[styles.iosPickerTitle, { color: colors.textSecondary }]}>
-                  {reminderPicker.step === 'date' ? 'Дата напоминания' : 'Время напоминания'}
-                </Text>
-                <Pressable onPress={handleReminderDone} style={styles.iosPickerDone}>
-                  <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>
-                    {reminderPicker.step === 'date' ? 'Далее' : 'Готово'}
+        {reminderPicker !== null && (
+          <>
+            {Platform.OS === 'ios' && (
+              <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
+                <View style={styles.iosPickerHeader}>
+                  <Text style={[styles.iosPickerTitle, { color: colors.textSecondary }]}>
+                    {reminderPicker.step === 'date' ? 'Дата напоминания' : 'Время напоминания'}
                   </Text>
-                </Pressable>
+                  <Pressable onPress={handleReminderDone} style={styles.iosPickerDone}>
+                    <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>
+                      {reminderPicker.step === 'date' ? 'Далее' : 'Готово'}
+                    </Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={reminderPicker.date}
+                  mode={reminderPicker.step}
+                  display="spinner"
+                  onChange={handleReminderDateChange}
+                />
               </View>
+            )}
+            {Platform.OS === 'android' && (
               <DateTimePicker
                 value={reminderPicker.date}
-                mode={reminderPicker.step}
-                display="spinner"
+                mode="time"
+                display="default"
                 onChange={handleReminderDateChange}
               />
-            </View>
-          )}
-          {Platform.OS === 'android' && (
-            <DateTimePicker
-              value={reminderPicker.date}
-              mode="time"
-              display="default"
-              onChange={handleReminderDateChange}
-            />
-          )}
-        </>
-      )}
-    </View>
+            )}
+          </>
+        )}
+      </View>
+    </SafeAreaView>
   )
 }
+
+// ---- CustomHeader ----------------------------------------------------------
+
+interface CustomHeaderProps {
+  title: string
+  onBack: () => void
+  onDelete: () => void
+  deleteColor: string
+  bg: string
+  textPrimary: string
+}
+
+const CustomHeader: React.FC<CustomHeaderProps> = ({
+  title,
+  onBack,
+  onDelete,
+  deleteColor,
+  bg,
+  textPrimary,
+}) => (
+  <View style={[styles.customHeader, { backgroundColor: bg }]}>
+    <Pressable
+      onPress={onBack}
+      accessibilityRole="button"
+      accessibilityLabel="Назад"
+      style={styles.headerBack}
+    >
+      <Ionicons name="chevron-back" size={24} color={textPrimary} />
+    </Pressable>
+    <Text numberOfLines={1} style={[styles.headerTitle, { color: textPrimary }]}>
+      {title}
+    </Text>
+    <Pressable
+      onPress={onDelete}
+      accessibilityRole="button"
+      accessibilityLabel="Удалить список"
+      style={styles.headerDelete}
+    >
+      <Text style={[styles.headerDeleteText, { color: deleteColor }]}>Удалить</Text>
+    </Pressable>
+  </View>
+)
 
 // ---- Sub-components --------------------------------------------------------
 
 interface ListHeaderProps {
-  list: { title: string; checkedItemsCount: number; itemsCount: number; type: ListType }
+  list: ShoppingList
   listType: ListType
-  ratio: number
   accentColor: string
   accentBg: string
   doneLabel: string
@@ -331,6 +380,7 @@ interface ListHeaderProps {
   onFilterChange: (f: ItemFilter) => void
   onTypeChange: (t: ListType) => void
   onAdd: (name: string) => void
+  onUpdateListTags: (tags: string[]) => void
   isEmpty: boolean
   emptyHint: string
   emptySubHint: string
@@ -339,7 +389,6 @@ interface ListHeaderProps {
 const ListHeader: React.FC<ListHeaderProps> = ({
   list,
   listType,
-  ratio,
   accentColor,
   accentBg,
   doneLabel,
@@ -348,6 +397,7 @@ const ListHeader: React.FC<ListHeaderProps> = ({
   onFilterChange,
   onTypeChange,
   onAdd,
+  onUpdateListTags,
   isEmpty,
   emptyHint,
   emptySubHint,
@@ -359,7 +409,12 @@ const ListHeader: React.FC<ListHeaderProps> = ({
       <TypeSegment listType={listType} onTypeChange={onTypeChange} accentColor={accentColor} />
 
       <View style={[styles.progressBlock, { backgroundColor: colors.surface }]}>
-        <ProgressRing value={list.checkedItemsCount} total={list.itemsCount} color={accentColor} size={52} />
+        <ProgressRing
+          value={list.checkedItemsCount}
+          total={list.itemsCount}
+          color={accentColor}
+          size={52}
+        />
         <View style={styles.progressInfo}>
           <Text style={[styles.progressCount, { color: colors.textPrimary }]}>
             {list.checkedItemsCount}/{list.itemsCount} {doneLabel}
@@ -371,6 +426,13 @@ const ListHeader: React.FC<ListHeaderProps> = ({
       </View>
 
       <QuickAddItem listType={listType} onAdd={onAdd} autoFocus={false} />
+
+      {/* DEF-03: теги уровня списка под полем добавления */}
+      <ListTagsRow
+        tags={parseTags(list.tags ?? null)}
+        onUpdateTags={onUpdateListTags}
+        accentColor={accentColor}
+      />
 
       {isEmpty ? (
         <EmptyBanner
@@ -392,13 +454,76 @@ const ListHeader: React.FC<ListHeaderProps> = ({
   )
 }
 
+// ---- ListTagsRow (DEF-03) --------------------------------------------------
+
+interface ListTagsRowProps {
+  tags: string[]
+  onUpdateTags: (tags: string[]) => void
+  accentColor: string
+}
+
+const ListTagsRow: React.FC<ListTagsRowProps> = ({ tags, onUpdateTags, accentColor }) => {
+  const { colors } = useTheme()
+  const [tagInput, setTagInput] = useState('')
+
+  const handleAdd = (): void => {
+    const trimmed = tagInput.trim()
+    if (trimmed.length === 0 || tags.includes(trimmed)) return
+    onUpdateTags([...tags, trimmed])
+    setTagInput('')
+  }
+
+  const handleRemove = (tag: string): void => {
+    onUpdateTags(tags.filter((t) => t !== tag))
+  }
+
+  return (
+    <View style={[styles.listTagsRow, { borderColor: colors.borderSubtle }]}>
+      <View style={styles.listTagsChips}>
+        {tags.map((tag) => (
+          <View key={tag} style={[styles.listTagChip, { backgroundColor: colors.borderSubtle }]}>
+            <Text style={[styles.listTagText, { color: colors.textSecondary }]}>#{tag}</Text>
+            <Pressable
+              onPress={() => handleRemove(tag)}
+              accessibilityRole="button"
+              accessibilityLabel={`Удалить тег списка ${tag}`}
+              style={styles.listTagRemove}
+            >
+              <Ionicons name="close" size={12} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+        ))}
+        <View style={styles.listTagInputWrap}>
+          <TextInput
+            value={tagInput}
+            onChangeText={setTagInput}
+            onSubmitEditing={handleAdd}
+            placeholder="+ тег"
+            placeholderTextColor={accentColor}
+            style={[styles.listTagInput, { color: colors.textPrimary }]}
+            returnKeyType="done"
+            accessibilityLabel="Добавить тег списка"
+          />
+        </View>
+      </View>
+    </View>
+  )
+}
+
+// ---- TypeSegment -----------------------------------------------------------
+
 interface TypeSegmentProps {
   listType: ListType
   onTypeChange: (t: ListType) => void
   accentColor: string
 }
 
-type TypeSegmentEntry = { t: ListType; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }
+type TypeSegmentEntry = {
+  t: ListType
+  label: string
+  icon: React.ComponentProps<typeof Ionicons>['name']
+}
+
 const TYPE_SEGMENT_ENTRIES: readonly TypeSegmentEntry[] = [
   { t: 'goods', label: 'Товары', icon: 'bag-handle' },
   { t: 'tasks', label: 'Задачи', icon: 'list' },
@@ -430,12 +555,13 @@ const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accen
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
           >
-            <Ionicons
-              name={icon}
-              size={15}
-              color={isActive ? segAccent : colors.textSecondary}
-            />
-            <Text style={[styles.typeSegmentLabel, { color: isActive ? segAccent : colors.textSecondary }]}>
+            <Ionicons name={icon} size={15} color={isActive ? segAccent : colors.textSecondary} />
+            <Text
+              style={[
+                styles.typeSegmentLabel,
+                { color: isActive ? segAccent : colors.textSecondary },
+              ]}
+            >
               {label}
             </Text>
           </Pressable>
@@ -444,6 +570,8 @@ const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accen
     </View>
   )
 }
+
+// ---- ItemFilterSegment -----------------------------------------------------
 
 interface ItemFilterSegmentProps {
   filters: readonly { key: ItemFilter; label: string }[]
@@ -474,7 +602,12 @@ const ItemFilterSegment: React.FC<ItemFilterSegmentProps> = ({
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
           >
-            <Text style={[styles.filterLabel, { color: isActive ? accentColor : colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.filterLabel,
+                { color: isActive ? accentColor : colors.textSecondary },
+              ]}
+            >
               {f.label}
             </Text>
           </Pressable>
@@ -483,6 +616,8 @@ const ItemFilterSegment: React.FC<ItemFilterSegmentProps> = ({
     </View>
   )
 }
+
+// ---- EmptyBanner -----------------------------------------------------------
 
 interface EmptyBannerProps {
   accentBg: string
@@ -510,9 +645,7 @@ const EmptyBanner: React.FC<EmptyBannerProps> = ({
     <View style={styles.emptyBannerOuter}>
       <View style={[styles.emptyBannerSuccess, { backgroundColor: accentBg }]}>
         <Ionicons name="checkmark-circle" size={20} color={accentColor} />
-        <Text style={[styles.emptyBannerSuccessText, { color: accentColor }]}>
-          {successText}
-        </Text>
+        <Text style={[styles.emptyBannerSuccessText, { color: accentColor }]}>{successText}</Text>
       </View>
       <View style={styles.emptyCenter}>
         <View style={[styles.emptyIcon, { backgroundColor: accentBg }]}>
@@ -525,28 +658,39 @@ const EmptyBanner: React.FC<EmptyBannerProps> = ({
   )
 }
 
-interface DeleteButtonProps {
-  onPress: () => void
-  color: string
-}
-
-const DeleteButton: React.FC<DeleteButtonProps> = ({ onPress, color }) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="Удалить список"
-    onPress={onPress}
-    style={styles.deleteHeaderBtn}
-  >
-    <Text style={[styles.deleteHeaderText, { color }]}>Удалить</Text>
-  </Pressable>
-)
-
 const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
   container: { flex: 1 },
   loader: { marginTop: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   missing: { ...typography.body },
   list: { paddingBottom: 40 },
+  // DEF-06: кастомная шапка
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerBack: {
+    padding: 8,
+    marginRight: 4,
+  },
+  headerTitle: {
+    ...typography.body,
+    fontWeight: '700',
+    fontSize: 17,
+    flex: 1,
+  },
+  headerDelete: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  headerDeleteText: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
   progressBlock: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,6 +720,31 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   typeSegmentLabel: { ...typography.body, fontWeight: '700' },
+  // DEF-03: теги списка
+  listTagsRow: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 8,
+  },
+  listTagsChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center',
+  },
+  listTagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  listTagText: { ...typography.bodySm, fontSize: 12 },
+  listTagRemove: { padding: 2 },
+  listTagInputWrap: {},
+  listTagInput: { ...typography.bodySm, fontSize: 12, minWidth: 48 },
   filterRow: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -627,8 +796,6 @@ const styles = StyleSheet.create({
   emptyBannerSub: { ...typography.body, textAlign: 'center' },
   emptyFilter: { alignItems: 'center', paddingTop: 32 },
   emptyFilterText: { ...typography.body },
-  deleteHeaderBtn: { paddingHorizontal: 4 },
-  deleteHeaderText: { fontSize: 16 },
   iosPickerWrap: {
     position: 'absolute',
     bottom: 0,

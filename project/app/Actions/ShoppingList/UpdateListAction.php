@@ -14,6 +14,7 @@ final class UpdateListAction
         $list->update([
             'title' => $data->title,
             'type' => $data->type,
+            'tags' => $data->tags,
         ]);
 
         return $list;

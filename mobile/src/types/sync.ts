@@ -32,6 +32,7 @@ export interface ServerShoppingList {
   uuid: string
   title: string
   type: string
+  tags: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
