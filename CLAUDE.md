@@ -39,6 +39,7 @@
 | `mobile-developer` | MOB | `mobile/` | React Native + Expo приложение |
 | `web-developer` | WEB | `web/` | Vue.js 3 веб-приложение |
 | `test-engineer` | TEST | все | Тесты: Pest PHP, Jest/RNTL, Vitest |
+| `ux-ui-test-engineer` | UITEST | `mobile/`, `web/` | Соответствие форм дизайн-макету (вёрстка/навигация/состояния) |
 | `code-reviewer` | REVIEW | все | Ревью кода (read-only) |
 | `security-auditor` | SEC | все | Аудит безопасности (read-only) |
 | `devops-engineer` | OPS | все | Docker, CI/CD, EAS Build |
@@ -47,8 +48,9 @@
 ## Порядок выполнения задач
 
 ```
-ARCH → DEV → MBE → (MOB ‖ WEB) → TEST → (REVIEW ‖ SEC) → DOC
+ARCH → DEV → MBE → (MOB ‖ WEB) → TEST → UITEST* → (REVIEW ‖ SEC) → DOC
 ```
+\* `UITEST` (ux-ui-test-engineer) — для задач с дизайн-макетом: проверяет соответствие формы вёрстке.
 
 ## Ключевые правила
 
