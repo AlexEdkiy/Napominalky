@@ -15,7 +15,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
   const { colors } = useTheme()
   const [name, setName] = useState('')
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
-  const placeholder = listType === 'tasks' ? 'Добавить задачу...' : 'Добавить товар...'
+  const placeholder = listType === 'tasks' ? 'Новая задача' : 'Добавить товар'
 
   const handleAdd = (): void => {
     const trimmed = name.trim()
@@ -66,16 +66,16 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 48,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 14,
     paddingHorizontal: 14,
     fontSize: 15,
   },
   addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 54,
+    height: 54,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },

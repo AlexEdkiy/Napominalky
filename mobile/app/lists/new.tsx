@@ -27,13 +27,13 @@ interface TypeOption {
 const TYPE_OPTIONS: readonly TypeOption[] = [
   {
     value: 'goods',
-    icon: 'bag-handle-outline',
+    icon: 'bag-handle',
     label: 'Товары',
     description: 'Список покупок — отмечайте, что куплено',
   },
   {
     value: 'tasks',
-    icon: 'checkbox-outline',
+    icon: 'list',
     label: 'Задачи',
     description: 'Чек-лист дел — дедлайны и напоминания',
   },
@@ -62,13 +62,17 @@ export default function NewListScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: colors.screenBg }]}
     >
-      <Stack.Screen options={{ title: 'Новый список' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
+        <View style={styles.handleWrap}>
+          <View style={[styles.handle, { backgroundColor: colors.borderInput }]} />
+        </View>
+        <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Новый список</Text>
         <View style={styles.fieldBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>НАЗВАНИЕ</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>НАЗВАНИЕ</Text>
           <TextInput
             accessibilityLabel="Название списка"
             placeholder="Например, Продукты на неделю"
@@ -88,7 +92,7 @@ export default function NewListScreen() {
         </View>
 
         <View style={styles.fieldBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>ВИД СПИСКА</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД СПИСКА</Text>
           <View style={styles.typeCards}>
             {TYPE_OPTIONS.map((opt) => {
               const isActive = opt.value === listType
@@ -156,7 +160,10 @@ export default function NewListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, gap: 24 },
+  content: { padding: 20, paddingTop: 8, gap: 24 },
+  handleWrap: { alignItems: 'center', paddingBottom: 8 },
+  handle: { width: 42, height: 5, borderRadius: 3 },
+  sheetTitle: { ...typography.cardTitle, fontSize: 21, fontWeight: '700', marginBottom: -8 },
   fieldBlock: { gap: 8 },
   fieldLabel: { ...typography.sectionLabel },
   titleInput: {

@@ -11,6 +11,7 @@ jest.mock('@/theme', () => ({
   useTheme: () => ({
     colors: {
       surface: '#fff',
+      screenBg: '#F6F8FA',
       accent: '#5856D6',
       amber: '#F59E0B',
       accentSoftBg: '#EDE9FE',

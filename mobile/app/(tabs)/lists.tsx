@@ -69,9 +69,9 @@ export default function ListsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Поиск"
-          style={styles.searchBtn}
+          style={[styles.searchBtn, { backgroundColor: colors.borderSubtle }]}
         >
-          <Ionicons name="search" size={22} color={colors.textSecondary} />
+          <Ionicons name="search" size={20} color={colors.textSecondary} />
         </Pressable>
       </View>
 
@@ -96,7 +96,7 @@ export default function ListsScreen() {
             <View
               style={[
                 styles.cardWrapper,
-                { backgroundColor: colors.surface },
+                { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
                 index === 0 && styles.cardFirst,
                 index === filtered.length - 1 && styles.cardLast,
               ]}
@@ -158,7 +158,7 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
             onPress={() => onSelect(tab.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            style={[styles.tab, isActive && { borderBottomColor: colors.textPrimary }]}
+            style={[styles.tab, isActive && { borderBottomColor: colors.accent }]}
           >
             {dot !== undefined && (
               <View style={[styles.dot, { backgroundColor: dot }]} />
@@ -206,8 +206,14 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  screenTitle: { ...typography.screenTitle },
-  searchBtn: { padding: 4 },
+  screenTitle: { ...typography.screenTitle, fontSize: 26 },
+  searchBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabsRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -233,9 +239,21 @@ const styles = StyleSheet.create({
   countText: { fontSize: 11, fontWeight: '700' },
   loader: { marginTop: 32 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
-  cardWrapper: { marginBottom: 0 },
-  cardFirst: { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  cardLast: { borderBottomLeftRadius: 16, borderBottomRightRadius: 16, marginBottom: 12 },
+  cardWrapper: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+  },
+  cardFirst: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderTopWidth: 1,
+  },
+  cardLast: {
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    borderBottomWidth: 1,
+    marginBottom: 12,
+  },
   divider: { height: 1, marginLeft: 68 },
   empty: { alignItems: 'center', paddingTop: 64, gap: 8 },
   emptyTitle: { ...typography.cardTitle },
