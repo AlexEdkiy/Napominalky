@@ -105,9 +105,9 @@ describe('ItemRow — индикаторы мета-полей (свёрнуты
     expect(getByText('×3')).toBeTruthy()
   })
 
-  it('рендерит чип дедлайна для задачи', async () => {
+  it('рендерит чип дедлайна для задачи (локализованная дата, не raw ISO)', async () => {
     const item = { ...baseItem(), deadline: '2026-07-05' }
-    const { getByText } = await render(
+    const { getByText, queryByText } = await render(
       <ItemRow
         item={item}
         listType="tasks"
@@ -115,7 +115,9 @@ describe('ItemRow — индикаторы мета-полей (свёрнуты
         onDelete={jest.fn()}
       />,
     )
-    expect(getByText('2026-07-05')).toBeTruthy()
+    // DEF-05: отображается «5 июл», а не raw «2026-07-05»
+    expect(getByText('5 июл')).toBeTruthy()
+    expect(queryByText('2026-07-05')).toBeNull()
   })
 
   it('не рендерит чип тега если tags=null', async () => {

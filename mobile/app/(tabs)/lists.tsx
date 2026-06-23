@@ -147,18 +147,26 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
     tasks: amberColor,
   }
 
+  // DEF-04: цвет подчёркивания активной вкладки по типу таба
+  const underlineColors: Record<FilterTab, string> = {
+    all: accentColor,
+    goods: accentColor,
+    tasks: amberColor,
+  }
+
   return (
     <View style={[styles.tabsRow, { borderBottomColor: colors.borderSubtle }]}>
       {tabs.map((tab) => {
         const isActive = tab.key === active
         const dot = dotColors[tab.key]
+        const underline = underlineColors[tab.key]
         return (
           <Pressable
             key={tab.key}
             onPress={() => onSelect(tab.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            style={[styles.tab, isActive && { borderBottomColor: colors.accent }]}
+            style={[styles.tab, isActive && { borderBottomColor: underline }]}
           >
             {dot !== undefined && (
               <View style={[styles.dot, { backgroundColor: dot }]} />

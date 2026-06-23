@@ -166,8 +166,8 @@ describe('ItemRow — порядок чипов (макет)', () => {
     expect(queryByText(/^×/)).toBeNull()
   })
 
-  it('[tasks] чип дедлайна присутствует при наличии deadline', async () => {
-    const { getByText } = await render(
+  it('[tasks] чип дедлайна присутствует при наличии deadline (локализованный формат)', async () => {
+    const { getByText, queryByText } = await render(
       <ItemRow
         item={{ ...base(), deadline: '2026-07-10' }}
         listType="tasks"
@@ -175,7 +175,9 @@ describe('ItemRow — порядок чипов (макет)', () => {
         onDelete={jest.fn()}
       />,
     )
-    expect(getByText('2026-07-10')).toBeTruthy()
+    // DEF-05: «10 июл», не raw ISO «2026-07-10»
+    expect(getByText('10 июл')).toBeTruthy()
+    expect(queryByText('2026-07-10')).toBeNull()
   })
 
   it('[tasks] чип дедлайна НЕ показывается для goods', async () => {
@@ -187,12 +189,13 @@ describe('ItemRow — порядок чипов (макет)', () => {
         onDelete={jest.fn()}
       />,
     )
-    // Дедлайн не показывается в goods-режиме
+    // Дедлайн не показывается в goods-режиме (ни raw ISO, ни форматированный)
     expect(queryByText('2026-07-10')).toBeNull()
+    expect(queryByText('10 июл')).toBeNull()
   })
 
-  it('[tasks] тег и дедлайн присутствуют вместе', async () => {
-    const { getByText } = await render(
+  it('[tasks] тег и дедлайн присутствуют вместе (локализованный формат)', async () => {
+    const { getByText, queryByText } = await render(
       <ItemRow
         item={{ ...base(), tags: '["работа"]', deadline: '2026-07-15' }}
         listType="tasks"
@@ -201,7 +204,9 @@ describe('ItemRow — порядок чипов (макет)', () => {
       />,
     )
     expect(getByText('#работа')).toBeTruthy()
-    expect(getByText('2026-07-15')).toBeTruthy()
+    // DEF-05: «15 июл», не raw ISO «2026-07-15»
+    expect(getByText('15 июл')).toBeTruthy()
+    expect(queryByText('2026-07-15')).toBeNull()
   })
 })
 
