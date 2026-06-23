@@ -185,7 +185,7 @@ export default function ListDetailScreen() {
   const doneLabel = listType === 'tasks' ? 'сделано' : 'куплено'
   const emptyHint = listType === 'tasks' ? 'Задач пока нет' : 'Список пока пуст'
   const emptySubHint =
-    listType === 'tasks' ? 'Добавьте первую задачу сверху' : 'Добавьте первый товар сверху'
+    listType === 'tasks' ? 'Добавьте первую задачу' : 'Добавьте первый товар'
   const progressSubtitle =
     listType === 'tasks' ? 'Отмечайте выполненные задачи' : 'Отмечайте купленные товары'
 
@@ -359,7 +359,7 @@ const ListHeader: React.FC<ListHeaderProps> = ({
       <TypeSegment listType={listType} onTypeChange={onTypeChange} accentColor={accentColor} />
 
       <View style={[styles.progressBlock, { backgroundColor: colors.surface }]}>
-        <ProgressRing value={list.checkedItemsCount} total={list.itemsCount} color={accentColor} size={72} />
+        <ProgressRing value={list.checkedItemsCount} total={list.itemsCount} color={accentColor} size={52} />
         <View style={styles.progressInfo}>
           <Text style={[styles.progressCount, { color: colors.textPrimary }]}>
             {list.checkedItemsCount}/{list.itemsCount} {doneLabel}
@@ -398,13 +398,20 @@ interface TypeSegmentProps {
   accentColor: string
 }
 
+type TypeSegmentEntry = { t: ListType; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }
+const TYPE_SEGMENT_ENTRIES: readonly TypeSegmentEntry[] = [
+  { t: 'goods', label: 'Товары', icon: 'bag-handle' },
+  { t: 'tasks', label: 'Задачи', icon: 'list' },
+]
+
 const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accentColor }) => {
   const { colors } = useTheme()
   return (
     <View style={[styles.typeSegment, { backgroundColor: colors.borderSubtle }]}>
-      {(['goods', 'tasks'] as ListType[]).map((t) => {
+      {TYPE_SEGMENT_ENTRIES.map(({ t, label, icon }) => {
         const isActive = t === listType
-        const label = t === 'goods' ? 'Товары' : 'Задачи'
+        const segAccent = t === 'tasks' ? colors.amber : colors.accent
+        const segBg = t === 'tasks' ? colors.amberBg : colors.accentSoftBg
         return (
           <Pressable
             key={t}
@@ -412,16 +419,23 @@ const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accen
             style={[
               styles.typeSegmentItem,
               isActive && {
-                backgroundColor: colors.surface,
+                backgroundColor: segBg,
+                borderWidth: 1,
+                borderColor: segAccent,
                 shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowRadius: 4,
+                shadowOpacity: 0.06,
+                shadowRadius: 3,
               },
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
           >
-            <Text style={[styles.typeSegmentLabel, { color: isActive ? accentColor : colors.textSecondary }]}>
+            <Ionicons
+              name={icon}
+              size={15}
+              color={isActive ? segAccent : colors.textSecondary}
+            />
+            <Text style={[styles.typeSegmentLabel, { color: isActive ? segAccent : colors.textSecondary }]}>
               {label}
             </Text>
           </Pressable>
@@ -446,14 +460,17 @@ const ItemFilterSegment: React.FC<ItemFilterSegmentProps> = ({
 }) => {
   const { colors } = useTheme()
   return (
-    <View style={[styles.filterRow, { borderBottomColor: colors.borderSubtle }]}>
+    <View style={[styles.filterRow, { backgroundColor: colors.borderSubtle }]}>
       {filters.map((f) => {
         const isActive = f.key === active
         return (
           <Pressable
             key={f.key}
             onPress={() => onSelect(f.key)}
-            style={[styles.filterTab, isActive && { borderBottomColor: accentColor }]}
+            style={[
+              styles.filterTab,
+              isActive && [styles.filterTabActive, { backgroundColor: colors.surface }],
+            ]}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
           >
@@ -484,14 +501,26 @@ const EmptyBanner: React.FC<EmptyBannerProps> = ({
 }) => {
   const { colors } = useTheme()
   const icon: React.ComponentProps<typeof Ionicons>['name'] =
-    listType === 'tasks' ? 'checkbox-outline' : 'bag-handle-outline'
+    listType === 'tasks' ? 'list' : 'bag-handle'
+  const successText =
+    listType === 'tasks'
+      ? 'Список создан — добавьте первую задачу'
+      : 'Список создан — добавьте первый товар'
   return (
-    <View style={[styles.emptyBanner, { backgroundColor: accentBg }]}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
-        <Ionicons name={icon} size={32} color={accentColor} />
+    <View style={styles.emptyBannerOuter}>
+      <View style={[styles.emptyBannerSuccess, { backgroundColor: accentBg }]}>
+        <Ionicons name="checkmark-circle" size={20} color={accentColor} />
+        <Text style={[styles.emptyBannerSuccessText, { color: accentColor }]}>
+          {successText}
+        </Text>
       </View>
-      <Text style={[styles.emptyBannerTitle, { color: colors.textPrimary }]}>{hint}</Text>
-      <Text style={[styles.emptyBannerSub, { color: colors.textSecondary }]}>{subHint}</Text>
+      <View style={styles.emptyCenter}>
+        <View style={[styles.emptyIcon, { backgroundColor: accentBg }]}>
+          <Ionicons name={icon} size={40} color={accentColor} />
+        </View>
+        <Text style={[styles.emptyBannerTitle, { color: colors.textPrimary }]}>{hint}</Text>
+        <Text style={[styles.emptyBannerSub, { color: colors.textSecondary }]}>{subHint}</Text>
+      </View>
     </View>
   )
 }
@@ -528,7 +557,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   progressInfo: { flex: 1, gap: 4 },
-  progressCount: { ...typography.cardTitle },
+  progressCount: { ...typography.body, fontSize: 15, fontWeight: '700' },
   progressSub: { ...typography.bodySm },
   typeSegment: {
     flexDirection: 'row',
@@ -538,36 +567,59 @@ const styles = StyleSheet.create({
   },
   typeSegmentItem: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 8,
     borderRadius: 9,
-    alignItems: 'center',
+    borderWidth: 0,
   },
   typeSegmentLabel: { ...typography.body, fontWeight: '700' },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    marginTop: 4,
+    marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 8,
+    borderRadius: 12,
+    padding: 4,
   },
   filterTab: {
-    paddingVertical: 10,
-    marginRight: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 9,
+  },
+  filterTabActive: {
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
   filterLabel: { ...typography.bodySm, fontWeight: '600' },
-  emptyBanner: {
-    margin: 16,
-    borderRadius: 16,
-    padding: 24,
+  emptyBannerOuter: { gap: 0 },
+  emptyBannerSuccess: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  emptyBannerSuccessText: { ...typography.bodySm, fontWeight: '600', flex: 1 },
+  emptyCenter: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
     gap: 10,
   },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 84,
+    height: 84,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },

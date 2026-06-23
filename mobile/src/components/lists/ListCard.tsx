@@ -25,7 +25,7 @@ const useTypeConfig = (type: ListType): TypeConfig => {
   const { colors } = useTheme()
   if (type === 'tasks') {
     return {
-      icon: 'checkbox-outline',
+      icon: 'list',
       bgColor: colors.amberBg,
       iconColor: colors.amber,
       label: 'сделано',
@@ -33,7 +33,7 @@ const useTypeConfig = (type: ListType): TypeConfig => {
     }
   }
   return {
-    icon: 'bag-handle-outline',
+    icon: 'bag-handle',
     bgColor: colors.accentSoftBg,
     iconColor: colors.accent,
     label: 'куплено',
@@ -63,7 +63,7 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
         bgColor={cfg.bgColor}
         iconColor={cfg.iconColor}
         size={40}
-        radius={10}
+        radius={12}
       />
       <View style={styles.info}>
         <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
@@ -74,7 +74,7 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
         </Text>
         {nearestDeadline != null && (
           <View style={[styles.deadlineChip, { backgroundColor: colors.amberBg }]}>
-            <Ionicons name="time-outline" size={11} color={colors.amber} />
+            <Ionicons name="calendar-outline" size={11} color={colors.amber} />
             <Text style={[styles.deadlineText, { color: colors.amber }]}>
               {nearestDeadline}
             </Text>
@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.8 },
   info: { flex: 1, gap: 2 },
-  title: { ...typography.body, fontWeight: '600' },
-  counter: { ...typography.bodySm },
+  title: { ...typography.body, fontSize: 15.5, fontWeight: '700' },
+  counter: { ...typography.bodySm, fontSize: 12.5 },
   deadlineChip: {
     flexDirection: 'row',
     alignItems: 'center',

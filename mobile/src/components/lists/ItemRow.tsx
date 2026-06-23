@@ -57,7 +57,7 @@ const ItemRow: React.FC<ItemRowProps> = ({
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
       <View style={styles.row}>
-        <View style={[styles.accent, { backgroundColor: item.isChecked ? '#D1D5DB' : accentColor }]} />
+        <View style={[styles.accent, { backgroundColor: accentColor, opacity: item.isChecked ? 0.4 : 1 }]} />
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: item.isChecked }}
@@ -91,6 +91,13 @@ const ItemRow: React.FC<ItemRowProps> = ({
             >
               {item.name}
             </Text>
+            {firstTag !== undefined && (
+              <View style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
+                <Text style={[styles.chipText, { color: colors.textSecondary }]}>
+                  #{firstTag}
+                </Text>
+              </View>
+            )}
             {listType === 'goods' && item.quantity > 1 && (
               <View style={[styles.chip, { backgroundColor: accentBg }]}>
                 <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
@@ -100,13 +107,6 @@ const ItemRow: React.FC<ItemRowProps> = ({
               <View style={[styles.chip, { backgroundColor: accentBg }]}>
                 <Ionicons name="calendar-outline" size={11} color={accentColor} />
                 <Text style={[styles.chipText, { color: accentColor }]}>{item.deadline}</Text>
-              </View>
-            )}
-            {firstTag !== undefined && (
-              <View style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
-                <Text style={[styles.chipText, { color: colors.textSecondary }]}>
-                  #{firstTag}
-                </Text>
               </View>
             )}
           </View>
@@ -236,7 +236,7 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
   ]
 
   return (
-    <View style={[styles.expanded, { borderTopColor: colors.borderSubtle }]}>
+    <View style={[styles.expanded, { borderTopColor: colors.borderSubtle, backgroundColor: colors.screenBg }]}>
       {listType === 'goods' ? (
         <QuantityRow
           item={item}
@@ -495,9 +495,11 @@ const styles = StyleSheet.create({
   delete: { padding: 6, marginLeft: 2 },
   expanded: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     gap: 4,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   metaRowPlain: {
     gap: 8,
