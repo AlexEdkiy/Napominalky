@@ -13,6 +13,8 @@ export const shoppingLists = sqliteTable('shopping_lists', {
   userId: text('user_id'),
   title: text('title').notNull(),
   type: text('type').notNull().default('goods'),
+  /** Теги списка: JSON-массив строк (nullable). Синхронизируется с backend. */
+  tags: text('tags'),
   serverRevision: integer('server_revision'),
   createdAt: text('created_at')
     .notNull()

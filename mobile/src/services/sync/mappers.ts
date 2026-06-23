@@ -44,6 +44,7 @@ const shoppingListMapper: EntityMapper<ServerShoppingList> = {
     uuid: s.uuid,
     title: s.title,
     type: s.type ?? 'goods',
+    tags: s.tags ?? null,
     createdAt: s.created_at,
     updatedAt: s.updated_at,
     deletedAt: s.deleted_at,

@@ -148,6 +148,7 @@ const makeList = (overrides: Partial<ShoppingList> = {}): ShoppingList => ({
   userId: null,
   title: 'Продукты',
   type: 'goods',
+  tags: null,
   serverRevision: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',

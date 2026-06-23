@@ -5,6 +5,7 @@ const baseList: ServerShoppingList = {
   uuid: 'l1',
   title: 'Test list',
   type: 'goods',
+  tags: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
   deleted_at: null,
