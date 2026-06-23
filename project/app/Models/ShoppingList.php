@@ -31,6 +31,7 @@ class ShoppingList extends Model
     protected $fillable = [
         'title',
         'type',
+        'tags',
     ];
 
     /**

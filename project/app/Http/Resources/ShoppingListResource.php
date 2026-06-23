@@ -28,6 +28,7 @@ final class ShoppingListResource extends JsonResource
             'uuid' => $this->uuid,
             'title' => $this->title,
             'type' => $this->type,
+            'tags' => $this->tags,
             'items_count' => $this->resolveCount('items_count'),
             'checked_items_count' => $this->resolveCount('checked_items_count'),
             'created_at' => $this->created_at?->toISOString(),
