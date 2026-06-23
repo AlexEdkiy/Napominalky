@@ -12,7 +12,7 @@
 | MBE     | 10           | mobile-backend-developer  |
 | MOB     | 29           | mobile-developer          |
 | WEB     | 11           | web-developer             |
-| TEST    | 14           | test-engineer             |
+| TEST    | 15           | test-engineer             |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 3            | devops-engineer           |
