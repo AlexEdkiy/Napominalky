@@ -416,13 +416,13 @@ const DeadlineRow: React.FC<DeadlineRowProps> = ({ item, accentColor, onDeadline
         onPress={() => onDeadlinePress?.(item.uuid)}
         style={[styles.deadlineBtn, { borderColor: colors.borderInput }]}
         accessibilityRole="button"
-        accessibilityLabel="Выбрать дату"
+        accessibilityLabel="Указать дедлайн"
       >
         <Ionicons name="calendar-outline" size={16} color={accentColor} />
         <Text style={[styles.deadlineBtnText, {
           color: item.deadline !== null ? colors.textPrimary : colors.textTertiary,
         }]}>
-          {item.deadline ?? 'Выбрать дату...'}
+          {item.deadline ?? 'Указать дедлайн'}
         </Text>
       </Pressable>
     </View>

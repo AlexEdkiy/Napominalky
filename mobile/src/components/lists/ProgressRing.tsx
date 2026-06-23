@@ -26,6 +26,8 @@ const ProgressRing: React.FC<ProgressRingProps> = ({
 
   return (
     <View
+      testID="progress-ring"
+      accessible
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: total, now: value }}
       style={[styles.wrapper, { width: size, height: size }]}
