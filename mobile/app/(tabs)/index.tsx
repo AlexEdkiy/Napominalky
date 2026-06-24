@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,9 +38,23 @@ const listSubtitle = (list: ShoppingList): string => {
 
 export default function HomeScreen() {
   const { colors } = useTheme()
-  const { notes, isLoading: notesLoading } = useNotes()
+  const { notes, isLoading: notesLoading, deleteNote } = useNotes()
   const { reminders, isLoading: remindersLoading } = useReminders({ status: 'pending' })
   const { lists, isLoading: listsLoading } = useShoppingLists()
+
+  const handleNoteLongPress = useCallback(
+    (noteUuid: string): void => {
+      Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: () => deleteNote.mutate(noteUuid),
+        },
+      ])
+    },
+    [deleteNote],
+  )
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FeedFilter>('all')
@@ -131,7 +146,9 @@ export default function HomeScreen() {
                   iconName="document-text"
                   iconColor={colors.noteBlue}
                   iconBg={colors.noteBlueBg}
+                  labelColor={note.color ?? null}
                   onPress={(uuid) => router.push(`/notes/${uuid}`)}
+                  onLongPress={handleNoteLongPress}
                   colors={colors}
                 />
               ))}

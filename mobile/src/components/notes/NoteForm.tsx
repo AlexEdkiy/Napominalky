@@ -7,7 +7,6 @@ import NoteColorPicker from '@/components/notes/NoteColorPicker'
 import type { NoteColor } from '@/db/repositories/notesRepo'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
 import { useTheme } from '@/theme'
-import { typography } from '@/theme/typography'
 
 export interface NoteFormValues {
   title: string
@@ -20,7 +19,21 @@ interface NoteFormProps {
   initialValues?: Partial<NoteFormValues>
   isPinned?: boolean
   isArchived?: boolean
+  /**
+   * Вызывается при автосохранении. В existing + autoSaveText=false вызывается
+   * ТОЛЬКО при изменении цвета (или явном сохранении). В new — всегда.
+   */
   onAutoSave: (values: NoteFormValues) => void
+  /**
+   * Отдельный колбэк только на изменение цвета (немедленно, без debounce).
+   * Если не передан — используется onAutoSave.
+   */
+  onColorChange?: (color: NoteColor | null) => void
+  /**
+   * Уведомляет родителя о текущих title/body при каждом изменении.
+   * Нужно для parent-side сохранения по «Да» в Alert.
+   */
+  onTextChange?: (title: string, body: string) => void
   onTogglePin?: () => void
   onToggleArchive?: () => void
   onDelete?: () => void
@@ -28,6 +41,12 @@ interface NoteFormProps {
   onBack?: () => void
   /** Вызывается при каждом изменении текста; передаёт isDirty (title/body) */
   onDirtyChange?: (isDirty: boolean) => void
+  /**
+   * Управляет автосохранением title/body через debounce.
+   * true (default) — сохраняет текст по debounce (режим «новая заметка»).
+   * false — текст НЕ сохраняется по debounce; только цвет сохраняется немедленно.
+   */
+  autoSaveText?: boolean
 }
 
 const AUTOSAVE_DELAY = 800
@@ -37,11 +56,14 @@ const NoteForm: React.FC<NoteFormProps> = ({
   initialValues,
   isPinned = false,
   onAutoSave,
+  onColorChange,
+  onTextChange,
   onTogglePin,
   onDelete,
   onSave,
   onBack,
   onDirtyChange,
+  autoSaveText = true,
 }) => {
   const { colors } = useTheme()
   const [title, setTitle] = useState(initialValues?.title ?? '')
@@ -50,37 +72,42 @@ const NoteForm: React.FC<NoteFormProps> = ({
 
   const initialTitle = useRef(initialValues?.title ?? '')
   const initialBody = useRef(initialValues?.body ?? '')
-  const isTextDirty = useRef(false)
+  const isTextDirtyRef = useRef(false)
 
   const debouncedSave = useDebouncedCallback(onAutoSave, AUTOSAVE_DELAY)
 
   useEffect(() => {
-    if (isTextDirty.current || color !== (initialValues?.color ?? null)) {
-      debouncedSave({ title, body, color })
-    }
-  }, [title, body, color, debouncedSave, initialValues?.color])
+    if (!autoSaveText) return
+    if (isTextDirtyRef.current) debouncedSave({ title, body, color })
+  }, [title, body, autoSaveText, debouncedSave, color])
 
   const checkTextDirty = (nextTitle: string, nextBody: string): boolean =>
     nextTitle !== initialTitle.current || nextBody !== initialBody.current
 
   const handleTitle = (text: string): void => {
     setTitle(text)
+    onTextChange?.(text, body)
     const dirty = checkTextDirty(text, body)
-    isTextDirty.current = dirty
+    isTextDirtyRef.current = dirty
     onDirtyChange?.(dirty)
   }
 
   const handleBody = (text: string): void => {
     setBody(text)
+    onTextChange?.(title, text)
     const dirty = checkTextDirty(title, text)
-    isTextDirty.current = dirty
+    isTextDirtyRef.current = dirty
     onDirtyChange?.(dirty)
   }
 
   const handleColor = (next: NoteColor | null): void => {
     setColor(next)
-    // Цвет не считается «грязным» для цели confirm-при-выходе
-    onAutoSave({ title, body, color: next })
+    // Цвет сохраняется немедленно, не считается «грязным» текстом
+    if (onColorChange !== undefined) {
+      onColorChange(next)
+    } else {
+      onAutoSave({ title, body, color: next })
+    }
   }
 
   const handleSave = (): void => {

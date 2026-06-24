@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,8 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { usePreventRemove } from '@react-navigation/core'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import NoteForm, { type NoteFormValues } from '@/components/notes/NoteForm'
+import NoteForm from '@/components/notes/NoteForm'
+import type { NoteColor } from '@/db/repositories/notesRepo'
 import { useNote, useNotes } from '@/hooks/useNotes'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
@@ -27,9 +28,18 @@ export default function NoteDetailScreen() {
   const { updateNote, deleteNote, togglePin } = useNotes()
   const [isTextDirty, setIsTextDirty] = useState(false)
 
-  const handleAutoSave = useCallback(
-    (values: NoteFormValues): void => {
-      updateNote.mutate({ uuid: noteUuid, patch: values })
+  // Track current text in ref (NOT autosaved — only saved on explicit "Да")
+  const currentTitleRef = useRef<string>('')
+  const currentBodyRef = useRef<string>('')
+
+  const handleTextChange = useCallback((title: string, body: string): void => {
+    currentTitleRef.current = title
+    currentBodyRef.current = body
+  }, [])
+
+  const handleColorChange = useCallback(
+    (color: NoteColor | null): void => {
+      updateNote.mutate({ uuid: noteUuid, patch: { color } })
     },
     [noteUuid, updateNote],
   )
@@ -50,6 +60,7 @@ export default function NoteDetailScreen() {
       {
         text: 'Нет',
         style: 'destructive',
+        // Exit WITHOUT saving text
         onPress: () => {
           setIsTextDirty(false)
           router.back()
@@ -58,7 +69,21 @@ export default function NoteDetailScreen() {
       {
         text: 'Да',
         style: 'default',
-        onPress: () => setIsTextDirty(false),
+        // Save current text then exit
+        onPress: () => {
+          updateNote.mutate(
+            {
+              uuid: noteUuid,
+              patch: { title: currentTitleRef.current, body: currentBodyRef.current },
+            },
+            {
+              onSettled: () => {
+                setIsTextDirty(false)
+                router.back()
+              },
+            },
+          )
+        },
       },
     ])
   })
@@ -92,9 +117,15 @@ export default function NoteDetailScreen() {
       >
         <NoteForm
           mode="existing"
+          autoSaveText={false}
           initialValues={{ title: note.title, body: note.body ?? '', color: note.color }}
           isPinned={note.isPinned}
-          onAutoSave={handleAutoSave}
+          onAutoSave={() => {
+            // autoSaveText=false: this is only called for color via fallback;
+            // color is handled by onColorChange, so this is a no-op.
+          }}
+          onColorChange={handleColorChange}
+          onTextChange={handleTextChange}
           onTogglePin={() => togglePin.mutate({ uuid: noteUuid, value: !note.isPinned })}
           onDelete={confirmDelete}
           onBack={() => router.back()}
