@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Pressable } from 'react-native'
 
 import SectionLabel from '@/components/ui/SectionLabel'
 import NoteColorPicker from '@/components/notes/NoteColorPicker'
@@ -17,6 +16,7 @@ export interface NoteFormValues {
 }
 
 interface NoteFormProps {
+  mode: 'new' | 'existing'
   initialValues?: Partial<NoteFormValues>
   isPinned?: boolean
   isArchived?: boolean
@@ -26,48 +26,65 @@ interface NoteFormProps {
   onDelete?: () => void
   onSave?: () => void
   onBack?: () => void
+  /** Вызывается при каждом изменении текста; передаёт isDirty (title/body) */
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 const AUTOSAVE_DELAY = 800
 
 const NoteForm: React.FC<NoteFormProps> = ({
+  mode,
   initialValues,
   isPinned = false,
   onAutoSave,
   onTogglePin,
+  onDelete,
   onSave,
   onBack,
+  onDirtyChange,
 }) => {
   const { colors } = useTheme()
   const [title, setTitle] = useState(initialValues?.title ?? '')
   const [body, setBody] = useState(initialValues?.body ?? '')
   const [color, setColor] = useState<NoteColor | null>(initialValues?.color ?? null)
-  const isDirty = useRef(false)
+
+  const initialTitle = useRef(initialValues?.title ?? '')
+  const initialBody = useRef(initialValues?.body ?? '')
+  const isTextDirty = useRef(false)
+
   const debouncedSave = useDebouncedCallback(onAutoSave, AUTOSAVE_DELAY)
 
   useEffect(() => {
-    if (isDirty.current) debouncedSave({ title, body, color })
-  }, [title, body, color, debouncedSave])
+    if (isTextDirty.current || color !== (initialValues?.color ?? null)) {
+      debouncedSave({ title, body, color })
+    }
+  }, [title, body, color, debouncedSave, initialValues?.color])
+
+  const checkTextDirty = (nextTitle: string, nextBody: string): boolean =>
+    nextTitle !== initialTitle.current || nextBody !== initialBody.current
 
   const handleTitle = (text: string): void => {
-    isDirty.current = true
     setTitle(text)
+    const dirty = checkTextDirty(text, body)
+    isTextDirty.current = dirty
+    onDirtyChange?.(dirty)
   }
 
   const handleBody = (text: string): void => {
-    isDirty.current = true
     setBody(text)
+    const dirty = checkTextDirty(title, text)
+    isTextDirty.current = dirty
+    onDirtyChange?.(dirty)
   }
 
   const handleColor = (next: NoteColor | null): void => {
-    isDirty.current = true
     setColor(next)
+    // Цвет не считается «грязным» для цели confirm-при-выходе
+    onAutoSave({ title, body, color: next })
   }
 
   const handleSave = (): void => {
     if (title.trim().length === 0 && body.trim().length === 0) return
-    // Явное сохранение по кнопке: сбрасываем отложенный (debounced) автосейв,
-    // чтобы быстрая заметка не потерялась при немедленном переходе назад.
     onAutoSave({ title, body, color })
     onSave?.()
   }
@@ -86,7 +103,10 @@ const NoteForm: React.FC<NoteFormProps> = ({
         </Pressable>
 
         <View style={styles.appBarTitle}>
-          <SectionLabel text="Новая заметка" color={colors.textPrimary} />
+          <SectionLabel
+            text={mode === 'new' ? 'Новая заметка' : 'Заметка'}
+            color={colors.textPrimary}
+          />
         </View>
 
         <Pressable
@@ -102,14 +122,16 @@ const NoteForm: React.FC<NoteFormProps> = ({
           <Ionicons name="pin" size={20} color={isPinned ? colors.accent : colors.textSecondary} />
         </Pressable>
 
-        <Pressable
-          onPress={handleSave}
-          accessibilityRole="button"
-          accessibilityLabel="Сохранить"
-          style={[styles.iconBtn, styles.saveBtn, { backgroundColor: colors.accent }]}
-        >
-          <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-        </Pressable>
+        {mode === 'new' ? (
+          <Pressable
+            onPress={handleSave}
+            accessibilityRole="button"
+            accessibilityLabel="Сохранить"
+            style={[styles.iconBtn, styles.saveBtnIcon, { backgroundColor: colors.accent }]}
+          >
+            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Заголовок */}
@@ -147,20 +169,39 @@ const NoteForm: React.FC<NoteFormProps> = ({
       <SectionLabel text="Цвет метки" />
       <NoteColorPicker value={color} onChange={handleColor} />
 
-      {/* Кнопка Создать */}
-      <Pressable
-        onPress={handleSave}
-        accessibilityRole="button"
-        accessibilityLabel="Создать заметку"
-        style={({ pressed }) => [
-          styles.createBtn,
-          { backgroundColor: colors.accent },
-          pressed && styles.createBtnPressed,
-        ]}
-      >
-        <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-        <SectionLabel text="Создать" color="#FFFFFF" />
-      </Pressable>
+      {/* Кнопка Создать — только для новой заметки */}
+      {mode === 'new' ? (
+        <Pressable
+          onPress={handleSave}
+          accessibilityRole="button"
+          accessibilityLabel="Создать заметку"
+          style={({ pressed }) => [
+            styles.createBtn,
+            { backgroundColor: colors.accent },
+            pressed && styles.createBtnPressed,
+          ]}
+        >
+          <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+          <SectionLabel text="Создать" color="#FFFFFF" />
+        </Pressable>
+      ) : null}
+
+      {/* Кнопка Удалить — только для существующей заметки */}
+      {mode === 'existing' && onDelete !== undefined ? (
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Удалить заметку"
+          style={({ pressed }) => [
+            styles.deleteBtn,
+            { borderColor: colors.danger },
+            pressed && styles.deleteBtnPressed,
+          ]}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <SectionLabel text="Удалить заметку" color={colors.danger} />
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -187,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveBtn: {
+  saveBtnIcon: {
     borderWidth: 0,
     shadowColor: '#0D9488',
     shadowOpacity: 0.3,
@@ -226,6 +267,19 @@ const styles = StyleSheet.create({
   },
   createBtnPressed: {
     opacity: 0.85,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 18,
+    marginTop: 6,
+    borderWidth: 1.5,
+  },
+  deleteBtnPressed: {
+    opacity: 0.7,
   },
 })
 

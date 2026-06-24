@@ -10,44 +10,34 @@ interface NoteColorPickerProps {
   onChange: (color: NoteColor | null) => void
 }
 
-interface ColorOption {
-  key: NoteColor | null
-  getColor: (accent: string, coral: string, amber: string, purple: string) => string
-}
-
-const COLOR_OPTIONS: readonly ColorOption[] = [
-  { key: 'teal', getColor: (a) => a },
-  { key: 'coral', getColor: (_, c) => c },
-  { key: 'amber', getColor: (_, _c, a) => a },
-  { key: 'purple', getColor: (_, _c, _a, p) => p },
-  { key: null, getColor: () => '' },
+const PALETTE: ReadonlyArray<NoteColor | null> = [
+  '#ea899a',
+  '#ffebb8',
+  '#91d177',
+  '#afdafc',
+  null,
 ] as const
 
 const NoteColorPicker: React.FC<NoteColorPickerProps> = ({ value, onChange }) => {
   const { colors } = useTheme()
 
-  const resolveHex = (opt: ColorOption): string => {
-    if (opt.key === null) return colors.surface
-    return opt.getColor(colors.accent, colors.coral, colors.amber, colors.purple)
-  }
-
   return (
     <View style={styles.row}>
-      {COLOR_OPTIONS.map((opt) => {
-        const hex = resolveHex(opt)
-        const isActive = value === opt.key
-        const isNone = opt.key === null
+      {PALETTE.map((color) => {
+        const isActive = value === color
+        const isNone = color === null
+        const bgColor = isNone ? colors.surface : color
 
         return (
           <Pressable
-            key={String(opt.key)}
+            key={String(color)}
             accessibilityRole="radio"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={opt.key ?? 'без цвета'}
-            onPress={() => onChange(opt.key)}
+            accessibilityLabel={color ?? 'без цвета'}
+            onPress={() => onChange(color)}
             style={[
               styles.swatch,
-              { backgroundColor: hex },
+              { backgroundColor: bgColor },
               isNone && { borderWidth: 1.5, borderColor: colors.borderInput },
             ]}
           >

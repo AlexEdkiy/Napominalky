@@ -3,8 +3,8 @@ import { db as defaultDb, type Database } from '../client'
 import { notes, type NoteRow } from '../schema/notes'
 import { BaseRepository, type SyncTable } from './baseRepo'
 
-/** Допустимые токены цветовой метки заметки (синхронизированы с backend). */
-export type NoteColor = 'teal' | 'coral' | 'amber' | 'purple'
+/** Допустимые токены цветовой метки заметки. Hex-значения хранятся как есть. */
+export type NoteColor = '#ea899a' | '#ffebb8' | '#91d177' | '#afdafc'
 
 /** Доменная заметка: booleans вместо 0/1, как наружу отдаёт репозиторий. */
 export interface Note {
@@ -43,7 +43,7 @@ const flag = (value: boolean): number => (value ? 1 : 0)
 
 /** Проверяет, является ли строка допустимым NoteColor. */
 const isNoteColor = (value: string | null | undefined): value is NoteColor =>
-  value === 'teal' || value === 'coral' || value === 'amber' || value === 'purple'
+  value === '#ea899a' || value === '#ffebb8' || value === '#91d177' || value === '#afdafc'
 
 /** Преобразует строку SQLite (0/1) в доменную заметку с booleans. */
 const toNote = (row: NoteRow): Note => ({
@@ -64,7 +64,7 @@ const toNote = (row: NoteRow): Note => ({
  * Репозиторий заметок поверх BaseRepository: мутации идут через base
  * (доменная строка + запись в sync_outbox), чтения — напрямую через db.
  * is_pinned/is_archived хранятся как 0/1, конвертируются в boolean на чтении.
- * color — текстовый токен ('teal'|'coral'|'amber'|'purple'|null).
+ * color — hex-метка ('#ea899a'|'#ffebb8'|'#91d177'|'#afdafc'|null).
  */
 export class NotesRepository {
   private readonly base: BaseRepository<typeof notes & SyncTable>

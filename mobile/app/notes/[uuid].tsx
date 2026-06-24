@@ -1,16 +1,17 @@
+import { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { router, useLocalSearchParams } from 'expo-router'
+import { usePreventRemove } from '@react-navigation/core'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import NoteForm, { type NoteFormValues } from '@/components/notes/NoteForm'
 import { useNote, useNotes } from '@/hooks/useNotes'
@@ -20,15 +21,20 @@ import { typography } from '@/theme/typography'
 export default function NoteDetailScreen() {
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const noteUuid = uuid ?? ''
   const { data: note, isLoading } = useNote(noteUuid)
-  const { updateNote, deleteNote, togglePin, toggleArchive } = useNotes()
+  const { updateNote, deleteNote, togglePin } = useNotes()
+  const [isTextDirty, setIsTextDirty] = useState(false)
 
-  const handleAutoSave = (values: NoteFormValues): void => {
-    updateNote.mutate({ uuid: noteUuid, patch: values })
-  }
+  const handleAutoSave = useCallback(
+    (values: NoteFormValues): void => {
+      updateNote.mutate({ uuid: noteUuid, patch: values })
+    },
+    [noteUuid, updateNote],
+  )
 
-  const confirmDelete = (): void => {
+  const confirmDelete = useCallback((): void => {
     Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
       { text: 'Отмена', style: 'cancel' },
       {
@@ -37,7 +43,25 @@ export default function NoteDetailScreen() {
         onPress: () => deleteNote.mutate(noteUuid, { onSuccess: () => router.back() }),
       },
     ])
-  }
+  }, [noteUuid, deleteNote])
+
+  usePreventRemove(isTextDirty, () => {
+    Alert.alert('Сохранить изменения?', '', [
+      {
+        text: 'Нет',
+        style: 'destructive',
+        onPress: () => {
+          setIsTextDirty(false)
+          router.back()
+        },
+      },
+      {
+        text: 'Да',
+        style: 'default',
+        onPress: () => setIsTextDirty(false),
+      },
+    ])
+  })
 
   if (isLoading) {
     return (
@@ -47,7 +71,7 @@ export default function NoteDetailScreen() {
     )
   }
 
-  if (!note) {
+  if (note === null || note === undefined) {
     return (
       <View style={[styles.center, { backgroundColor: colors.screenBg }]}>
         <Text style={[styles.missing, { color: colors.textSecondary }]}>
@@ -62,35 +86,19 @@ export default function NoteDetailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: colors.screenBg }]}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.screenBg },
-          headerShadowVisible: false,
-          headerTitle: 'Заметка',
-          headerTitleStyle: styles.headerTitle,
-          headerTintColor: colors.textPrimary,
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Сохранить"
-              onPress={() => handleAutoSave({ title: note.title, body: note.body ?? '' })}
-              style={styles.saveBtn}
-            >
-              <Ionicons name="checkmark" size={20} color="#fff" />
-            </Pressable>
-          ),
-        }}
-      />
-      <ScrollView keyboardShouldPersistTaps="handled">
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
+      >
         <NoteForm
-          initialValues={{ title: note.title, body: note.body ?? '' }}
+          mode="existing"
+          initialValues={{ title: note.title, body: note.body ?? '', color: note.color }}
           isPinned={note.isPinned}
-          isArchived={note.isArchived}
           onAutoSave={handleAutoSave}
           onTogglePin={() => togglePin.mutate({ uuid: noteUuid, value: !note.isPinned })}
-          onToggleArchive={() => toggleArchive.mutate({ uuid: noteUuid, value: !note.isArchived })}
           onDelete={confirmDelete}
+          onBack={() => router.back()}
+          onDirtyChange={setIsTextDirty}
         />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -101,17 +109,4 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   missing: { ...typography.body },
-  headerTitle: { ...typography.cardTitle, fontSize: 17 },
-  saveBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#0D9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0D9488',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
 })

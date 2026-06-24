@@ -6,7 +6,7 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
  * и добавляет sync-поля. uuid — первичный ключ (baseRepo.findById ищет по
  * нему). is_pinned/is_archived хранятся как integer 0/1 (SQLite boolean),
  * server_revision приходит с сервера при pull, deleted_at — tombstone.
- * color — цветовая метка ('teal'|'coral'|'amber'|'purple'|null).
+ * color — цветовая метка (hex: '#ea899a'|'#ffebb8'|'#91d177'|'#afdafc'|null).
  */
 export const notes = sqliteTable('notes', {
   uuid: text('uuid').primaryKey(),

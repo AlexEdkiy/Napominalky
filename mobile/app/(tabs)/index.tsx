@@ -61,10 +61,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Главная</Text>
-      </View>
-
       <View style={[styles.searchRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
         <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
@@ -162,15 +158,11 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10 },
-  title: {
-    ...typography.h2,
-    fontWeight: '900',
-  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 18,
+    marginTop: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderRadius: 26,

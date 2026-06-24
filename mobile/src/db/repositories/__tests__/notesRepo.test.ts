@@ -67,16 +67,16 @@ describe('NotesRepository.createNote', () => {
     expect(note.isArchived).toBe(false)
   })
 
-  it('сохраняет color и отдаёт его как NoteColor', async () => {
+  it('сохраняет hex-color и отдаёт его как NoteColor', async () => {
     const inserts: InsertCall[] = []
     const fakeDb = createFakeDb(inserts, [], []) as never
     const repo = new NotesRepository(fakeDb)
 
-    const note = await repo.createNote({ title: 'Заметка', color: 'teal' })
+    const note = await repo.createNote({ title: 'Заметка', color: '#ea899a' })
 
     const domain = inserts[0]?.values as Record<string, unknown>
-    expect(domain.color).toBe('teal')
-    expect(note.color).toBe('teal')
+    expect(domain.color).toBe('#ea899a')
+    expect(note.color).toBe('#ea899a')
   })
 
   it('color по умолчанию null', async () => {
@@ -133,14 +133,14 @@ describe('NotesRepository.searchNotes', () => {
     expect(queries).toHaveLength(1)
   })
 
-  it('маппит корректный NoteColor из строки', async () => {
+  it('маппит корректный NoteColor из hex-строки', async () => {
     const rows = [
       {
         uuid: 'u2',
         userId: null,
         title: 'Заметка',
         body: null,
-        color: 'coral',
+        color: '#ea899a',
         isPinned: 0,
         isArchived: 0,
         serverRevision: null,
@@ -153,7 +153,7 @@ describe('NotesRepository.searchNotes', () => {
     const repo = new NotesRepository(fakeDb)
 
     const result = await repo.searchNotes('Заметка')
-    expect(result[0]?.color).toBe('coral')
+    expect(result[0]?.color).toBe('#ea899a')
   })
 
   it('игнорирует невалидный color и возвращает null', async () => {
