@@ -1,4 +1,5 @@
 import { router } from 'expo-router'
+import Constants from 'expo-constants'
 import React from 'react'
 import {
   Alert,
@@ -94,6 +95,8 @@ export default function ProfileScreen() {
             />
           </View>
         </View>
+
+        <VersionLabel colors={colors} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -153,6 +156,19 @@ const MenuRow: React.FC<MenuRowProps> = ({ icon, iconBg, iconColor, label, onPre
   </Pressable>
 )
 
+interface VersionLabelProps {
+  colors: ReturnType<typeof import('@/theme').useTheme>['colors']
+}
+
+const VersionLabel: React.FC<VersionLabelProps> = ({ colors }) => {
+  const version = Constants.expoConfig?.version ?? null
+  const buildNumber =
+    (Constants.expoConfig?.android?.versionCode as number | undefined) ?? null
+  if (version === null) return null
+  const label = buildNumber !== null ? `Версия ${version} (${buildNumber})` : `Версия ${version}`
+  return <Text style={[styles.versionText, { color: colors.textTertiary }]}>{label}</Text>
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { paddingBottom: 32 },
@@ -206,4 +222,10 @@ const styles = StyleSheet.create({
   },
   menuPressed: { opacity: 0.8 },
   menuLabel: { flex: 1, ...typography.body, color: '#1B2733', fontWeight: '600' },
+  versionText: {
+    ...typography.bodySm,
+    textAlign: 'center',
+    marginTop: 24,
+    marginBottom: 8,
+  },
 })

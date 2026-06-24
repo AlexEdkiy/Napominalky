@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,9 +38,23 @@ const listSubtitle = (list: ShoppingList): string => {
 
 export default function HomeScreen() {
   const { colors } = useTheme()
-  const { notes, isLoading: notesLoading } = useNotes()
+  const { notes, isLoading: notesLoading, deleteNote } = useNotes()
   const { reminders, isLoading: remindersLoading } = useReminders({ status: 'pending' })
   const { lists, isLoading: listsLoading } = useShoppingLists()
+
+  const handleNoteLongPress = useCallback(
+    (noteUuid: string): void => {
+      Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: () => deleteNote.mutate(noteUuid),
+        },
+      ])
+    },
+    [deleteNote],
+  )
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FeedFilter>('all')
@@ -61,10 +76,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Главная</Text>
-      </View>
-
       <View style={[styles.searchRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
         <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
@@ -135,7 +146,9 @@ export default function HomeScreen() {
                   iconName="document-text"
                   iconColor={colors.noteBlue}
                   iconBg={colors.noteBlueBg}
+                  labelColor={note.color ?? null}
                   onPress={(uuid) => router.push(`/notes/${uuid}`)}
+                  onLongPress={handleNoteLongPress}
                   colors={colors}
                 />
               ))}
@@ -162,15 +175,11 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10 },
-  title: {
-    ...typography.h2,
-    fontWeight: '900',
-  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 18,
+    marginTop: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderRadius: 26,

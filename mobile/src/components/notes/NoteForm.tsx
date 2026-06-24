@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Pressable } from 'react-native'
 
 import SectionLabel from '@/components/ui/SectionLabel'
 import NoteColorPicker from '@/components/notes/NoteColorPicker'
 import type { NoteColor } from '@/db/repositories/notesRepo'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
 import { useTheme } from '@/theme'
-import { typography } from '@/theme/typography'
 
 export interface NoteFormValues {
   title: string
@@ -17,57 +15,103 @@ export interface NoteFormValues {
 }
 
 interface NoteFormProps {
+  mode: 'new' | 'existing'
   initialValues?: Partial<NoteFormValues>
   isPinned?: boolean
   isArchived?: boolean
+  /**
+   * Вызывается при автосохранении. В existing + autoSaveText=false вызывается
+   * ТОЛЬКО при изменении цвета (или явном сохранении). В new — всегда.
+   */
   onAutoSave: (values: NoteFormValues) => void
+  /**
+   * Отдельный колбэк только на изменение цвета (немедленно, без debounce).
+   * Если не передан — используется onAutoSave.
+   */
+  onColorChange?: (color: NoteColor | null) => void
+  /**
+   * Уведомляет родителя о текущих title/body при каждом изменении.
+   * Нужно для parent-side сохранения по «Да» в Alert.
+   */
+  onTextChange?: (title: string, body: string) => void
   onTogglePin?: () => void
   onToggleArchive?: () => void
   onDelete?: () => void
   onSave?: () => void
   onBack?: () => void
+  /** Вызывается при каждом изменении текста; передаёт isDirty (title/body) */
+  onDirtyChange?: (isDirty: boolean) => void
+  /**
+   * Управляет автосохранением title/body через debounce.
+   * true (default) — сохраняет текст по debounce (режим «новая заметка»).
+   * false — текст НЕ сохраняется по debounce; только цвет сохраняется немедленно.
+   */
+  autoSaveText?: boolean
 }
 
 const AUTOSAVE_DELAY = 800
 
 const NoteForm: React.FC<NoteFormProps> = ({
+  mode,
   initialValues,
   isPinned = false,
   onAutoSave,
+  onColorChange,
+  onTextChange,
   onTogglePin,
+  onDelete,
   onSave,
   onBack,
+  onDirtyChange,
+  autoSaveText = true,
 }) => {
   const { colors } = useTheme()
   const [title, setTitle] = useState(initialValues?.title ?? '')
   const [body, setBody] = useState(initialValues?.body ?? '')
   const [color, setColor] = useState<NoteColor | null>(initialValues?.color ?? null)
-  const isDirty = useRef(false)
+
+  const initialTitle = useRef(initialValues?.title ?? '')
+  const initialBody = useRef(initialValues?.body ?? '')
+  const isTextDirtyRef = useRef(false)
+
   const debouncedSave = useDebouncedCallback(onAutoSave, AUTOSAVE_DELAY)
 
   useEffect(() => {
-    if (isDirty.current) debouncedSave({ title, body, color })
-  }, [title, body, color, debouncedSave])
+    if (!autoSaveText) return
+    if (isTextDirtyRef.current) debouncedSave({ title, body, color })
+  }, [title, body, autoSaveText, debouncedSave, color])
+
+  const checkTextDirty = (nextTitle: string, nextBody: string): boolean =>
+    nextTitle !== initialTitle.current || nextBody !== initialBody.current
 
   const handleTitle = (text: string): void => {
-    isDirty.current = true
     setTitle(text)
+    onTextChange?.(text, body)
+    const dirty = checkTextDirty(text, body)
+    isTextDirtyRef.current = dirty
+    onDirtyChange?.(dirty)
   }
 
   const handleBody = (text: string): void => {
-    isDirty.current = true
     setBody(text)
+    onTextChange?.(title, text)
+    const dirty = checkTextDirty(title, text)
+    isTextDirtyRef.current = dirty
+    onDirtyChange?.(dirty)
   }
 
   const handleColor = (next: NoteColor | null): void => {
-    isDirty.current = true
     setColor(next)
+    // Цвет сохраняется немедленно, не считается «грязным» текстом
+    if (onColorChange !== undefined) {
+      onColorChange(next)
+    } else {
+      onAutoSave({ title, body, color: next })
+    }
   }
 
   const handleSave = (): void => {
     if (title.trim().length === 0 && body.trim().length === 0) return
-    // Явное сохранение по кнопке: сбрасываем отложенный (debounced) автосейв,
-    // чтобы быстрая заметка не потерялась при немедленном переходе назад.
     onAutoSave({ title, body, color })
     onSave?.()
   }
@@ -86,7 +130,10 @@ const NoteForm: React.FC<NoteFormProps> = ({
         </Pressable>
 
         <View style={styles.appBarTitle}>
-          <SectionLabel text="Новая заметка" color={colors.textPrimary} />
+          <SectionLabel
+            text={mode === 'new' ? 'Новая заметка' : 'Заметка'}
+            color={colors.textPrimary}
+          />
         </View>
 
         <Pressable
@@ -102,14 +149,16 @@ const NoteForm: React.FC<NoteFormProps> = ({
           <Ionicons name="pin" size={20} color={isPinned ? colors.accent : colors.textSecondary} />
         </Pressable>
 
-        <Pressable
-          onPress={handleSave}
-          accessibilityRole="button"
-          accessibilityLabel="Сохранить"
-          style={[styles.iconBtn, styles.saveBtn, { backgroundColor: colors.accent }]}
-        >
-          <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-        </Pressable>
+        {mode === 'new' ? (
+          <Pressable
+            onPress={handleSave}
+            accessibilityRole="button"
+            accessibilityLabel="Сохранить"
+            style={[styles.iconBtn, styles.saveBtnIcon, { backgroundColor: colors.accent }]}
+          >
+            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Заголовок */}
@@ -147,20 +196,39 @@ const NoteForm: React.FC<NoteFormProps> = ({
       <SectionLabel text="Цвет метки" />
       <NoteColorPicker value={color} onChange={handleColor} />
 
-      {/* Кнопка Создать */}
-      <Pressable
-        onPress={handleSave}
-        accessibilityRole="button"
-        accessibilityLabel="Создать заметку"
-        style={({ pressed }) => [
-          styles.createBtn,
-          { backgroundColor: colors.accent },
-          pressed && styles.createBtnPressed,
-        ]}
-      >
-        <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-        <SectionLabel text="Создать" color="#FFFFFF" />
-      </Pressable>
+      {/* Кнопка Создать — только для новой заметки */}
+      {mode === 'new' ? (
+        <Pressable
+          onPress={handleSave}
+          accessibilityRole="button"
+          accessibilityLabel="Создать заметку"
+          style={({ pressed }) => [
+            styles.createBtn,
+            { backgroundColor: colors.accent },
+            pressed && styles.createBtnPressed,
+          ]}
+        >
+          <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+          <SectionLabel text="Создать" color="#FFFFFF" />
+        </Pressable>
+      ) : null}
+
+      {/* Кнопка Удалить — только для существующей заметки */}
+      {mode === 'existing' && onDelete !== undefined ? (
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Удалить заметку"
+          style={({ pressed }) => [
+            styles.deleteBtn,
+            { borderColor: colors.danger },
+            pressed && styles.deleteBtnPressed,
+          ]}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <SectionLabel text="Удалить заметку" color={colors.danger} />
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -187,7 +255,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveBtn: {
+  saveBtnIcon: {
     borderWidth: 0,
     shadowColor: '#0D9488',
     shadowOpacity: 0.3,
@@ -226,6 +294,19 @@ const styles = StyleSheet.create({
   },
   createBtnPressed: {
     opacity: 0.85,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 18,
+    marginTop: 6,
+    borderWidth: 1.5,
+  },
+  deleteBtnPressed: {
+    opacity: 0.7,
   },
 })
 

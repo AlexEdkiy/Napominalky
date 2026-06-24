@@ -15,7 +15,10 @@ interface FeedCardProps {
   iconColor: string
   iconBg: string
   onPress: (uuid: string) => void
+  onLongPress?: (uuid: string) => void
   colors: ColorPalette
+  /** Цвет метки заметки — добавляет левую цветную полосу */
+  labelColor?: string | null
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -27,12 +30,15 @@ const FeedCard: React.FC<FeedCardProps> = ({
   iconColor,
   iconBg,
   onPress,
+  onLongPress,
   colors,
+  labelColor,
 }) => (
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={title}
     onPress={() => onPress(uuid)}
+    onLongPress={onLongPress !== undefined ? () => onLongPress(uuid) : undefined}
     style={({ pressed }) => [
       styles.card,
       {
@@ -42,6 +48,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
       pressed && styles.pressed,
     ]}
   >
+    {labelColor != null ? (
+      <View style={[styles.labelBar, { backgroundColor: labelColor }]} />
+    ) : null}
     <View style={[styles.iconSquare, { backgroundColor: iconBg }]}>
       <Ionicons name={iconName} size={20} color={iconColor} />
     </View>
@@ -67,8 +76,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     padding: 13,
+    overflow: 'hidden',
   },
   pressed: { opacity: 0.82 },
+  labelBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
   iconSquare: {
     width: 40,
     height: 40,

@@ -16,7 +16,7 @@ export default function NewNoteScreen() {
     if (values.title.trim().length === 0 && values.body.trim().length === 0) return
 
     if (createdUuid.current === null) {
-      if (creating.current) return // создание уже в полёте — не дублируем
+      if (creating.current) return
       creating.current = true
       createNote.mutate(
         { title: values.title, body: values.body, color: values.color ?? null },
@@ -46,6 +46,7 @@ export default function NewNoteScreen() {
     >
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
         <NoteForm
+          mode="new"
           onAutoSave={handleAutoSave}
           onSave={handleSave}
           onBack={() => router.back()}

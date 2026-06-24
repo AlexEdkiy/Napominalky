@@ -1,42 +1,43 @@
 import React from 'react'
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
-import type { Note, NoteColor } from '@/db/repositories/notesRepo'
+import type { Note } from '@/db/repositories/notesRepo'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
 interface NoteCardProps {
   note: Note
   onPress: (uuid: string) => void
+  onDelete?: (uuid: string) => void
 }
 
 const SNIPPET_LENGTH = 120
 
-/** Маппинг токена цвета в hex через тему. Вызывается только внутри компонента. */
-const useColorHex = (color: NoteColor | null): string | null => {
+const NoteCard: React.FC<NoteCardProps> = ({ note, onPress, onDelete }) => {
   const { colors } = useTheme()
-  if (color === null) return null
-  const map: Record<NoteColor, string> = {
-    teal: colors.accent,
-    coral: colors.coral,
-    amber: colors.amber,
-    purple: colors.purple,
-  }
-  return map[color]
-}
-
-const NoteCard: React.FC<NoteCardProps> = ({ note, onPress }) => {
-  const colorHex = useColorHex(note.color)
+  const colorHex = note.color ?? null
   const snippet = (note.body ?? '').slice(0, SNIPPET_LENGTH).trim()
   const title = note.title.trim().length > 0 ? note.title : 'Без названия'
-  const { colors } = useTheme()
+
+  const handleLongPress = (): void => {
+    if (onDelete === undefined) return
+    Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
+      { text: 'Нет', style: 'cancel' },
+      {
+        text: 'Да',
+        style: 'destructive',
+        onPress: () => onDelete(note.uuid),
+      },
+    ])
+  }
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={() => onPress(note.uuid)}
+      onLongPress={handleLongPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       {colorHex !== null ? (
