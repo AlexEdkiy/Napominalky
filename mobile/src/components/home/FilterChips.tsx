@@ -1,80 +1,105 @@
 import React from 'react'
-import { ScrollView, StyleSheet, Text, Pressable } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { typography } from '@/theme/typography'
 import type { ColorPalette } from '@/theme/colors'
 
 export type FeedFilter = 'all' | 'lists' | 'reminders' | 'notes'
 
-const CHIPS: { id: FeedFilter; label: string }[] = [
-  { id: 'all', label: 'Все' },
-  { id: 'lists', label: 'Списки' },
-  { id: 'reminders', label: 'Напоминания' },
-  { id: 'notes', label: 'Заметки' },
-]
+interface TabConfig {
+  key: FeedFilter
+  label: string
+  dotColor?: string
+}
+
+export interface FilterCounts {
+  all: number
+  lists: number
+  reminders: number
+  notes: number
+}
 
 interface FilterChipsProps {
   active: FeedFilter
   onSelect: (filter: FeedFilter) => void
   colors: ColorPalette
+  counts: FilterCounts
 }
 
-const FilterChips: React.FC<FilterChipsProps> = ({ active, onSelect, colors }) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={styles.row}
-    style={styles.scroll}
-  >
-    {CHIPS.map((chip) => {
-      const isActive = chip.id === active
-      return (
-        <Pressable
-          key={chip.id}
-          accessibilityRole="button"
-          accessibilityLabel={chip.label}
-          accessibilityState={{ selected: isActive }}
-          onPress={() => onSelect(chip.id)}
-          style={[
-            styles.chip,
-            {
-              backgroundColor: isActive ? colors.accent : colors.surface,
-              borderColor: isActive ? colors.accent : colors.borderInput,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              { color: isActive ? '#FFFFFF' : colors.textSecondary },
-            ]}
+const FilterChips: React.FC<FilterChipsProps> = ({ active, onSelect, colors, counts }) => {
+  const tabs: readonly TabConfig[] = [
+    { key: 'all', label: 'Все' },
+    { key: 'lists', label: 'Списки', dotColor: colors.accent },
+    { key: 'reminders', label: 'Напоминания', dotColor: colors.amber },
+    { key: 'notes', label: 'Заметки', dotColor: colors.noteBlue },
+  ]
+
+  const underlineColors: Record<FeedFilter, string> = {
+    all: colors.accent,
+    lists: colors.accent,
+    reminders: colors.amber,
+    notes: colors.noteBlue,
+  }
+
+  return (
+    <View style={[styles.tabsRow, { borderBottomColor: colors.borderSubtle }]}>
+      {tabs.map((tab) => {
+        const isActive = tab.key === active
+        const underline = underlineColors[tab.key]
+        return (
+          <Pressable
+            key={tab.key}
+            onPress={() => onSelect(tab.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            style={[styles.tab, isActive && { borderBottomColor: underline }]}
           >
-            {chip.label}
-          </Text>
-        </Pressable>
-      )
-    })}
-  </ScrollView>
-)
+            {tab.dotColor !== undefined && (
+              <View style={[styles.dot, { backgroundColor: tab.dotColor }]} />
+            )}
+            <Text
+              style={[
+                styles.tabLabel,
+                { color: isActive ? colors.textPrimary : colors.textSecondary },
+              ]}
+            >
+              {tab.label}
+            </Text>
+            <View style={[styles.countBadge, { backgroundColor: colors.borderSubtle }]}>
+              <Text style={[styles.countText, { color: colors.textSecondary }]}>
+                {counts[tab.key]}
+              </Text>
+            </View>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 0 },
-  row: {
+  tabsRow: {
     flexDirection: 'row',
-    gap: 6,
     paddingHorizontal: 18,
-    paddingBottom: 2,
+    borderBottomWidth: 1,
+    marginBottom: 14,
   },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 10,
+    marginRight: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  chipText: {
-    ...typography.bodySm,
-    fontSize: 12,
-    fontWeight: '700',
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  tabLabel: { ...typography.bodySm, fontWeight: '600' },
+  countBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
+  countText: { fontSize: 11, fontWeight: '700' },
 })
 
 export default FilterChips

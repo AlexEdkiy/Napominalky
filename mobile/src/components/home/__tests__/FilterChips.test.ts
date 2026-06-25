@@ -1,19 +1,30 @@
-import type { FeedFilter } from '../FilterChips'
+import type { FeedFilter, FilterCounts } from '../FilterChips'
 
-const CHIPS: { id: FeedFilter; label: string }[] = [
-  { id: 'all', label: 'Все' },
-  { id: 'lists', label: 'Списки' },
-  { id: 'reminders', label: 'Напоминания' },
-  { id: 'notes', label: 'Заметки' },
+const TABS: { key: FeedFilter; label: string; hasDot: boolean }[] = [
+  { key: 'all', label: 'Все', hasDot: false },
+  { key: 'lists', label: 'Списки', hasDot: true },
+  { key: 'reminders', label: 'Напоминания', hasDot: true },
+  { key: 'notes', label: 'Заметки', hasDot: true },
 ]
+
+const makeCounts = (
+  lists: number,
+  reminders: number,
+  notes: number,
+): FilterCounts => ({
+  lists,
+  reminders,
+  notes,
+  all: lists + reminders + notes,
+})
 
 describe('FilterChips — logic', () => {
   it('содержит все четыре варианта фильтра', () => {
-    const ids = CHIPS.map((c) => c.id)
-    expect(ids).toContain('all')
-    expect(ids).toContain('lists')
-    expect(ids).toContain('reminders')
-    expect(ids).toContain('notes')
+    const keys = TABS.map((t) => t.key)
+    expect(keys).toContain('all')
+    expect(keys).toContain('lists')
+    expect(keys).toContain('reminders')
+    expect(keys).toContain('notes')
   })
 
   it('по умолчанию активен «all»', () => {
@@ -21,9 +32,8 @@ describe('FilterChips — logic', () => {
     expect(defaultFilter).toBe('all')
   })
 
-  it('активный чип совпадает только с выбранным id', () => {
-    const isActive = (chip: FeedFilter, current: FeedFilter): boolean =>
-      chip === current
+  it('активный таб совпадает только с выбранным key', () => {
+    const isActive = (tab: FeedFilter, current: FeedFilter): boolean => tab === current
     expect(isActive('lists', 'lists')).toBe(true)
     expect(isActive('notes', 'lists')).toBe(false)
   })
@@ -54,5 +64,39 @@ describe('FilterChips — logic', () => {
     expect(result.showLists).toBe(false)
     expect(result.showNotes).toBe(false)
     expect(result.showReminders).toBe(true)
+  })
+
+  describe('счётчики (FilterCounts)', () => {
+    it('сумма «all» = списки + напоминания + заметки', () => {
+      const c = makeCounts(3, 5, 2)
+      expect(c.all).toBe(10)
+    })
+
+    it('counts возвращает корректные значения для каждого ключа', () => {
+      const c = makeCounts(2, 4, 1)
+      expect(c.lists).toBe(2)
+      expect(c.reminders).toBe(4)
+      expect(c.notes).toBe(1)
+    })
+
+    it('нулевые счётчики при пустых данных', () => {
+      const c = makeCounts(0, 0, 0)
+      expect(c.all).toBe(0)
+      expect(c.lists).toBe(0)
+    })
+  })
+
+  describe('цветные точки', () => {
+    it('у «all» нет точки', () => {
+      const allTab = TABS.find((t) => t.key === 'all')
+      expect(allTab?.hasDot).toBe(false)
+    })
+
+    it('у списков, напоминаний и заметок есть точка', () => {
+      const withDot = TABS.filter((t) => t.hasDot).map((t) => t.key)
+      expect(withDot).toContain('lists')
+      expect(withDot).toContain('reminders')
+      expect(withDot).toContain('notes')
+    })
   })
 })
