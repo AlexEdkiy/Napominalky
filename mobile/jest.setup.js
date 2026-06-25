@@ -26,3 +26,16 @@ jest.mock('expo-notifications', () => ({
   cancelScheduledNotificationAsync: jest.fn(async () => undefined),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }))
+
+// SafeAreaProvider недоступен в jsdom — отдаём нулевые инсеты и проходные компоненты.
+// Отдельные тесты могут переопределить мок через jest.mock в своём файле.
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react')
+  const insets = { top: 0, bottom: 0, left: 0, right: 0 }
+  return {
+    SafeAreaProvider: ({ children }) => React.createElement(React.Fragment, null, children),
+    SafeAreaView: ({ children }) => React.createElement(React.Fragment, null, children),
+    useSafeAreaInsets: () => insets,
+    useSafeAreaFrame: () => ({ x: 0, y: 0, width: 0, height: 0 }),
+  }
+})

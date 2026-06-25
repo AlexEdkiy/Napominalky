@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SectionLabel from '@/components/ui/SectionLabel'
 import NoteColorPicker from '@/components/notes/NoteColorPicker'
@@ -66,6 +67,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
   autoSaveText = true,
 }) => {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const [title, setTitle] = useState(initialValues?.title ?? '')
   const [body, setBody] = useState(initialValues?.body ?? '')
   const [color, setColor] = useState<NoteColor | null>(initialValues?.color ?? null)
@@ -117,7 +119,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { paddingTop: insets.top + 12 }]}>
       {/* App bar */}
       <View style={styles.appBar}>
         <Pressable

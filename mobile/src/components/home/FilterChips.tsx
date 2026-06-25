@@ -79,27 +79,27 @@ const FilterChips: React.FC<FilterChipsProps> = ({ active, onSelect, colors, cou
 const styles = StyleSheet.create({
   tabsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 18,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
     borderBottomWidth: 1,
     marginBottom: 14,
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     paddingVertical: 10,
-    marginRight: 16,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  tabLabel: { ...typography.bodySm, fontWeight: '600' },
+  tabLabel: { ...typography.bodySm, fontSize: 13, fontWeight: '600' },
   countBadge: {
     borderRadius: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  countText: { fontSize: 11, fontWeight: '700' },
+  countText: { fontSize: 10, fontWeight: '700' },
 })
 
 export default FilterChips
