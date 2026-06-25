@@ -19,6 +19,8 @@ interface FeedCardProps {
   colors: ColorPalette
   /** Цвет метки заметки — добавляет левую цветную полосу */
   labelColor?: string | null
+  /** Показывает иконку закрепления у закреплённых заметок */
+  pinned?: boolean
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -33,6 +35,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onLongPress,
   colors,
   labelColor,
+  pinned = false,
 }) => (
   <Pressable
     accessibilityRole="button"
@@ -65,6 +68,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
         {subtitle}
       </Text>
     </View>
+    {pinned ? (
+      <Ionicons
+        name="pin"
+        size={14}
+        color={colors.accent}
+        accessibilityLabel="Закреплено"
+      />
+    ) : null}
   </Pressable>
 )
 

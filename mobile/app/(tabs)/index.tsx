@@ -36,6 +36,12 @@ const listSubtitle = (list: ShoppingList): string => {
   return `${list.itemsCount} пунктов · ${list.checkedItemsCount} куплено`
 }
 
+const sortNotesPinnedFirst = (items: Note[]): Note[] => {
+  const pinned = items.filter((n) => n.isPinned)
+  const rest = items.filter((n) => !n.isPinned)
+  return [...pinned, ...rest]
+}
+
 export default function HomeScreen() {
   const { colors } = useTheme()
   const { notes, isLoading: notesLoading, deleteNote } = useNotes()
@@ -61,9 +67,22 @@ export default function HomeScreen() {
 
   const isLoading = notesLoading || remindersLoading || listsLoading
 
-  const filteredNotes = useMemo(() => filterByTitle(notes, search), [notes, search])
+  const filteredNotes = useMemo(
+    () => sortNotesPinnedFirst(filterByTitle(notes, search)),
+    [notes, search],
+  )
   const filteredReminders = useMemo(() => filterByTitle(reminders, search), [reminders, search])
   const filteredLists = useMemo(() => filterByTitle(lists, search), [lists, search])
+
+  const counts = useMemo(
+    () => ({
+      lists: lists.length,
+      reminders: reminders.length,
+      notes: notes.length,
+      all: lists.length + reminders.length + notes.length,
+    }),
+    [lists.length, reminders.length, notes.length],
+  )
 
   const showLists = filter === 'all' || filter === 'lists'
   const showReminders = filter === 'all' || filter === 'reminders'
@@ -76,7 +95,12 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <View style={[styles.searchRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
+      <View
+        style={[
+          styles.searchRow,
+          { backgroundColor: colors.surface, borderColor: colors.borderInput },
+        ]}
+      >
         <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
           accessibilityLabel="Поиск"
@@ -88,7 +112,7 @@ export default function HomeScreen() {
         />
       </View>
 
-      <FilterChips active={filter} onSelect={setFilter} colors={colors} />
+      <FilterChips active={filter} onSelect={setFilter} colors={colors} counts={counts} />
 
       {isLoading ? (
         <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
@@ -99,7 +123,7 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
         >
           {showLists && filteredLists.length > 0 && (
-            <FeedSection title="Списки" count={filteredLists.length} dotColor={colors.accent} colors={colors}>
+            <FeedSection title="Списки" dotColor={colors.accent} colors={colors}>
               {filteredLists.map((list: ShoppingList) => (
                 <FeedCard
                   key={list.uuid}
@@ -117,7 +141,7 @@ export default function HomeScreen() {
           )}
 
           {showReminders && filteredReminders.length > 0 && (
-            <FeedSection title="Напоминания" count={filteredReminders.length} dotColor={colors.amber} colors={colors}>
+            <FeedSection title="Напоминания" dotColor={colors.amber} colors={colors}>
               {filteredReminders.map((reminder: Reminder) => (
                 <FeedCard
                   key={reminder.uuid}
@@ -136,7 +160,7 @@ export default function HomeScreen() {
           )}
 
           {showNotes && filteredNotes.length > 0 && (
-            <FeedSection title="Заметки" count={filteredNotes.length} dotColor={colors.noteBlue} colors={colors}>
+            <FeedSection title="Заметки" dotColor={colors.noteBlue} colors={colors}>
               {filteredNotes.map((note: Note) => (
                 <FeedCard
                   key={note.uuid}
@@ -147,6 +171,7 @@ export default function HomeScreen() {
                   iconColor={colors.noteBlue}
                   iconBg={colors.noteBlueBg}
                   labelColor={note.color ?? null}
+                  pinned={note.isPinned}
                   onPress={(uuid) => router.push(`/notes/${uuid}`)}
                   onLongPress={handleNoteLongPress}
                   colors={colors}
