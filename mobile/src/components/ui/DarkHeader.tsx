@@ -14,7 +14,7 @@ interface DarkHeaderProps {
 
 const GRAD_START = { x: 0, y: 0 }
 const GRAD_END = { x: 1, y: 1 }
-const GRAD_COLORS: [string, string] = ['#0f6155', '#0c463d']
+const GRAD_COLORS: [string, string] = ['#1aa08e', '#17897a']
 
 const DarkHeader: React.FC<DarkHeaderProps> = ({
   title,
