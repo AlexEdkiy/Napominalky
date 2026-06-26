@@ -20,6 +20,7 @@ import { useShoppingLists } from '@/hooks/useShoppingLists'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { formatRelativeReminder, formatUpdatedAt, isReminderUrgent } from '@/utils/datetime'
+import { sortNotesPinnedFirst } from '@/utils/notes'
 import type { Note } from '@/db/repositories/notesRepo'
 import type { Reminder } from '@/db/repositories/remindersRepo'
 import type { ShoppingList } from '@/db/repositories/shoppingListsRepo'
@@ -33,12 +34,6 @@ const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] 
 const listSubtitle = (list: ShoppingList): string => {
   if (list.itemsCount === 0) return 'Список'
   return `${list.itemsCount} пунктов · ${list.checkedItemsCount} куплено`
-}
-
-const sortNotesPinnedFirst = (items: Note[]): Note[] => {
-  const pinned = items.filter((n) => n.isPinned)
-  const rest = items.filter((n) => !n.isPinned)
-  return [...pinned, ...rest]
 }
 
 export default function HomeScreen(): React.JSX.Element {
@@ -102,7 +97,7 @@ export default function HomeScreen(): React.JSX.Element {
       <DarkHeader
         title="Главная"
         onAvatarPress={handleAvatarPress}
-        withSearch
+        collapsibleSearch
         searchValue={search}
         onSearchChange={setSearch}
       />
