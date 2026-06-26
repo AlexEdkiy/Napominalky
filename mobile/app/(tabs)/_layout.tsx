@@ -117,10 +117,14 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="profile"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="notes-list"
         options={{
-          title: 'Профиль',
+          title: 'Заметки',
           tabBarIcon: ({ focused, color, size }) => (
-            <TabIcon name="person" focused={focused} color={color} size={size} />
+            <TabIcon name="document-text" focused={focused} color={color} size={size} />
           ),
         }}
       />

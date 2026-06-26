@@ -145,12 +145,13 @@ jest.mock('expo-constants', () => ({
 }))
 
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { render, fireEvent, waitFor } from '@testing-library/react-native'
 
 import HomeScreen from '../../../app/(tabs)/index'
 import ListsScreen from '../../../app/(tabs)/lists'
 import CalendarScreen from '../../../app/(tabs)/calendar'
 import ProfileScreen from '../../../app/(tabs)/profile'
+import NotesListScreen from '../../../app/(tabs)/notes-list'
 
 describe('Вкладки — DarkHeader', () => {
   describe('HomeScreen', () => {
@@ -164,14 +165,15 @@ describe('Вкладки — DarkHeader', () => {
       expect(getByTestId('linear-gradient')).toBeTruthy()
     })
 
-    it('рендерит строку поиска в шапке', async () => {
+    it('использует collapsibleSearch — кнопка-лупа видна', async () => {
       const { getByLabelText } = await render(<HomeScreen />)
+      // collapsibleSearch: кнопка "Поиск" (лупа) всегда видна в шапке
       expect(getByLabelText('Поиск')).toBeTruthy()
     })
 
     it('рендерит кнопку аватара (переход в профиль)', async () => {
-      const { getByRole } = await render(<HomeScreen />)
-      expect(getByRole('button')).toBeTruthy()
+      const { getByLabelText } = await render(<HomeScreen />)
+      expect(getByLabelText('Профиль')).toBeTruthy()
     })
   })
 
@@ -208,6 +210,101 @@ describe('Вкладки — DarkHeader', () => {
     it('рендерит LinearGradient (тёмная шапка)', async () => {
       const { getByTestId } = await render(<ProfileScreen />)
       expect(getByTestId('linear-gradient')).toBeTruthy()
+    })
+  })
+
+  describe('NotesListScreen', () => {
+    it('рендерит DarkHeader с заголовком «Заметки»', async () => {
+      const { getByText } = await render(<NotesListScreen />)
+      expect(getByText('Заметки')).toBeTruthy()
+    })
+
+    it('рендерит LinearGradient (тёмная шапка)', async () => {
+      const { getByTestId } = await render(<NotesListScreen />)
+      expect(getByTestId('linear-gradient')).toBeTruthy()
+    })
+
+    it('рендерит пустое состояние когда нет заметок', async () => {
+      const { getByText } = await render(<NotesListScreen />)
+      expect(getByText('Заметок пока нет')).toBeTruthy()
+    })
+
+    it('кнопка аватара ведёт на профиль', async () => {
+      const { getByLabelText } = await render(<NotesListScreen />)
+      const { router } = require('expo-router')
+      fireEvent.press(getByLabelText('Профиль'))
+      expect(router.push).toHaveBeenCalledWith('/(tabs)/profile')
+    })
+
+    it('кнопка-лупа раскрывает строку поиска', async () => {
+      const { getByLabelText, getByPlaceholderText } = await render(<NotesListScreen />)
+      fireEvent.press(getByLabelText('Поиск'))
+      await waitFor(() => expect(getByPlaceholderText('Поиск')).toBeTruthy())
+    })
+
+    it('рендерит заметки из useNotes', async () => {
+      const mockDeleteNote = { mutate: jest.fn() }
+      jest.spyOn(require('@/hooks/useNotes'), 'useNotes').mockReturnValue({
+        notes: [
+          {
+            uuid: 'note-1',
+            title: 'Тестовая заметка',
+            updatedAt: '2026-06-01T10:00:00Z',
+            isPinned: false,
+            color: null,
+          },
+        ],
+        isLoading: false,
+        deleteNote: mockDeleteNote,
+      })
+      const { getByText } = await render(<NotesListScreen />)
+      expect(getByText('Тестовая заметка')).toBeTruthy()
+    })
+
+    it('long-press вызывает диалог удаления', async () => {
+      const { Alert } = require('react-native')
+      jest.spyOn(Alert, 'alert')
+      const mockDeleteNote = { mutate: jest.fn() }
+      jest.spyOn(require('@/hooks/useNotes'), 'useNotes').mockReturnValue({
+        notes: [
+          {
+            uuid: 'note-2',
+            title: 'Заметка для удаления',
+            updatedAt: '2026-06-01T10:00:00Z',
+            isPinned: false,
+            color: null,
+          },
+        ],
+        isLoading: false,
+        deleteNote: mockDeleteNote,
+      })
+      const { getByLabelText } = await render(<NotesListScreen />)
+      fireEvent(getByLabelText('Заметка для удаления'), 'longPress')
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Удалить заметку?',
+        'Действие нельзя отменить.',
+        expect.any(Array),
+      )
+    })
+
+    it('нажатие на заметку открывает её', async () => {
+      const { router } = require('expo-router')
+      jest.spyOn(require('@/hooks/useNotes'), 'useNotes').mockReturnValue({
+        notes: [
+          {
+            uuid: 'note-3',
+            title: 'Открыть эту заметку',
+            updatedAt: '2026-06-01T10:00:00Z',
+            isPinned: false,
+            color: null,
+          },
+        ],
+        isLoading: false,
+        deleteNote: { mutate: jest.fn() },
+      })
+      const { getByLabelText } = await render(<NotesListScreen />)
+      fireEvent.press(getByLabelText('Открыть эту заметку'))
+      expect(router.push).toHaveBeenCalledWith('/notes/note-3')
     })
   })
 })
