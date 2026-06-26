@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0c463d"
     },
     "ios": {
       "supportsTablet": true,
@@ -30,7 +30,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#15604f"
       },
       "package": "com.remindersapp.mobile",
       "permissions": [

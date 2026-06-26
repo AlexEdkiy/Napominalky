@@ -15,7 +15,7 @@
 | TEST    | 15           | test-engineer             |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
-| OPS     | 3            | devops-engineer           |
+| OPS     | 4            | devops-engineer           |
 | DOC     | 3            | technical-writer          |
 
 ## Сводка
