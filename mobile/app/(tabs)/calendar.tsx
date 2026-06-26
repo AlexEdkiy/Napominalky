@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { StatusBar } from 'expo-status-bar'
 
+import DarkHeader from '@/components/ui/DarkHeader'
 import DayRemindersSheet from '@/components/calendar/DayRemindersSheet'
 import MonthGrid from '@/components/calendar/MonthGrid'
 import { useCalendar } from '@/hooks/useCalendar'
@@ -16,7 +17,7 @@ const startOfMonth = (date: Date): { year: number; month: number } => ({
   month: date.getMonth(),
 })
 
-export default function CalendarScreen() {
+export default function CalendarScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const [{ year, month }, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => new Date())
@@ -31,7 +32,10 @@ export default function CalendarScreen() {
   const dayReminders = byDay.get(ymd(selectedDate)) ?? []
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
+    <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
+      <StatusBar style="light" />
+      <DarkHeader title="Календарь" />
+
       <View style={[styles.calCard, { backgroundColor: colors.surface }]}>
         <View style={styles.calHeader}>
           <Pressable
@@ -69,12 +73,12 @@ export default function CalendarScreen() {
         reminders={dayReminders}
         onOpenReminder={(uuid) => router.push(`/reminders/${uuid}`)}
       />
-    </SafeAreaView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
+  container: { flex: 1 },
   calCard: {
     marginHorizontal: 16,
     marginTop: 16,

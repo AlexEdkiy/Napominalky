@@ -5,13 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { StatusBar } from 'expo-status-bar'
 
+import DarkHeader from '@/components/ui/DarkHeader'
 import FeedCard from '@/components/home/FeedCard'
 import FeedSection from '@/components/home/FeedSection'
 import FilterChips, { type FeedFilter } from '@/components/home/FilterChips'
@@ -42,11 +41,14 @@ const sortNotesPinnedFirst = (items: Note[]): Note[] => {
   return [...pinned, ...rest]
 }
 
-export default function HomeScreen() {
+export default function HomeScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { notes, isLoading: notesLoading, deleteNote } = useNotes()
   const { reminders, isLoading: remindersLoading } = useReminders({ status: 'pending' })
   const { lists, isLoading: listsLoading } = useShoppingLists()
+
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<FeedFilter>('all')
 
   const handleNoteLongPress = useCallback(
     (noteUuid: string): void => {
@@ -62,8 +64,9 @@ export default function HomeScreen() {
     [deleteNote],
   )
 
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<FeedFilter>('all')
+  const handleAvatarPress = useCallback((): void => {
+    router.push('/(tabs)/profile')
+  }, [])
 
   const isLoading = notesLoading || remindersLoading || listsLoading
 
@@ -94,23 +97,15 @@ export default function HomeScreen() {
     (showNotes && filteredNotes.length > 0)
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <View
-        style={[
-          styles.searchRow,
-          { backgroundColor: colors.surface, borderColor: colors.borderInput },
-        ]}
-      >
-        <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
-        <TextInput
-          accessibilityLabel="Поиск"
-          placeholder="Поиск"
-          placeholderTextColor={colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          style={[styles.searchInput, { color: colors.textPrimary }]}
-        />
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
+      <StatusBar style="light" />
+      <DarkHeader
+        title="Главная"
+        onAvatarPress={handleAvatarPress}
+        withSearch
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
       <FilterChips active={filter} onSelect={setFilter} colors={colors} counts={counts} />
 
@@ -194,25 +189,12 @@ export default function HomeScreen() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 18,
-    marginTop: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderRadius: 26,
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-  },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, ...typography.body, paddingVertical: 0 },
+  container: { flex: 1 },
   loader: { marginTop: 40 },
   scroll: { flex: 1 },
   scrollContent: {

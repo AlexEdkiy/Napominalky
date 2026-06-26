@@ -10,18 +10,18 @@ import {
   Text,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { StatusBar } from 'expo-status-bar'
 
 import BaseButton from '@/components/common/BaseButton'
+import DarkHeader from '@/components/ui/DarkHeader'
 import IconSquare from '@/components/ui/IconSquare'
-import ScreenTitle from '@/components/ui/ScreenTitle'
 import SectionLabel from '@/components/ui/SectionLabel'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
-export default function ProfileScreen() {
+export default function ProfileScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { user, isAuthenticated, guestMode, logout } = useAuth()
 
@@ -41,12 +41,10 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <ScreenTitle text="Профиль" color={colors.textPrimary} />
-        </View>
-
+    <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
+      <StatusBar style="light" />
+      <DarkHeader title="Профиль" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <AvatarSection
           initial={initial}
           displayName={displayName}
@@ -98,7 +96,7 @@ export default function ProfileScreen() {
 
         <VersionLabel colors={colors} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -170,9 +168,8 @@ const VersionLabel: React.FC<VersionLabelProps> = ({ colors }) => {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { paddingBottom: 32 },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  container: { flex: 1 },
+  scrollContent: { paddingBottom: 32 },
   avatarSection: { alignItems: 'center', paddingVertical: 24, gap: 10 },
   avatarWrap: {
     width: 96,

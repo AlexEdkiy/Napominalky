@@ -7,10 +7,10 @@ import {
   Text,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { StatusBar } from 'expo-status-bar'
 
+import DarkHeader from '@/components/ui/DarkHeader'
 import ListCard from '@/components/lists/ListCard'
 import type { ListType, ShoppingList } from '@/db/repositories/shoppingListsRepo'
 import { useNearestDeadlines, useShoppingLists } from '@/hooks/useShoppingLists'
@@ -42,7 +42,7 @@ const formatDeadlineLabel = (deadline: string | null): string | null => {
   return formatDeadlineChip(deadline)
 }
 
-export default function ListsScreen() {
+export default function ListsScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { lists, isLoading, isError } = useShoppingLists()
   const deadlinesMap = useNearestDeadlines()
@@ -63,17 +63,9 @@ export default function ListsScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.screenBg }]}>
-      <View style={[styles.header, { backgroundColor: colors.screenBg }]}>
-        <Text style={[styles.screenTitle, { color: colors.textPrimary }]}>Списки</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Поиск"
-          style={[styles.searchBtn, { backgroundColor: colors.borderSubtle }]}
-        >
-          <Ionicons name="search" size={20} color={colors.textSecondary} />
-        </Pressable>
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
+      <StatusBar style="light" />
+      <DarkHeader title="Списки" />
 
       <FilterTabs
         tabs={TABS}
@@ -119,7 +111,7 @@ export default function ListsScreen() {
           ListEmptyComponent={<EmptyState color={colors.textSecondary} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -147,7 +139,6 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
     tasks: amberColor,
   }
 
-  // DEF-04: цвет подчёркивания активной вкладки по типу таба
   const underlineColors: Record<FilterTab, string> = {
     all: accentColor,
     goods: accentColor,
@@ -205,23 +196,7 @@ const ErrorState: React.FC<{ color: string }> = ({ color }) => (
 )
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  screenTitle: { ...typography.screenTitle, fontSize: 26 },
-  searchBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { flex: 1 },
   tabsRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
