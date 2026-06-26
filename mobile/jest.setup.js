@@ -27,6 +27,16 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }))
 
+// expo-linear-gradient недоступен в jsdom — проходной View.
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react')
+  const { View } = require('react-native')
+  return {
+    LinearGradient: ({ children, ...props }) =>
+      React.createElement(View, { testID: 'linear-gradient', ...props }, children),
+  }
+})
+
 // SafeAreaProvider недоступен в jsdom — отдаём нулевые инсеты и проходные компоненты.
 // Отдельные тесты могут переопределить мок через jest.mock в своём файле.
 jest.mock('react-native-safe-area-context', () => {
