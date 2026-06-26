@@ -1,7 +1,6 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -33,9 +32,13 @@ export default function OnboardingScreen(): React.JSX.Element {
       ]}
     >
       <View style={styles.illustration}>
-        <View style={styles.bellCircle}>
-          <Ionicons name="notifications" size={56} color="#ffffff" />
-        </View>
+        <Image
+          testID="onboarding-illustration"
+          source={require('../../assets/onboarding-illustration.png')}
+          style={styles.illustrationImage}
+          resizeMode="contain"
+          accessibilityLabel="Иллюстрация приложения"
+        />
       </View>
 
       <View style={styles.textBlock}>
@@ -85,15 +88,11 @@ const styles = StyleSheet.create({
   },
   illustration: {
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 8,
   },
-  bellCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#0f6155',
-    alignItems: 'center',
-    justifyContent: 'center',
+  illustrationImage: {
+    width: 300,
+    height: Math.round(300 * (320 / 360)),
   },
   textBlock: {
     gap: 10,

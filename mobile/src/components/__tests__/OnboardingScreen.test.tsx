@@ -68,8 +68,8 @@ describe('OnboardingScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/(auth)/login')
   })
 
-  it('рендерит иконку-колокольчик', async () => {
+  it('рендерит иллюстрацию из макета', async () => {
     const { getByTestId } = await render(<OnboardingScreen />)
-    expect(getByTestId('icon-notifications')).toBeTruthy()
+    expect(getByTestId('onboarding-illustration')).toBeTruthy()
   })
 })
