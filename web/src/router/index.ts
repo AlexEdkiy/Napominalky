@@ -19,6 +19,18 @@ const authRoutes: RouteRecordRaw[] = [
     component: () => import('@/pages/auth/RegisterView.vue'),
     meta: { title: 'Регистрация' },
   },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/pages/auth/ForgotPasswordView.vue'),
+    meta: { title: 'Забыли пароль?' },
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/pages/auth/ResetPasswordView.vue'),
+    meta: { title: 'Сброс пароля' },
+  },
 ]
 
 // ---------------------------------------------------------------------------

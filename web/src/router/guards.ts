@@ -2,7 +2,7 @@ import type { Router } from 'vue-router'
 
 import { useAuthStore } from '@/stores/authStore'
 
-const GUEST_ROUTES = new Set(['login', 'register'])
+const GUEST_ROUTES = new Set(['login', 'register', 'forgot-password', 'reset-password'])
 
 /**
  * Подключает navigation guards:

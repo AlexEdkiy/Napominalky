@@ -84,6 +84,10 @@ function handleError(error: unknown): void {
     </form>
 
     <p>
+      <RouterLink :to="{ name: 'forgot-password' }">Забыли пароль?</RouterLink>
+    </p>
+
+    <p>
       Нет аккаунта?
       <RouterLink :to="{ name: 'register' }">Зарегистрироваться</RouterLink>
     </p>
