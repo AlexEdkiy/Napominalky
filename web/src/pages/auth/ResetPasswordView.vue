@@ -9,15 +9,20 @@ import type { ValidationErrorResponse } from '@/types/api'
 const route = useRoute()
 const router = useRouter()
 
-const token = computed(() => {
-  const t = route.query['token']
-  return typeof t === 'string' && t.length > 0 ? t : null
-})
+// Ссылку из письма часто копируют из HTML-тела (в т.ч. из laravel.log при MAIL=log),
+// где `&` закодирован как `&amp;`. Тогда браузер отдаёт параметр под ключом `amp;email`
+// и обычный `email` теряется. Читаем оба варианта, чтобы ссылка работала в любом случае.
+function readQueryParam(key: string): string | null {
+  const direct = route.query[key]
+  if (typeof direct === 'string' && direct.length > 0) return direct
+  const ampEncoded = route.query[`amp;${key}`]
+  if (typeof ampEncoded === 'string' && ampEncoded.length > 0) return ampEncoded
+  return null
+}
 
-const email = computed(() => {
-  const e = route.query['email']
-  return typeof e === 'string' && e.length > 0 ? e : null
-})
+const token = computed(() => readQueryParam('token'))
+
+const email = computed(() => readQueryParam('email'))
 
 const hasValidParams = computed(() => token.value !== null && email.value !== null)
 

@@ -60,6 +60,17 @@ describe('ResetPasswordView', () => {
     expect(wrapper.find('form').exists()).toBe(false)
   })
 
+  it('reads email from `amp;email` when the link was copied with &amp; encoding', async () => {
+    const router = createTestRouter({ token: 'tok123', 'amp;email': 'user@example.com' })
+    await router.isReady()
+    const wrapper = mount(ResetPasswordView, { global: { plugins: [router] } })
+
+    // email пришёл под ключом `amp;email` — форма должна отображаться, а не «ссылка устарела».
+    expect(wrapper.text()).not.toContain('недействительна или устарела')
+    expect(wrapper.find('form').exists()).toBe(true)
+    expect((wrapper.find('#email').element as HTMLInputElement).value).toBe('user@example.com')
+  })
+
   it('shows an error when email query param is missing', async () => {
     const router = createTestRouter({ token: 'tok123' })
     await router.isReady()
