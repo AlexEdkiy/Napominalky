@@ -1,9 +1,10 @@
 import * as SecureStore from 'expo-secure-store'
 
-import { useAuthStore } from '../authStore'
+import { useAuthStore, TOKEN_KEY, TOKEN_SAVED_AT_KEY, TOKEN_TTL_MS } from '../authStore'
 import type { User } from '@/types/auth'
 
 const mockGetItem = SecureStore.getItemAsync as jest.Mock
+const mockSetItem = SecureStore.setItemAsync as jest.Mock
 const mockDeleteItem = SecureStore.deleteItemAsync as jest.Mock
 
 const TEST_TOKEN = 'test-bearer-token'
@@ -29,8 +30,10 @@ function resetStore(): void {
 
 beforeEach(() => {
   mockGetItem.mockReset()
+  mockSetItem.mockReset()
   mockDeleteItem.mockReset()
   mockGetItem.mockResolvedValue(null)
+  mockSetItem.mockResolvedValue(undefined)
   mockDeleteItem.mockResolvedValue(undefined)
   resetStore()
 })
@@ -41,7 +44,10 @@ beforeEach(() => {
 
 describe('authStore — hydrate', () => {
   it('restores token and sets isHydrated true when token exists', async () => {
-    mockGetItem.mockResolvedValue(TEST_TOKEN)
+    // Первый вызов = токен, второй = метка времени (свежая)
+    mockGetItem
+      .mockResolvedValueOnce(TEST_TOKEN)
+      .mockResolvedValueOnce(String(Date.now()))
     await useAuthStore.getState().hydrate()
     const state = useAuthStore.getState()
     expect(state.token).toBe(TEST_TOKEN)
@@ -156,5 +162,84 @@ describe('authStore — rehydrateUser — network error (offline)', () => {
     await expect(
       useAuthStore.getState().rehydrateUser(fetchUser),
     ).resolves.toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// setToken() — сохраняет метку времени
+// ---------------------------------------------------------------------------
+
+describe('authStore — setToken', () => {
+  it('saves token and timestamp to SecureStore', async () => {
+    await useAuthStore.getState().setToken(TEST_TOKEN)
+
+    expect(mockSetItem).toHaveBeenCalledWith(TOKEN_KEY, TEST_TOKEN)
+    expect(mockSetItem).toHaveBeenCalledWith(
+      TOKEN_SAVED_AT_KEY,
+      expect.stringMatching(/^\d+$/),
+    )
+  })
+
+  it('clears guestMode on setToken', async () => {
+    useAuthStore.setState({ guestMode: true })
+    await useAuthStore.getState().setToken(TEST_TOKEN)
+    expect(useAuthStore.getState().guestMode).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// hydrate() — TTL 24ч
+// ---------------------------------------------------------------------------
+
+describe('authStore — hydrate — token TTL', () => {
+  it('restores fresh token (savedAt = now)', async () => {
+    // getItemAsync: первый вызов = токен, второй = метка времени
+    mockGetItem
+      .mockResolvedValueOnce(TEST_TOKEN)
+      .mockResolvedValueOnce(String(Date.now()))
+
+    await useAuthStore.getState().hydrate()
+
+    expect(useAuthStore.getState().token).toBe(TEST_TOKEN)
+    expect(useAuthStore.getState().isHydrated).toBe(true)
+  })
+
+  it('expires token older than 24h: token=null, deletes SecureStore keys', async () => {
+    const expiredAt = Date.now() - TOKEN_TTL_MS - 1
+    mockGetItem
+      .mockResolvedValueOnce(TEST_TOKEN)
+      .mockResolvedValueOnce(String(expiredAt))
+
+    await useAuthStore.getState().hydrate()
+
+    const state = useAuthStore.getState()
+    expect(state.token).toBeNull()
+    expect(state.user).toBeNull()
+    expect(state.isHydrated).toBe(true)
+    expect(mockDeleteItem).toHaveBeenCalledWith(TOKEN_KEY)
+    expect(mockDeleteItem).toHaveBeenCalledWith(TOKEN_SAVED_AT_KEY)
+  })
+
+  it('expires token when savedAt is missing (no timestamp key)', async () => {
+    mockGetItem
+      .mockResolvedValueOnce(TEST_TOKEN)
+      .mockResolvedValueOnce(null)
+
+    await useAuthStore.getState().hydrate()
+
+    expect(useAuthStore.getState().token).toBeNull()
+    expect(mockDeleteItem).toHaveBeenCalledWith(TOKEN_KEY)
+  })
+
+  it('does NOT clear local DB on token expiry — only SecureStore keys removed', async () => {
+    // Истёкший токен → только ключи из SecureStore, не данные в SQLite.
+    const expiredAt = Date.now() - TOKEN_TTL_MS - 1
+    mockGetItem
+      .mockResolvedValueOnce(TEST_TOKEN)
+      .mockResolvedValueOnce(String(expiredAt))
+
+    // Если бы resetLocalData вызвался — он бросил бы, т.к. db не передаётся.
+    // Тест просто проверяет, что hydrate резолвится без ошибок.
+    await expect(useAuthStore.getState().hydrate()).resolves.toBeUndefined()
   })
 })
