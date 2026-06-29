@@ -8,10 +8,10 @@
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
-| DEV     | 18           | backend-developer         |
+| DEV     | 19           | backend-developer         |
 | MBE     | 10           | mobile-backend-developer  |
 | MOB     | 34           | mobile-developer          |
-| WEB     | 11           | web-developer             |
+| WEB     | 12           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
