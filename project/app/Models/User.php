@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,11 +17,12 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens;
 
+    use CanResetPassword;
     use HasFactory;
     use Notifiable;
     use SoftDeletes;
@@ -53,6 +57,14 @@ class User extends Authenticatable
         static::creating(function (self $user): void {
             $user->uuid ??= (string) Str::uuid();
         });
+    }
+
+    /**
+     * @param  mixed  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification((string) $token));
     }
 
     public function isSuperAdmin(): bool

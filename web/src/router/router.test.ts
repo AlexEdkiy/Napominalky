@@ -48,4 +48,26 @@ describe('router', () => {
     expect(resolved.matched.length).toBeGreaterThanOrEqual(2)
     expect(resolved.matched[0]?.path).toBe('/lk')
   })
+
+  it('has forgot-password route at /forgot-password', () => {
+    const route = router.getRoutes().find(r => r.name === 'forgot-password')
+    expect(route).toBeDefined()
+    expect(route?.path).toBe('/forgot-password')
+  })
+
+  it('has reset-password route at /reset-password', () => {
+    const route = router.getRoutes().find(r => r.name === 'reset-password')
+    expect(route).toBeDefined()
+    expect(route?.path).toBe('/reset-password')
+  })
+
+  it('forgot-password route does not require auth', () => {
+    const resolved = router.resolve({ name: 'forgot-password' })
+    expect(resolved.matched.some(r => r.meta.requiresAuth)).toBe(false)
+  })
+
+  it('reset-password route does not require auth', () => {
+    const resolved = router.resolve({ name: 'reset-password' })
+    expect(resolved.matched.some(r => r.meta.requiresAuth)).toBe(false)
+  })
 })

@@ -1,6 +1,13 @@
 import { apiClient } from '@/api/client'
 import type { ApiResponse } from '@/types/api'
-import type { AuthResponse, LoginPayload, RegisterPayload, User } from '@/types/auth'
+import type {
+  AuthResponse,
+  ForgotPasswordPayload,
+  LoginPayload,
+  RegisterPayload,
+  ResetPasswordPayload,
+  User,
+} from '@/types/auth'
 
 export const authApi = {
   register: async (payload: RegisterPayload): Promise<AuthResponse> => {
@@ -24,5 +31,15 @@ export const authApi = {
 
   deleteAccount: async (): Promise<void> => {
     await apiClient.delete('/account')
+  },
+
+  forgotPassword: async (payload: ForgotPasswordPayload): Promise<{ message: string }> => {
+    const { data } = await apiClient.post<{ message: string }>('/auth/password/forgot', payload)
+    return data
+  },
+
+  resetPassword: async (payload: ResetPasswordPayload): Promise<{ message: string }> => {
+    const { data } = await apiClient.post<{ message: string }>('/auth/password/reset', payload)
+    return data
   },
 }
