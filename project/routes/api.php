@@ -9,10 +9,12 @@ use App\Http\Controllers\Admin\UserRolesController;
 use App\Http\Controllers\Admin\UserSetStatusController;
 use App\Http\Controllers\Admin\UserShowController;
 use App\Http\Controllers\Admin\UsersIndexController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\MeController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Devices\DestroyController as DeviceDestroyController;
 use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Notes\ArchiveController as NoteArchiveController;
@@ -80,6 +82,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::prefix('auth')->name('auth.')->middleware('throttle:auth')->group(function (): void {
         Route::post('register', RegisterController::class)->name('register');
         Route::post('login', LoginController::class)->name('login');
+
+        // Password reset (unauthenticated) — additional throttle:6,1 against brute force
+        Route::post('password/forgot', ForgotPasswordController::class)
+            ->middleware('throttle:6,1')
+            ->name('password.forgot');
+        Route::post('password/reset', ResetPasswordController::class)
+            ->middleware('throttle:6,1')
+            ->name('password.reset');
     });
 
     // ------------------------------------------------------------------
