@@ -9,6 +9,8 @@ export const LAST_PULLED_REVISION = 'last_pulled_revision'
 export const DEVICE_UUID = 'device_uuid'
 export const DEVICE_NAME = 'device_name'
 export const LAST_SYNCED_AT = 'last_synced_at'
+/** uuid последнего вошедшего пользователя — для изоляции при смене аккаунта. */
+export const LAST_USER_ID = 'last_user_id'
 
 type Writer = Pick<Database, 'select' | 'insert'>
 

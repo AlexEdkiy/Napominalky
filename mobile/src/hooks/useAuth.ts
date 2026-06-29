@@ -1,18 +1,89 @@
+import { Alert } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 
 import { authApi } from '@/api/authApi'
+import { useDb } from '@/providers/DbProvider'
+import { resetLocalData } from '@/db/resetLocalData'
+import { getMeta, setMeta, LAST_USER_ID } from '@/services/sync/syncMeta'
+import { pushChanges } from '@/services/sync/pushChanges'
 import { useAuthStore } from '@/stores/authStore'
 import type { AuthResponse, LoginPayload, RegisterPayload } from '@/types/auth'
+import type { Database } from '@/db/client'
 
-function useAuthSession() {
+const ALERT_TITLE = 'Есть несинхронизированные изменения'
+const ALERT_MSG =
+  'Они не были отправлены на сервер. Выйти и удалить локальные данные с устройства?'
+
+/** Показывает guard и резолвит true (выйти) / false (отмена). */
+const confirmLogoutWithUnsaved = (): Promise<boolean> =>
+  new Promise((resolve) => {
+    Alert.alert(ALERT_TITLE, ALERT_MSG, [
+      { text: 'Отмена', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Выйти', style: 'destructive', onPress: () => resolve(true) },
+    ])
+  })
+
+/**
+ * Флашит push (пока токен валиден). Возвращает true — ok или outbox пуст;
+ * false — push не удался (офлайн / ошибка) и в outbox есть изменения.
+ */
+const tryFlushSync = async (db: Database): Promise<boolean> => {
+  try {
+    await pushChanges(db)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Полный сброс: очистка данных → отзыв токена → очистка стора и кэша. */
+const performLogout = async (
+  db: Database,
+  logoutStore: () => Promise<void>,
+  clearQuery: () => void,
+): Promise<void> => {
+  await resetLocalData(db)
+  try {
+    await authApi.logout()
+  } catch {
+    // Офлайн-логаут допустим — токен просто протухнет на сервере.
+  }
+  await logoutStore()
+  clearQuery()
+  router.replace('/(auth)/login')
+}
+
+function useLogout(db: Database) {
+  const logoutStore = useAuthStore((state) => state.logout)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      const pushOk = await tryFlushSync(db)
+      if (!pushOk) {
+        const confirmed = await confirmLogoutWithUnsaved()
+        if (!confirmed) return
+      }
+      await performLogout(db, logoutStore, () => queryClient.clear())
+    },
+  })
+}
+
+function useAuthSession(db: Database) {
   const queryClient = useQueryClient()
   const setToken = useAuthStore((state) => state.setToken)
   const setUser = useAuthStore((state) => state.setUser)
 
   const onAuthSuccess = async (response: AuthResponse): Promise<void> => {
+    const lastUserId = await getMeta(LAST_USER_ID, db)
+    const incomingId = response.user.uuid
+    if (lastUserId !== null && lastUserId !== incomingId) {
+      await resetLocalData(db)
+    }
     await setToken(response.token)
     setUser(response.user)
+    await setMeta(LAST_USER_ID, incomingId, db)
     queryClient.clear()
     router.replace('/(tabs)')
   }
@@ -21,12 +92,13 @@ function useAuthSession() {
 }
 
 export function useAuth() {
+  const db = useDb()
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
   const guestMode = useAuthStore((state) => state.guestMode)
   const setGuestMode = useAuthStore((state) => state.setGuestMode)
-  const logoutStore = useAuthStore((state) => state.logout)
-  const { onAuthSuccess } = useAuthSession()
+  const { onAuthSuccess } = useAuthSession(db)
+  const logout = useLogout(db)
 
   const login = useMutation({
     mutationFn: (payload: LoginPayload) => authApi.login(payload),
@@ -36,11 +108,6 @@ export function useAuth() {
   const register = useMutation({
     mutationFn: (payload: RegisterPayload) => authApi.register(payload),
     onSuccess: onAuthSuccess,
-  })
-
-  const logout = useMutation({
-    mutationFn: () => authApi.logout(),
-    onSettled: () => logoutStore(),
   })
 
   const continueAsGuest = (): void => {
