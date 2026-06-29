@@ -53,6 +53,11 @@ final class SyncChangeApplier
         $model->user_id = $user->id;
         $this->fillFields($user, $model, $change);
 
+        // created_at не входит в whitelist payload, а persist() отключает
+        // авто-timestamps (ради LWW updated_at), поэтому для НОВОЙ записи
+        // created_at остался бы NULL. Проставляем фолбэком клиентский updated_at.
+        $model->created_at ??= $change->updatedAt;
+
         if ($change->operation === 'delete') {
             $model->deleted_at = $change->updatedAt;
         }
