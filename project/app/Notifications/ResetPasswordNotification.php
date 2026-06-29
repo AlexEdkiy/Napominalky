@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class ResetPasswordNotification extends Notification implements ShouldQueue
+/**
+ * Письмо со ссылкой сброса пароля отправляется СИНХРОННО (без ShouldQueue):
+ * прод-окружение работает на `php artisan serve` без отдельного queue-воркера,
+ * а письма низкочастотные и чувствительные ко времени — очередь тут не нужна.
+ */
+final class ResetPasswordNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         private readonly string $token,
     ) {}
