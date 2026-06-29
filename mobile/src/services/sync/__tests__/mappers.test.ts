@@ -173,11 +173,30 @@ describe('reminderMapper — NOT NULL фолбэки', () => {
     expect(row.remindAt).toBe('2024-06-01T10:00:00Z')
   })
 
-  it('фолбэк remindAt = created_at когда remind_at отсутствует', () => {
+  it('фолбэк remindAt = updated_at когда remind_at отсутствует', () => {
     const s = {
       ...baseReminder,
       remind_at: undefined,
     } as unknown as ServerReminder
-    expect(mappers.reminder.toRow(s).remindAt).toBe('2024-01-01T00:00:00Z')
+    expect(mappers.reminder.toRow(s).remindAt).toBe('2024-01-02T00:00:00Z')
+  })
+})
+
+describe('createdAt фолбэк = updated_at при null created_at (сервер не заполняет created_at)', () => {
+  it('note', () => {
+    const s = { ...baseNote, created_at: null } as unknown as ServerNote
+    expect(mappers.note.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
+  })
+  it('shopping_list', () => {
+    const s = { ...baseList, created_at: null } as unknown as ServerShoppingList
+    expect(mappers.shopping_list.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
+  })
+  it('shopping_list_item', () => {
+    const s = { ...baseItem, created_at: null } as unknown as ServerShoppingListItem
+    expect(mappers.shopping_list_item.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
+  })
+  it('reminder', () => {
+    const s = { ...baseReminder, created_at: null } as unknown as ServerReminder
+    expect(mappers.reminder.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
   })
 })
