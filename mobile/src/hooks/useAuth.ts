@@ -5,7 +5,7 @@ import { router } from 'expo-router'
 import { authApi } from '@/api/authApi'
 import { useDb } from '@/providers/DbProvider'
 import { resetLocalData } from '@/db/resetLocalData'
-import { getMeta, setMeta, LAST_USER_ID } from '@/services/sync/syncMeta'
+import { getMeta, setMeta, LAST_USER_ID, resetPullCursor } from '@/services/sync/syncMeta'
 import { pushChanges } from '@/services/sync/pushChanges'
 import { useAuthStore } from '@/stores/authStore'
 import type { AuthResponse, LoginPayload, RegisterPayload } from '@/types/auth'
@@ -84,6 +84,7 @@ function useAuthSession(db: Database) {
     await setToken(response.token)
     setUser(response.user)
     await setMeta(LAST_USER_ID, incomingId, db)
+    await resetPullCursor(db)
     queryClient.clear()
     router.replace('/(tabs)')
   }

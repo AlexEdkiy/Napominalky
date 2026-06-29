@@ -1,5 +1,10 @@
 import { mappers } from '../mappers'
-import type { ServerShoppingList, ServerShoppingListItem } from '@/types/sync'
+import type {
+  ServerNote,
+  ServerReminder,
+  ServerShoppingList,
+  ServerShoppingListItem,
+} from '@/types/sync'
 
 const baseList: ServerShoppingList = {
   uuid: 'l1',
@@ -20,6 +25,34 @@ const baseItem: ServerShoppingListItem = {
   deadline: null,
   is_checked: false,
   position: 0,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-02T00:00:00Z',
+  deleted_at: null,
+}
+
+const baseNote: ServerNote = {
+  uuid: 'n1',
+  title: 'Заметка',
+  body: null,
+  color: null,
+  is_pinned: false,
+  is_archived: false,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-02T00:00:00Z',
+  deleted_at: null,
+}
+
+const baseReminder: ServerReminder = {
+  uuid: 'rem1',
+  title: 'Напомнить',
+  notes: null,
+  remind_at: '2024-06-01T10:00:00Z',
+  recurrence: 'none',
+  is_completed: false,
+  completed_at: null,
+  snoozed_until: null,
+  source_uuid: null,
+  source_type: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
   deleted_at: null,
@@ -90,5 +123,61 @@ describe('shoppingListItemMapper', () => {
     expect(row.name).toBe('Item')
     expect(row.category).toBe('products')
     expect(row.position).toBe(0)
+  })
+})
+
+describe('shoppingListItemMapper — NOT NULL фолбэки', () => {
+  it('подставляет name="" при null/undefined', () => {
+    const s = { ...baseItem, name: undefined } as unknown as ServerShoppingListItem
+    expect(mappers.shopping_list_item.toRow(s).name).toBe('')
+  })
+
+  it('подставляет category="other" при null/undefined', () => {
+    const s = { ...baseItem, category: undefined } as unknown as ServerShoppingListItem
+    expect(mappers.shopping_list_item.toRow(s).category).toBe('other')
+  })
+
+  it('подставляет position=0 при null/undefined', () => {
+    const s = { ...baseItem, position: undefined } as unknown as ServerShoppingListItem
+    expect(mappers.shopping_list_item.toRow(s).position).toBe(0)
+  })
+})
+
+describe('shoppingListMapper — NOT NULL фолбэки', () => {
+  it('подставляет title="" при null/undefined', () => {
+    const s = { ...baseList, title: undefined } as unknown as ServerShoppingList
+    expect(mappers.shopping_list.toRow(s).title).toBe('')
+  })
+})
+
+describe('noteMapper — NOT NULL фолбэки', () => {
+  it('подставляет title="" при null/undefined', () => {
+    const s = { ...baseNote, title: undefined } as unknown as ServerNote
+    expect(mappers.note.toRow(s).title).toBe('')
+  })
+})
+
+describe('reminderMapper — NOT NULL фолбэки', () => {
+  it('подставляет title="" при null/undefined', () => {
+    const s = { ...baseReminder, title: undefined } as unknown as ServerReminder
+    expect(mappers.reminder.toRow(s).title).toBe('')
+  })
+
+  it('подставляет recurrence="none" при null/undefined', () => {
+    const s = { ...baseReminder, recurrence: undefined } as unknown as ServerReminder
+    expect(mappers.reminder.toRow(s).recurrence).toBe('none')
+  })
+
+  it('использует remind_at если задан', () => {
+    const row = mappers.reminder.toRow(baseReminder)
+    expect(row.remindAt).toBe('2024-06-01T10:00:00Z')
+  })
+
+  it('фолбэк remindAt = created_at когда remind_at отсутствует', () => {
+    const s = {
+      ...baseReminder,
+      remind_at: undefined,
+    } as unknown as ServerReminder
+    expect(mappers.reminder.toRow(s).remindAt).toBe('2024-01-01T00:00:00Z')
   })
 })

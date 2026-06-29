@@ -303,3 +303,83 @@ describe('applyChanges — reminders', () => {
     expect(values?.sourceUuid).toBe('s1')
   })
 })
+
+describe('applyChanges — best-effort (одна сбойная запись не стопорит остальные)', () => {
+  /**
+   * Создаёт фейк-db, где insert первой записи с uuid === failUuid бросает ошибку,
+   * а остальные записи вставляются нормально.
+   */
+  const createFaultingDb = (state: FakeState, failUuid: string) => {
+    const base = createFakeDb(state)
+    const origInsert = base.insert.bind(base)
+    return {
+      ...base,
+      insert: (table: unknown) => {
+        const chain = origInsert(table)
+        return {
+          values: (values: Record<string, unknown>) => {
+            if (values['uuid'] === failUuid) {
+              return {
+                onConflictDoUpdate: async () => {
+                  throw new Error('NOT NULL constraint failed')
+                },
+                then: (_res: () => void, rej: (e: Error) => void) => {
+                  rej(new Error('NOT NULL constraint failed'))
+                },
+              }
+            }
+            return chain.values(values)
+          },
+        }
+      },
+    }
+  }
+
+  it('пропускает сбойную запись и применяет остальные в батче', async () => {
+    const state = newState()
+    const db = createFaultingDb(state, 'n2') as never
+
+    const response: SyncChangesResponse = {
+      data: {
+        notes: [
+          baseNote({ uuid: 'n1' }),
+          baseNote({ uuid: 'n2' }),
+          baseNote({ uuid: 'n3' }),
+        ],
+        shopping_lists: [],
+        shopping_list_items: [],
+        reminders: [],
+      },
+      meta: { cursor: 10, has_more: false },
+    }
+
+    await expect(applyChanges(response, db)).resolves.toBeUndefined()
+
+    const insertedUuids = state.inserts
+      .filter((i) => i.values['key'] === undefined)
+      .map((i) => i.values['uuid'])
+
+    expect(insertedUuids).toContain('n1')
+    expect(insertedUuids).not.toContain('n2')
+    expect(insertedUuids).toContain('n3')
+  })
+
+  it('сохраняет курсор даже когда одна запись упала', async () => {
+    const state = newState()
+    const db = createFaultingDb(state, 'n1') as never
+
+    await applyChanges(emptyResponse([baseNote({ uuid: 'n1' })], 99), db)
+
+    const cursorInsert = state.inserts.find((i) => i.values['key'] === 'last_pulled_revision')
+    expect(cursorInsert?.values['value']).toBe('99')
+  })
+
+  it('не пробрасывает ошибку наружу при сбое одной записи', async () => {
+    const state = newState()
+    const db = createFaultingDb(state, 'n1') as never
+
+    await expect(
+      applyChanges(emptyResponse([baseNote({ uuid: 'n1' })], 5), db),
+    ).resolves.toBeUndefined()
+  })
+})

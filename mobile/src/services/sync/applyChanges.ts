@@ -55,14 +55,22 @@ const applyRecord = async <TServer extends ServerRecord>(
     .where(eq(table.uuid, server.uuid))
 }
 
-/** Применяет батч записей одной сущности последовательно. */
+/**
+ * Применяет батч записей одной сущности best-effort: ошибка на одной записи
+ * логируется и запись пропускается, остальные применяются.
+ */
 const applyBatch = async <TServer extends ServerRecord>(
   writer: Writer,
   mapper: EntityMapper<TServer>,
+  entity: string,
   records: TServer[],
 ): Promise<void> => {
   for (const record of records) {
-    await applyRecord(writer, mapper, record)
+    try {
+      await applyRecord(writer, mapper, record)
+    } catch (err) {
+      console.warn('[sync] skip record', entity, record.uuid, err)
+    }
   }
 }
 
@@ -77,16 +85,20 @@ const saveCursor = async (writer: Writer, cursor: number): Promise<void> => {
     })
 }
 
-/** Применяет все батчи и сдвигает курсор в рамках одного writer'а. */
+/**
+ * Применяет все батчи best-effort и ВСЕГДА сдвигает курсор — даже если часть
+ * записей пропущена. Пропущенные записи подтянутся при следующей полной
+ * реконсиляции (resetPullCursor → pull от 0).
+ */
 const applyAll = async (
   writer: Writer,
   response: SyncChangesResponse,
 ): Promise<void> => {
   const { data, meta } = response
-  await applyBatch(writer, mappers.note, data.notes)
-  await applyBatch(writer, mappers.shopping_list, data.shopping_lists)
-  await applyBatch(writer, mappers.shopping_list_item, data.shopping_list_items)
-  await applyBatch(writer, mappers.reminder, data.reminders)
+  await applyBatch(writer, mappers.note, 'note', data.notes)
+  await applyBatch(writer, mappers.shopping_list, 'shopping_list', data.shopping_lists)
+  await applyBatch(writer, mappers.shopping_list_item, 'shopping_list_item', data.shopping_list_items)
+  await applyBatch(writer, mappers.reminder, 'reminder', data.reminders)
   await saveCursor(writer, meta.cursor)
 }
 
@@ -94,10 +106,13 @@ const applyAll = async (
  * Применяет серверный ответ pull к локальной БД (LWW, tombstones) и сдвигает
  * курсор. Идемпотентна: повторный вызов того же ответа ничего не меняет (LWW
  * по updated_at). НЕ пишет в sync_outbox — это входящие, а не локальные мутации.
+ *
+ * Устойчива к «грязным» данным: каждая запись применяется независимо (best-effort),
+ * ошибка одной записи не откатывает остальные и не стопорит курсор.
  */
 export const applyChanges = async (
   response: SyncChangesResponse,
   db: Database = defaultDb,
 ): Promise<void> => {
-  await db.transaction((tx) => applyAll(tx, response))
+  await applyAll(db, response)
 }
