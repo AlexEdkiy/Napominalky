@@ -1,6 +1,12 @@
 import { Link } from 'expo-router'
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native'
 
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
@@ -25,9 +31,13 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.screenBg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.form}>
+      <ScrollView
+        contentContainerStyle={styles.form}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={[styles.title, { color: colors.textPrimary }]}>Вход</Text>
 
         {generalError ? (
@@ -59,14 +69,14 @@ export default function LoginScreen() {
         <Link href="/(auth)/register" style={[styles.link, { color: colors.accent }]}>
           Нет аккаунта? Зарегистрироваться
         </Link>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  form: { gap: 16 },
+  container: { flex: 1 },
+  form: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 16 },
   title: { ...typography.h2, marginBottom: 8 },
   generalError: { ...typography.body },
   link: { ...typography.body, textAlign: 'center', marginTop: 8 },
