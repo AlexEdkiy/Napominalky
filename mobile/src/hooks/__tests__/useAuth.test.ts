@@ -28,6 +28,7 @@ jest.mock('@/services/sync/pushChanges', () => ({
 jest.mock('@/services/sync/syncMeta', () => ({
   getMeta: jest.fn(async () => null),
   setMeta: jest.fn(async () => undefined),
+  resetPullCursor: jest.fn(async () => undefined),
   LAST_USER_ID: 'last_user_id',
 }))
 
@@ -58,7 +59,7 @@ import { Alert } from 'react-native'
 import { router } from 'expo-router'
 import { resetLocalData } from '@/db/resetLocalData'
 import { pushChanges } from '@/services/sync/pushChanges'
-import { getMeta, setMeta } from '@/services/sync/syncMeta'
+import { getMeta, setMeta, resetPullCursor } from '@/services/sync/syncMeta'
 import { authApi } from '@/api/authApi'
 import type { AuthResponse, User } from '@/types/auth'
 import type { Database } from '@/db/client'
@@ -69,6 +70,7 @@ const mockedPushChanges = pushChanges as jest.MockedFunction<typeof pushChanges>
 const mockedResetLocalData = resetLocalData as jest.MockedFunction<typeof resetLocalData>
 const mockedGetMeta = getMeta as jest.MockedFunction<typeof getMeta>
 const mockedSetMeta = setMeta as jest.MockedFunction<typeof setMeta>
+const mockedResetPullCursor = resetPullCursor as jest.MockedFunction<typeof resetPullCursor>
 const mockedLogout = authApi.logout as jest.MockedFunction<typeof authApi.logout>
 const mockedAlert = Alert.alert as jest.MockedFunction<typeof Alert.alert>
 const mockedRouterReplace = router.replace as jest.MockedFunction<typeof router.replace>
@@ -130,6 +132,8 @@ async function runLogoutFlow(): Promise<void> {
 
 /**
  * Имитирует onAuthSuccess — логику смены/адопшена пользователя.
+ * Порядок: resetLocalData (при смене юзера) → setToken → setUser → setMeta
+ * → resetPullCursor → queryClient.clear() → router.replace.
  */
 async function runOnAuthSuccess(response: AuthResponse): Promise<void> {
   const lastUserId = await mockedGetMeta('last_user_id', FAKE_DB)
@@ -138,6 +142,7 @@ async function runOnAuthSuccess(response: AuthResponse): Promise<void> {
     await mockedResetLocalData(FAKE_DB)
   }
   await mockedSetMeta('last_user_id', incomingId, FAKE_DB)
+  await mockedResetPullCursor(FAKE_DB)
 }
 
 // ============================================================================
@@ -293,5 +298,44 @@ describe('useAuth — логин не чистит локальную БД (ад
     await runOnAuthSuccess(response)
 
     expect(mockedResetLocalData).not.toHaveBeenCalled()
+  })
+})
+
+// ============================================================================
+// ТЕСТЫ resetPullCursor при onAuthSuccess
+// ============================================================================
+
+describe('useAuth — onAuthSuccess: сброс курсора pull после логина', () => {
+  it('вызывает resetPullCursor при обычном входе (last_user_id=null)', async () => {
+    mockedGetMeta.mockResolvedValue(null)
+    const response = makeAuthResponse('user-new')
+
+    await runOnAuthSuccess(response)
+
+    expect(mockedResetPullCursor).toHaveBeenCalledWith(FAKE_DB)
+  })
+
+  it('вызывает resetPullCursor при входе тем же пользователем', async () => {
+    mockedGetMeta.mockResolvedValue('same-user-uuid')
+    const response = makeAuthResponse('same-user-uuid')
+
+    await runOnAuthSuccess(response)
+
+    expect(mockedResetPullCursor).toHaveBeenCalledWith(FAKE_DB)
+  })
+
+  it('вызывает resetPullCursor при смене пользователя (после resetLocalData)', async () => {
+    mockedGetMeta.mockResolvedValue('old-user-uuid')
+    const response = makeAuthResponse('new-user-uuid')
+
+    const order: string[] = []
+    mockedResetLocalData.mockImplementation(async () => { order.push('reset') })
+    mockedResetPullCursor.mockImplementation(async () => { order.push('cursor') })
+
+    await runOnAuthSuccess(response)
+
+    expect(order).toContain('reset')
+    expect(order).toContain('cursor')
+    expect(order.indexOf('reset')).toBeLessThan(order.indexOf('cursor'))
   })
 })

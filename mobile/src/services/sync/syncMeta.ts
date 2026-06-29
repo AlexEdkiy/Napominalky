@@ -79,3 +79,12 @@ export const setLastSyncedAt = async (
   isoTime: string,
   db: Writer = defaultDb,
 ): Promise<void> => setMeta(LAST_SYNCED_AT, isoTime, db)
+
+/**
+ * Сбрасывает курсор последнего pull в '0', чтобы следующий pull сделал
+ * полную реконсиляцию аккаунта (pull от revision=0 → все данные сервера).
+ * Безопасно вызывать повторно — идемпотентно.
+ */
+export const resetPullCursor = async (
+  db: Writer = defaultDb,
+): Promise<void> => setMeta(LAST_PULLED_REVISION, '0', db)
