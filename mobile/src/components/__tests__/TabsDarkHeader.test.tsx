@@ -67,6 +67,15 @@ jest.mock('@/theme/typography', () => ({
   },
 }))
 
+jest.mock('@/hooks/useSyncEngine', () => ({
+  useSyncEngine: () => ({
+    isSyncing: false,
+    lastSyncedAt: null,
+    error: null,
+    syncNow: jest.fn(),
+  }),
+}))
+
 jest.mock('@/hooks/useNotes', () => ({
   useNotes: () => ({ notes: [], isLoading: false, deleteNote: { mutate: jest.fn() } }),
 }))
@@ -155,9 +164,9 @@ import NotesListScreen from '../../../app/(tabs)/notes-list'
 
 describe('Вкладки — DarkHeader', () => {
   describe('HomeScreen', () => {
-    it('рендерит DarkHeader с заголовком «Главная»', async () => {
+    it('рендерит DarkHeader с заголовком «Вспомнить всё!»', async () => {
       const { getByText } = await render(<HomeScreen />)
-      expect(getByText('Главная')).toBeTruthy()
+      expect(getByText('Вспомнить всё!')).toBeTruthy()
     })
 
     it('рендерит LinearGradient (тёмная шапка)', async () => {

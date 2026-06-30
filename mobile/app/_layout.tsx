@@ -12,6 +12,7 @@ import ThemeProvider from '@/theme/ThemeProvider'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useSyncEngine } from '@/hooks/useSyncEngine'
+import { useBackgroundSync } from '@/hooks/useBackgroundSync'
 import { useNotifications } from '@/hooks/useNotifications'
 import { installGlobalErrorHandler } from '@/services/globalErrorHandler'
 import { authApi } from '@/api/authApi'
@@ -27,10 +28,12 @@ const queryClient = new QueryClient({
 
 /**
  * Запускает движок синхронизации внутри провайдеров (БД готова): авто-sync
- * при старте с токеном и syncEnabled и при возврате в онлайн. Ничего не рендерит.
+ * при старте с токеном и syncEnabled, при возврате в онлайн и при уходе
+ * приложения в фон. Ничего не рендерит.
  */
 function SyncBootstrap(): null {
   useSyncEngine()
+  useBackgroundSync()
   return null
 }
 
