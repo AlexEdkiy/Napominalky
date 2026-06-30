@@ -1,5 +1,6 @@
 import { router } from 'expo-router'
 import Constants from 'expo-constants'
+import * as Application from 'expo-application'
 import React from 'react'
 import {
   Alert,
@@ -159,11 +160,15 @@ interface VersionLabelProps {
 }
 
 const VersionLabel: React.FC<VersionLabelProps> = ({ colors }) => {
-  const version = Constants.expoConfig?.version ?? null
-  const buildNumber =
-    (Constants.expoConfig?.android?.versionCode as number | undefined) ?? null
+  // versionName/versionCode берём из НАТИВНОЙ сборки (expo-application), а не из
+  // app.json: EAS autoIncrement проставляет versionCode на стороне сборки, поэтому
+  // Constants.expoConfig его не содержит. nativeBuildVersion = реальный versionCode (14, 15…).
+  const version =
+    Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null
+  const buildNumber = Application.nativeBuildVersion ?? null
   if (version === null) return null
-  const label = buildNumber !== null ? `Версия ${version} (${buildNumber})` : `Версия ${version}`
+  const label =
+    buildNumber !== null ? `Версия ${version} (${buildNumber})` : `Версия ${version}`
   return <Text style={[styles.versionText, { color: colors.textTertiary }]}>{label}</Text>
 }
 
