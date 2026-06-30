@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -14,6 +15,7 @@ import DarkHeader from '@/components/ui/DarkHeader'
 import ListCard from '@/components/lists/ListCard'
 import type { ListType, ShoppingList } from '@/db/repositories/shoppingListsRepo'
 import { useNearestDeadlines, useShoppingLists } from '@/hooks/useShoppingLists'
+import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { formatDeadlineChip } from '@/utils/datetime'
@@ -46,6 +48,7 @@ export default function ListsScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { lists, isLoading, isError } = useShoppingLists()
   const deadlinesMap = useNearestDeadlines()
+  const { isSyncing, syncNow } = useSyncEngine()
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
 
   const goodsCount = lists.filter((l) => l.type === 'goods').length
@@ -82,8 +85,18 @@ export default function ListsScreen(): React.JSX.Element {
         <ErrorState color={colors.danger} />
       ) : (
         <FlatList
+          testID="lists-flatlist"
           data={filtered}
           keyExtractor={(item) => item.uuid}
+          refreshControl={
+            <RefreshControl
+              testID="lists-refresh-control"
+              refreshing={isSyncing}
+              onRefresh={syncNow}
+              tintColor={colors.accent}
+              colors={[colors.accent]}
+            />
+          }
           renderItem={({ item, index }) => (
             <View
               style={[

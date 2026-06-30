@@ -1,17 +1,14 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import {
   Platform,
-  Pressable,
   StyleSheet,
-  View,
 } from 'react-native'
-import { Tabs, router, type RelativePathString } from 'expo-router'
+import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useTheme } from '@/theme'
-
-const CREATE_ROUTE = '/create' as RelativePathString
+import CreateButton from '@/components/tabs/CreateButton'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -25,28 +22,6 @@ interface TabIconProps {
 const TabIcon: React.FC<TabIconProps> = ({ name, focused, color, size }) => {
   const iconName = focused ? name : (`${name}-outline` as IoniconsName)
   return <Ionicons name={iconName} size={size} color={color} />
-}
-
-const CreateButton: React.FC = () => {
-  const { colors } = useTheme()
-  const handlePress = useCallback(() => { router.push(CREATE_ROUTE) }, [])
-
-  return (
-    <View style={styles.createWrapper}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Создать"
-        onPress={handlePress}
-        style={({ pressed }) => [
-          styles.createBtn,
-          { backgroundColor: colors.accent },
-          pressed && styles.createBtnPressed,
-        ]}
-      >
-        <Ionicons name="add" size={30} color="#ffffff" />
-      </Pressable>
-    </View>
-  )
 }
 
 export default function TabsLayout() {
@@ -133,25 +108,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  createWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -26,
-    shadowColor: '#0D9488',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  createBtnPressed: { opacity: 0.85 },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',

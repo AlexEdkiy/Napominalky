@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -13,6 +14,7 @@ import { StatusBar } from 'expo-status-bar'
 import DarkHeader from '@/components/ui/DarkHeader'
 import FeedCard from '@/components/home/FeedCard'
 import { useNotes } from '@/hooks/useNotes'
+import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { formatUpdatedAt } from '@/utils/datetime'
@@ -28,6 +30,7 @@ const filterByTitle = (items: Note[], q: string): Note[] => {
 export default function NotesListScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { notes, isLoading, deleteNote } = useNotes()
+  const { isSyncing, syncNow } = useSyncEngine()
   const [search, setSearch] = useState('')
 
   const handleAvatarPress = useCallback((): void => {
@@ -89,9 +92,19 @@ export default function NotesListScreen(): React.JSX.Element {
         <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
       ) : (
         <FlatList
+          testID="notes-flatlist"
           data={filteredNotes}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          refreshControl={
+            <RefreshControl
+              testID="notes-refresh-control"
+              refreshing={isSyncing}
+              onRefresh={syncNow}
+              tintColor={colors.accent}
+              colors={[colors.accent]}
+            />
+          }
           contentContainerStyle={[
             styles.listContent,
             filteredNotes.length === 0 && styles.listContentEmpty,

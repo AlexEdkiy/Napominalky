@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import FilterChips, { type FeedFilter } from '@/components/home/FilterChips'
 import { useNotes } from '@/hooks/useNotes'
 import { useReminders } from '@/hooks/useReminders'
 import { useShoppingLists } from '@/hooks/useShoppingLists'
+import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { formatRelativeReminder, formatUpdatedAt, isReminderUrgent } from '@/utils/datetime'
@@ -41,6 +43,7 @@ export default function HomeScreen(): React.JSX.Element {
   const { notes, isLoading: notesLoading, deleteNote } = useNotes()
   const { reminders, isLoading: remindersLoading } = useReminders({ status: 'pending' })
   const { lists, isLoading: listsLoading } = useShoppingLists()
+  const { isSyncing, syncNow } = useSyncEngine()
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FeedFilter>('all')
@@ -95,7 +98,7 @@ export default function HomeScreen(): React.JSX.Element {
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <StatusBar style="light" />
       <DarkHeader
-        title="Главная"
+        title="Вспомнить всё!"
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
         searchValue={search}
@@ -108,9 +111,19 @@ export default function HomeScreen(): React.JSX.Element {
         <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
       ) : (
         <ScrollView
+          testID="home-scroll"
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              testID="home-refresh-control"
+              refreshing={isSyncing}
+              onRefresh={syncNow}
+              tintColor={colors.accent}
+              colors={[colors.accent]}
+            />
+          }
         >
           {showLists && filteredLists.length > 0 && (
             <FeedSection title="Списки" dotColor={colors.accent} colors={colors}>
