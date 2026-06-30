@@ -28,6 +28,26 @@ trait TracksSyncRevision
         static::saving(static function (Model $model): void {
             $model->server_revision = self::nextSyncRevision();
         });
+
+        // Soft-delete (SoftDeletes::runSoftDelete) обновляет deleted_at прямым
+        // query-builder update'ом и НЕ вызывает событие saving — иначе tombstone
+        // сохранял бы старый server_revision и не доходил бы до устройств через
+        // инкрементальный pull (server_revision > курсора). Поэтому на soft-delete
+        // бампим ревизию отдельным быстрым update'ом. Force delete пропускаем —
+        // строка физически удаляется.
+        static::deleting(static function (Model $model): void {
+            $isForceDeleting = method_exists($model, 'isForceDeleting')
+                && $model->isForceDeleting();
+            if ($isForceDeleting) {
+                return;
+            }
+
+            $rev = self::nextSyncRevision();
+            $model->server_revision = $rev;
+            $model->newQueryWithoutScopes()
+                ->where($model->getKeyName(), $model->getKey())
+                ->update(['server_revision' => $rev]);
+        });
     }
 
     private static function nextSyncRevision(): int
