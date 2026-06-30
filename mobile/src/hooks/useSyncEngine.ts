@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { useAuthStore } from '@/stores/authStore'
 import { useNetStatus } from '@/services/netStatus'
 import { syncEngine, type SyncResult } from '@/services/sync/syncEngine'
+import { QueryKeys } from '@/constants/QueryKeys'
 
 interface UseSyncEngineResult {
   isSyncing: boolean
@@ -20,15 +22,28 @@ export const useSyncEngine = (): UseSyncEngineResult => {
   const syncEnabled = useAuthStore((state) => state.syncEnabled)
   const { isOnline } = useNetStatus()
 
+  const queryClient = useQueryClient()
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const wasOnline = useRef(isOnline)
 
-  const apply = useCallback((result: SyncResult): void => {
-    setError(result.ok ? null : (result.error ?? 'sync_failed'))
-    if (result.lastSyncedAt !== undefined) setLastSyncedAt(result.lastSyncedAt)
-  }, [])
+  const apply = useCallback(
+    (result: SyncResult): void => {
+      setError(result.ok ? null : (result.error ?? 'sync_failed'))
+      if (result.lastSyncedAt !== undefined) setLastSyncedAt(result.lastSyncedAt)
+      // pull пишет напрямую в SQLite мимо репозиториев/react-query. Без инвалидации
+      // экраны показывают устаревший кэш (например, удалённые на другом устройстве
+      // записи остаются видимыми). После успешного синка обновляем доменные запросы.
+      if (result.ok) {
+        void queryClient.invalidateQueries({ queryKey: QueryKeys.notes.all })
+        void queryClient.invalidateQueries({ queryKey: QueryKeys.reminders.all })
+        void queryClient.invalidateQueries({ queryKey: QueryKeys.lists.all })
+        void queryClient.invalidateQueries({ queryKey: QueryKeys.calendar.all })
+      }
+    },
+    [queryClient],
+  )
 
   const run = useCallback(
     async (force: boolean): Promise<void> => {
