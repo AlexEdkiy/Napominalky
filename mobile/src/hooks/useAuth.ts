@@ -81,11 +81,16 @@ function useAuthSession(db: Database) {
     if (lastUserId !== null && lastUserId !== incomingId) {
       await resetLocalData(db)
     }
-    await setToken(response.token)
-    setUser(response.user)
+    // ВАЖНО: sync-метаданные готовим и курсор сбрасываем в 0 ДО setToken/setUser.
+    // setToken/setUser запускают useSyncEngine (эффект по token+syncEnabled), и
+    // pull должен стартовать уже с курсором 0 (полная реконсиляция аккаунта).
+    // Иначе гонка: pull уходит со старым высоким курсором → пустой ответ → данные
+    // с сервера не подтягиваются.
     await setMeta(LAST_USER_ID, incomingId, db)
     await resetPullCursor(db)
     queryClient.clear()
+    setUser(response.user)
+    await setToken(response.token)
     router.replace('/(tabs)')
   }
 

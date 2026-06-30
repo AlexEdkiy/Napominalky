@@ -132,8 +132,9 @@ async function runLogoutFlow(): Promise<void> {
 
 /**
  * Имитирует onAuthSuccess — логику смены/адопшена пользователя.
- * Порядок: resetLocalData (при смене юзера) → setToken → setUser → setMeta
- * → resetPullCursor → queryClient.clear() → router.replace.
+ * Порядок: resetLocalData (при смене юзера) → setMeta → resetPullCursor (курсор
+ * сбрасывается ДО setToken/setUser, чтобы post-login pull стартовал с 0) →
+ * setUser → setToken → queryClient.clear() → router.replace.
  */
 async function runOnAuthSuccess(response: AuthResponse): Promise<void> {
   const lastUserId = await mockedGetMeta('last_user_id', FAKE_DB)
