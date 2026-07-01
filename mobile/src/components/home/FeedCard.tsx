@@ -1,10 +1,17 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import ProgressRing from '@/components/ui/ProgressRing'
 import { typography } from '@/theme/typography'
 import type { ColorPalette } from '@/theme/colors'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
+
+/** Прогресс выполненных пунктов задачи — для кольца вместо стандартной иконки. */
+export interface FeedCardProgress {
+  done: number
+  total: number
+}
 
 interface FeedCardProps {
   uuid: string
@@ -21,7 +28,12 @@ interface FeedCardProps {
   labelColor?: string | null
   /** Показывает иконку закрепления у закреплённых заметок */
   pinned?: boolean
+  /** Прогресс пунктов — если задан, слева рендерится кольцо вместо iconSquare */
+  progress?: FeedCardProgress
 }
+
+const ringProgressValue = (progress: FeedCardProgress): number =>
+  progress.total === 0 ? 0 : progress.done / progress.total
 
 const FeedCard: React.FC<FeedCardProps> = ({
   uuid,
@@ -36,6 +48,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   colors,
   labelColor,
   pinned = false,
+  progress,
 }) => (
   <Pressable
     accessibilityRole="button"
@@ -54,9 +67,21 @@ const FeedCard: React.FC<FeedCardProps> = ({
     {labelColor != null ? (
       <View style={[styles.labelBar, { backgroundColor: labelColor }]} />
     ) : null}
-    <View style={[styles.iconSquare, { backgroundColor: iconBg }]}>
-      <Ionicons name={iconName} size={20} color={iconColor} />
-    </View>
+    {progress != null ? (
+      <ProgressRing
+        progress={ringProgressValue(progress)}
+        size={40}
+        strokeWidth={3}
+        color={iconColor}
+        trackColor={colors.borderSubtle}
+      >
+        <Ionicons name={iconName} size={16} color={iconColor} />
+      </ProgressRing>
+    ) : (
+      <View style={[styles.iconSquare, { backgroundColor: iconBg }]}>
+        <Ionicons name={iconName} size={20} color={iconColor} />
+      </View>
+    )}
     <View style={styles.texts}>
       <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
         {title}
