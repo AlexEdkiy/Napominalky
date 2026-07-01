@@ -37,7 +37,7 @@ export interface MetaPatch {
   reminderAt?: string | null
 }
 
-const ItemRow: React.FC<ItemRowProps> = ({
+const ItemRowComponent: React.FC<ItemRowProps> = ({
   item,
   listType,
   onToggle,
@@ -54,6 +54,12 @@ const ItemRow: React.FC<ItemRowProps> = ({
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const checkboxRadius = listType === 'tasks' ? 10 : 7
   const firstTag = parseTags(item.tags)[0]
+  const hasDeadlineChip = listType === 'tasks' && item.deadline != null
+  const hasMetaIndicator =
+    item.reminderAt !== null ||
+    (item.comment !== null && item.comment.length > 0) ||
+    (item.link !== null && item.link.length > 0)
+  const hasMetaLine = hasDeadlineChip || hasMetaIndicator
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
@@ -107,17 +113,22 @@ const ItemRow: React.FC<ItemRowProps> = ({
                 <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
               </View>
             )}
-            {/* DEF-05: форматированная дата вместо raw YYYY-MM-DD */}
-            {listType === 'tasks' && item.deadline != null && (
-              <View style={[styles.chip, { backgroundColor: accentBg }]}>
-                <Ionicons name="calendar-outline" size={11} color={accentColor} />
-                <Text style={[styles.chipText, { color: accentColor }]}>
-                  {formatDeadlineDisplay(item.deadline)}
-                </Text>
-              </View>
-            )}
           </View>
-          <MetaIndicators item={item} />
+          {/* DEF-06/3.6: чип дедлайна и мета-иконки — единый горизонтальный ряд */}
+          {hasMetaLine && (
+            <View style={styles.metaLine}>
+              {/* DEF-05: форматированная дата вместо raw YYYY-MM-DD */}
+              {listType === 'tasks' && item.deadline != null && (
+                <View style={[styles.chip, { backgroundColor: accentBg }]}>
+                  <Ionicons name="calendar-outline" size={11} color={accentColor} />
+                  <Text style={[styles.chipText, { color: accentColor }]}>
+                    {formatDeadlineDisplay(item.deadline)}
+                  </Text>
+                </View>
+              )}
+              <MetaIndicators item={item} />
+            </View>
+          )}
         </Pressable>
         {/* DEF-01: убран Pressable с close-circle-outline; chevron — единственный правый элемент */}
         {onExpand !== undefined && (
@@ -202,7 +213,18 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
 }) => {
   const { colors } = useTheme()
   const [tagInput, setTagInput] = useState('')
+  // 3.5: локальный state для link/comment — value инпута обновляется мгновенно,
+  // персист на сервер/в БД идёт через debounce, а не наоборот.
+  const [linkDraft, setLinkDraft] = useState(item.link ?? '')
+  const [commentDraft, setCommentDraft] = useState(item.comment ?? '')
+  const [draftUuid, setDraftUuid] = useState(item.uuid)
   const tags = parseTags(item.tags)
+
+  if (draftUuid !== item.uuid) {
+    setDraftUuid(item.uuid)
+    setLinkDraft(item.link ?? '')
+    setCommentDraft(item.comment ?? '')
+  }
 
   const debouncedLink = useDebouncedCallback(
     (val: string) => onUpdateMeta?.(item.uuid, { link: val.length > 0 ? val : null }),
@@ -213,6 +235,16 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
     (val: string) => onUpdateMeta?.(item.uuid, { comment: val.length > 0 ? val : null }),
     600,
   )
+
+  const handleLinkChange = (val: string): void => {
+    setLinkDraft(val)
+    debouncedLink(val)
+  }
+
+  const handleCommentChange = (val: string): void => {
+    setCommentDraft(val)
+    debouncedComment(val)
+  }
 
   const handleAddTag = (): void => {
     const trimmed = tagInput.trim()
@@ -287,8 +319,8 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
           </Pressable>
         ) : null}
         <TextInput
-          value={item.link ?? ''}
-          onChangeText={debouncedLink}
+          value={linkDraft}
+          onChangeText={handleLinkChange}
           onEndEditing={(e) => {
             const val = e.nativeEvent.text
             onUpdateMeta?.(item.uuid, { link: val.length > 0 ? val : null })
@@ -304,8 +336,8 @@ const ExpandedEditor: React.FC<ExpandedEditorProps> = ({
 
       <MetaRow icon="chatbubble-outline" color={accentColor}>
         <TextInput
-          value={item.comment ?? ''}
-          onChangeText={debouncedComment}
+          value={commentDraft}
+          onChangeText={handleCommentChange}
           onEndEditing={(e) => {
             const val = e.nativeEvent.text
             onUpdateMeta?.(item.uuid, { comment: val.length > 0 ? val : null })
@@ -505,10 +537,17 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
+  // DEF-06/3.6: чип дедлайна + иконки-индикаторы в один горизонтальный ряд
+  metaLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
   indicators: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: 3,
+    alignItems: 'center',
+    gap: 6,
   },
   chevronBtn: { padding: 6 },
   expanded: {
@@ -604,5 +643,8 @@ const styles = StyleSheet.create({
   },
   deleteItemText: { ...typography.bodySm, fontWeight: '500' },
 })
+
+// 3.5: memo — ввод в одном пункте не перерисовывает остальные строки списка
+const ItemRow = React.memo(ItemRowComponent)
 
 export default ItemRow

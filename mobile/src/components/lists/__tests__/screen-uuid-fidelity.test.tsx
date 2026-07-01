@@ -213,19 +213,12 @@ describe('Экран [uuid] — шапка', () => {
 describe('Экран [uuid] — goods, пустой список', () => {
   beforeEach(() => { resetToGoodsEmpty() })
 
-  it('сегмент типа содержит вкладки «Купить» и «Сделать»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('Купить')).toBeTruthy()
-    expect(getByText('Сделать')).toBeTruthy()
-  })
-
-  it('сегмент типа: «Купить» активен для goods', async () => {
-    const { getAllByRole } = await render(<Screen />)
-    const tabs = getAllByRole('tab')
-    // TypeSegment: первые два таба — Купить/Сделать
-    const typeSegmentTabs = tabs.slice(0, 2)
-    expect(typeSegmentTabs[0]?.props.accessibilityState?.selected).toBe(true)
-    expect(typeSegmentTabs[1]?.props.accessibilityState?.selected).toBe(false)
+  // 3.2: переключатель типа «Купить»/«Сделать» удалён с экрана редактирования —
+  // тип задачи здесь больше не отображается и не редактируется.
+  it('переключатель типа «Купить»/«Сделать» отсутствует на экране редактирования', async () => {
+    const { queryByText } = await render(<Screen />)
+    expect(queryByText('Купить')).toBeNull()
+    expect(queryByText('Сделать')).toBeNull()
   })
 
   it('прогресс-кольцо отображает 0%', async () => {
@@ -265,14 +258,6 @@ describe('Экран [uuid] — goods, пустой список', () => {
 
 describe('Экран [uuid] — tasks, пустой список', () => {
   beforeEach(() => { resetToTasksEmpty() })
-
-  it('сегмент типа: «Сделать» активен для tasks', async () => {
-    const { getAllByRole } = await render(<Screen />)
-    const tabs = getAllByRole('tab')
-    const typeSegmentTabs = tabs.slice(0, 2)
-    expect(typeSegmentTabs[0]?.props.accessibilityState?.selected).toBe(false)
-    expect(typeSegmentTabs[1]?.props.accessibilityState?.selected).toBe(true)
-  })
 
   it('показывает «0/0 сделано»', async () => {
     const { getByText } = await render(<Screen />)
