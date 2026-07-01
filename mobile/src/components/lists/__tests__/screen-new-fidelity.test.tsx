@@ -96,9 +96,9 @@ describe('Экран «Новая задача» — соответствие м
       expect(getByText('Новая задача')).toBeTruthy()
     })
 
-    it('отображает лейбл НАЗВАНИЕ', async () => {
-      const { getByText } = await render(<NewListScreen />)
-      expect(getByText('НАЗВАНИЕ')).toBeTruthy()
+    it('НЕ отображает отдельный лейбл НАЗВАНИЕ над полем ввода', async () => {
+      const { queryByText } = await render(<NewListScreen />)
+      expect(queryByText('НАЗВАНИЕ')).toBeNull()
     })
 
     it('отображает лейбл ВИД ЗАДАЧИ', async () => {
@@ -106,9 +106,9 @@ describe('Экран «Новая задача» — соответствие м
       expect(getByText('ВИД ЗАДАЧИ')).toBeTruthy()
     })
 
-    it('отображает поле ввода с placeholder «Например, Продукты на неделю»', async () => {
+    it('отображает поле ввода с placeholder «Название задачи»', async () => {
       const { getByPlaceholderText } = await render(<NewListScreen />)
-      expect(getByPlaceholderText('Например, Продукты на неделю')).toBeTruthy()
+      expect(getByPlaceholderText('Название задачи')).toBeTruthy()
     })
 
     it('отображает кнопку «Создать задачу»', async () => {
@@ -168,13 +168,11 @@ describe('Экран «Новая задача» — соответствие м
     })
   })
 
-  describe('порядок секций: НАЗВАНИЕ → ВИД ЗАДАЧИ → кнопка', () => {
-    it('секция НАЗВАНИЕ предшествует ВИД ЗАДАЧИ', async () => {
-      const { getAllByText } = await render(<NewListScreen />)
-      const nazv = getAllByText('НАЗВАНИЕ')
+  describe('порядок секций: поле названия → ВИД ЗАДАЧИ → кнопка', () => {
+    it('секция ВИД ЗАДАЧИ присутствует после поля названия', async () => {
+      const { getAllByText, getByLabelText } = await render(<NewListScreen />)
       const vid = getAllByText('ВИД ЗАДАЧИ')
-      // Оба элемента существуют — порядок гарантируется макетом ScrollView
-      expect(nazv.length).toBeGreaterThanOrEqual(1)
+      expect(getByLabelText('Название задачи')).toBeTruthy()
       expect(vid.length).toBeGreaterThanOrEqual(1)
     })
 
@@ -195,7 +193,7 @@ describe('Экран «Новая задача» — соответствие м
       mockMutate.mockClear()
       const { getByLabelText, getByPlaceholderText } = await render(<NewListScreen />)
       await act(async () => {
-        fireEvent.changeText(getByPlaceholderText('Например, Продукты на неделю'), 'Новая задача')
+        fireEvent.changeText(getByPlaceholderText('Название задачи'), 'Новая задача')
       })
       await act(async () => {
         fireEvent.press(getByLabelText('Создать задачу'))

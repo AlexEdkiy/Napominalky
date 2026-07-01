@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native'
 import { router, Stack } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
 import type { ListType } from '@/db/repositories/shoppingListsRepo'
@@ -41,12 +42,12 @@ const TYPE_OPTIONS: readonly TypeOption[] = [
 
 export default function NewListScreen() {
   const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
   const { createList } = useShoppingLists()
   const [title, setTitle] = useState('')
   const [listType, setListType] = useState<ListType>('goods')
 
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
-  const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
 
   const handleCreate = (): void => {
     const trimmed = title.trim()
@@ -58,112 +59,138 @@ export default function NewListScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.container, { backgroundColor: colors.screenBg }]}
-    >
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
+    <View style={styles.overlay}>
+      <Stack.Screen
+        options={{ presentation: 'transparentModal', animation: 'slide_from_bottom', headerShown: false }}
+      />
+      <Pressable
+        style={styles.backdrop}
+        accessibilityRole="button"
+        accessibilityLabel="Закрыть"
+        onPress={() => router.back()}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.kav}
       >
-        <View style={styles.handleWrap}>
-          <View style={[styles.handle, { backgroundColor: colors.borderInput }]} />
-        </View>
-        <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Новая задача</Text>
-        <View style={styles.fieldBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>НАЗВАНИЕ</Text>
-          <TextInput
-            accessibilityLabel="Название задачи"
-            placeholder="Например, Продукты на неделю"
-            placeholderTextColor={colors.textTertiary}
-            value={title}
-            onChangeText={setTitle}
-            autoFocus
-            style={[
-              styles.titleInput,
-              {
-                color: colors.textPrimary,
-                backgroundColor: colors.surface,
-                borderColor: colors.borderInput,
-              },
-            ]}
-          />
-        </View>
-
-        <View style={styles.fieldBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД ЗАДАЧИ</Text>
-          <View style={styles.typeCards}>
-            {TYPE_OPTIONS.map((opt) => {
-              const isActive = opt.value === listType
-              const optAccent = opt.value === 'tasks' ? colors.amber : colors.accent
-              const optBg = opt.value === 'tasks' ? colors.amberBg : colors.accentSoftBg
-
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => setListType(opt.value)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: isActive }}
-                  style={[
-                    styles.typeCard,
-                    {
-                      backgroundColor: isActive ? optBg : colors.surface,
-                      borderColor: isActive ? optAccent : colors.borderInput,
-                    },
-                  ]}
-                >
-                  <View style={[styles.typeIconWrap, { backgroundColor: optBg }]}>
-                    <Ionicons name={opt.icon} size={24} color={optAccent} />
-                  </View>
-                  <View style={styles.typeInfo}>
-                    <Text style={[styles.typeLabel, { color: colors.textPrimary }]}>
-                      {opt.label}
-                    </Text>
-                    <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>
-                      {opt.description}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      { borderColor: isActive ? optAccent : colors.textTertiary },
-                    ]}
-                  >
-                    {isActive && (
-                      <View style={[styles.radioDot, { backgroundColor: optAccent }]} />
-                    )}
-                  </View>
-                </Pressable>
-              )
-            })}
-          </View>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Создать задачу"
-          onPress={handleCreate}
-          disabled={title.trim().length === 0 || createList.isPending}
-          style={({ pressed }) => [
-            styles.createBtn,
-            { backgroundColor: title.trim().length > 0 ? accentColor : colors.textFaint },
-            pressed && styles.pressed,
+        <View
+          style={[
+            styles.sheet,
+            { backgroundColor: colors.screenBg, paddingBottom: insets.bottom + 16 },
           ]}
         >
-          <Text style={styles.createBtnLabel}>Создать задачу</Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.content}
+          >
+            <View style={styles.handleWrap}>
+              <View style={[styles.handle, { backgroundColor: colors.borderInput }]} />
+            </View>
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Новая задача</Text>
+            <View style={styles.fieldBlock}>
+              <TextInput
+                accessibilityLabel="Название задачи"
+                placeholder="Название задачи"
+                placeholderTextColor={colors.textTertiary}
+                value={title}
+                onChangeText={setTitle}
+                autoFocus
+                style={[
+                  styles.titleInput,
+                  {
+                    color: colors.textPrimary,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.borderInput,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.fieldBlock}>
+              <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД ЗАДАЧИ</Text>
+              <View style={styles.typeCards}>
+                {TYPE_OPTIONS.map((opt) => {
+                  const isActive = opt.value === listType
+                  const optAccent = opt.value === 'tasks' ? colors.amber : colors.accent
+                  const optBg = opt.value === 'tasks' ? colors.amberBg : colors.accentSoftBg
+
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setListType(opt.value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isActive }}
+                      style={[
+                        styles.typeCard,
+                        {
+                          backgroundColor: isActive ? optBg : colors.surface,
+                          borderColor: isActive ? optAccent : colors.borderInput,
+                        },
+                      ]}
+                    >
+                      <View style={[styles.typeIconWrap, { backgroundColor: optBg }]}>
+                        <Ionicons name={opt.icon} size={24} color={optAccent} />
+                      </View>
+                      <View style={styles.typeInfo}>
+                        <Text style={[styles.typeLabel, { color: colors.textPrimary }]}>
+                          {opt.label}
+                        </Text>
+                        <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>
+                          {opt.description}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          { borderColor: isActive ? optAccent : colors.textTertiary },
+                        ]}
+                      >
+                        {isActive && (
+                          <View style={[styles.radioDot, { backgroundColor: optAccent }]} />
+                        )}
+                      </View>
+                    </Pressable>
+                  )
+                })}
+              </View>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Создать задачу"
+              onPress={handleCreate}
+              disabled={title.trim().length === 0 || createList.isPending}
+              style={({ pressed }) => [
+                styles.createBtn,
+                { backgroundColor: title.trim().length > 0 ? accentColor : colors.textFaint },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.createBtnLabel}>Создать задачу</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  kav: { justifyContent: 'flex-end' },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
   content: { padding: 20, paddingTop: 8, gap: 24 },
   handleWrap: { alignItems: 'center', paddingBottom: 8 },
   handle: { width: 42, height: 5, borderRadius: 3 },
-  sheetTitle: { ...typography.cardTitle, fontSize: 21, fontWeight: '700', marginBottom: -8 },
+  sheetTitle: { ...typography.cardTitle, fontSize: 21, fontWeight: '700' },
   fieldBlock: { gap: 8 },
   fieldLabel: { ...typography.sectionLabel },
   titleInput: {

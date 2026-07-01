@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
@@ -12,6 +13,7 @@ import {
   View,
 } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
@@ -75,10 +77,6 @@ export default function ListDetailScreen() {
 
   const handleAdd = (name: string): void => {
     addItem.mutate({ name })
-  }
-
-  const handleToggleType = (newType: ListType): void => {
-    updateList.mutate({ uuid: listUuid, patch: { type: newType } })
   }
 
   const handleExpand = (itemUuid: string): void => {
@@ -206,10 +204,14 @@ export default function ListDetailScreen() {
         textPrimary={colors.textPrimary}
       />
 
-      <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: colors.screenBg }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.uuid}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <ItemRow
               item={item}
@@ -235,7 +237,6 @@ export default function ListDetailScreen() {
               progressSubtitle={progressSubtitle}
               itemFilter={itemFilter}
               onFilterChange={setItemFilter}
-              onTypeChange={handleToggleType}
               onAdd={handleAdd}
               onUpdateListTags={handleUpdateListTags}
               isEmpty={items.length === 0}
@@ -320,7 +321,7 @@ export default function ListDetailScreen() {
             )}
           </>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
@@ -343,29 +344,32 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
   deleteColor,
   bg,
   textPrimary,
-}) => (
-  <View style={[styles.customHeader, { backgroundColor: bg }]}>
-    <Pressable
-      onPress={onBack}
-      accessibilityRole="button"
-      accessibilityLabel="Назад"
-      style={styles.headerBack}
-    >
-      <Ionicons name="chevron-back" size={24} color={textPrimary} />
-    </Pressable>
-    <Text numberOfLines={1} style={[styles.headerTitle, { color: textPrimary }]}>
-      {title}
-    </Text>
-    <Pressable
-      onPress={onDelete}
-      accessibilityRole="button"
-      accessibilityLabel="Удалить задачу"
-      style={styles.headerDelete}
-    >
-      <Text style={[styles.headerDeleteText, { color: deleteColor }]}>Удалить</Text>
-    </Pressable>
-  </View>
-)
+}) => {
+  const insets = useSafeAreaInsets()
+  return (
+    <View style={[styles.customHeader, { backgroundColor: bg, paddingTop: insets.top + 10 }]}>
+      <Pressable
+        onPress={onBack}
+        accessibilityRole="button"
+        accessibilityLabel="Назад"
+        style={styles.headerBack}
+      >
+        <Ionicons name="chevron-back" size={24} color={textPrimary} />
+      </Pressable>
+      <Text numberOfLines={1} style={[styles.headerTitle, { color: textPrimary }]}>
+        {title}
+      </Text>
+      <Pressable
+        onPress={onDelete}
+        accessibilityRole="button"
+        accessibilityLabel="Удалить задачу"
+        style={styles.headerDelete}
+      >
+        <Text style={[styles.headerDeleteText, { color: deleteColor }]}>Удалить</Text>
+      </Pressable>
+    </View>
+  )
+}
 
 // ---- Sub-components --------------------------------------------------------
 
@@ -378,7 +382,6 @@ interface ListHeaderProps {
   progressSubtitle: string
   itemFilter: ItemFilter
   onFilterChange: (f: ItemFilter) => void
-  onTypeChange: (t: ListType) => void
   onAdd: (name: string) => void
   onUpdateListTags: (tags: string[]) => void
   isEmpty: boolean
@@ -395,7 +398,6 @@ const ListHeader: React.FC<ListHeaderProps> = ({
   progressSubtitle,
   itemFilter,
   onFilterChange,
-  onTypeChange,
   onAdd,
   onUpdateListTags,
   isEmpty,
@@ -406,8 +408,6 @@ const ListHeader: React.FC<ListHeaderProps> = ({
 
   return (
     <>
-      <TypeSegment listType={listType} onTypeChange={onTypeChange} accentColor={accentColor} />
-
       <View style={[styles.progressBlock, { backgroundColor: colors.surface }]}>
         <ProgressRing
           value={list.checkedItemsCount}
@@ -493,7 +493,7 @@ const ListTagsRow: React.FC<ListTagsRowProps> = ({ tags, onUpdateTags, accentCol
             </Pressable>
           </View>
         ))}
-        <View style={styles.listTagInputWrap}>
+        <View style={[styles.listTagInputWrap, { borderColor: colors.borderSubtle }]}>
           <TextInput
             value={tagInput}
             onChangeText={setTagInput}
@@ -506,67 +506,6 @@ const ListTagsRow: React.FC<ListTagsRowProps> = ({ tags, onUpdateTags, accentCol
           />
         </View>
       </View>
-    </View>
-  )
-}
-
-// ---- TypeSegment -----------------------------------------------------------
-
-interface TypeSegmentProps {
-  listType: ListType
-  onTypeChange: (t: ListType) => void
-  accentColor: string
-}
-
-type TypeSegmentEntry = {
-  t: ListType
-  label: string
-  icon: React.ComponentProps<typeof Ionicons>['name']
-}
-
-const TYPE_SEGMENT_ENTRIES: readonly TypeSegmentEntry[] = [
-  { t: 'goods', label: 'Купить', icon: 'bag-handle' },
-  { t: 'tasks', label: 'Сделать', icon: 'list' },
-]
-
-const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accentColor }) => {
-  const { colors } = useTheme()
-  return (
-    <View style={[styles.typeSegment, { backgroundColor: colors.borderSubtle }]}>
-      {TYPE_SEGMENT_ENTRIES.map(({ t, label, icon }) => {
-        const isActive = t === listType
-        const segAccent = t === 'tasks' ? colors.amber : colors.accent
-        const segBg = t === 'tasks' ? colors.amberBg : colors.accentSoftBg
-        return (
-          <Pressable
-            key={t}
-            onPress={() => onTypeChange(t)}
-            style={[
-              styles.typeSegmentItem,
-              isActive && {
-                backgroundColor: segBg,
-                borderWidth: 1,
-                borderColor: segAccent,
-                shadowColor: '#000',
-                shadowOpacity: 0.06,
-                shadowRadius: 3,
-              },
-            ]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
-          >
-            <Ionicons name={icon} size={15} color={isActive ? segAccent : colors.textSecondary} />
-            <Text
-              style={[
-                styles.typeSegmentLabel,
-                { color: isActive ? segAccent : colors.textSecondary },
-              ]}
-            >
-              {label}
-            </Text>
-          </Pressable>
-        )
-      })}
     </View>
   )
 }
@@ -700,47 +639,34 @@ const styles = StyleSheet.create({
   progressInfo: { flex: 1, gap: 4 },
   progressCount: { ...typography.body, fontSize: 15, fontWeight: '700' },
   progressSub: { ...typography.bodySm },
-  typeSegment: {
-    flexDirection: 'row',
-    margin: 16,
-    borderRadius: 12,
-    padding: 4,
-  },
-  typeSegmentItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 9,
-    borderWidth: 0,
-  },
-  typeSegmentLabel: { ...typography.body, fontWeight: '700' },
-  // DEF-03: теги списка
+  // DEF-03: теги списка — pill-стиль (светлые овалы)
   listTagsRow: {
     marginHorizontal: 16,
     marginBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingBottom: 8,
   },
   listTagsChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
     alignItems: 'center',
   },
   listTagChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   listTagText: { ...typography.bodySm, fontSize: 12 },
   listTagRemove: { padding: 2 },
-  listTagInputWrap: {},
+  listTagInputWrap: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
   listTagInput: { ...typography.bodySm, fontSize: 12, minWidth: 48 },
   filterRow: {
     flexDirection: 'row',
