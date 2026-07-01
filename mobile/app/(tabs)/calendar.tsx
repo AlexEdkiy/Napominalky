@@ -17,10 +17,17 @@ const startOfMonth = (date: Date): { year: number; month: number } => ({
   month: date.getMonth(),
 })
 
+const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] => {
+  const query = q.trim().toLowerCase()
+  if (query.length === 0) return items
+  return items.filter((i) => i.title.toLowerCase().includes(query))
+}
+
 export default function CalendarScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const [{ year, month }, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => new Date())
+  const [search, setSearch] = useState('')
 
   const { byDay } = useCalendar(year, month)
 
@@ -29,12 +36,22 @@ export default function CalendarScreen(): React.JSX.Element {
     setMonth(startOfMonth(next))
   }
 
-  const dayReminders = byDay.get(ymd(selectedDate)) ?? []
+  const handleAvatarPress = (): void => {
+    router.push('/(tabs)/profile')
+  }
+
+  const dayReminders = filterByTitle(byDay.get(ymd(selectedDate)) ?? [], search)
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <StatusBar style="light" />
-      <DarkHeader title="Календарь" />
+      <DarkHeader
+        title="Календарь"
+        onAvatarPress={handleAvatarPress}
+        collapsibleSearch
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
       <View style={[styles.calCard, { backgroundColor: colors.surface }]}>
         <View style={styles.calHeader}>

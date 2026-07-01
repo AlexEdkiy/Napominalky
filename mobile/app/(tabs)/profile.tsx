@@ -44,7 +44,7 @@ export default function ProfileScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <StatusBar style="light" />
-      <DarkHeader title="Профиль" />
+      <DarkHeader title="Профиль" onAvatarPress={() => {}} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AvatarSection
           initial={initial}
