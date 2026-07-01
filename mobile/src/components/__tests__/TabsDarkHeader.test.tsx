@@ -130,8 +130,14 @@ jest.mock('@/components/calendar/MonthGrid', () => {
 })
 
 jest.mock('@/components/calendar/DayRemindersSheet', () => {
-  const { View } = require('react-native')
-  return () => <View testID="day-reminders-sheet" />
+  const { View, Text } = require('react-native')
+  return ({ reminders }: { reminders: Array<{ uuid: string; title: string }> }) => (
+    <View testID="day-reminders-sheet">
+      {reminders.map((r) => (
+        <Text key={r.uuid}>{r.title}</Text>
+      ))}
+    </View>
+  )
 })
 
 jest.mock('@/components/ui/IconSquare', () => {
@@ -163,6 +169,10 @@ import ProfileScreen from '../../../app/(tabs)/profile'
 import NotesListScreen from '../../../app/(tabs)/notes-list'
 
 describe('Вкладки — DarkHeader', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   describe('HomeScreen', () => {
     it('рендерит DarkHeader с заголовком «Вспомнить всё!»', async () => {
       const { getByText } = await render(<HomeScreen />)
@@ -196,6 +206,62 @@ describe('Вкладки — DarkHeader', () => {
       const { getByTestId } = await render(<ListsScreen />)
       expect(getByTestId('linear-gradient')).toBeTruthy()
     })
+
+    it('рендерит кнопку аватара, ведущую в профиль', async () => {
+      const { getByLabelText } = await render(<ListsScreen />)
+      const { router } = require('expo-router')
+      fireEvent.press(getByLabelText('Профиль'))
+      expect(router.push).toHaveBeenCalledWith('/(tabs)/profile')
+    })
+
+    it('рендерит кнопку-лупу (collapsibleSearch)', async () => {
+      const { getByLabelText, getByPlaceholderText } = await render(<ListsScreen />)
+      fireEvent.press(getByLabelText('Поиск'))
+      await waitFor(() => expect(getByPlaceholderText('Поиск')).toBeTruthy())
+    })
+
+    it('поиск фильтрует список задач по названию', async () => {
+      jest.spyOn(require('@/hooks/useShoppingLists'), 'useShoppingLists').mockReturnValue({
+        lists: [
+          {
+            uuid: 'list-1',
+            userId: null,
+            title: 'Продукты',
+            type: 'goods',
+            tags: null,
+            serverRevision: null,
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+            deletedAt: null,
+            itemsCount: 3,
+            checkedItemsCount: 1,
+          },
+          {
+            uuid: 'list-2',
+            userId: null,
+            title: 'Ремонт квартиры',
+            type: 'tasks',
+            tags: null,
+            serverRevision: null,
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+            deletedAt: null,
+            itemsCount: 2,
+            checkedItemsCount: 0,
+          },
+        ],
+        isLoading: false,
+        isError: false,
+      })
+      const { getByLabelText, getByPlaceholderText, getByText, queryByText } = await render(
+        <ListsScreen />,
+      )
+      fireEvent.press(getByLabelText('Поиск'))
+      const input = await waitFor(() => getByPlaceholderText('Поиск'))
+      fireEvent.changeText(input, 'ремонт')
+      await waitFor(() => expect(getByText('Ремонт квартиры')).toBeTruthy())
+      expect(queryByText('Продукты')).toBeNull()
+    })
   })
 
   describe('CalendarScreen', () => {
@@ -208,6 +274,74 @@ describe('Вкладки — DarkHeader', () => {
       const { getByTestId } = await render(<CalendarScreen />)
       expect(getByTestId('linear-gradient')).toBeTruthy()
     })
+
+    it('рендерит кнопку аватара, ведущую в профиль', async () => {
+      const { getByLabelText } = await render(<CalendarScreen />)
+      const { router } = require('expo-router')
+      fireEvent.press(getByLabelText('Профиль'))
+      expect(router.push).toHaveBeenCalledWith('/(tabs)/profile')
+    })
+
+    it('рендерит кнопку-лупу (collapsibleSearch)', async () => {
+      const { getByLabelText, getByPlaceholderText } = await render(<CalendarScreen />)
+      fireEvent.press(getByLabelText('Поиск'))
+      await waitFor(() => expect(getByPlaceholderText('Поиск')).toBeTruthy())
+    })
+
+    it('поиск фильтрует напоминания выбранного дня по названию', async () => {
+      const byDay = new Map([
+        [
+          '2026-06-26',
+          [
+            {
+              uuid: 'r-1',
+              userId: null,
+              title: 'Купить молоко',
+              notes: null,
+              remindAt: '2026-06-26T10:00:00Z',
+              recurrence: 'none',
+              isCompleted: false,
+              completedAt: null,
+              snoozedUntil: null,
+              sourceUuid: null,
+              sourceType: null,
+              notificationId: null,
+              serverRevision: null,
+              createdAt: '2026-06-01T00:00:00Z',
+              updatedAt: '2026-06-01T00:00:00Z',
+              deletedAt: null,
+            },
+            {
+              uuid: 'r-2',
+              userId: null,
+              title: 'Позвонить врачу',
+              notes: null,
+              remindAt: '2026-06-26T12:00:00Z',
+              recurrence: 'none',
+              isCompleted: false,
+              completedAt: null,
+              snoozedUntil: null,
+              sourceUuid: null,
+              sourceType: null,
+              notificationId: null,
+              serverRevision: null,
+              createdAt: '2026-06-01T00:00:00Z',
+              updatedAt: '2026-06-01T00:00:00Z',
+              deletedAt: null,
+            },
+          ],
+        ],
+      ])
+      jest.spyOn(require('@/hooks/useCalendar'), 'useCalendar').mockReturnValue({ byDay })
+      const { getByLabelText, getByPlaceholderText, getByText, queryByText } = await render(
+        <CalendarScreen />,
+      )
+      fireEvent.press(getByLabelText('Поиск'))
+      const input = await waitFor(() => getByPlaceholderText('Поиск'))
+      fireEvent.changeText(input, 'врачу')
+      await waitFor(() => expect(getByText('Позвонить врачу')).toBeTruthy())
+      expect(queryByText('Купить молоко')).toBeNull()
+    })
   })
 
   describe('ProfileScreen', () => {
@@ -219,6 +353,19 @@ describe('Вкладки — DarkHeader', () => {
     it('рендерит LinearGradient (тёмная шапка)', async () => {
       const { getByTestId } = await render(<ProfileScreen />)
       expect(getByTestId('linear-gradient')).toBeTruthy()
+    })
+
+    it('рендерит кнопку-аккаунт в шапке (без навигации)', async () => {
+      const { getByLabelText } = await render(<ProfileScreen />)
+      const { router } = require('expo-router')
+      fireEvent.press(getByLabelText('Профиль'))
+      expect(router.push).not.toHaveBeenCalledWith('/(tabs)/profile')
+    })
+
+    it('не рендерит строку поиска на Профиле', async () => {
+      const { queryByLabelText, queryByPlaceholderText } = await render(<ProfileScreen />)
+      expect(queryByLabelText('Поиск')).toBeNull()
+      expect(queryByPlaceholderText('Поиск')).toBeNull()
     })
   })
 

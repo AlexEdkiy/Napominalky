@@ -39,6 +39,12 @@ const filterLists = (lists: ShoppingList[], tab: FilterTab): ShoppingList[] => {
   return lists.filter((l) => l.type === tab)
 }
 
+const filterByTitle = (lists: ShoppingList[], q: string): ShoppingList[] => {
+  const query = q.trim().toLowerCase()
+  if (query.length === 0) return lists
+  return lists.filter((l) => l.title.toLowerCase().includes(query))
+}
+
 const formatDeadlineLabel = (deadline: string | null): string | null => {
   if (deadline === null) return null
   return formatDeadlineChip(deadline)
@@ -50,6 +56,7 @@ export default function ListsScreen(): React.JSX.Element {
   const deadlinesMap = useNearestDeadlines()
   const { isSyncing, syncNow } = useSyncEngine()
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
+  const [search, setSearch] = useState('')
 
   const goodsCount = lists.filter((l) => l.type === 'goods').length
   const tasksCount = lists.filter((l) => l.type === 'tasks').length
@@ -59,16 +66,26 @@ export default function ListsScreen(): React.JSX.Element {
     tasks: tasksCount,
   }
 
-  const filtered = filterLists(lists, activeTab)
+  const filtered = filterByTitle(filterLists(lists, activeTab), search)
 
   const handleOpen = (uuid: string): void => {
     router.push(`/lists/${uuid}`)
   }
 
+  const handleAvatarPress = (): void => {
+    router.push('/(tabs)/profile')
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <StatusBar style="light" />
-      <DarkHeader title="Задачи" />
+      <DarkHeader
+        title="Задачи"
+        onAvatarPress={handleAvatarPress}
+        collapsibleSearch
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
       <FilterTabs
         tabs={TABS}
@@ -121,7 +138,9 @@ export default function ListsScreen(): React.JSX.Element {
             </View>
           )}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<EmptyState color={colors.textSecondary} />}
+          ListEmptyComponent={
+            <EmptyState color={colors.textSecondary} hasSearch={search.trim().length > 0} />
+          }
         />
       )}
     </View>
@@ -195,10 +214,19 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
   )
 }
 
-const EmptyState: React.FC<{ color: string }> = ({ color }) => (
+interface EmptyStateProps {
+  color: string
+  hasSearch: boolean
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ color, hasSearch }) => (
   <View style={styles.empty}>
-    <Text style={[styles.emptyTitle, { color }]}>Задач пока нет</Text>
-    <Text style={[styles.emptyHint, { color }]}>Нажмите «+», чтобы создать первый</Text>
+    <Text style={[styles.emptyTitle, { color }]}>
+      {hasSearch ? 'Ничего не найдено' : 'Задач пока нет'}
+    </Text>
+    <Text style={[styles.emptyHint, { color }]}>
+      {hasSearch ? 'Попробуйте изменить запрос' : 'Нажмите «+», чтобы создать первый'}
+    </Text>
   </View>
 )
 
