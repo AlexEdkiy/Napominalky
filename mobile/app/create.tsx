@@ -37,8 +37,8 @@ const OPTIONS: CreateOption[] = [
     route: '/notes/new',
   },
   {
-    label: 'Список',
-    hint: 'Список покупок или задач',
+    label: 'Задача',
+    hint: 'Покупки или дела',
     icon: 'list' as IoniconsName,
     iconSet: 'ionicons',
     iconColor: '#7C6CF0',

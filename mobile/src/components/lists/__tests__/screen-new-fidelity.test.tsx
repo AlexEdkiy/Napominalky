@@ -1,7 +1,7 @@
 /**
- * UI-fidelity тесты: экран «Создание списка» (app/lists/new.tsx).
+ * UI-fidelity тесты: экран «Создание задачи» (app/lists/new.tsx).
  * Проверяем: заголовок, лейблы, placeholder, порядок секций, карточки типов,
- * состояние radio, кнопку «Создать список».
+ * состояние radio, кнопку «Создать задачу».
  */
 jest.mock('@/db/client', () => ({ db: {} }))
 
@@ -89,11 +89,11 @@ const NewListScreen: React.FC = require('../../../../app/lists/new').default
 // Тесты экрана «Создание списка»
 // ============================================================
 
-describe('Экран «Новый список» — соответствие макету', () => {
+describe('Экран «Новая задача» — соответствие макету', () => {
   describe('заголовок и структура', () => {
-    it('отображает заголовок «Новый список»', async () => {
+    it('отображает заголовок «Новая задача»', async () => {
       const { getByText } = await render(<NewListScreen />)
-      expect(getByText('Новый список')).toBeTruthy()
+      expect(getByText('Новая задача')).toBeTruthy()
     })
 
     it('отображает лейбл НАЗВАНИЕ', async () => {
@@ -111,54 +111,54 @@ describe('Экран «Новый список» — соответствие м
       expect(getByPlaceholderText('Например, Продукты на неделю')).toBeTruthy()
     })
 
-    it('отображает кнопку «Создать список»', async () => {
+    it('отображает кнопку «Создать задачу»', async () => {
       const { getByLabelText } = await render(<NewListScreen />)
-      expect(getByLabelText('Создать список')).toBeTruthy()
+      expect(getByLabelText('Создать задачу')).toBeTruthy()
     })
   })
 
   describe('карточки типов списка', () => {
-    it('отображает карточку «Товары»', async () => {
+    it('отображает карточку «Купить»', async () => {
       const { getByText } = await render(<NewListScreen />)
-      expect(getByText('Товары')).toBeTruthy()
+      expect(getByText('Купить')).toBeTruthy()
     })
 
-    it('отображает карточку «Задачи»', async () => {
+    it('отображает карточку «Сделать»', async () => {
       const { getByText } = await render(<NewListScreen />)
-      expect(getByText('Задачи')).toBeTruthy()
+      expect(getByText('Сделать')).toBeTruthy()
     })
 
-    it('отображает подпись под «Товары»: «Список покупок — отмечайте, что куплено»', async () => {
+    it('отображает подпись под «Купить»: «Покупки — отмечайте, что куплено»', async () => {
       const { getByText } = await render(<NewListScreen />)
-      expect(getByText('Список покупок — отмечайте, что куплено')).toBeTruthy()
+      expect(getByText('Покупки — отмечайте, что куплено')).toBeTruthy()
     })
 
-    it('отображает подпись под «Задачи»: «Чек-лист дел — дедлайны и напоминания»', async () => {
+    it('отображает подпись под «Сделать»: «Дела — отмечайте, что сделано»', async () => {
       const { getByText } = await render(<NewListScreen />)
-      expect(getByText('Чек-лист дел — дедлайны и напоминания')).toBeTruthy()
+      expect(getByText('Дела — отмечайте, что сделано')).toBeTruthy()
     })
 
-    it('карточка «Товары» имеет accessibilityRole radio', async () => {
+    it('карточка «Купить» имеет accessibilityRole radio', async () => {
       const { getAllByRole } = await render(<NewListScreen />)
       const radios = getAllByRole('radio')
       expect(radios.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('по умолчанию активна карточка «Товары» (radio checked=true)', async () => {
+    it('по умолчанию активна карточка «Купить» (radio checked=true)', async () => {
       const { getAllByRole } = await render(<NewListScreen />)
       const radios = getAllByRole('radio')
-      // Первый radio — Товары, checked=true по умолчанию
+      // Первый radio — Купить, checked=true по умолчанию
       expect(radios[0]?.props.accessibilityState?.checked).toBe(true)
       expect(radios[1]?.props.accessibilityState?.checked).toBe(false)
     })
 
-    it('при нажатии «Задачи» карточка становится активной (radio checked=true)', async () => {
+    it('при нажатии «Сделать» карточка становится активной (radio checked=true)', async () => {
       const { getAllByRole } = await render(<NewListScreen />)
       const radios = getAllByRole('radio')
-      // По умолчанию Товары (index 0) активна
+      // По умолчанию Купить (index 0) активна
       expect(radios[0]?.props.accessibilityState?.checked).toBe(true)
       expect(radios[1]?.props.accessibilityState?.checked).toBe(false)
-      // Нажимаем «Задачи» (index 1) через act
+      // Нажимаем «Сделать» (index 1) через act
       await act(async () => {
         fireEvent.press(radios[1]!)
       })
@@ -184,24 +184,24 @@ describe('Экран «Новый список» — соответствие м
     })
   })
 
-  describe('кнопка «Создать список»', () => {
-    it('кнопка «Создать список» присутствует на экране', async () => {
+  describe('кнопка «Создать задачу»', () => {
+    it('кнопка «Создать задачу» присутствует на экране', async () => {
       const { getByLabelText } = await render(<NewListScreen />)
       // Структурная проверка: кнопка существует и имеет правильный label
-      expect(getByLabelText('Создать список')).toBeTruthy()
+      expect(getByLabelText('Создать задачу')).toBeTruthy()
     })
 
     it('кнопка вызывает createList.mutate при нажатии с заполненным полем', async () => {
       mockMutate.mockClear()
       const { getByLabelText, getByPlaceholderText } = await render(<NewListScreen />)
       await act(async () => {
-        fireEvent.changeText(getByPlaceholderText('Например, Продукты на неделю'), 'Новый список')
+        fireEvent.changeText(getByPlaceholderText('Например, Продукты на неделю'), 'Новая задача')
       })
       await act(async () => {
-        fireEvent.press(getByLabelText('Создать список'))
+        fireEvent.press(getByLabelText('Создать задачу'))
       })
       expect(mockMutate).toHaveBeenCalledWith(
-        { title: 'Новый список', type: 'goods' },
+        { title: 'Новая задача', type: 'goods' },
         expect.any(Object),
       )
     })

@@ -60,7 +60,7 @@ const makeList = (overrides: Partial<ShoppingList> = {}): ShoppingList => ({
   ...overrides,
 })
 
-describe('ListCard — соответствие макету (Экран «Списки»)', () => {
+describe('ListCard — соответствие макету (Экран «Задачи»)', () => {
   describe('тип goods', () => {
     it('отображает название списка', async () => {
       const { getByText } = await render(

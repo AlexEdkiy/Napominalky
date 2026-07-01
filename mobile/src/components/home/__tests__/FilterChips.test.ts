@@ -2,7 +2,7 @@ import type { FeedFilter, FilterCounts } from '../FilterChips'
 
 const TABS: { key: FeedFilter; label: string; hasDot: boolean }[] = [
   { key: 'all', label: 'Все', hasDot: false },
-  { key: 'lists', label: 'Списки', hasDot: true },
+  { key: 'lists', label: 'Задачи', hasDot: true },
   { key: 'reminders', label: 'Напоминания', hasDot: true },
   { key: 'notes', label: 'Заметки', hasDot: true },
 ]

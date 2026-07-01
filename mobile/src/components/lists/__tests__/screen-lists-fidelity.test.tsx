@@ -1,5 +1,5 @@
 /**
- * UI-fidelity тесты: экран «Списки» (lists.tsx) — FilterTabs + строки списков.
+ * UI-fidelity тесты: экран «Задачи» (lists.tsx) — FilterTabs + строки списков.
  * Тестируем FilterTabs и ListCard в связке через рендер экрана с полными моками.
  */
 jest.mock('@/db/client', () => ({ db: {} }))
@@ -101,8 +101,8 @@ import type { ShoppingList } from '@/db/repositories/shoppingListsRepo'
  */
 const TABS = [
   { key: 'all', label: 'Все' },
-  { key: 'goods', label: 'Товары' },
-  { key: 'tasks', label: 'Задачи' },
+  { key: 'goods', label: 'Купить' },
+  { key: 'tasks', label: 'Сделать' },
 ] as const
 
 type FilterTabKey = 'all' | 'goods' | 'tasks'
@@ -159,12 +159,12 @@ const makeList = (overrides: Partial<ShoppingList> = {}): ShoppingList => ({
 })
 
 // ============================================================
-// Тесты экрана «Списки» — FilterTabs
+// Тесты экрана «Задачи» — FilterTabs
 // ============================================================
 
-describe('Экран «Списки» — FilterTabs (макет)', () => {
+describe('Экран «Задачи» — FilterTabs (макет)', () => {
   describe('порядок и метки вкладок', () => {
-    it('отображает три вкладки: Все, Товары, Задачи', async () => {
+    it('отображает три вкладки: Все, Купить, Сделать', async () => {
       const { getByTestId, getByText } = await render(
         <MockFilterTabs active="all" counts={{ all: 10, goods: 6, tasks: 4 }} />,
       )
@@ -172,11 +172,11 @@ describe('Экран «Списки» — FilterTabs (макет)', () => {
       expect(getByTestId('tab-goods')).toBeTruthy()
       expect(getByTestId('tab-tasks')).toBeTruthy()
       expect(getByText('Все')).toBeTruthy()
-      expect(getByText('Товары')).toBeTruthy()
-      expect(getByText('Задачи')).toBeTruthy()
+      expect(getByText('Купить')).toBeTruthy()
+      expect(getByText('Сделать')).toBeTruthy()
     })
 
-    it('порядок вкладок: Все → Товары → Задачи', async () => {
+    it('порядок вкладок: Все → Купить → Сделать', async () => {
       const { getAllByRole } = await render(
         <MockFilterTabs active="all" counts={{ all: 10, goods: 6, tasks: 4 }} />,
       )
@@ -206,14 +206,14 @@ describe('Экран «Списки» — FilterTabs (макет)', () => {
       expect(getByTestId('count-tasks').props.children).toBe(4)
     })
 
-    it('у Товары есть цветная точка (dot)', async () => {
+    it('у Купить есть цветная точка (dot)', async () => {
       const { getByTestId } = await render(
         <MockFilterTabs active="all" counts={{ all: 0, goods: 0, tasks: 0 }} />,
       )
       expect(getByTestId('dot-goods')).toBeTruthy()
     })
 
-    it('у Задачи есть цветная точка (dot)', async () => {
+    it('у Сделать есть цветная точка (dot)', async () => {
       const { getByTestId } = await render(
         <MockFilterTabs active="all" counts={{ all: 0, goods: 0, tasks: 0 }} />,
       )
@@ -236,7 +236,7 @@ describe('Экран «Списки» — FilterTabs (макет)', () => {
       expect(getByTestId('tab-all').props.accessibilityState?.selected).toBe(true)
     })
 
-    it('вкладка «Товары» активна когда active=goods', async () => {
+    it('вкладка «Купить» активна когда active=goods', async () => {
       const { getByTestId } = await render(
         <MockFilterTabs active="goods" counts={{ all: 5, goods: 3, tasks: 2 }} />,
       )
@@ -244,7 +244,7 @@ describe('Экран «Списки» — FilterTabs (макет)', () => {
       expect(getByTestId('tab-all').props.accessibilityState?.selected).toBe(false)
     })
 
-    it('вкладка «Задачи» активна когда active=tasks', async () => {
+    it('вкладка «Сделать» активна когда active=tasks', async () => {
       const { getByTestId } = await render(
         <MockFilterTabs active="tasks" counts={{ all: 5, goods: 3, tasks: 2 }} />,
       )

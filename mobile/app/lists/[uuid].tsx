@@ -155,7 +155,7 @@ export default function ListDetailScreen() {
   }
 
   const confirmDeleteList = (): void => {
-    Alert.alert('Удалить список?', 'Список и все пункты будут удалены.', [
+    Alert.alert('Удалить задачу?', 'Задача и все пункты будут удалены.', [
       { text: 'Отмена', style: 'cancel' },
       {
         text: 'Удалить',
@@ -179,14 +179,14 @@ export default function ListDetailScreen() {
   if (list == null) {
     return (
       <View style={[styles.center, { backgroundColor: colors.screenBg }]}>
-        <Text style={[styles.missing, { color: colors.textSecondary }]}>Список не найден</Text>
+        <Text style={[styles.missing, { color: colors.textSecondary }]}>Задача не найдена</Text>
       </View>
     )
   }
 
   const filtered = filterItems(items, itemFilter)
   const doneLabel = listType === 'tasks' ? 'сделано' : 'куплено'
-  const emptyHint = listType === 'tasks' ? 'Задач пока нет' : 'Список пока пуст'
+  const emptyHint = listType === 'tasks' ? 'Задач пока нет' : 'Пусто пока'
   const emptySubHint =
     listType === 'tasks' ? 'Добавьте первую задачу' : 'Добавьте первый товар'
   const progressSubtitle =
@@ -359,7 +359,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
     <Pressable
       onPress={onDelete}
       accessibilityRole="button"
-      accessibilityLabel="Удалить список"
+      accessibilityLabel="Удалить задачу"
       style={styles.headerDelete}
     >
       <Text style={[styles.headerDeleteText, { color: deleteColor }]}>Удалить</Text>
@@ -525,8 +525,8 @@ type TypeSegmentEntry = {
 }
 
 const TYPE_SEGMENT_ENTRIES: readonly TypeSegmentEntry[] = [
-  { t: 'goods', label: 'Товары', icon: 'bag-handle' },
-  { t: 'tasks', label: 'Задачи', icon: 'list' },
+  { t: 'goods', label: 'Купить', icon: 'bag-handle' },
+  { t: 'tasks', label: 'Сделать', icon: 'list' },
 ]
 
 const TypeSegment: React.FC<TypeSegmentProps> = ({ listType, onTypeChange, accentColor }) => {
@@ -637,10 +637,7 @@ const EmptyBanner: React.FC<EmptyBannerProps> = ({
   const { colors } = useTheme()
   const icon: React.ComponentProps<typeof Ionicons>['name'] =
     listType === 'tasks' ? 'list' : 'bag-handle'
-  const successText =
-    listType === 'tasks'
-      ? 'Список создан — добавьте первую задачу'
-      : 'Список создан — добавьте первый товар'
+  const successText = 'Задача создана — добавьте первый пункт'
   return (
     <View style={styles.emptyBannerOuter}>
       <View style={[styles.emptyBannerSuccess, { backgroundColor: accentBg }]}>
