@@ -96,4 +96,36 @@ describe('FeedCard', () => {
       expect(() => fireEvent(getByRole('button'), 'longPress')).not.toThrow()
     })
   })
+
+  describe('progress (кольцо прогресса задач)', () => {
+    it('без progress рендерит стандартный iconSquare, а не кольцо', async () => {
+      const { queryByTestId } = await render(<FeedCard {...defaultProps} />)
+      expect(queryByTestId('progress-ring-svg')).toBeNull()
+    })
+
+    it('с progress рендерит кольцо вместо iconSquare', async () => {
+      const { getByTestId } = await render(
+        <FeedCard {...defaultProps} progress={{ done: 2, total: 4 }} />,
+      )
+      expect(getByTestId('progress-ring-svg')).toBeTruthy()
+    })
+
+    it('рендерит иконку типа внутри кольца', async () => {
+      const { getByTestId } = await render(
+        <FeedCard
+          {...defaultProps}
+          iconName="bag-handle"
+          progress={{ done: 1, total: 3 }}
+        />,
+      )
+      expect(getByTestId('icon-bag-handle')).toBeTruthy()
+    })
+
+    it('не падает при total=0 (пустая задача)', async () => {
+      const { getByTestId } = await render(
+        <FeedCard {...defaultProps} progress={{ done: 0, total: 0 }} />,
+      )
+      expect(getByTestId('progress-ring-svg')).toBeTruthy()
+    })
+  })
 })

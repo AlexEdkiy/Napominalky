@@ -46,8 +46,10 @@ jest.mock('@/hooks/useReminders', () => ({
   useReminders: () => ({ reminders: [], isLoading: false }),
 }))
 
+const mockLists: Array<Record<string, unknown>> = []
+
 jest.mock('@/hooks/useShoppingLists', () => ({
-  useShoppingLists: () => ({ lists: [], isLoading: false }),
+  useShoppingLists: () => ({ lists: mockLists, isLoading: false }),
 }))
 
 jest.mock('@/components/home/FilterChips', () => {
@@ -63,12 +65,15 @@ jest.mock('@/theme', () => ({
   useTheme: () => ({
     colors: {
       screenBg: '#fff',
+      surface: '#ffffff',
+      borderSubtle: '#EFF3F6',
       accent: '#0D9488',
       amber: '#D9962A',
       noteBlue: '#4067a8',
       noteBlueBg: '#dde6f3',
       accentSoftBg: '#DDF1ED',
       amberBg: '#FBEFD6',
+      textPrimary: '#1B2733',
       textSecondary: '#76828F',
       textTertiary: '#9AA6B2',
     },
@@ -85,6 +90,16 @@ import HomeScreen from '../index'
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockLists.length = 0
+})
+
+const buildList = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+  uuid: 'list-1',
+  title: 'Купить продукты',
+  type: 'goods',
+  itemsCount: 4,
+  checkedItemsCount: 2,
+  ...overrides,
 })
 
 describe('HomeScreen — заголовок', () => {
@@ -123,5 +138,31 @@ describe('HomeScreen — pull-to-refresh', () => {
       refreshControl: { props: { refreshing: boolean } }
     }
     expect(refreshControl.props.refreshing).toBe(false)
+  })
+})
+
+describe('HomeScreen — карточки задач (кольцо прогресса + иконка по типу)', () => {
+  it('рендерит кольцо прогресса для карточки задачи', async () => {
+    mockLists.push(buildList())
+    const { getAllByTestId } = await render(<HomeScreen />)
+    expect(getAllByTestId('progress-ring-svg').length).toBeGreaterThan(0)
+  })
+
+  it('goods → иконка bag-handle', async () => {
+    mockLists.push(buildList({ type: 'goods' }))
+    const { getByTestId } = await render(<HomeScreen />)
+    expect(getByTestId('icon-bag-handle')).toBeTruthy()
+  })
+
+  it('tasks → иконка list', async () => {
+    mockLists.push(buildList({ type: 'tasks' }))
+    const { getByTestId } = await render(<HomeScreen />)
+    expect(getByTestId('icon-list')).toBeTruthy()
+  })
+
+  it('не падает при itemsCount=0', async () => {
+    mockLists.push(buildList({ itemsCount: 0, checkedItemsCount: 0 }))
+    const { getAllByTestId } = await render(<HomeScreen />)
+    expect(getAllByTestId('progress-ring-svg').length).toBeGreaterThan(0)
   })
 })

@@ -38,6 +38,14 @@ const listSubtitle = (list: ShoppingList): string => {
   return `${list.itemsCount} пунктов · ${list.checkedItemsCount} куплено`
 }
 
+const listIconName = (list: ShoppingList): 'bag-handle' | 'list' =>
+  list.type === 'tasks' ? 'list' : 'bag-handle'
+
+const listAccentColor = (
+  list: ShoppingList,
+  colors: { accent: string; amber: string },
+): string => (list.type === 'tasks' ? colors.amber : colors.accent)
+
 export default function HomeScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { notes, isLoading: notesLoading, deleteNote } = useNotes()
@@ -133,9 +141,10 @@ export default function HomeScreen(): React.JSX.Element {
                   uuid={list.uuid}
                   title={list.title}
                   subtitle={listSubtitle(list)}
-                  iconName="checkmark-done"
-                  iconColor={colors.accent}
-                  iconBg={colors.accentSoftBg}
+                  iconName={listIconName(list)}
+                  iconColor={listAccentColor(list, colors)}
+                  iconBg={list.type === 'tasks' ? colors.amberBg : colors.accentSoftBg}
+                  progress={{ done: list.checkedItemsCount, total: list.itemsCount }}
                   onPress={(uuid) => router.push(`/lists/${uuid}`)}
                   colors={colors}
                 />

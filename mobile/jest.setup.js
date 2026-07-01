@@ -38,6 +38,25 @@ jest.mock('expo-linear-gradient', () => {
   }
 })
 
+// react-native-svg недоступен в jsdom — Svg/Circle/G/Path превращаются в проходной View.
+jest.mock('react-native-svg', () => {
+  const React = require('react')
+  const { View } = require('react-native')
+  const passThrough = (testID) => {
+    const Component = ({ children, ...props }) =>
+      React.createElement(View, { testID, ...props }, children)
+    return Component
+  }
+  return {
+    __esModule: true,
+    default: passThrough('svg'),
+    Svg: passThrough('svg'),
+    Circle: passThrough('svg-circle'),
+    G: passThrough('svg-g'),
+    Path: passThrough('svg-path'),
+  }
+})
+
 // SafeAreaProvider недоступен в jsdom — отдаём нулевые инсеты и проходные компоненты.
 // Отдельные тесты могут переопределить мок через jest.mock в своём файле.
 jest.mock('react-native-safe-area-context', () => {
