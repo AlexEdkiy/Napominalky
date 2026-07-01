@@ -74,7 +74,7 @@ export default function NewListScreen() {
         <View style={styles.fieldBlock}>
           <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>НАЗВАНИЕ</Text>
           <TextInput
-            accessibilityLabel="Название списка"
+            accessibilityLabel="Название задачи"
             placeholder="Например, Продукты на неделю"
             placeholderTextColor={colors.textTertiary}
             value={title}
@@ -92,7 +92,7 @@ export default function NewListScreen() {
         </View>
 
         <View style={styles.fieldBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД СПИСКА</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД ЗАДАЧИ</Text>
           <View style={styles.typeCards}>
             {TYPE_OPTIONS.map((opt) => {
               const isActive = opt.value === listType

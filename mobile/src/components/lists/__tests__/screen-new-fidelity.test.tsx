@@ -101,9 +101,9 @@ describe('Экран «Новая задача» — соответствие м
       expect(getByText('НАЗВАНИЕ')).toBeTruthy()
     })
 
-    it('отображает лейбл ВИД СПИСКА', async () => {
+    it('отображает лейбл ВИД ЗАДАЧИ', async () => {
       const { getByText } = await render(<NewListScreen />)
-      expect(getByText('ВИД СПИСКА')).toBeTruthy()
+      expect(getByText('ВИД ЗАДАЧИ')).toBeTruthy()
     })
 
     it('отображает поле ввода с placeholder «Например, Продукты на неделю»', async () => {
@@ -168,11 +168,11 @@ describe('Экран «Новая задача» — соответствие м
     })
   })
 
-  describe('порядок секций: НАЗВАНИЕ → ВИД СПИСКА → кнопка', () => {
-    it('секция НАЗВАНИЕ предшествует ВИД СПИСКА', async () => {
+  describe('порядок секций: НАЗВАНИЕ → ВИД ЗАДАЧИ → кнопка', () => {
+    it('секция НАЗВАНИЕ предшествует ВИД ЗАДАЧИ', async () => {
       const { getAllByText } = await render(<NewListScreen />)
       const nazv = getAllByText('НАЗВАНИЕ')
-      const vid = getAllByText('ВИД СПИСКА')
+      const vid = getAllByText('ВИД ЗАДАЧИ')
       // Оба элемента существуют — порядок гарантируется макетом ScrollView
       expect(nazv.length).toBeGreaterThanOrEqual(1)
       expect(vid.length).toBeGreaterThanOrEqual(1)
@@ -180,7 +180,7 @@ describe('Экран «Новая задача» — соответствие м
 
     it('поле ввода названия присутствует на экране', async () => {
       const { getByLabelText } = await render(<NewListScreen />)
-      expect(getByLabelText('Название списка')).toBeTruthy()
+      expect(getByLabelText('Название задачи')).toBeTruthy()
     })
   })
 

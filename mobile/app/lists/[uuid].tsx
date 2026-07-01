@@ -486,7 +486,7 @@ const ListTagsRow: React.FC<ListTagsRowProps> = ({ tags, onUpdateTags, accentCol
             <Pressable
               onPress={() => handleRemove(tag)}
               accessibilityRole="button"
-              accessibilityLabel={`Удалить тег списка ${tag}`}
+              accessibilityLabel={`Удалить тег задачи ${tag}`}
               style={styles.listTagRemove}
             >
               <Ionicons name="close" size={12} color={colors.textTertiary} />
@@ -502,7 +502,7 @@ const ListTagsRow: React.FC<ListTagsRowProps> = ({ tags, onUpdateTags, accentCol
             placeholderTextColor={accentColor}
             style={[styles.listTagInput, { color: colors.textPrimary }]}
             returnKeyType="done"
-            accessibilityLabel="Добавить тег списка"
+            accessibilityLabel="Добавить тег задачи"
           />
         </View>
       </View>
