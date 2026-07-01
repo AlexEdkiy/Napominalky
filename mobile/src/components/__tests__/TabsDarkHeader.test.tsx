@@ -187,9 +187,9 @@ describe('Вкладки — DarkHeader', () => {
   })
 
   describe('ListsScreen', () => {
-    it('рендерит DarkHeader с заголовком «Списки»', async () => {
+    it('рендерит DarkHeader с заголовком «Задачи»', async () => {
       const { getByText } = await render(<ListsScreen />)
-      expect(getByText('Списки')).toBeTruthy()
+      expect(getByText('Задачи')).toBeTruthy()
     })
 
     it('рендерит LinearGradient (тёмная шапка)', async () => {

@@ -202,7 +202,7 @@ describe('Экран [uuid] — шапка', () => {
 
   it('кнопка «Удалить» в заголовке присутствует', async () => {
     const { getByLabelText } = await render(<Screen />)
-    expect(getByLabelText('Удалить список')).toBeTruthy()
+    expect(getByLabelText('Удалить задачу')).toBeTruthy()
   })
 })
 
@@ -213,16 +213,16 @@ describe('Экран [uuid] — шапка', () => {
 describe('Экран [uuid] — goods, пустой список', () => {
   beforeEach(() => { resetToGoodsEmpty() })
 
-  it('сегмент типа содержит вкладки «Товары» и «Задачи»', async () => {
+  it('сегмент типа содержит вкладки «Купить» и «Сделать»', async () => {
     const { getByText } = await render(<Screen />)
-    expect(getByText('Товары')).toBeTruthy()
-    expect(getByText('Задачи')).toBeTruthy()
+    expect(getByText('Купить')).toBeTruthy()
+    expect(getByText('Сделать')).toBeTruthy()
   })
 
-  it('сегмент типа: «Товары» активен для goods', async () => {
+  it('сегмент типа: «Купить» активен для goods', async () => {
     const { getAllByRole } = await render(<Screen />)
     const tabs = getAllByRole('tab')
-    // TypeSegment: первые два таба — Товары/Задачи
+    // TypeSegment: первые два таба — Купить/Сделать
     const typeSegmentTabs = tabs.slice(0, 2)
     expect(typeSegmentTabs[0]?.props.accessibilityState?.selected).toBe(true)
     expect(typeSegmentTabs[1]?.props.accessibilityState?.selected).toBe(false)
@@ -248,14 +248,14 @@ describe('Экран [uuid] — goods, пустой список', () => {
     expect(getByPlaceholderText('Добавить товар')).toBeTruthy()
   })
 
-  it('баннер «Список создан — добавьте первый товар»', async () => {
+  it('баннер «Задача создана — добавьте первый пункт»', async () => {
     const { getByText } = await render(<Screen />)
-    expect(getByText('Список создан — добавьте первый товар')).toBeTruthy()
+    expect(getByText('Задача создана — добавьте первый пункт')).toBeTruthy()
   })
 
-  it('текст «Список пока пуст»', async () => {
+  it('текст «Пусто пока»', async () => {
     const { getByText } = await render(<Screen />)
-    expect(getByText('Список пока пуст')).toBeTruthy()
+    expect(getByText('Пусто пока')).toBeTruthy()
   })
 })
 
@@ -266,7 +266,7 @@ describe('Экран [uuid] — goods, пустой список', () => {
 describe('Экран [uuid] — tasks, пустой список', () => {
   beforeEach(() => { resetToTasksEmpty() })
 
-  it('сегмент типа: «Задачи» активен для tasks', async () => {
+  it('сегмент типа: «Сделать» активен для tasks', async () => {
     const { getAllByRole } = await render(<Screen />)
     const tabs = getAllByRole('tab')
     const typeSegmentTabs = tabs.slice(0, 2)
@@ -289,9 +289,9 @@ describe('Экран [uuid] — tasks, пустой список', () => {
     expect(getByPlaceholderText('Новая задача')).toBeTruthy()
   })
 
-  it('баннер «Список создан — добавьте первую задачу»', async () => {
+  it('баннер «Задача создана — добавьте первый пункт»', async () => {
     const { getByText } = await render(<Screen />)
-    expect(getByText('Список создан — добавьте первую задачу')).toBeTruthy()
+    expect(getByText('Задача создана — добавьте первый пункт')).toBeTruthy()
   })
 
   it('текст «Задач пока нет»', async () => {

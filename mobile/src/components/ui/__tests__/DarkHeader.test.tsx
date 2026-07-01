@@ -42,7 +42,7 @@ describe('DarkHeader', () => {
   })
 
   it('не показывает строку поиска без withSearch', async () => {
-    const { queryByLabelText } = await render(<DarkHeader title="Списки" />)
+    const { queryByLabelText } = await render(<DarkHeader title="Задачи" />)
     expect(queryByLabelText('Поиск')).toBeNull()
   })
 
@@ -58,9 +58,9 @@ describe('DarkHeader', () => {
     expect(getByTestId('linear-gradient')).toBeTruthy()
   })
 
-  it('рендерит заголовок «Списки»', async () => {
-    const { getByText } = await render(<DarkHeader title="Списки" />)
-    expect(getByText('Списки')).toBeTruthy()
+  it('рендерит заголовок «Задачи»', async () => {
+    const { getByText } = await render(<DarkHeader title="Задачи" />)
+    expect(getByText('Задачи')).toBeTruthy()
   })
 
   it('рендерит заголовок «Календарь»', async () => {

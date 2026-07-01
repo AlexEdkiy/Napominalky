@@ -44,10 +44,10 @@ describe('FeedSection', () => {
 
   it('рендерится без пропа count', async () => {
     const { getByText } = await render(
-      <FeedSection title="Списки" dotColor={lightColors.accent} colors={lightColors}>
-        <Text>Список</Text>
+      <FeedSection title="Задачи" dotColor={lightColors.accent} colors={lightColors}>
+        <Text>Задача</Text>
       </FeedSection>,
     )
-    expect(getByText('Списки')).toBeTruthy()
+    expect(getByText('Задачи')).toBeTruthy()
   })
 })

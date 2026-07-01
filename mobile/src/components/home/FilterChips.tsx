@@ -28,7 +28,7 @@ interface FilterChipsProps {
 const FilterChips: React.FC<FilterChipsProps> = ({ active, onSelect, colors, counts }) => {
   const tabs: readonly TabConfig[] = [
     { key: 'all', label: 'Все' },
-    { key: 'lists', label: 'Списки', dotColor: colors.accent },
+    { key: 'lists', label: 'Задачи', dotColor: colors.accent },
     { key: 'reminders', label: 'Напоминания', dotColor: colors.amber },
     { key: 'notes', label: 'Заметки', dotColor: colors.noteBlue },
   ]

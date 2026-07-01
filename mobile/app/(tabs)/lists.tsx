@@ -30,8 +30,8 @@ interface TabConfig {
 
 const TABS: readonly TabConfig[] = [
   { key: 'all', label: 'Все' },
-  { key: 'goods', label: 'Товары' },
-  { key: 'tasks', label: 'Задачи' },
+  { key: 'goods', label: 'Купить' },
+  { key: 'tasks', label: 'Сделать' },
 ]
 
 const filterLists = (lists: ShoppingList[], tab: FilterTab): ShoppingList[] => {
@@ -68,7 +68,7 @@ export default function ListsScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <StatusBar style="light" />
-      <DarkHeader title="Списки" />
+      <DarkHeader title="Задачи" />
 
       <FilterTabs
         tabs={TABS}
@@ -197,7 +197,7 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
 
 const EmptyState: React.FC<{ color: string }> = ({ color }) => (
   <View style={styles.empty}>
-    <Text style={[styles.emptyTitle, { color }]}>Списков пока нет</Text>
+    <Text style={[styles.emptyTitle, { color }]}>Задач пока нет</Text>
     <Text style={[styles.emptyHint, { color }]}>Нажмите «+», чтобы создать первый</Text>
   </View>
 )

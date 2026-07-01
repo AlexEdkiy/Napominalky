@@ -28,14 +28,14 @@ const TYPE_OPTIONS: readonly TypeOption[] = [
   {
     value: 'goods',
     icon: 'bag-handle',
-    label: 'Товары',
-    description: 'Список покупок — отмечайте, что куплено',
+    label: 'Купить',
+    description: 'Покупки — отмечайте, что куплено',
   },
   {
     value: 'tasks',
     icon: 'list',
-    label: 'Задачи',
-    description: 'Чек-лист дел — дедлайны и напоминания',
+    label: 'Сделать',
+    description: 'Дела — отмечайте, что сделано',
   },
 ]
 
@@ -70,11 +70,11 @@ export default function NewListScreen() {
         <View style={styles.handleWrap}>
           <View style={[styles.handle, { backgroundColor: colors.borderInput }]} />
         </View>
-        <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Новый список</Text>
+        <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Новая задача</Text>
         <View style={styles.fieldBlock}>
           <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>НАЗВАНИЕ</Text>
           <TextInput
-            accessibilityLabel="Название списка"
+            accessibilityLabel="Название задачи"
             placeholder="Например, Продукты на неделю"
             placeholderTextColor={colors.textTertiary}
             value={title}
@@ -92,7 +92,7 @@ export default function NewListScreen() {
         </View>
 
         <View style={styles.fieldBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД СПИСКА</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД ЗАДАЧИ</Text>
           <View style={styles.typeCards}>
             {TYPE_OPTIONS.map((opt) => {
               const isActive = opt.value === listType
@@ -142,7 +142,7 @@ export default function NewListScreen() {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Создать список"
+          accessibilityLabel="Создать задачу"
           onPress={handleCreate}
           disabled={title.trim().length === 0 || createList.isPending}
           style={({ pressed }) => [
@@ -151,7 +151,7 @@ export default function NewListScreen() {
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.createBtnLabel}>Создать список</Text>
+          <Text style={styles.createBtnLabel}>Создать задачу</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

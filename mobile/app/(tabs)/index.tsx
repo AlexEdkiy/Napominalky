@@ -34,7 +34,7 @@ const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] 
 }
 
 const listSubtitle = (list: ShoppingList): string => {
-  if (list.itemsCount === 0) return 'Список'
+  if (list.itemsCount === 0) return 'Задача'
   return `${list.itemsCount} пунктов · ${list.checkedItemsCount} куплено`
 }
 
@@ -126,7 +126,7 @@ export default function HomeScreen(): React.JSX.Element {
           }
         >
           {showLists && filteredLists.length > 0 && (
-            <FeedSection title="Списки" dotColor={colors.accent} colors={colors}>
+            <FeedSection title="Задачи" dotColor={colors.accent} colors={colors}>
               {filteredLists.map((list: ShoppingList) => (
                 <FeedCard
                   key={list.uuid}
