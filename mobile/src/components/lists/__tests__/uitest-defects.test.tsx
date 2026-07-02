@@ -138,8 +138,7 @@ describe('[DEF-02] ExpandedEditor — лейблы без textTransform=uppercas
         isExpanded
         onExpand={jest.fn()}
         onQuantityChange={jest.fn()}
-        onDeadlinePress={jest.fn()}
-        onReminderPress={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
@@ -152,7 +151,7 @@ describe('[DEF-02] ExpandedEditor — лейблы без textTransform=uppercas
     expect(hasUppercase).toBe(false)
   })
 
-  it('[ДЕФЕКТ DEF-02][tasks] лейбл «Дедлайн» — нет textTransform uppercase в стиле', async () => {
+  it('[ДЕФЕКТ DEF-02][tasks] чипс «Дедлайн» — нет textTransform uppercase в стиле', async () => {
     const { getByText } = await render(
       <ItemRow
         item={base()}
@@ -162,13 +161,12 @@ describe('[DEF-02] ExpandedEditor — лейблы без textTransform=uppercas
         isExpanded
         onExpand={jest.fn()}
         onQuantityChange={jest.fn()}
-        onDeadlinePress={jest.fn()}
-        onReminderPress={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
-    const labelEl = getByText('Дедлайн')
-    const styleArr = Array.isArray(labelEl.props.style) ? labelEl.props.style : [labelEl.props.style]
+    const textEl = getByText('Дедлайн')
+    const styleArr = Array.isArray(textEl.props.style) ? textEl.props.style : [textEl.props.style]
     const hasUppercase = styleArr.some(
       (s: Record<string, unknown> | undefined) => s?.textTransform === 'uppercase',
     )

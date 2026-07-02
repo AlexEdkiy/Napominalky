@@ -1,8 +1,8 @@
-// Тесты UI-fidelity для QuickAddItem (поле добавления + кнопка «+»)
+// Тесты UI-fidelity для QuickAddItem (поле добавления + кнопка «+» + чипсы/токены атрибутов)
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { act, fireEvent, render } from '@testing-library/react-native'
 
 import QuickAddItem from '../QuickAddItem'
 
@@ -16,15 +16,25 @@ jest.mock('@expo/vector-icons', () => {
   return { Ionicons }
 })
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}))
+
+jest.mock('@react-native-community/datetimepicker', () => () => null)
+
 jest.mock('@/theme', () => ({
   useTheme: () => ({
     colors: {
       surface: '#fff',
       accent: '#0EA5A0',
       amber: '#F59E0B',
+      accentSoftBg: '#DDF1ED',
+      amberBg: '#FBEFD6',
       textPrimary: '#111',
+      textSecondary: '#666',
       textTertiary: '#999',
       borderInput: '#ddd',
+      borderSubtle: '#eee',
     },
   }),
 }))
@@ -78,5 +88,88 @@ describe('QuickAddItem — соответствие макету', () => {
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
     expect(getByLabelText('Добавить')).toBeTruthy()
+  })
+
+  it('под полем показаны чипсы всех 5 атрибутов (черновик пуст)', async () => {
+    const { getByLabelText } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    expect(getByLabelText('Добавить: Дедлайн')).toBeTruthy()
+    expect(getByLabelText('Добавить: Напоминание')).toBeTruthy()
+    expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
+    expect(getByLabelText('Добавить: Комментарий')).toBeTruthy()
+    expect(getByLabelText('Добавить: Тег')).toBeTruthy()
+  })
+
+  it('создаёт пункт только с именем, если атрибуты не заданы', async () => {
+    const onAdd = jest.fn()
+    const { getByPlaceholderText, getByLabelText } = await render(
+      <QuickAddItem listType="goods" onAdd={onAdd} />,
+    )
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText('Добавить товар'), 'Молоко')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить'))
+    })
+    expect(onAdd).toHaveBeenCalledWith({
+      name: 'Молоко',
+      deadline: null,
+      reminderAt: null,
+      link: null,
+      comment: null,
+      tags: null,
+    })
+  })
+
+  it('сбрасывает поле имени после добавления пункта', async () => {
+    const { getByPlaceholderText, getByLabelText } = await render(
+      <QuickAddItem listType="goods" onAdd={jest.fn()} />,
+    )
+    const input = getByPlaceholderText('Добавить товар')
+    await act(async () => {
+      fireEvent.changeText(input, 'Хлеб')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить'))
+    })
+    expect(input.props.value).toBe('')
+  })
+
+  it('тап по чипсу «Дедлайн» открывает шторку с заголовком «Когда дедлайн»', async () => {
+    const { getByLabelText, getByText } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    expect(getByText('Когда дедлайн')).toBeTruthy()
+  })
+
+  it('выбор пресета дедлайна в шторке + «Готово» превращает чипс в токен', async () => {
+    const { getByLabelText, queryByLabelText } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сегодня'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Готово'))
+    })
+    expect(queryByLabelText('Добавить: Дедлайн')).toBeNull()
+  })
+
+  it('не создаёт пункт с пустым именем', async () => {
+    const onAdd = jest.fn()
+    const { getByLabelText } = await render(
+      <QuickAddItem listType="goods" onAdd={onAdd} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить'))
+    })
+    expect(onAdd).not.toHaveBeenCalled()
   })
 })

@@ -9,7 +9,7 @@ jest.mock('@/hooks/useDebouncedCallback', () => ({
 }))
 
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { fireEvent, render } from '@testing-library/react-native'
 
 import ItemRow from '../ItemRow'
 import type { ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
@@ -262,10 +262,10 @@ describe('ItemRow — мета-индикаторы (макет)', () => {
 })
 
 // ============================================================
-// Раскрытый редактор
+// Раскрытая панель: чипсы/токены атрибутов (замена инлайн-редактора)
 // ============================================================
 
-describe('ItemRow — раскрытый редактор (макет)', () => {
+describe('ItemRow — раскрытая панель атрибутов (макет)', () => {
   it('[goods] показывает секцию «Количество» (степпер)', async () => {
     const { getByText } = await render(
       <ItemRow
@@ -276,16 +276,15 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         isExpanded
         onExpand={jest.fn()}
         onQuantityChange={jest.fn()}
-        onDeadlinePress={jest.fn()}
-        onReminderPress={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
     expect(getByText('Количество')).toBeTruthy()
   })
 
-  it('[tasks] показывает секцию «Дедлайн»', async () => {
-    const { getByText } = await render(
+  it('[tasks] показывает чипс «Дедлайн» (атрибут ещё не задан)', async () => {
+    const { getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="tasks"
@@ -294,16 +293,15 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         isExpanded
         onExpand={jest.fn()}
         onQuantityChange={jest.fn()}
-        onDeadlinePress={jest.fn()}
-        onReminderPress={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
-    expect(getByText('Дедлайн')).toBeTruthy()
+    expect(getByLabelText('Добавить: Дедлайн')).toBeTruthy()
   })
 
-  it('placeholder «Добавить напоминание» при пустом reminderAt', async () => {
-    const { getByText } = await render(
+  it('показывает чипс «Напоминание» при пустом reminderAt', async () => {
+    const { getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="goods"
@@ -311,15 +309,15 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         onDelete={jest.fn()}
         isExpanded
         onExpand={jest.fn()}
-        onReminderPress={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
-    expect(getByText('Добавить напоминание')).toBeTruthy()
+    expect(getByLabelText('Добавить: Напоминание')).toBeTruthy()
   })
 
-  it('placeholder «Добавить ссылку» при пустой ссылке', async () => {
-    const { getByPlaceholderText } = await render(
+  it('показывает чипс «Ссылка» при пустой ссылке', async () => {
+    const { getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="goods"
@@ -327,14 +325,15 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         onDelete={jest.fn()}
         isExpanded
         onExpand={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
-    expect(getByPlaceholderText('Добавить ссылку')).toBeTruthy()
+    expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
   })
 
-  it('placeholder «Добавить комментарий» при пустом комментарии', async () => {
-    const { getByPlaceholderText } = await render(
+  it('показывает чипс «Комментарий» при пустом комментарии', async () => {
+    const { getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="goods"
@@ -342,14 +341,15 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         onDelete={jest.fn()}
         isExpanded
         onExpand={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
-    expect(getByPlaceholderText('Добавить комментарий')).toBeTruthy()
+    expect(getByLabelText('Добавить: Комментарий')).toBeTruthy()
   })
 
-  it('placeholder «+ тег» в поле тега', async () => {
-    const { getByPlaceholderText } = await render(
+  it('показывает чипс «Тег»', async () => {
+    const { getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="goods"
@@ -357,15 +357,16 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         onDelete={jest.fn()}
         isExpanded
         onExpand={jest.fn()}
+        onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
       />,
     )
-    expect(getByPlaceholderText('+ тег')).toBeTruthy()
+    expect(getByLabelText('Добавить: Тег')).toBeTruthy()
   })
 
-  // По макету: плейсхолдер дедлайна без значения — «Указать дедлайн».
-  it('[tasks] placeholder дедлайна — «Указать дедлайн»', async () => {
-    const { getByText } = await render(
+  it('тап по чипсу вызывает onOpenAttribute(uuid, attribute)', async () => {
+    const onOpenAttribute = jest.fn()
+    const { getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="tasks"
@@ -373,10 +374,49 @@ describe('ItemRow — раскрытый редактор (макет)', () => {
         onDelete={jest.fn()}
         isExpanded
         onExpand={jest.fn()}
-        onDeadlinePress={jest.fn()}
+        onOpenAttribute={onOpenAttribute}
         onUpdateMeta={jest.fn()}
       />,
     )
-    expect(getByText('Указать дедлайн')).toBeTruthy()
+    fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    expect(onOpenAttribute).toHaveBeenCalledWith('item-1', 'deadline')
+  })
+
+  it('токен дедлайна тапабелен и открывает шторку редактирования', async () => {
+    const onOpenAttribute = jest.fn()
+    const item = { ...base(), deadline: '2026-07-10' }
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={item}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        isExpanded
+        onExpand={jest.fn()}
+        onOpenAttribute={onOpenAttribute}
+        onUpdateMeta={jest.fn()}
+      />,
+    )
+    fireEvent.press(getByLabelText('Дедлайн: 10 июл'))
+    expect(onOpenAttribute).toHaveBeenCalledWith('item-1', 'deadline')
+  })
+
+  it('«×» на токене дедлайна вызывает onUpdateMeta с deadline=null', async () => {
+    const onUpdateMeta = jest.fn()
+    const item = { ...base(), deadline: '2026-07-10' }
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={item}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        isExpanded
+        onExpand={jest.fn()}
+        onOpenAttribute={jest.fn()}
+        onUpdateMeta={onUpdateMeta}
+      />,
+    )
+    fireEvent.press(getByLabelText('Удалить дедлайн'))
+    expect(onUpdateMeta).toHaveBeenCalledWith('item-1', { deadline: null })
   })
 })

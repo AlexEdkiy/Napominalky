@@ -15,17 +15,23 @@ import {
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import DateTimePicker from '@react-native-community/datetimepicker'
 
+import AttributeSheet, { type AttributeSheetValue } from '@/components/lists/AttributeSheet'
 import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
 import ProgressRing from '@/components/lists/ProgressRing'
 import QuickAddItem from '@/components/lists/QuickAddItem'
-import type { ListType, ShoppingList, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
+import type {
+  CreateItemData,
+  ListType,
+  ShoppingList,
+  ShoppingListItem,
+} from '@/db/repositories/shoppingListsRepo'
 import { parseTags, serializeTags } from '@/db/repositories/shoppingListsRepo'
 import { useShoppingList, useShoppingLists } from '@/hooks/useShoppingLists'
 import { useShoppingListItems } from '@/hooks/useShoppingListItems'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import type { ItemAttribute } from '@/utils/itemAttributes'
 
 type ItemFilter = 'all' | 'active' | 'done'
 
@@ -41,21 +47,11 @@ const filterItems = (items: ShoppingListItem[], filter: ItemFilter): ShoppingLis
   return items
 }
 
-const formatDateLocal = (date: Date): string => {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+// ---- AttributeSheet target (какой пункт сейчас редактируется) --------------
 
-// ---- Reminder picker state machine -----------------------------------------
-
-type ReminderStep = 'date' | 'time'
-
-interface ReminderPickerState {
+interface AttributeSheetTarget {
   itemUuid: string
-  step: ReminderStep
-  date: Date
+  attribute: ItemAttribute
 }
 
 export default function ListDetailScreen() {
@@ -68,15 +64,15 @@ export default function ListDetailScreen() {
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null)
-  const [datePickerItem, setDatePickerItem] = useState<string | null>(null)
-  const [reminderPicker, setReminderPicker] = useState<ReminderPickerState | null>(null)
+  const [sheetTarget, setSheetTarget] = useState<AttributeSheetTarget | null>(null)
 
   const accentColor = list?.type === 'tasks' ? colors.amber : colors.accent
   const accentBg = list?.type === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const listType: ListType = list?.type ?? 'goods'
+  const sheetItem = items.find((i) => i.uuid === sheetTarget?.itemUuid)
 
-  const handleAdd = (name: string): void => {
-    addItem.mutate({ name })
+  const handleAdd = (data: CreateItemData): void => {
+    addItem.mutate(data)
   }
 
   const handleExpand = (itemUuid: string): void => {
@@ -87,17 +83,8 @@ export default function ListDetailScreen() {
     updateItem.mutate({ uuid: itemUuid, patch: { quantity } })
   }
 
-  const handleDeadlinePress = (itemUuid: string): void => {
-    setDatePickerItem(itemUuid)
-  }
-
-  const handleReminderPress = (itemUuid: string): void => {
-    const item = items.find((i) => i.uuid === itemUuid)
-    const initial =
-      item?.reminderAt !== null && item?.reminderAt !== undefined
-        ? new Date(item.reminderAt)
-        : new Date()
-    setReminderPicker({ itemUuid, step: 'date', date: initial })
+  const handleOpenAttribute = (itemUuid: string, attribute: ItemAttribute): void => {
+    setSheetTarget({ itemUuid, attribute })
   }
 
   const handleUpdateMeta = (itemUuid: string, patch: MetaPatch): void => {
@@ -108,48 +95,11 @@ export default function ListDetailScreen() {
     updateList.mutate({ uuid: listUuid, patch: { tags: serializeTags(tags) } })
   }
 
-  const handleDateChange = (_: unknown, date?: Date): void => {
-    if (Platform.OS === 'android') setDatePickerItem(null)
-    if (date !== undefined && datePickerItem !== null) {
-      updateItem.mutate({ uuid: datePickerItem, patch: { deadline: formatDateLocal(date) } })
-    }
-    if (Platform.OS === 'ios' && date === undefined) setDatePickerItem(null)
-  }
-
-  const handleDateDismiss = (): void => {
-    setDatePickerItem(null)
-  }
-
-  const handleReminderDateChange = (_: unknown, date?: Date): void => {
-    if (reminderPicker === null) return
-    if (date === undefined) {
-      setReminderPicker(null)
-      return
-    }
-    if (Platform.OS === 'android') {
-      const iso = date.toISOString()
-      updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
-      setReminderPicker(null)
-      return
-    }
-    if (reminderPicker.step === 'date') {
-      setReminderPicker({ ...reminderPicker, step: 'time', date })
-    } else {
-      const iso = date.toISOString()
-      updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
-      setReminderPicker(null)
-    }
-  }
-
-  const handleReminderDone = (): void => {
-    if (reminderPicker === null) return
-    if (reminderPicker.step === 'date') {
-      setReminderPicker({ ...reminderPicker, step: 'time' })
-      return
-    }
-    const iso = reminderPicker.date.toISOString()
-    updateItem.mutate({ uuid: reminderPicker.itemUuid, patch: { reminderAt: iso } })
-    setReminderPicker(null)
+  const handleConfirmAttribute = (value: AttributeSheetValue): void => {
+    if (sheetTarget === null) return
+    const patch = buildAttributePatch(sheetTarget.attribute, value)
+    updateItem.mutate({ uuid: sheetTarget.itemUuid, patch })
+    setSheetTarget(null)
   }
 
   const confirmDeleteList = (): void => {
@@ -190,8 +140,6 @@ export default function ListDetailScreen() {
   const progressSubtitle =
     listType === 'tasks' ? 'Отмечайте выполненные задачи' : 'Отмечайте купленные товары'
 
-  const deadlinePickerItem = items.find((i) => i.uuid === datePickerItem)
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.screenBg }]}>
       {/* DEF-06: кастомная шапка — ← + название + «Удалить» */}
@@ -221,8 +169,7 @@ export default function ListDetailScreen() {
               onExpand={handleExpand}
               isExpanded={expandedUuid === item.uuid}
               onQuantityChange={handleQuantityChange}
-              onDeadlinePress={handleDeadlinePress}
-              onReminderPress={handleReminderPress}
+              onOpenAttribute={handleOpenAttribute}
               onUpdateMeta={handleUpdateMeta}
             />
           )}
@@ -255,75 +202,31 @@ export default function ListDetailScreen() {
           }
         />
 
-        {datePickerItem !== null && (
-          <>
-            {Platform.OS === 'ios' && (
-              <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
-                <Pressable onPress={handleDateDismiss} style={styles.iosPickerDone}>
-                  <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>Готово</Text>
-                </Pressable>
-                <DateTimePicker
-                  value={
-                    deadlinePickerItem?.deadline != null
-                      ? new Date(deadlinePickerItem.deadline)
-                      : new Date()
-                  }
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                />
-              </View>
-            )}
-            {Platform.OS === 'android' && (
-              <DateTimePicker
-                value={
-                  deadlinePickerItem?.deadline != null
-                    ? new Date(deadlinePickerItem.deadline)
-                    : new Date()
-                }
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-              />
-            )}
-          </>
-        )}
-
-        {reminderPicker !== null && (
-          <>
-            {Platform.OS === 'ios' && (
-              <View style={[styles.iosPickerWrap, { backgroundColor: colors.surface }]}>
-                <View style={styles.iosPickerHeader}>
-                  <Text style={[styles.iosPickerTitle, { color: colors.textSecondary }]}>
-                    {reminderPicker.step === 'date' ? 'Дата напоминания' : 'Время напоминания'}
-                  </Text>
-                  <Pressable onPress={handleReminderDone} style={styles.iosPickerDone}>
-                    <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>
-                      {reminderPicker.step === 'date' ? 'Далее' : 'Готово'}
-                    </Text>
-                  </Pressable>
-                </View>
-                <DateTimePicker
-                  value={reminderPicker.date}
-                  mode={reminderPicker.step}
-                  display="spinner"
-                  onChange={handleReminderDateChange}
-                />
-              </View>
-            )}
-            {Platform.OS === 'android' && (
-              <DateTimePicker
-                value={reminderPicker.date}
-                mode="time"
-                display="default"
-                onChange={handleReminderDateChange}
-              />
-            )}
-          </>
-        )}
+        <AttributeSheet
+          attribute={sheetTarget?.attribute ?? null}
+          currentDeadline={sheetItem?.deadline ?? null}
+          currentReminderAt={sheetItem?.reminderAt ?? null}
+          currentLink={sheetItem?.link ?? null}
+          currentComment={sheetItem?.comment ?? null}
+          currentTags={parseTags(sheetItem?.tags ?? null)}
+          accentColor={accentColor}
+          accentBg={accentBg}
+          onConfirm={handleConfirmAttribute}
+          onClose={() => setSheetTarget(null)}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
+}
+
+// ---- buildAttributePatch ----------------------------------------------------
+
+const buildAttributePatch = (attribute: ItemAttribute, value: AttributeSheetValue): MetaPatch => {
+  if (attribute === 'deadline') return { deadline: typeof value === 'string' ? value : null }
+  if (attribute === 'reminder') return { reminderAt: typeof value === 'string' ? value : null }
+  if (attribute === 'link') return { link: typeof value === 'string' ? value : null }
+  if (attribute === 'comment') return { comment: typeof value === 'string' ? value : null }
+  return { tags: serializeTags(Array.isArray(value) ? value : []) }
 }
 
 // ---- CustomHeader ----------------------------------------------------------
@@ -382,7 +285,7 @@ interface ListHeaderProps {
   progressSubtitle: string
   itemFilter: ItemFilter
   onFilterChange: (f: ItemFilter) => void
-  onAdd: (name: string) => void
+  onAdd: (data: CreateItemData) => void
   onUpdateListTags: (tags: string[]) => void
   isEmpty: boolean
   emptyHint: string
@@ -719,22 +622,4 @@ const styles = StyleSheet.create({
   emptyBannerSub: { ...typography.body, textAlign: 'center' },
   emptyFilter: { alignItems: 'center', paddingTop: 32 },
   emptyFilterText: { ...typography.body },
-  iosPickerWrap: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  iosPickerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  iosPickerTitle: { ...typography.bodySm },
-  iosPickerDone: { alignItems: 'flex-end', paddingVertical: 4 },
-  iosPickerDoneText: { ...typography.body, fontWeight: '700' },
 })
