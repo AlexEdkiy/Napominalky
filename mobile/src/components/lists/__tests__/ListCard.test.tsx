@@ -17,15 +17,6 @@ jest.mock('@expo/vector-icons', () => {
   return { Ionicons }
 })
 
-jest.mock('@/components/ui/IconSquare', () => {
-  const { View, Text } = require('react-native')
-  return ({ icon }: { icon: string }) => (
-    <View testID="icon-square">
-      <Text>{icon}</Text>
-    </View>
-  )
-})
-
 jest.mock('@/theme', () => ({
   useTheme: () => ({
     colors: {
@@ -69,11 +60,11 @@ describe('ListCard — соответствие макету (Экран «За�
       expect(getByText('Продукты на неделю')).toBeTruthy()
     })
 
-    it('отображает счётчик «N/M куплено»', async () => {
+    it('отображает статус «N пунктов · M куплено»', async () => {
       const { getByText } = await render(
         <ListCard list={makeList({ checkedItemsCount: 3, itemsCount: 7 })} onPress={jest.fn()} />,
       )
-      expect(getByText('3/7 куплено')).toBeTruthy()
+      expect(getByText('7 пунктов · 3 куплено')).toBeTruthy()
     })
 
     it('показывает иконку-корзину (bag-handle) для goods', async () => {
@@ -83,11 +74,11 @@ describe('ListCard — соответствие макету (Экран «За�
       expect(getByText('bag-handle')).toBeTruthy()
     })
 
-    it('показывает chevron-forward справа', async () => {
-      const { getByText } = await render(
+    it('НЕ показывает chevron-forward справа', async () => {
+      const { queryByTestId } = await render(
         <ListCard list={makeList()} onPress={jest.fn()} />,
       )
-      expect(getByText('chevron-forward')).toBeTruthy()
+      expect(queryByTestId('icon-chevron-forward')).toBeNull()
     })
 
     it('НЕ показывает чип дедлайна когда nearestDeadline=null (goods)', async () => {
@@ -106,14 +97,14 @@ describe('ListCard — соответствие макету (Экран «За�
   })
 
   describe('тип tasks', () => {
-    it('отображает счётчик «N/M сделано» для tasks', async () => {
+    it('отображает статус «N пунктов · M сделано» для tasks', async () => {
       const { getByText } = await render(
         <ListCard
           list={makeList({ type: 'tasks', checkedItemsCount: 1, itemsCount: 4 })}
           onPress={jest.fn()}
         />,
       )
-      expect(getByText('1/4 сделано')).toBeTruthy()
+      expect(getByText('4 пунктов · 1 сделано')).toBeTruthy()
     })
 
     it('показывает иконку чек-лист (list) для tasks', async () => {
@@ -147,14 +138,14 @@ describe('ListCard — соответствие макету (Экран «За�
   })
 
   describe('порядок элементов строки', () => {
-    it('icon-square, название и счётчик присутствуют одновременно', async () => {
-      const { getByTestId, getByText } = await render(
+    it('кольцо прогресса, название и статус присутствуют одновременно, chevron отсутствует', async () => {
+      const { getByTestId, getByText, queryByTestId } = await render(
         <ListCard list={makeList({ title: 'Тест' })} onPress={jest.fn()} />,
       )
-      expect(getByTestId('icon-square')).toBeTruthy()
+      expect(getByTestId('progress-ring-svg')).toBeTruthy()
       expect(getByText('Тест')).toBeTruthy()
-      expect(getByText('2/5 куплено')).toBeTruthy()
-      expect(getByText('chevron-forward')).toBeTruthy()
+      expect(getByText('5 пунктов · 2 куплено')).toBeTruthy()
+      expect(queryByTestId('icon-chevron-forward')).toBeNull()
     })
   })
 })

@@ -254,29 +254,29 @@ describe('Экран «Задачи» — FilterTabs (макет)', () => {
   })
 
   describe('строки списков', () => {
-    it('строка goods показывает иконку, название, счётчик «куплено», chevron', async () => {
-      const { getByText, getByTestId } = await render(
+    it('строка goods показывает кольцо прогресса, название, статус «куплено», без chevron', async () => {
+      const { getByText, getByTestId, queryByText } = await render(
         <ListCard
           list={makeList({ title: 'Супермаркет', checkedItemsCount: 2, itemsCount: 5 })}
           onPress={jest.fn()}
         />,
       )
-      expect(getByTestId('icon-square')).toBeTruthy()
+      expect(getByTestId('progress-ring-svg')).toBeTruthy()
       expect(getByText('Супермаркет')).toBeTruthy()
-      expect(getByText('2/5 куплено')).toBeTruthy()
-      expect(getByText('chevron-forward')).toBeTruthy()
+      expect(getByText('5 пунктов · 2 куплено')).toBeTruthy()
+      expect(queryByText('chevron-forward')).toBeNull()
     })
 
-    it('строка tasks показывает иконку, название, счётчик «сделано», chevron', async () => {
-      const { getByText } = await render(
+    it('строка tasks показывает кольцо прогресса, название, статус «сделано», без chevron', async () => {
+      const { getByText, queryByText } = await render(
         <ListCard
           list={makeList({ type: 'tasks', title: 'Дела на неделю', checkedItemsCount: 1, itemsCount: 3 })}
           onPress={jest.fn()}
         />,
       )
       expect(getByText('Дела на неделю')).toBeTruthy()
-      expect(getByText('1/3 сделано')).toBeTruthy()
-      expect(getByText('chevron-forward')).toBeTruthy()
+      expect(getByText('3 пунктов · 1 сделано')).toBeTruthy()
+      expect(queryByText('chevron-forward')).toBeNull()
     })
 
     it('строка tasks с дедлайном показывает deadline-чип', async () => {

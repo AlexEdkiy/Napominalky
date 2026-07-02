@@ -22,6 +22,7 @@ import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { formatRelativeReminder, formatUpdatedAt, isReminderUrgent } from '@/utils/datetime'
+import { listStatusLabel } from '@/utils/lists'
 import { sortNotesPinnedFirst } from '@/utils/notes'
 import type { Note } from '@/db/repositories/notesRepo'
 import type { Reminder } from '@/db/repositories/remindersRepo'
@@ -31,11 +32,6 @@ const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] 
   const query = q.trim().toLowerCase()
   if (query.length === 0) return items
   return items.filter((i) => i.title.toLowerCase().includes(query))
-}
-
-const listSubtitle = (list: ShoppingList): string => {
-  if (list.itemsCount === 0) return 'Задача'
-  return `${list.itemsCount} пунктов · ${list.checkedItemsCount} куплено`
 }
 
 const listIconName = (list: ShoppingList): 'bag-handle' | 'list' =>
@@ -140,7 +136,7 @@ export default function HomeScreen(): React.JSX.Element {
                   key={list.uuid}
                   uuid={list.uuid}
                   title={list.title}
-                  subtitle={listSubtitle(list)}
+                  subtitle={listStatusLabel(list)}
                   iconName={listIconName(list)}
                   iconColor={listAccentColor(list, colors)}
                   iconBg={list.type === 'tasks' ? colors.amberBg : colors.accentSoftBg}

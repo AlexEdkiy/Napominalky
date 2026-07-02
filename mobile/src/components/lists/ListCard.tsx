@@ -2,10 +2,11 @@ import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
-import IconSquare from '@/components/ui/IconSquare'
+import ProgressRing from '@/components/ui/ProgressRing'
 import type { ShoppingList, ListType } from '@/db/repositories/shoppingListsRepo'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import { listStatusLabel } from '@/utils/lists'
 
 interface ListCardProps {
   list: ShoppingList
@@ -15,31 +16,19 @@ interface ListCardProps {
 
 interface TypeConfig {
   icon: React.ComponentProps<typeof Ionicons>['name']
-  bgColor: string
   iconColor: string
-  label: string
-  dotColor: string
 }
 
 const useTypeConfig = (type: ListType): TypeConfig => {
   const { colors } = useTheme()
   if (type === 'tasks') {
-    return {
-      icon: 'list',
-      bgColor: colors.amberBg,
-      iconColor: colors.amber,
-      label: 'сделано',
-      dotColor: colors.amber,
-    }
+    return { icon: 'list', iconColor: colors.amber }
   }
-  return {
-    icon: 'bag-handle',
-    bgColor: colors.accentSoftBg,
-    iconColor: colors.accent,
-    label: 'куплено',
-    dotColor: colors.accent,
-  }
+  return { icon: 'bag-handle', iconColor: colors.accent }
 }
+
+const ringProgressValue = (checked: number, total: number): number =>
+  total === 0 ? 0 : checked / total
 
 const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) => {
   const { colors } = useTheme()
@@ -58,19 +47,21 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
         pressed && styles.pressed,
       ]}
     >
-      <IconSquare
-        icon={cfg.icon}
-        bgColor={cfg.bgColor}
-        iconColor={cfg.iconColor}
+      <ProgressRing
+        progress={ringProgressValue(checked, total)}
         size={40}
-        radius={12}
-      />
+        strokeWidth={3}
+        color={cfg.iconColor}
+        trackColor={colors.borderSubtle}
+      >
+        <Ionicons name={cfg.icon} size={16} color={cfg.iconColor} />
+      </ProgressRing>
       <View style={styles.info}>
         <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
           {title}
         </Text>
         <Text style={[styles.counter, { color: colors.textSecondary }]}>
-          {checked}/{total} {cfg.label}
+          {listStatusLabel(list)}
         </Text>
         {nearestDeadline != null && (
           <View style={[styles.deadlineChip, { backgroundColor: colors.amberBg }]}>
@@ -81,7 +72,6 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
           </View>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
     </Pressable>
   )
 }
