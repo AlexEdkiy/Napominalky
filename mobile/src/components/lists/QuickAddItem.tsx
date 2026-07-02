@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
 import AttributeChips from '@/components/lists/AttributeChips'
@@ -90,9 +90,6 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
         onOpen={setOpenAttribute}
         onRemove={handleRemoveAttribute}
       />
-      <Text style={[styles.hint, { color: colors.textTertiary }]}>
-        Токены можно нажать, чтобы отредактировать, или закрыть крестиком.
-      </Text>
 
       <AttributeSheet
         attribute={openAttribute}
@@ -149,7 +146,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.85 },
-  hint: { fontSize: 11 },
 })
 
 export default QuickAddItem

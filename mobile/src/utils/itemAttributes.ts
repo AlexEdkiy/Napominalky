@@ -74,21 +74,30 @@ const MONTHS_SHORT = [
   'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
 ] as const
 
-/** Дедлайн-токен: «Сегодня»/«Завтра» либо форматированная дата («10 июл»). */
+/** true, если дедлайн хранит явное время (не просто 'YYYY-MM-DD'). */
+export const hasDeadlineTime = (dateStr: string): boolean => !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+
+/** Дедлайн-токен: «Сегодня»/«Завтра» (+время, если задано) либо форматированная дата («10 июл[, чч:мм]»). */
 export const formatDeadlineToken = (dateStr: string): string => {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr
+  const withTime = hasDeadlineTime(dateStr)
+  const normalized = withTime ? dateStr : `${dateStr}T00:00:00`
   const date = new Date(normalized)
   if (!Number.isFinite(date.getTime())) return dateStr
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const tomorrowStart = new Date(todayStart.getTime() + 86_400_000)
   const dayAfter = new Date(todayStart.getTime() + 2 * 86_400_000)
-  if (date >= todayStart && date < tomorrowStart) return 'Сегодня'
-  if (date >= tomorrowStart && date < dayAfter) return 'Завтра'
+  const h = String(date.getHours()).padStart(2, '0')
+  const m = String(date.getMinutes()).padStart(2, '0')
+  const timeSuffix = withTime ? `, ${h}:${m}` : ''
+  if (date >= todayStart && date < tomorrowStart) return `Сегодня${timeSuffix}`
+  if (date >= tomorrowStart && date < dayAfter) return `Завтра${timeSuffix}`
   const month = MONTHS_SHORT[date.getMonth()]
   const year = date.getFullYear()
   const currentYear = now.getFullYear()
-  return year === currentYear ? `${date.getDate()} ${month ?? ''}` : `${date.getDate()} ${month ?? ''} ${year}`
+  const datePart =
+    year === currentYear ? `${date.getDate()} ${month ?? ''}` : `${date.getDate()} ${month ?? ''} ${year}`
+  return `${datePart}${timeSuffix}`
 }
 
 /** Напоминание-токен: относительный лейбл пресета, если совпадает, иначе «дд мес чч:мм». */
@@ -205,7 +214,8 @@ const REMINDER_DEFAULT_HOUR = 9
 
 /**
  * Вычисляет ISO-момент напоминания для пресета.
- * Если задан дедлайн — базой служит дедлайн в REMINDER_DEFAULT_HOUR:00 минус смещение.
+ * Если задан дедлайн со своим временем — базой служит это время дедлайна минус смещение.
+ * Если дедлайн задан без времени — базой служит дедлайн в REMINDER_DEFAULT_HOUR:00 минус смещение.
  * Если дедлайна нет — базой служит «сейчас» плюс небольшой запас минус смещение
  * (чтобы не уйти в прошлое).
  */
@@ -217,10 +227,11 @@ export const resolveReminderPreset = (
   const preset = REMINDER_PRESETS.find((p) => p.key === key)
   const offsetMs = preset?.offsetMs ?? 0
   if (deadline !== null && deadline.length > 0) {
-    const normalized = /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? `${deadline}T00:00:00` : deadline
+    const withTime = hasDeadlineTime(deadline)
+    const normalized = withTime ? deadline : `${deadline}T00:00:00`
     const base = new Date(normalized)
     if (Number.isFinite(base.getTime())) {
-      base.setHours(REMINDER_DEFAULT_HOUR, 0, 0, 0)
+      if (!withTime) base.setHours(REMINDER_DEFAULT_HOUR, 0, 0, 0)
       return new Date(base.getTime() - offsetMs).toISOString()
     }
   }

@@ -204,6 +204,13 @@ describe('Экран [uuid] — шапка', () => {
     const { getByLabelText } = await render(<Screen />)
     expect(getByLabelText('Удалить задачу')).toBeTruthy()
   })
+
+  // 3.3: ряд тегов уровня списка («+ тег») удалён — теги задаются на уровне пункта.
+  it('поле «+ тег» уровня списка отсутствует', async () => {
+    const { queryByPlaceholderText, queryByLabelText } = await render(<Screen />)
+    expect(queryByPlaceholderText('+ тег')).toBeNull()
+    expect(queryByLabelText('Добавить тег задачи')).toBeNull()
+  })
 })
 
 // ============================================================
@@ -221,19 +228,10 @@ describe('Экран [uuid] — goods, пустой список', () => {
     expect(queryByText('Сделать')).toBeNull()
   })
 
-  it('прогресс-кольцо отображает 0%', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('0%')).toBeTruthy()
-  })
-
-  it('показывает «0/0 куплено»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('0/0 куплено')).toBeTruthy()
-  })
-
-  it('субтайтл «Отмечайте купленные товары»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('Отмечайте купленные товары')).toBeTruthy()
+  // 3.1: круговой статус-бар (ProgressRing) и связанный текст «N/M …» убраны с шапки.
+  it('круговой статус-бар (progress-ring) отсутствует на экране', async () => {
+    const { queryByTestId } = await render(<Screen />)
+    expect(queryByTestId('progress-ring')).toBeNull()
   })
 
   it('поле добавления с placeholder «Добавить товар»', async () => {
@@ -258,16 +256,6 @@ describe('Экран [uuid] — goods, пустой список', () => {
 
 describe('Экран [uuid] — tasks, пустой список', () => {
   beforeEach(() => { resetToTasksEmpty() })
-
-  it('показывает «0/0 сделано»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('0/0 сделано')).toBeTruthy()
-  })
-
-  it('субтайтл «Отмечайте выполненные задачи»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('Отмечайте выполненные задачи')).toBeTruthy()
-  })
 
   it('поле добавления с placeholder «Новая задача»', async () => {
     const { getByPlaceholderText } = await render(<Screen />)
@@ -324,16 +312,6 @@ describe('Экран [uuid] — goods, с пунктами', () => {
     expect(filterTabs[0]?.props.accessibilityState?.selected).toBe(true)
     expect(filterTabs[1]?.props.accessibilityState?.selected).toBe(false)
     expect(filterTabs[2]?.props.accessibilityState?.selected).toBe(false)
-  })
-
-  it('показывает «1/2 куплено»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('1/2 куплено')).toBeTruthy()
-  })
-
-  it('прогресс «50%»', async () => {
-    const { getByText } = await render(<Screen />)
-    expect(getByText('50%')).toBeTruthy()
   })
 
   it('пункт «Молоко» отображается', async () => {

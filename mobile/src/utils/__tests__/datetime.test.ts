@@ -1,6 +1,7 @@
 import {
   formatDateTime,
   formatDeadlineChip,
+  formatDeadlineDisplay,
   formatRelativeReminder,
   formatUpdatedAt,
   isReminderUrgent,
@@ -92,5 +93,25 @@ describe('formatDeadlineChip', () => {
     // конкретная дата: 2026-07-01
     const result = formatDeadlineChip('2026-07-01T00:00:00.000Z')
     expect(result).toMatch(/^до \d+ .+$/)
+  })
+})
+
+describe('formatDeadlineDisplay', () => {
+  it('форматирует YYYY-MM-DD без времени (обратная совместимость)', () => {
+    const currentYear = new Date().getFullYear()
+    expect(formatDeadlineDisplay(`${currentYear}-07-10`)).toBe('10 июл')
+  })
+
+  it('форматирует дедлайн с временем (YYYY-MM-DDTHH:mm) как «D мес, чч:мм»', () => {
+    const currentYear = new Date().getFullYear()
+    expect(formatDeadlineDisplay(`${currentYear}-07-10T14:30`)).toBe('10 июл, 14:30')
+  })
+
+  it('добавляет год для дедлайна не текущего года', () => {
+    expect(formatDeadlineDisplay('2099-07-10T09:05')).toBe('10 июл 2099, 09:05')
+  })
+
+  it('возвращает исходную строку для невалидного входа', () => {
+    expect(formatDeadlineDisplay('not-a-date')).toBe('not-a-date')
   })
 })
