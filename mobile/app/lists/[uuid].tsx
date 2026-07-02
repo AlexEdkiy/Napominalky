@@ -9,7 +9,6 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -18,12 +17,10 @@ import { Ionicons } from '@expo/vector-icons'
 
 import AttributeSheet, { type AttributeSheetValue } from '@/components/lists/AttributeSheet'
 import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
-import ProgressRing from '@/components/lists/ProgressRing'
 import QuickAddItem from '@/components/lists/QuickAddItem'
 import type {
   CreateItemData,
   ListType,
-  ShoppingList,
   ShoppingListItem,
 } from '@/db/repositories/shoppingListsRepo'
 import { parseTags, serializeTags } from '@/db/repositories/shoppingListsRepo'
@@ -59,7 +56,7 @@ export default function ListDetailScreen() {
   const listUuid = uuid ?? ''
   const { colors } = useTheme()
   const { data: list, isLoading } = useShoppingList(listUuid)
-  const { deleteList, updateList } = useShoppingLists()
+  const { deleteList } = useShoppingLists()
   const { items, addItem, updateItem, deleteItem, checkItem } = useShoppingListItems(listUuid)
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
@@ -89,10 +86,6 @@ export default function ListDetailScreen() {
 
   const handleUpdateMeta = (itemUuid: string, patch: MetaPatch): void => {
     updateItem.mutate({ uuid: itemUuid, patch })
-  }
-
-  const handleUpdateListTags = (tags: string[]): void => {
-    updateList.mutate({ uuid: listUuid, patch: { tags: serializeTags(tags) } })
   }
 
   const handleConfirmAttribute = (value: AttributeSheetValue): void => {
@@ -133,12 +126,9 @@ export default function ListDetailScreen() {
   }
 
   const filtered = filterItems(items, itemFilter)
-  const doneLabel = listType === 'tasks' ? 'сделано' : 'куплено'
   const emptyHint = listType === 'tasks' ? 'Задач пока нет' : 'Пусто пока'
   const emptySubHint =
     listType === 'tasks' ? 'Добавьте первую задачу' : 'Добавьте первый товар'
-  const progressSubtitle =
-    listType === 'tasks' ? 'Отмечайте выполненные задачи' : 'Отмечайте купленные товары'
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.screenBg }]}>
@@ -176,16 +166,12 @@ export default function ListDetailScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <ListHeader
-              list={list}
               listType={listType}
               accentColor={accentColor}
               accentBg={accentBg}
-              doneLabel={doneLabel}
-              progressSubtitle={progressSubtitle}
               itemFilter={itemFilter}
               onFilterChange={setItemFilter}
               onAdd={handleAdd}
-              onUpdateListTags={handleUpdateListTags}
               isEmpty={items.length === 0}
               emptyHint={emptyHint}
               emptySubHint={emptySubHint}
@@ -277,65 +263,31 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 // ---- Sub-components --------------------------------------------------------
 
 interface ListHeaderProps {
-  list: ShoppingList
   listType: ListType
   accentColor: string
   accentBg: string
-  doneLabel: string
-  progressSubtitle: string
   itemFilter: ItemFilter
   onFilterChange: (f: ItemFilter) => void
   onAdd: (data: CreateItemData) => void
-  onUpdateListTags: (tags: string[]) => void
   isEmpty: boolean
   emptyHint: string
   emptySubHint: string
 }
 
 const ListHeader: React.FC<ListHeaderProps> = ({
-  list,
   listType,
   accentColor,
   accentBg,
-  doneLabel,
-  progressSubtitle,
   itemFilter,
   onFilterChange,
   onAdd,
-  onUpdateListTags,
   isEmpty,
   emptyHint,
   emptySubHint,
 }) => {
-  const { colors } = useTheme()
-
   return (
     <>
-      <View style={[styles.progressBlock, { backgroundColor: colors.surface }]}>
-        <ProgressRing
-          value={list.checkedItemsCount}
-          total={list.itemsCount}
-          color={accentColor}
-          size={52}
-        />
-        <View style={styles.progressInfo}>
-          <Text style={[styles.progressCount, { color: colors.textPrimary }]}>
-            {list.checkedItemsCount}/{list.itemsCount} {doneLabel}
-          </Text>
-          <Text style={[styles.progressSub, { color: colors.textSecondary }]}>
-            {progressSubtitle}
-          </Text>
-        </View>
-      </View>
-
       <QuickAddItem listType={listType} onAdd={onAdd} autoFocus={false} />
-
-      {/* DEF-03: теги уровня списка под полем добавления */}
-      <ListTagsRow
-        tags={parseTags(list.tags ?? null)}
-        onUpdateTags={onUpdateListTags}
-        accentColor={accentColor}
-      />
 
       {isEmpty ? (
         <EmptyBanner
@@ -354,62 +306,6 @@ const ListHeader: React.FC<ListHeaderProps> = ({
         />
       )}
     </>
-  )
-}
-
-// ---- ListTagsRow (DEF-03) --------------------------------------------------
-
-interface ListTagsRowProps {
-  tags: string[]
-  onUpdateTags: (tags: string[]) => void
-  accentColor: string
-}
-
-const ListTagsRow: React.FC<ListTagsRowProps> = ({ tags, onUpdateTags, accentColor }) => {
-  const { colors } = useTheme()
-  const [tagInput, setTagInput] = useState('')
-
-  const handleAdd = (): void => {
-    const trimmed = tagInput.trim()
-    if (trimmed.length === 0 || tags.includes(trimmed)) return
-    onUpdateTags([...tags, trimmed])
-    setTagInput('')
-  }
-
-  const handleRemove = (tag: string): void => {
-    onUpdateTags(tags.filter((t) => t !== tag))
-  }
-
-  return (
-    <View style={[styles.listTagsRow, { borderColor: colors.borderSubtle }]}>
-      <View style={styles.listTagsChips}>
-        {tags.map((tag) => (
-          <View key={tag} style={[styles.listTagChip, { backgroundColor: colors.borderSubtle }]}>
-            <Text style={[styles.listTagText, { color: colors.textSecondary }]}>#{tag}</Text>
-            <Pressable
-              onPress={() => handleRemove(tag)}
-              accessibilityRole="button"
-              accessibilityLabel={`Удалить тег задачи ${tag}`}
-              style={styles.listTagRemove}
-            >
-              <Ionicons name="close" size={12} color={colors.textTertiary} />
-            </Pressable>
-          </View>
-        ))}
-        <View style={[styles.listTagInputWrap, { borderColor: colors.borderSubtle }]}>
-          <TextInput
-            value={tagInput}
-            onChangeText={setTagInput}
-            onSubmitEditing={handleAdd}
-            placeholder="+ тег"
-            placeholderTextColor={accentColor}
-            style={[styles.listTagInput, { color: colors.textPrimary }]}
-            returnKeyType="done"
-            accessibilityLabel="Добавить тег задачи"
-          />
-        </View>
-      </View>
-    </View>
   )
 }
 
@@ -530,47 +426,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
   },
-  progressBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 16,
-  },
-  progressInfo: { flex: 1, gap: 4 },
-  progressCount: { ...typography.body, fontSize: 15, fontWeight: '700' },
-  progressSub: { ...typography.bodySm },
-  // DEF-03: теги списка — pill-стиль (светлые овалы)
-  listTagsRow: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    paddingBottom: 8,
-  },
-  listTagsChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center',
-  },
-  listTagChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  listTagText: { ...typography.bodySm, fontSize: 12 },
-  listTagRemove: { padding: 2 },
-  listTagInputWrap: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  listTagInput: { ...typography.bodySm, fontSize: 12, minWidth: 48 },
   filterRow: {
     flexDirection: 'row',
     marginHorizontal: 16,

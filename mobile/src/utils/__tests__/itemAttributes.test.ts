@@ -6,6 +6,7 @@ import {
   formatDeadlineToken,
   formatLinkToken,
   formatReminderToken,
+  hasDeadlineTime,
   isAttributeSet,
   matchDeadlinePreset,
   resolveDeadlinePreset,
@@ -55,6 +56,35 @@ describe('formatDeadlineToken', () => {
     const result = formatDeadlineToken(`${y}-${m}-${d}`)
     expect(result).not.toBe('Сегодня')
     expect(result).not.toBe('Завтра')
+  })
+})
+
+describe('hasDeadlineTime', () => {
+  it('false для чистой YYYY-MM-DD (старый формат, обратная совместимость)', () => {
+    expect(hasDeadlineTime('2026-07-10')).toBe(false)
+  })
+
+  it('true для строки с временем (YYYY-MM-DDTHH:mm)', () => {
+    expect(hasDeadlineTime('2026-07-10T14:30')).toBe(true)
+  })
+})
+
+describe('formatDeadlineToken — дедлайн со временем', () => {
+  it('«Сегодня, чч:мм» для сегодняшней даты с временем', () => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    const result = formatDeadlineToken(`${y}-${m}-${d}T14:30`)
+    expect(result).toBe('Сегодня, 14:30')
+  })
+
+  it('дата без времени не показывает время в токене (обратная совместимость)', () => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    expect(formatDeadlineToken(`${y}-${m}-${d}`)).toBe('Сегодня')
   })
 })
 
@@ -143,5 +173,15 @@ describe('resolveReminderPreset', () => {
 
   it('не падает для некорректной строки дедлайна', () => {
     expect(() => resolveReminderPreset('10m', 'не дата')).not.toThrow()
+  })
+
+  it('с дедлайном, содержащим время, считает от этого времени (не от 09:00)', () => {
+    const iso = resolveReminderPreset('10m', '2026-09-10T18:00')
+    const date = new Date(iso)
+    expect(date.getFullYear()).toBe(2026)
+    expect(date.getMonth()).toBe(8) // сентябрь
+    expect(date.getDate()).toBe(10)
+    expect(date.getHours()).toBe(17)
+    expect(date.getMinutes()).toBe(50)
   })
 })

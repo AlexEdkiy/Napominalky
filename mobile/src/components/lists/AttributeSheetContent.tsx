@@ -8,6 +8,7 @@ import { typography } from '@/theme/typography'
 import {
   DEADLINE_PRESETS,
   REMINDER_PRESETS,
+  hasDeadlineTime,
   matchDeadlinePreset,
   resolveDeadlinePreset,
   resolveReminderPreset,
@@ -71,14 +72,18 @@ const DeadlineContent: React.FC<DeadlineContentProps> = ({ draft, accentColor, o
     setShowPicker(false)
   }
 
-  const handlePickDate = (_event: unknown, picked?: Date): void => {
+  const handlePickDateTime = (_event: unknown, picked?: Date): void => {
     if (Platform.OS === 'android') setShowPicker(false)
     if (picked === undefined) return
     const y = picked.getFullYear()
     const m = String(picked.getMonth() + 1).padStart(2, '0')
     const d = String(picked.getDate()).padStart(2, '0')
-    onChange(`${y}-${m}-${d}`)
+    const h = String(picked.getHours()).padStart(2, '0')
+    const min = String(picked.getMinutes()).padStart(2, '0')
+    onChange(`${y}-${m}-${d}T${h}:${min}`)
   }
+
+  const pickerValue = draft !== null ? new Date(hasDeadlineTime(draft) ? draft : `${draft}T00:00:00`) : new Date()
 
   return (
     <View style={styles.content}>
@@ -101,10 +106,10 @@ const DeadlineContent: React.FC<DeadlineContentProps> = ({ draft, accentColor, o
       </View>
       {showPicker && (
         <DateTimePicker
-          value={draft !== null ? new Date(`${draft}T00:00:00`) : new Date()}
-          mode="date"
+          value={pickerValue}
+          mode="datetime"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handlePickDate}
+          onChange={handlePickDateTime}
         />
       )}
       {Platform.OS === 'ios' && showPicker && (

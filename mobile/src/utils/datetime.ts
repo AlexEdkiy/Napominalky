@@ -92,17 +92,21 @@ export const formatDeadlineChip = (dateStr: string): string => {
 /**
  * Форматирует дедлайн пункта для отображения в чипе строки и в раскрытом
  * редакторе: «10 июл» (текущий год) или «10 июл 2027» (другой год).
- * Принимает строку YYYY-MM-DD. Для невалидного входа — исходная строка.
+ * Если дата содержит время (не 'YYYY-MM-DD'), добавляет «, чч:мм»: «10 июл, 14:30».
+ * Принимает строку YYYY-MM-DD или ISO с временем. Для невалидного входа — исходная строка.
  */
 export const formatDeadlineDisplay = (dateStr: string): string => {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
   // YYYY-MM-DD → добавляем T00:00 чтобы избежать смещения UTC
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr
+  const normalized = dateOnly ? `${dateStr}T00:00:00` : dateStr
   const date = new Date(normalized)
   if (!Number.isFinite(date.getTime())) return dateStr
   const month = MONTH_NAMES[date.getMonth()]
   const day = date.getDate()
   const year = date.getFullYear()
   const currentYear = new Date().getFullYear()
-  if (year === currentYear) return `${day} ${month ?? ''}`
-  return `${day} ${month ?? ''} ${year}`
+  const datePart = year === currentYear ? `${day} ${month ?? ''}` : `${day} ${month ?? ''} ${year}`
+  if (dateOnly) return datePart
+  const timePart = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${datePart}, ${timePart}`
 }

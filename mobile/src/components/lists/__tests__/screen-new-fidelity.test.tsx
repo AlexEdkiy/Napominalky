@@ -6,6 +6,7 @@
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
+import { Keyboard, Platform } from 'react-native'
 import { render, fireEvent, act } from '@testing-library/react-native'
 
 // ---- Моки ---------------------------------------------------------------
@@ -24,7 +25,7 @@ jest.mock('react-native-safe-area-context', () => {
   const { View } = require('react-native')
   return {
     SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
-    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+    useSafeAreaInsets: () => ({ top: 44, bottom: 0, left: 0, right: 0 }),
   }
 })
 
@@ -202,6 +203,51 @@ describe('Экран «Новая задача» — соответствие м
         { title: 'Новая задача', type: 'goods' },
         expect.any(Object),
       )
+    })
+  })
+
+  // Пункт 4: шторка не должна обрезаться сверху (учитывает insets.top) и не должна
+  // быть перекрыта клавиатурой на Android (marginBottom вручную на высоту клавиатуры).
+  describe('шторка не срезается сверху и не перекрывается клавиатурой', () => {
+    it('шторка имеет верхний отступ с учётом insets.top (не уезжает под статусбар)', async () => {
+      const { getByTestId } = await render(<NewListScreen />)
+      const sheet = getByTestId('new-list-sheet')
+      const merged = Array.isArray(sheet.props.style)
+        ? Object.assign({}, ...sheet.props.style)
+        : sheet.props.style
+      // insets.top=44 в моке + минимальный зазор > 0
+      expect(merged.marginTop).toBeGreaterThan(44)
+    })
+
+    it('[Android] шторка сдвигается вверх (marginBottom) при появлении клавиатуры', async () => {
+      const originalPlatformOS = Platform.OS
+      Platform.OS = 'android'
+      const listeners: Record<string, (event: { endCoordinates: { height: number } }) => void> = {}
+      const addListenerSpy = jest.spyOn(Keyboard, 'addListener').mockImplementation(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((eventName: string, cb: any) => {
+          listeners[eventName] = cb
+          return { remove: jest.fn() }
+        }) as unknown as typeof Keyboard.addListener,
+      )
+
+      const { getByTestId } = await render(<NewListScreen />)
+      const readMarginBottom = (): unknown => {
+        const sheet = getByTestId('new-list-sheet')
+        const merged = Array.isArray(sheet.props.style)
+          ? Object.assign({}, ...sheet.props.style)
+          : sheet.props.style
+        return merged.marginBottom
+      }
+      expect(readMarginBottom()).toBe(0)
+
+      await act(async () => {
+        listeners.keyboardDidShow?.({ endCoordinates: { height: 280 } })
+      })
+      expect(readMarginBottom()).toBe(280)
+
+      addListenerSpy.mockRestore()
+      Platform.OS = originalPlatformOS
     })
   })
 })

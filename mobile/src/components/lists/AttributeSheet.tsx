@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -92,7 +94,9 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const translateY = useRef(new Animated.Value(300)).current
+  const dragY = useRef(new Animated.Value(0)).current
   const visible = attribute !== null
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const [draft, setDraft] = useState<AttributeSheetValue>(null)
 
@@ -102,9 +106,47 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
       currentDeadline, currentReminderAt, currentLink, currentComment, currentTags,
     }))
     translateY.setValue(300)
+    dragY.setValue(0)
     Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 18, mass: 0.9 }).start()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attribute])
+
+  // Android: KeyboardAvoidingView behavior=undefined не поднимает контент — сдвигаем
+  // лист вручную на высоту клавиатуры через отдельный слушатель.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height)
+    })
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0)
+    })
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
+  }, [])
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_evt, gesture) =>
+          Math.abs(gesture.dy) > 4 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+        onPanResponderMove: (_evt, gesture) => {
+          if (gesture.dy > 0) dragY.setValue(gesture.dy)
+        },
+        onPanResponderRelease: (_evt, gesture) => {
+          const shouldClose = gesture.dy > 100 || gesture.vy > 1.2
+          if (shouldClose) {
+            Animated.timing(dragY, { toValue: 600, duration: 180, useNativeDriver: true }).start(onClose)
+            return
+          }
+          Animated.spring(dragY, { toValue: 0, useNativeDriver: true, damping: 18, mass: 0.9 }).start()
+        },
+      }),
+    [dragY, onClose],
+  )
 
   if (attribute === null) return null
 
@@ -115,26 +157,36 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
     onConfirm(draft)
   }
 
+  const combinedTranslateY = Animated.add(translateY, dragY)
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть" />
         <Animated.View
+          testID="attribute-sheet"
           style={[
             styles.sheet,
-            { backgroundColor: colors.surface, paddingBottom: insets.bottom + 16, transform: [{ translateY }] },
+            {
+              backgroundColor: colors.surface,
+              paddingBottom: insets.bottom + 16,
+              marginBottom: keyboardHeight,
+              transform: [{ translateY: combinedTranslateY }],
+            },
           ]}
         >
-          <View style={styles.grabber} />
-          <View style={styles.header}>
-            <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
-              <Ionicons
-                name={ATTRIBUTE_ICONS[attribute] as React.ComponentProps<typeof Ionicons>['name']}
-                size={18}
-                color={accentColor}
-              />
+          <View testID="attribute-sheet-drag-zone" {...panResponder.panHandlers}>
+            <View style={styles.grabber} />
+            <View style={styles.header}>
+              <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
+                <Ionicons
+                  name={ATTRIBUTE_ICONS[attribute] as React.ComponentProps<typeof Ionicons>['name']}
+                  size={18}
+                  color={accentColor}
+                />
+              </View>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{TITLES[attribute]}</Text>
             </View>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{TITLES[attribute]}</Text>
           </View>
 
           <SheetContent

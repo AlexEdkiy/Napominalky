@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,6 +26,9 @@ interface TypeOption {
   description: string
 }
 
+/** Минимальный зазор над safe-area сверху, чтобы шторка не уезжала под статусбар. */
+const MIN_TOP_GAP = 12
+
 const TYPE_OPTIONS: readonly TypeOption[] = [
   {
     value: 'goods',
@@ -46,8 +50,25 @@ export default function NewListScreen() {
   const { createList } = useShoppingLists()
   const [title, setTitle] = useState('')
   const [listType, setListType] = useState<ListType>('goods')
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
+
+  // Android: KeyboardAvoidingView behavior=undefined не поднимает контент — сдвигаем
+  // шторку вручную на высоту клавиатуры через отдельный слушатель.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height)
+    })
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0)
+    })
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
+  }, [])
 
   const handleCreate = (): void => {
     const trimmed = title.trim()
@@ -74,9 +95,15 @@ export default function NewListScreen() {
         style={styles.kav}
       >
         <View
+          testID="new-list-sheet"
           style={[
             styles.sheet,
-            { backgroundColor: colors.screenBg, paddingBottom: insets.bottom + 16 },
+            {
+              backgroundColor: colors.screenBg,
+              paddingBottom: insets.bottom + 16,
+              marginBottom: keyboardHeight,
+              marginTop: insets.top + MIN_TOP_GAP,
+            },
           ]}
         >
           <ScrollView
@@ -181,11 +208,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  kav: { justifyContent: 'flex-end' },
+  kav: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
   },
   content: { padding: 20, paddingTop: 8, gap: 24 },
   handleWrap: { alignItems: 'center', paddingBottom: 8 },
