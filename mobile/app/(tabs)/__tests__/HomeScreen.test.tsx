@@ -166,3 +166,17 @@ describe('HomeScreen — карточки задач (кольцо прогре�
     expect(getAllByTestId('progress-ring-svg').length).toBeGreaterThan(0)
   })
 })
+
+describe('HomeScreen — подпись статуса по типу задачи', () => {
+  it('tasks → подзаголовок содержит «сделано»', async () => {
+    mockLists.push(buildList({ type: 'tasks', itemsCount: 4, checkedItemsCount: 1 }))
+    const { getByText } = await render(<HomeScreen />)
+    expect(getByText('4 пунктов · 1 сделано')).toBeTruthy()
+  })
+
+  it('goods → подзаголовок содержит «куплено»', async () => {
+    mockLists.push(buildList({ type: 'goods', itemsCount: 4, checkedItemsCount: 2 }))
+    const { getByText } = await render(<HomeScreen />)
+    expect(getByText('4 пунктов · 2 куплено')).toBeTruthy()
+  })
+})
