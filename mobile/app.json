@@ -78,7 +78,8 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withLocalizedAppName.js"
     ],
     "experiments": {
       "typedRoutes": true
