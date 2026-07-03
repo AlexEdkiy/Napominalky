@@ -49,10 +49,23 @@ interface SheetContentProps {
   deadline: string | null
   accentColor: string
   onChange: (value: AttributeSheetValue) => void
+  /**
+   * Текст, введённый в поле «Новый тег», но ещё не добавленный в draft.
+   * Поднимается в родительский AttributeSheet, чтобы «Готово» могла
+   * активироваться и подтвердить «висящий» ввод без явного submit.
+   */
+  onPendingTagChange?: (text: string) => void
 }
 
 /** Диспетчер контента шторки по типу атрибута. */
-const SheetContent: React.FC<SheetContentProps> = ({ attribute, draft, deadline, accentColor, onChange }) => {
+const SheetContent: React.FC<SheetContentProps> = ({
+  attribute,
+  draft,
+  deadline,
+  accentColor,
+  onChange,
+  onPendingTagChange = () => {},
+}) => {
   if (attribute === 'deadline') {
     return (
       <DeadlineContent draft={typeof draft === 'string' ? draft : null} accentColor={accentColor} onChange={onChange} />
@@ -74,7 +87,14 @@ const SheetContent: React.FC<SheetContentProps> = ({ attribute, draft, deadline,
   if (attribute === 'comment') {
     return <CommentContent draft={typeof draft === 'string' ? draft : ''} accentColor={accentColor} onChange={onChange} />
   }
-  return <TagContent draft={Array.isArray(draft) ? draft : []} accentColor={accentColor} onChange={onChange} />
+  return (
+    <TagContent
+      draft={Array.isArray(draft) ? draft : []}
+      accentColor={accentColor}
+      onChange={onChange}
+      onPendingChange={onPendingTagChange}
+    />
+  )
 }
 
 // ---- Deadline ----------------------------------------------------------------
@@ -309,11 +329,18 @@ interface TagContentProps {
   draft: string[]
   accentColor: string
   onChange: (value: AttributeSheetValue) => void
+  /** Сообщает родителю о «висящем» (ещё не добавленном) тексте нового тега. */
+  onPendingChange?: (text: string) => void
 }
 
-const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange }) => {
+const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange, onPendingChange }) => {
   const { colors } = useTheme()
   const [newTag, setNewTag] = useState('')
+
+  const handleChangeText = (text: string): void => {
+    setNewTag(text)
+    onPendingChange?.(text)
+  }
 
   const toggleTag = (tag: string): void => {
     onChange(draft.includes(tag) ? draft.filter((t) => t !== tag) : [...draft, tag])
@@ -324,6 +351,7 @@ const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange })
     if (trimmed.length === 0 || draft.includes(trimmed)) return
     onChange([...draft, trimmed])
     setNewTag('')
+    onPendingChange?.('')
   }
 
   const allPills = [...TAG_PRESETS, ...draft.filter((t) => !(TAG_PRESETS as readonly string[]).includes(t))]
@@ -344,7 +372,7 @@ const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange })
       <View style={[styles.newTagRow, { borderColor: colors.borderInput }]}>
         <TextInput
           value={newTag}
-          onChangeText={setNewTag}
+          onChangeText={handleChangeText}
           onSubmitEditing={addCustomTag}
           placeholder="＋ Новый тег"
           placeholderTextColor={colors.textTertiary}
@@ -352,6 +380,16 @@ const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange })
           returnKeyType="done"
           accessibilityLabel="Новый тег"
         />
+        {newTag.trim().length > 0 && (
+          <Pressable
+            onPress={addCustomTag}
+            accessibilityRole="button"
+            accessibilityLabel="Добавить тег"
+            style={styles.addTagBtn}
+          >
+            <Text style={[styles.addTagBtnText, { color: accentColor }]}>＋</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   )
@@ -369,6 +407,9 @@ const styles = StyleSheet.create({
   },
   inputMulti: { minHeight: 90, textAlignVertical: 'top' },
   newTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 14,
@@ -376,6 +417,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   newTagInput: { ...typography.bodySm, minWidth: 100 },
+  addTagBtn: { paddingHorizontal: 2 },
+  addTagBtnText: { ...typography.body, fontWeight: '800', lineHeight: 18 },
   iosPickerDoneWrap: { alignSelf: 'flex-end', paddingVertical: 4 },
   iosPickerDoneText: { ...typography.body, fontWeight: '700' },
 })

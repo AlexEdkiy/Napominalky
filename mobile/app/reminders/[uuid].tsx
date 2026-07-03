@@ -1,15 +1,6 @@
 import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native'
+import { router, useLocalSearchParams } from 'expo-router'
 
 import BaseButton from '@/components/common/BaseButton'
 import ReminderForm, { type ReminderFormValues } from '@/components/reminders/ReminderForm'
@@ -59,51 +50,48 @@ export default function ReminderDetailScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
-    >
-      <Stack.Screen options={{ title: 'Напоминание' }} />
-      <ScrollView keyboardShouldPersistTaps="handled">
-        <ReminderForm
-          initialValues={{
-            title: reminder.title,
-            notes: reminder.notes ?? '',
-            remindAt: reminder.remindAt,
-            recurrence: reminder.recurrence,
-          }}
-          isSaving={updateReminder.isPending}
-          onSubmit={handleSubmit}
-          onDelete={confirmDelete}
-        />
-        <View style={styles.extra}>
-          {!reminder.isCompleted ? (
+    <>
+      <ReminderForm
+        initialValues={{
+          title: reminder.title,
+          notes: reminder.notes ?? '',
+          remindAt: reminder.remindAt,
+          recurrence: reminder.recurrence,
+        }}
+        submitLabel="Сохранить"
+        isSaving={updateReminder.isPending}
+        onSubmit={handleSubmit}
+        onDelete={confirmDelete}
+        onBack={() => router.back()}
+        footer={
+          <View style={styles.extra}>
+            {!reminder.isCompleted ? (
+              <BaseButton
+                label="Выполнить"
+                onPress={() => completeReminder.mutate(reminderUuid)}
+                loading={completeReminder.isPending}
+              />
+            ) : null}
             <BaseButton
-              label="Выполнить"
-              onPress={() => completeReminder.mutate(reminderUuid)}
-              loading={completeReminder.isPending}
+              label="Отложить"
+              variant="secondary"
+              onPress={() => setSnoozeVisible(true)}
             />
-          ) : null}
-          <BaseButton
-            label="Отложить"
-            variant="secondary"
-            onPress={() => setSnoozeVisible(true)}
-          />
-        </View>
-      </ScrollView>
+          </View>
+        }
+      />
       <SnoozeSheet
         visible={snoozeVisible}
         onClose={() => setSnoozeVisible(false)}
         onSnooze={(iso) => snoozeReminder.mutate({ uuid: reminderUuid, snoozedUntil: iso })}
       />
-    </KeyboardAvoidingView>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
   loader: { marginTop: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   missing: { fontSize: 16, color: '#71717a' },
-  extra: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
+  extra: { paddingTop: 4, gap: 12 },
 })

@@ -29,6 +29,10 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
   const [iosOpen, setIosOpen] = useState(false)
   const [androidStep, setAndroidStep] = useState<AndroidStep>('idle')
   const [draftDate, setDraftDate] = useState<Date>(new Date())
+  // Ключ последнего нажатого быстрого чипа — подсвечивает его, пока значение
+  // не изменено вручную через пикер (сравнение ISO-строк ненадёжно из-за
+  // дрейфа секунд в «Через час»).
+  const [activePresetKey, setActivePresetKey] = useState<string | null>(null)
 
   const handleOpen = (): void => {
     const base = hasValue ? new Date(value) : new Date()
@@ -37,18 +41,25 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
     else setIosOpen(true)
   }
 
+  const handlePreset = (preset: (typeof QUICK_PRESETS)[number]): void => {
+    onChange(preset.compute())
+    setActivePresetKey(preset.key)
+  }
+
   const handleAndroidChange = (event: DateTimePickerEvent, picked?: Date): void => {
     if (event.type === 'dismissed' || !picked) { setAndroidStep('idle'); return }
     if (androidStep === 'date') { setDraftDate(picked); setAndroidStep('time'); return }
     setAndroidStep('idle')
     const merged = new Date(draftDate)
     merged.setHours(picked.getHours(), picked.getMinutes(), 0, 0)
+    setActivePresetKey(null)
     onChange(merged.toISOString())
   }
 
   const handleIosChange = (_e: DateTimePickerEvent, picked?: Date): void => {
     if (!picked) return
     setDraftDate(picked)
+    setActivePresetKey(null)
     onChange(picked.toISOString())
   }
 
@@ -73,17 +84,27 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
       </Pressable>
 
       <View style={styles.chips}>
-        {QUICK_PRESETS.map((p) => (
-          <Pressable
-            key={p.key}
-            accessibilityRole="button"
-            accessibilityLabel={p.label}
-            onPress={() => onChange(p.compute())}
-            style={({ pressed }) => [styles.chip, { backgroundColor: colors.amberBg }, pressed && styles.pressed]}
-          >
-            <Text style={[typography.bodySm, styles.chipLabel, { color: colors.amber }]}>{p.label}</Text>
-          </Pressable>
-        ))}
+        {QUICK_PRESETS.map((p) => {
+          const active = activePresetKey === p.key
+          return (
+            <Pressable
+              key={p.key}
+              accessibilityRole="button"
+              accessibilityLabel={p.label}
+              accessibilityState={{ selected: active }}
+              onPress={() => handlePreset(p)}
+              style={({ pressed }) => [
+                styles.chip,
+                { backgroundColor: active ? colors.amber : colors.amberBg },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[typography.bodySm, styles.chipLabel, { color: active ? '#FFFFFF' : colors.amber }]}>
+                {p.label}
+              </Text>
+            </Pressable>
+          )
+        })}
       </View>
 
       {Platform.OS === 'ios' && iosOpen ? (
