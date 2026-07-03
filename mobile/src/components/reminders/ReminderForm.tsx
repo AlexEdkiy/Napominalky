@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import ReminderDateCard from '@/components/reminders/ReminderDateCard'
@@ -46,7 +45,6 @@ const RECURRENCE_LABELS: Record<RecurrenceType, string> = {
   monthly: 'Ежемесячно',
 }
 
-const HEADER_GRADIENT: [string, string] = ['#0f6155', '#0c463d']
 const DOT_TEAL = '#17897a'
 const DOT_AMBER = '#d99a3e'
 
@@ -99,17 +97,19 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
 
   return (
     <View style={[styles.root, { backgroundColor: colors.screenBg }]}>
-      <LinearGradient colors={HEADER_GRADIENT} style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable
           onPress={onBack}
           accessibilityRole="button"
           accessibilityLabel="Назад"
-          style={styles.backBtn}
+          style={[styles.backBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
         >
-          <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
         </Pressable>
-        <Text numberOfLines={1} style={styles.headerTitle}>{headerTitle}</Text>
-      </LinearGradient>
+        <Text numberOfLines={1} style={[styles.headerTitle, { color: colors.textPrimary }]}>
+          {headerTitle}
+        </Text>
+      </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -294,16 +294,15 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
   },
   headerTitle: {
     ...typography.h2,
     flex: 1,
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFFFFF',
   },
   content: { padding: 16, gap: 18 },
   section: { gap: 10 },
