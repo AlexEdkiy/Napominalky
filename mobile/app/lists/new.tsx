@@ -114,7 +114,6 @@ export default function NewListScreen() {
                 placeholderTextColor={colors.textTertiary}
                 value={title}
                 onChangeText={setTitle}
-                autoFocus
                 style={[
                   styles.titleInput,
                   {

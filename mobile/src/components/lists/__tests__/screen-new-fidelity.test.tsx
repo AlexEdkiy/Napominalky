@@ -115,6 +115,13 @@ describe('Экран «Новая задача» — соответствие м
       expect(getByPlaceholderText('Название задачи')).toBeTruthy()
     })
 
+    // Пункт 1: без autoFocus клавиатура не всплывает сразу при открытии, и вся
+    // шторка (карточки типа + кнопка «Создать задачу») видна пользователю.
+    it('поле названия не получает autoFocus — клавиатура не перекрывает шторку при открытии', async () => {
+      const { getByLabelText } = await render(<NewListScreen />)
+      expect(getByLabelText('Название задачи').props.autoFocus).not.toBe(true)
+    })
+
     it('отображает кнопку «Создать задачу»', async () => {
       const { getByLabelText } = await render(<NewListScreen />)
       expect(getByLabelText('Создать задачу')).toBeTruthy()

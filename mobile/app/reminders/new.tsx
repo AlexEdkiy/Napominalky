@@ -14,7 +14,7 @@ export default function NewReminderScreen() {
         notes: values.notes.length > 0 ? values.notes : null,
         recurrence: values.recurrence,
       },
-      { onSuccess: (reminder) => router.replace(`/reminders/${reminder.uuid}`) },
+      { onSuccess: () => router.back() },
     )
   }
 

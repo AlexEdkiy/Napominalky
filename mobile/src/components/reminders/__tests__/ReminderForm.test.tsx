@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
 import React from 'react'
 import { act, fireEvent, render } from '@testing-library/react-native'
 
@@ -31,7 +34,7 @@ afterEach(() => {
 })
 
 describe('ReminderForm — секции и шапка', () => {
-  it('рендерит тёмную шапку с заголовком «Новое напоминание» для новой формы', async () => {
+  it('рендерит светлую шапку с заголовком «Новое напоминание» для новой формы', async () => {
     const { getByText } = await render(<ReminderForm onSubmit={jest.fn()} />)
     expect(getByText('Новое напоминание')).toBeTruthy()
   })
@@ -232,5 +235,25 @@ describe('ReminderForm — footer', () => {
       />,
     )
     expect(getByText('Свет')).toBeTruthy()
+  })
+})
+
+describe('ReminderForm — светлая шапка (без градиента), как у формы заметки/задачи', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../ReminderForm.tsx'), 'utf-8')
+
+  it('не импортирует expo-linear-gradient', () => {
+    expect(source).not.toMatch(/expo-linear-gradient/)
+  })
+
+  it('не использует LinearGradient и старый тёмный градиент шапки', () => {
+    expect(source).not.toMatch(/LinearGradient/)
+    expect(source).not.toMatch(/HEADER_GRADIENT/)
+    expect(source).not.toMatch(/#0f6155/)
+    expect(source).not.toMatch(/#0c463d/)
+  })
+
+  it('шапка использует системный фон (colors.screenBg) и тёмный текст (colors.textPrimary)', () => {
+    expect(source).toMatch(/backgroundColor: colors\.screenBg/)
+    expect(source).toMatch(/styles\.headerTitle, \{ color: colors\.textPrimary \}/)
   })
 })
