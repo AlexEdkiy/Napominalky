@@ -45,13 +45,15 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const checkboxRadius = listType === 'tasks' ? 10 : 7
-  const firstTag = parseTags(item.tags)[0]
+  // 5: показываем ВСЕ теги пункта (не только первый)
+  const tags = parseTags(item.tags)
   const hasDeadlineChip = listType === 'tasks' && item.deadline != null
   const hasMetaIndicator =
     item.reminderAt !== null ||
     (item.comment !== null && item.comment.length > 0) ||
     (item.link !== null && item.link.length > 0)
-  const hasMetaLine = hasDeadlineChip || hasMetaIndicator
+  // 3: тег(и) + чип дедлайна + иконки-индикаторы — в одной строке (metaLine)
+  const hasMetaLine = hasDeadlineChip || hasMetaIndicator || tags.length > 0
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
@@ -95,20 +97,20 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
             >
               {item.name}
             </Text>
-            {firstTag !== undefined && (
-              <View style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
-                <Text style={[styles.chipText, { color: colors.textSecondary }]}>#{firstTag}</Text>
-              </View>
-            )}
             {listType === 'goods' && item.quantity > 1 && (
               <View style={[styles.chip, { backgroundColor: accentBg }]}>
                 <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
               </View>
             )}
           </View>
-          {/* DEF-06/3.6: чип дедлайна и мета-иконки — единый горизонтальный ряд */}
+          {/* 3/5: тег(и) + чип дедлайна + мета-иконки — единый горизонтальный ряд */}
           {hasMetaLine && (
             <View style={styles.metaLine}>
+              {tags.map((tag) => (
+                <View key={tag} style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
+                  <Text style={[styles.chipText, { color: colors.textSecondary }]}>#{tag}</Text>
+                </View>
+              ))}
               {/* DEF-05: форматированная дата вместо raw YYYY-MM-DD */}
               {listType === 'tasks' && item.deadline != null && (
                 <View style={[styles.chip, { backgroundColor: accentBg }]}>
@@ -325,10 +327,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
-  // DEF-06/3.6: чип дедлайна + иконки-индикаторы в один горизонтальный ряд
+  // DEF-06/3.6/3: тег(и) + чип дедлайна + иконки-индикаторы в один горизонтальный ряд
   metaLine: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
     marginTop: 4,
   },

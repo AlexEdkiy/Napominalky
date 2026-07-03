@@ -165,17 +165,22 @@ export default function ListDetailScreen() {
           )}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            <ListHeader
-              listType={listType}
-              accentColor={accentColor}
-              accentBg={accentBg}
-              itemFilter={itemFilter}
-              onFilterChange={setItemFilter}
-              onAdd={handleAdd}
-              isEmpty={items.length === 0}
-              emptyHint={emptyHint}
-              emptySubHint={emptySubHint}
-            />
+            // DEF-07: contentContainerStyle даёт плашкам пунктов горизонтальный
+            // отступ от края экрана; шапка уже имеет собственные margin/padding
+            // (16), поэтому компенсируем внешний паддинг здесь, чтобы не удвоить его.
+            <View style={styles.headerOffset}>
+              <ListHeader
+                listType={listType}
+                accentColor={accentColor}
+                accentBg={accentBg}
+                itemFilter={itemFilter}
+                onFilterChange={setItemFilter}
+                onAdd={handleAdd}
+                isEmpty={items.length === 0}
+                emptyHint={emptyHint}
+                emptySubHint={emptySubHint}
+              />
+            </View>
           }
           ListEmptyComponent={
             items.length > 0 ? (
@@ -399,7 +404,10 @@ const styles = StyleSheet.create({
   loader: { marginTop: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   missing: { ...typography.body },
-  list: { paddingBottom: 40 },
+  // DEF-07: плашки пунктов не должны упираться в края экрана
+  list: { paddingBottom: 40, paddingHorizontal: 16 },
+  // Компенсирует list.paddingHorizontal для шапки FlatList (уже имеет свои margin/padding=16)
+  headerOffset: { marginHorizontal: -16 },
   // DEF-06: кастомная шапка
   customHeader: {
     flexDirection: 'row',
