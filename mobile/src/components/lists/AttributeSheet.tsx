@@ -68,8 +68,10 @@ const initialDraft = (attribute: ItemAttribute, values: CurrentValues): Attribut
   }
 }
 
-const validateDraft = (attribute: ItemAttribute, draft: AttributeSheetValue): boolean => {
-  if (attribute === 'tag') return Array.isArray(draft) && draft.length > 0
+const validateDraft = (attribute: ItemAttribute, draft: AttributeSheetValue, pendingTagText = ''): boolean => {
+  if (attribute === 'tag') {
+    return (Array.isArray(draft) && draft.length > 0) || pendingTagText.trim().length > 0
+  }
   if (typeof draft !== 'string') return false
   return draft.trim().length > 0
 }
@@ -99,12 +101,16 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
   const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const [draft, setDraft] = useState<AttributeSheetValue>(null)
+  // Текст в поле «Новый тег», ещё не подтверждённый явным submit — позволяет
+  // «Готово» активироваться и подтвердить его без отдельного нажатия «+».
+  const [pendingTagText, setPendingTagText] = useState('')
 
   useEffect(() => {
     if (attribute === null) return
     setDraft(initialDraft(attribute, {
       currentDeadline, currentReminderAt, currentLink, currentComment, currentTags,
     }))
+    setPendingTagText('')
     translateY.setValue(300)
     dragY.setValue(0)
     Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 18, mass: 0.9 }).start()
@@ -150,10 +156,17 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
 
   if (attribute === null) return null
 
-  const isValid = validateDraft(attribute, draft)
+  const isValid = validateDraft(attribute, draft, pendingTagText)
 
   const handleConfirm = (): void => {
     if (!isValid) return
+    if (attribute === 'tag') {
+      const trimmed = pendingTagText.trim()
+      const tags = Array.isArray(draft) ? draft : []
+      const finalTags = trimmed.length > 0 && !tags.includes(trimmed) ? [...tags, trimmed] : tags
+      onConfirm(finalTags)
+      return
+    }
     onConfirm(draft)
   }
 
@@ -195,6 +208,7 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
             deadline={currentDeadline}
             accentColor={accentColor}
             onChange={setDraft}
+            onPendingTagChange={setPendingTagText}
           />
 
           <Pressable

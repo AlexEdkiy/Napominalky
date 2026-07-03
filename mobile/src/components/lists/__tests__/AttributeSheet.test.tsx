@@ -259,6 +259,55 @@ describe('AttributeSheet — tag', () => {
     })
     expect(onConfirm).toHaveBeenCalledWith(['Ремонт'])
   })
+
+  // Баг: ввод нового тега без явного submit (Enter/«+») оставлял «Готово» disabled.
+  it('ввод нового тега БЕЗ submit активирует «Готово» и сохраняет тег по нажатию', async () => {
+    const onConfirm = jest.fn()
+    const { getByLabelText } = await render(
+      <AttributeSheet {...baseProps} attribute="tag" onConfirm={onConfirm} onClose={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Новый тег'), 'Дача')
+    })
+    expect(getByLabelText('Готово').props.accessibilityState?.disabled).toBe(false)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Готово'))
+    })
+    expect(onConfirm).toHaveBeenCalledWith(['Дача'])
+  })
+
+  it('явная кнопка «Добавить тег» («+») добавляет тег в draft и очищает поле', async () => {
+    const { getByLabelText, queryByLabelText } = await render(
+      <AttributeSheet {...baseProps} attribute="tag" onConfirm={jest.fn()} onClose={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Новый тег'), 'Сад')
+    })
+    expect(getByLabelText('Добавить тег')).toBeTruthy()
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить тег'))
+    })
+    expect(getByLabelText('Сад')).toBeTruthy()
+    expect(getByLabelText('Новый тег').props.value).toBe('')
+    expect(queryByLabelText('Добавить тег')).toBeNull()
+  })
+
+  it('висящий текст нового тега вместе с выбранными пресетами сохраняет оба', async () => {
+    const onConfirm = jest.fn()
+    const { getByLabelText } = await render(
+      <AttributeSheet {...baseProps} attribute="tag" onConfirm={onConfirm} onClose={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Срочно'))
+    })
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Новый тег'), 'Дача')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Готово'))
+    })
+    expect(onConfirm).toHaveBeenCalledWith(['Срочно', 'Дача'])
+  })
 })
 
 describe('AttributeSheet — общее поведение', () => {

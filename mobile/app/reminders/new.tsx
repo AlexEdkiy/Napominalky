@@ -1,12 +1,9 @@
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 
 import ReminderForm, { type ReminderFormValues } from '@/components/reminders/ReminderForm'
 import { useReminders } from '@/hooks/useReminders'
-import { useTheme } from '@/theme'
 
 export default function NewReminderScreen() {
-  const { colors } = useTheme()
   const { createReminder } = useReminders()
 
   const handleSubmit = (values: ReminderFormValues): void => {
@@ -22,23 +19,11 @@ export default function NewReminderScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.container, { backgroundColor: colors.screenBg }]}
-    >
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-        <ReminderForm
-          submitLabel="Создать"
-          isSaving={createReminder.isPending}
-          onSubmit={handleSubmit}
-          onBack={() => router.back()}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <ReminderForm
+      submitLabel="Создать"
+      isSaving={createReminder.isPending}
+      onSubmit={handleSubmit}
+      onBack={() => router.back()}
+    />
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flexGrow: 1 },
-})
