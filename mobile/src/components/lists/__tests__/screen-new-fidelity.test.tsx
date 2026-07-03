@@ -5,8 +5,11 @@
  */
 jest.mock('@/db/client', () => ({ db: {} }))
 
+import fs from 'node:fs'
+import path from 'node:path'
+
 import React from 'react'
-import { Keyboard, Platform } from 'react-native'
+import { Platform, StyleSheet } from 'react-native'
 import { render, fireEvent, act } from '@testing-library/react-native'
 
 // ---- Моки ---------------------------------------------------------------
@@ -206,48 +209,47 @@ describe('Экран «Новая задача» — соответствие м
     })
   })
 
-  // Пункт 4: шторка не должна обрезаться сверху (учитывает insets.top) и не должна
-  // быть перекрыта клавиатурой на Android (marginBottom вручную на высоту клавиатуры).
+  // Пункт 4/2: шторка не должна обрезаться сверху (учитывает insets.top) и поле
+  // названия + кнопка «Создать задачу» должны оставаться полностью видимыми
+  // над клавиатурой на Android — через KeyboardAvoidingView (behavior='height')
+  // + maxHeight:'100%' на шторке + ScrollView(flex:1), без ручной компенсации
+  // высоты клавиатуры (которая давала двойной сдвиг и «съедала» верх шторки).
   describe('шторка не срезается сверху и не перекрывается клавиатурой', () => {
-    it('шторка имеет верхний отступ с учётом insets.top (не уезжает под статусбар)', async () => {
+    // StyleSheet.flatten разворачивает ВЛОЖЕННЫЕ массивы стилей (KeyboardAvoidingView
+    // компонует style через StyleSheet.compose — `[[naш style], {доп. стиль}]`).
+    const readMergedStyle = (style: unknown): Record<string, unknown> =>
+      (StyleSheet.flatten(style as never) ?? {}) as Record<string, unknown>
+
+    it('шторка (KeyboardAvoidingView) имеет верхний паддинг с учётом insets.top', async () => {
       const { getByTestId } = await render(<NewListScreen />)
-      const sheet = getByTestId('new-list-sheet')
-      const merged = Array.isArray(sheet.props.style)
-        ? Object.assign({}, ...sheet.props.style)
-        : sheet.props.style
+      const kav = getByTestId('new-list-kav')
+      const merged = readMergedStyle(kav.props.style)
       // insets.top=44 в моке + минимальный зазор > 0
-      expect(merged.marginTop).toBeGreaterThan(44)
+      expect(merged.paddingTop as number).toBeGreaterThan(44)
     })
 
-    it('[Android] шторка сдвигается вверх (marginBottom) при появлении клавиатуры', async () => {
-      const originalPlatformOS = Platform.OS
-      Platform.OS = 'android'
-      const listeners: Record<string, (event: { endCoordinates: { height: number } }) => void> = {}
-      const addListenerSpy = jest.spyOn(Keyboard, 'addListener').mockImplementation(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ((eventName: string, cb: any) => {
-          listeners[eventName] = cb
-          return { remove: jest.fn() }
-        }) as unknown as typeof Keyboard.addListener,
-      )
-
+    it('шторка ограничена по высоте (maxHeight) — контент не выталкивается за экран', async () => {
       const { getByTestId } = await render(<NewListScreen />)
-      const readMarginBottom = (): unknown => {
-        const sheet = getByTestId('new-list-sheet')
-        const merged = Array.isArray(sheet.props.style)
-          ? Object.assign({}, ...sheet.props.style)
-          : sheet.props.style
-        return merged.marginBottom
-      }
-      expect(readMarginBottom()).toBe(0)
+      const sheet = getByTestId('new-list-sheet')
+      const merged = readMergedStyle(sheet.props.style)
+      expect(merged.maxHeight).toBe('100%')
+    })
 
-      await act(async () => {
-        listeners.keyboardDidShow?.({ endCoordinates: { height: 280 } })
-      })
-      expect(readMarginBottom()).toBe(280)
+    it('содержимое шторки прокручивается (ScrollView flex:1) — поле и кнопка доступны', async () => {
+      const { getByTestId } = await render(<NewListScreen />)
+      const scroll = getByTestId('new-list-scroll')
+      const merged = readMergedStyle(scroll.props.style)
+      expect(merged.flex).toBe(1)
+    })
 
-      addListenerSpy.mockRestore()
-      Platform.OS = originalPlatformOS
+    // Контроль исходного кода: behavior — единственный «недоступный извне» проп
+    // KeyboardAvoidingView (RN не прокидывает его в рендер хоста), поэтому
+    // проверяем платформенный выбор поведения напрямую по исходнику экрана
+    // (см. официальную рекомендацию RN: на Android с behavior=undefined клавиатура
+    // не поднимает контент внутри модалки — используем 'height').
+    it('исходник использует KeyboardAvoidingView behavior="padding" на iOS и "height" на Android', () => {
+      const source = fs.readFileSync(path.resolve(__dirname, '../../../../app/lists/new.tsx'), 'utf-8')
+      expect(source).toMatch(/behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/)
     })
   })
 })

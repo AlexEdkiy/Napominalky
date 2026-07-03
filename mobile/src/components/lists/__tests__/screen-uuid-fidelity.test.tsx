@@ -4,6 +4,9 @@
  */
 jest.mock('@/db/client', () => ({ db: {} }))
 
+import fs from 'node:fs'
+import path from 'node:path'
+
 import React from 'react'
 import { render } from '@testing-library/react-native'
 
@@ -334,5 +337,41 @@ describe('Экран [uuid] — goods, с пунктами', () => {
     const { getByLabelText } = await render(<Screen />)
     const checkbox = getByLabelText('Отметить Молоко')
     expect(checkbox.props.accessibilityState?.checked).toBe(false)
+  })
+})
+
+// ============================================================
+// Пункт 1: горизонтальные отступы плашек пунктов (не упираются в края)
+// ============================================================
+
+describe('Экран [uuid] — плашки пунктов не упираются в края экрана', () => {
+  beforeEach(() => {
+    mockListData = {
+      uuid: 'list-1',
+      userId: null,
+      title: 'Список с товарами',
+      type: 'goods',
+      serverRevision: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      deletedAt: null,
+      itemsCount: 1,
+      checkedItemsCount: 0,
+    }
+    mockItems = [makeItem('Молоко', false, 'i1')]
+  })
+
+  it('[ПУНКТ 1] плашки пунктов отображаются (структурная проверка)', async () => {
+    const { getByText } = await render(<Screen />)
+    expect(getByText('Молоко')).toBeTruthy()
+  })
+
+  // FlatList (композитный компонент) не прокидывает contentContainerStyle в рендер
+  // хоста — проверяем горизонтальный отступ плашек напрямую по исходнику экрана.
+  it('[ПУНКТ 1] исходник задаёт contentContainerStyle.paddingHorizontal ≥ 12 (плашки не упираются в края)', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../../../../app/lists/[uuid].tsx'), 'utf-8')
+    const match = /list:\s*\{[^}]*paddingHorizontal:\s*(\d+)/.exec(source)
+    expect(match).not.toBeNull()
+    expect(Number(match?.[1])).toBeGreaterThanOrEqual(12)
   })
 })

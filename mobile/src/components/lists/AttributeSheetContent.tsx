@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 
 import AttributeSheetPill from '@/components/lists/AttributeSheetPill'
 import { useTheme } from '@/theme'
@@ -19,6 +19,29 @@ import {
 } from '@/utils/itemAttributes'
 
 const TAG_PRESETS = ['Срочно', 'Работа', 'Дом', 'Личное'] as const
+
+/**
+ * Android `@react-native-community/datetimepicker` НЕ поддерживает `mode="datetime"` —
+ * дата и время выбираются последовательными шагами (сначала 'date', потом 'time').
+ */
+type AndroidStep = 'idle' | 'date' | 'time'
+
+/** 'YYYY-MM-DDTHH:mm' из объекта Date (локальное время, без секунд). */
+const formatLocalDateTime = (date: Date): string => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d}T${h}:${min}`
+}
+
+/** Дата с временем из picked (date step) + picked (time step). */
+const mergeDateAndTime = (datePart: Date, timePart: Date): Date => {
+  const merged = new Date(datePart.getTime())
+  merged.setHours(timePart.getHours(), timePart.getMinutes(), 0, 0)
+  return merged
+}
 
 interface SheetContentProps {
   attribute: ItemAttribute
@@ -64,26 +87,46 @@ interface DeadlineContentProps {
 
 const DeadlineContent: React.FC<DeadlineContentProps> = ({ draft, accentColor, onChange }) => {
   const [showPicker, setShowPicker] = useState(false)
+  const [androidStep, setAndroidStep] = useState<AndroidStep>('idle')
+  const [androidDraft, setAndroidDraft] = useState<Date>(new Date())
   const activePreset = matchDeadlinePreset(draft)
   const isCustom = draft !== null && activePreset === null
+
+  const pickerValue = draft !== null ? new Date(hasDeadlineTime(draft) ? draft : `${draft}T00:00:00`) : new Date()
 
   const handlePreset = (key: DeadlinePresetKey): void => {
     onChange(resolveDeadlinePreset(key))
     setShowPicker(false)
+    setAndroidStep('idle')
   }
 
-  const handlePickDateTime = (_event: unknown, picked?: Date): void => {
-    if (Platform.OS === 'android') setShowPicker(false)
+  const openPicker = (): void => {
+    if (Platform.OS === 'android') {
+      setAndroidDraft(pickerValue)
+      setAndroidStep('date')
+    } else {
+      setShowPicker(true)
+    }
+  }
+
+  const handleIosChange = (_event: DateTimePickerEvent, picked?: Date): void => {
     if (picked === undefined) return
-    const y = picked.getFullYear()
-    const m = String(picked.getMonth() + 1).padStart(2, '0')
-    const d = String(picked.getDate()).padStart(2, '0')
-    const h = String(picked.getHours()).padStart(2, '0')
-    const min = String(picked.getMinutes()).padStart(2, '0')
-    onChange(`${y}-${m}-${d}T${h}:${min}`)
+    onChange(formatLocalDateTime(picked))
   }
 
-  const pickerValue = draft !== null ? new Date(hasDeadlineTime(draft) ? draft : `${draft}T00:00:00`) : new Date()
+  const handleAndroidChange = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (event.type === 'dismissed' || picked === undefined) {
+      setAndroidStep('idle')
+      return
+    }
+    if (androidStep === 'date') {
+      setAndroidDraft(picked)
+      setAndroidStep('time')
+      return
+    }
+    setAndroidStep('idle')
+    onChange(formatLocalDateTime(mergeDateAndTime(androidDraft, picked)))
+  }
 
   return (
     <View style={styles.content}>
@@ -97,20 +140,13 @@ const DeadlineContent: React.FC<DeadlineContentProps> = ({ draft, accentColor, o
             onPress={() => handlePreset(preset.key)}
           />
         ))}
-        <AttributeSheetPill
-          label="Выбрать дату"
-          active={isCustom}
-          accentColor={accentColor}
-          onPress={() => setShowPicker(true)}
-        />
+        <AttributeSheetPill label="Выбрать дату" active={isCustom} accentColor={accentColor} onPress={openPicker} />
       </View>
-      {showPicker && (
-        <DateTimePicker
-          value={pickerValue}
-          mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handlePickDateTime}
-        />
+      {Platform.OS === 'ios' && showPicker && (
+        <DateTimePicker value={pickerValue} mode="datetime" display="spinner" onChange={handleIosChange} />
+      )}
+      {Platform.OS === 'android' && androidStep !== 'idle' && (
+        <DateTimePicker value={androidDraft} mode={androidStep} display="default" onChange={handleAndroidChange} />
       )}
       {Platform.OS === 'ios' && showPicker && (
         <Pressable onPress={() => setShowPicker(false)} style={styles.iosPickerDoneWrap}>
@@ -140,18 +176,44 @@ const matchReminderPreset = (draft: string | null, deadline: string | null): Rem
 
 const ReminderContent: React.FC<ReminderContentProps> = ({ draft, deadline, accentColor, onChange }) => {
   const [showPicker, setShowPicker] = useState(false)
+  const [androidStep, setAndroidStep] = useState<AndroidStep>('idle')
+  const [androidDraft, setAndroidDraft] = useState<Date>(new Date())
   const activePreset = matchReminderPreset(draft, deadline)
   const isCustom = draft !== null && activePreset === null
 
   const handlePreset = (key: ReminderPresetKey): void => {
     onChange(resolveReminderPreset(key, deadline))
     setShowPicker(false)
+    setAndroidStep('idle')
   }
 
-  const handlePickDateTime = (_event: unknown, picked?: Date): void => {
-    if (Platform.OS === 'android') setShowPicker(false)
+  const openPicker = (): void => {
+    const base = draft !== null ? new Date(draft) : new Date()
+    if (Platform.OS === 'android') {
+      setAndroidDraft(base)
+      setAndroidStep('date')
+    } else {
+      setShowPicker(true)
+    }
+  }
+
+  const handleIosChange = (_event: DateTimePickerEvent, picked?: Date): void => {
     if (picked === undefined) return
     onChange(picked.toISOString())
+  }
+
+  const handleAndroidChange = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (event.type === 'dismissed' || picked === undefined) {
+      setAndroidStep('idle')
+      return
+    }
+    if (androidStep === 'date') {
+      setAndroidDraft(picked)
+      setAndroidStep('time')
+      return
+    }
+    setAndroidStep('idle')
+    onChange(mergeDateAndTime(androidDraft, picked).toISOString())
   }
 
   return (
@@ -166,20 +228,18 @@ const ReminderContent: React.FC<ReminderContentProps> = ({ draft, deadline, acce
             onPress={() => handlePreset(preset.key)}
           />
         ))}
-        <AttributeSheetPill
-          label="Своё время"
-          active={isCustom}
-          accentColor={accentColor}
-          onPress={() => setShowPicker(true)}
-        />
+        <AttributeSheetPill label="Своё время" active={isCustom} accentColor={accentColor} onPress={openPicker} />
       </View>
-      {showPicker && (
+      {Platform.OS === 'ios' && showPicker && (
         <DateTimePicker
           value={draft !== null ? new Date(draft) : new Date()}
           mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handlePickDateTime}
+          display="spinner"
+          onChange={handleIosChange}
         />
+      )}
+      {Platform.OS === 'android' && androidStep !== 'idle' && (
+        <DateTimePicker value={androidDraft} mode={androidStep} display="default" onChange={handleAndroidChange} />
       )}
       {Platform.OS === 'ios' && showPicker && (
         <Pressable onPress={() => setShowPicker(false)} style={styles.iosPickerDoneWrap}>

@@ -211,6 +211,61 @@ describe('ItemRow — порядок чипов (макет)', () => {
 })
 
 // ============================================================
+// Пункт 5: несколько тегов у пункта — показываются ВСЕ в свёрнутой строке
+// ============================================================
+
+describe('ItemRow — несколько тегов (макет)', () => {
+  it('[ПУНКТ 5] показываются ВСЕ теги пункта, не только первый', async () => {
+    const item = { ...base(), tags: '["срочно","дом","работа"]' }
+    const { getByText } = await render(
+      <ItemRow item={item} listType="goods" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    expect(getByText('#срочно')).toBeTruthy()
+    expect(getByText('#дом')).toBeTruthy()
+    expect(getByText('#работа')).toBeTruthy()
+  })
+
+  it('[ПУНКТ 5][tasks] несколько тегов отображаются вместе с чипом дедлайна', async () => {
+    const item = { ...base(), tags: '["срочно","дом"]', deadline: '2026-07-20' }
+    const { getByText } = await render(
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    expect(getByText('#срочно')).toBeTruthy()
+    expect(getByText('#дом')).toBeTruthy()
+    expect(getByText('20 июл')).toBeTruthy()
+  })
+})
+
+// ============================================================
+// Пункт 3: тег(и) и мета-индикаторы — в ОДНОЙ строке (metaLine)
+// ============================================================
+
+describe('ItemRow — тег(и) и мета-индикаторы в одной строке (макет)', () => {
+  it('[ПУНКТ 3] тег и иконка-индикатор (напоминание) — общий родитель metaLine', async () => {
+    const item = { ...base(), tags: '["работа"]', reminderAt: '2026-07-01T18:00:00Z' }
+    const { getByText, getByTestId } = await render(
+      <ItemRow item={item} listType="goods" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    const tagChip = getByText('#работа').parent
+    const indicatorsWrap = getByTestId('icon-notifications-outline').parent
+    // Чип тега лежит прямо в metaLine; иконка — в indicators, чей родитель тоже metaLine.
+    expect(tagChip?.parent).toBe(indicatorsWrap?.parent)
+  })
+
+  it('[ПУНКТ 3][tasks] тег, чип дедлайна и индикатор ссылки — общий родитель metaLine', async () => {
+    const item = { ...base(), tags: '["дом"]', deadline: '2026-07-05', link: 'https://example.com' }
+    const { getByText, getByTestId } = await render(
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    const tagChip = getByText('#дом').parent
+    const deadlineChip = getByText('5 июл').parent
+    const indicatorsWrap = getByTestId('icon-link-outline').parent
+    expect(tagChip?.parent).toBe(deadlineChip?.parent)
+    expect(tagChip?.parent).toBe(indicatorsWrap?.parent)
+  })
+})
+
+// ============================================================
 // Индикаторы-иконки (колокол/коммент/ссылка)
 // ============================================================
 

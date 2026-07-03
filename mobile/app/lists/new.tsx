@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import {
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -50,25 +49,8 @@ export default function NewListScreen() {
   const { createList } = useShoppingLists()
   const [title, setTitle] = useState('')
   const [listType, setListType] = useState<ListType>('goods')
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
-
-  // Android: KeyboardAvoidingView behavior=undefined не поднимает контент — сдвигаем
-  // шторку вручную на высоту клавиатуры через отдельный слушатель.
-  useEffect(() => {
-    if (Platform.OS !== 'android') return undefined
-    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardHeight(e.endCoordinates.height)
-    })
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardHeight(0)
-    })
-    return () => {
-      showSub.remove()
-      hideSub.remove()
-    }
-  }, [])
 
   const handleCreate = (): void => {
     const trimmed = title.trim()
@@ -90,9 +72,20 @@ export default function NewListScreen() {
         accessibilityLabel="Закрыть"
         onPress={() => router.back()}
       />
+      {/*
+        Экран рендерится через Stack.Screen presentation=transparentModal (react-navigation,
+        та же Activity/Fragment) — поэтому паддинг сверху задаём на самом
+        KeyboardAvoidingView, а высоту шторки ограничиваем через maxHeight:'100%'
+        (в процентах от РЕЗУЛЬТИРУЮЩЕЙ высоты KAV, которая сама сжимается при
+        появлении клавиатуры через behavior 'padding'/'height'). Так поле
+        названия и кнопка «Создать задачу» гарантированно остаются видимыми —
+        ScrollView прокручивает контент внутри уже вычисленных границ, без
+        двойной компенсации высоты клавиатуры.
+      */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.kav}
+        testID="new-list-kav"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.kav, { paddingTop: insets.top + MIN_TOP_GAP }]}
       >
         <View
           testID="new-list-sheet"
@@ -101,12 +94,12 @@ export default function NewListScreen() {
             {
               backgroundColor: colors.screenBg,
               paddingBottom: insets.bottom + 16,
-              marginBottom: keyboardHeight,
-              marginTop: insets.top + MIN_TOP_GAP,
             },
           ]}
         >
           <ScrollView
+            testID="new-list-scroll"
+            style={styles.scrollFlex}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.content}
           >
@@ -210,9 +203,11 @@ const styles = StyleSheet.create({
   },
   kav: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
+    maxHeight: '100%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
+  scrollFlex: { flex: 1 },
   content: { padding: 20, paddingTop: 8, gap: 24 },
   handleWrap: { alignItems: 'center', paddingBottom: 8 },
   handle: { width: 42, height: 5, borderRadius: 3 },
