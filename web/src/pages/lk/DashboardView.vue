@@ -1,111 +1,176 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { useAuthStore } from '@/stores/authStore'
+import LkOverviewReminderItem from '@/components/lk/LkOverviewReminderItem.vue'
+import LkStatCard from '@/components/lk/LkStatCard.vue'
+import { useLkDashboard } from '@/composables/useLkDashboard'
 
-interface SectionCard {
-  routeName: string
-  title: string
-  description: string
-  ready: boolean
-}
+const { isLoading, error, stats, todaysReminders, upcomingReminders, load, completeTodayReminder } =
+  useLkDashboard()
 
-const auth = useAuthStore()
-
-const greeting = computed(() => {
-  const who = auth.user?.name ?? auth.user?.email
-  return who ? `Здравствуйте, ${who}!` : 'Добро пожаловать!'
-})
-
-const sections: SectionCard[] = [
-  { routeName: 'lk-notes', title: 'Заметки', description: 'Создавайте и редактируйте заметки.', ready: true },
-  { routeName: 'lk-lists', title: 'Списки покупок', description: 'Ведите списки покупок.', ready: true },
-  { routeName: 'lk-reminders', title: 'Напоминания', description: 'Не забывайте о важном.', ready: true },
-  { routeName: 'lk-calendar', title: 'Календарь', description: 'Скоро появится.', ready: false },
-  { routeName: 'lk-sync', title: 'Синхронизация', description: 'Скоро появится.', ready: false },
-  { routeName: 'lk-settings', title: 'Настройки', description: 'Скоро появится.', ready: false },
-]
-
-const readySections = computed(() => sections.filter((section) => section.ready))
-const upcomingSections = computed(() => sections.filter((section) => !section.ready))
+onMounted(load)
 </script>
 
 <template>
   <section class="dashboard">
-    <h1>{{ greeting }}</h1>
+    <p v-if="isLoading" class="dashboard__state" aria-live="polite">Загрузка…</p>
 
-    <ul class="cards">
-      <li v-for="section in readySections" :key="section.routeName" class="card">
-        <RouterLink :to="{ name: section.routeName }" class="card__link">
-          <h2 class="card__title">{{ section.title }}</h2>
-          <p class="card__desc">{{ section.description }}</p>
-        </RouterLink>
-      </li>
+    <p v-else-if="error" class="dashboard__state dashboard__state--error" role="alert">
+      {{ error }}
+    </p>
 
-      <li
-        v-for="section in upcomingSections"
-        :key="section.routeName"
-        class="card card--disabled"
-        aria-disabled="true"
-      >
-        <h2 class="card__title">{{ section.title }}</h2>
-        <p class="card__desc">{{ section.description }}</p>
-        <span class="card__badge">в разработке</span>
-      </li>
-    </ul>
+    <template v-else>
+      <div class="dashboard__stats">
+        <LkStatCard
+          icon="list"
+          variant="blue"
+          :value="String(stats.activeTasksCount)"
+          label="Активных задач"
+        />
+        <LkStatCard
+          icon="bell"
+          variant="amber"
+          :value="String(stats.remindersTodayCount)"
+          label="Напоминаний сегодня"
+        />
+        <LkStatCard icon="note" variant="teal" :value="String(stats.notesCount)" label="Заметок" />
+        <LkStatCard
+          icon="check"
+          variant="gradient"
+          :value="`${stats.completedWeekPercent}%`"
+          label="Выполнено за неделю"
+        />
+      </div>
+
+      <div class="dashboard__panels">
+        <section class="dashboard__panel" aria-labelledby="dashboard-today-heading">
+          <header class="dashboard__panel-header">
+            <h2 id="dashboard-today-heading" class="dashboard__panel-title">Задачи на сегодня</h2>
+            <RouterLink :to="{ name: 'lk-tasks' }" class="dashboard__panel-link">
+              Все задачи →
+            </RouterLink>
+          </header>
+
+          <p v-if="todaysReminders.length === 0" class="dashboard__empty">
+            Нет задач на сегодня.
+          </p>
+          <ul v-else class="dashboard__list">
+            <LkOverviewReminderItem
+              v-for="reminder in todaysReminders"
+              :key="reminder.uuid"
+              :reminder="reminder"
+              variant="today"
+              @complete="completeTodayReminder"
+            />
+          </ul>
+        </section>
+
+        <section class="dashboard__panel" aria-labelledby="dashboard-upcoming-heading">
+          <header class="dashboard__panel-header">
+            <h2 id="dashboard-upcoming-heading" class="dashboard__panel-title">
+              Ближайшие напоминания
+            </h2>
+          </header>
+
+          <p v-if="upcomingReminders.length === 0" class="dashboard__empty">
+            Предстоящих напоминаний нет.
+          </p>
+          <ul v-else class="dashboard__list">
+            <LkOverviewReminderItem
+              v-for="reminder in upcomingReminders"
+              :key="reminder.uuid"
+              :reminder="reminder"
+              variant="upcoming"
+            />
+          </ul>
+        </section>
+      </div>
+    </template>
   </section>
 </template>
 
 <style scoped>
 .dashboard {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
-.cards {
-  list-style: none;
-  padding: 0;
-  margin: 1.5rem 0 0;
+.dashboard__state {
+  padding: 2rem 0;
+  color: #6b716e;
+}
+
+.dashboard__state--error {
+  color: #cf5b4a;
+}
+
+.dashboard__stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
 }
 
-.card {
-  position: relative;
-  border: 1px solid #e2e2e2;
-  border-radius: 8px;
-  padding: 1rem;
+@media (max-width: 900px) {
+  .dashboard__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.card--disabled {
-  opacity: 0.6;
-  background: #f7f7f7;
+.dashboard__panels {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1.25rem;
 }
 
-.card__link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
+@media (max-width: 900px) {
+  .dashboard__panels {
+    grid-template-columns: 1fr;
+  }
 }
 
-.card__title {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+.dashboard__panel {
+  background: #fff;
+  border-radius: 18px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
-.card__desc {
+.dashboard__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard__panel-title {
   margin: 0;
-  color: #555;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2622;
 }
 
-.card__badge {
-  display: inline-block;
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  color: #888;
-  text-transform: uppercase;
+.dashboard__panel-link {
+  font-size: 0.85rem;
+  color: #17897a;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dashboard__panel-link:hover {
+  text-decoration: underline;
+}
+
+.dashboard__empty {
+  color: #8a938f;
+  padding: 0.5rem 0;
+}
+
+.dashboard__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 </style>

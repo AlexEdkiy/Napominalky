@@ -49,6 +49,17 @@ describe('router', () => {
     expect(resolved.matched[0]?.path).toBe('/lk')
   })
 
+  it('has lk-tasks route (редизайн ЛК: «Задачи и списки») protected via matched parent', () => {
+    const resolved = router.resolve({ name: 'lk-tasks' })
+    expect(resolved.matched.some(r => r.meta.requiresAuth)).toBe(true)
+    expect(resolved.path).toBe('/lk/tasks')
+  })
+
+  it('keeps the legacy /lk/lists deep-link working alongside /lk/tasks', () => {
+    const resolved = router.resolve({ name: 'lk-lists' })
+    expect(resolved.path).toBe('/lk/lists')
+  })
+
   it('has forgot-password route at /forgot-password', () => {
     const route = router.getRoutes().find(r => r.name === 'forgot-password')
     expect(route).toBeDefined()
