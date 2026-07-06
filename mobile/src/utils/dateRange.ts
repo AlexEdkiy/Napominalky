@@ -52,6 +52,19 @@ export const sameDay = (a: Date, b: Date): boolean =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate()
 
+/** Разбивает плоскую сетку CalendarDay[] (кратную 7) на недели-строки. */
+export const chunkWeeks = (days: CalendarDay[]): CalendarDay[][] => {
+  const weeks: CalendarDay[][] = []
+  for (let i = 0; i < days.length; i += DAYS_IN_WEEK) {
+    weeks.push(days.slice(i, i + DAYS_IN_WEEK))
+  }
+  return weeks
+}
+
+/** Индекс недели (строки), содержащей date; -1, если date не входит в сетку. */
+export const findWeekIndex = (weeks: CalendarDay[][], date: Date): number =>
+  weeks.findIndex((week) => week.some((day) => sameDay(day.date, date)))
+
 /** Ключ дня YYYY-MM-DD по локальным компонентам даты. */
 export const ymd = (date: Date): string =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`

@@ -1,4 +1,6 @@
 import {
+  chunkWeeks,
+  findWeekIndex,
   getCalendarDays,
   monthRange,
   sameDay,
@@ -133,6 +135,40 @@ describe('sameDay', () => {
 
   it('true для двух одинаковых полночей', () => {
     expect(sameDay(new Date(2026, 5, 4, 0, 0, 0, 0), new Date(2026, 5, 4, 0, 0, 0, 0))).toBe(true)
+  })
+})
+
+describe('chunkWeeks', () => {
+  it('разбивает 42-дневную сетку на 6 недель по 7 дней', () => {
+    const weeks = chunkWeeks(getCalendarDays(2026, 6))
+    expect(weeks).toHaveLength(6)
+    expect(weeks.every((week) => week.length === 7)).toBe(true)
+  })
+
+  it('сохраняет порядок дней внутри недели', () => {
+    const weeks = chunkWeeks(getCalendarDays(2026, 6))
+    expect(sameDay(weeks[0]![0]!.date, new Date(2026, 5, 29))).toBe(true)
+  })
+})
+
+describe('findWeekIndex', () => {
+  it('находит индекс недели, содержащей выбранную дату', () => {
+    const weeks = chunkWeeks(getCalendarDays(2026, 6)) // июль 2026
+    const index = findWeekIndex(weeks, new Date(2026, 6, 15))
+    expect(index).toBeGreaterThanOrEqual(0)
+    expect(weeks[index]!.some((day) => sameDay(day.date, new Date(2026, 6, 15)))).toBe(true)
+  })
+
+  it('возвращает -1, если дата отсутствует в сетке', () => {
+    const weeks = chunkWeeks(getCalendarDays(2026, 6))
+    expect(findWeekIndex(weeks, new Date(2027, 0, 1))).toBe(-1)
+  })
+
+  it('день начала месяца (1-е июля) и конца месяца (29-е) — в разных неделях', () => {
+    const weeks = chunkWeeks(getCalendarDays(2026, 6))
+    const firstIndex = findWeekIndex(weeks, new Date(2026, 6, 1))
+    const laterIndex = findWeekIndex(weeks, new Date(2026, 6, 29))
+    expect(firstIndex).not.toBe(laterIndex)
   })
 })
 

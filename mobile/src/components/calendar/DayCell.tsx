@@ -1,6 +1,8 @@
 import React from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
+import { ymd } from '@/utils/dateRange'
+
 interface DayCellProps {
   date: Date
   inMonth: boolean
@@ -10,6 +12,11 @@ interface DayCellProps {
   onPress: (date: Date) => void
 }
 
+/**
+ * Кружок дня 40×40. По макету кружок выбранного дня «чистый» (без маркера),
+ * ненавязчивая точка-индикатор событий показывается только для невыбранных
+ * дней с напоминаниями.
+ */
 const DayCell: React.FC<DayCellProps> = ({
   date,
   inMonth,
@@ -19,6 +26,7 @@ const DayCell: React.FC<DayCellProps> = ({
   onPress,
 }) => {
   const label = `${date.getDate()}`
+  const showDot = count > 0 && !isSelected
 
   return (
     <Pressable
@@ -46,9 +54,7 @@ const DayCell: React.FC<DayCellProps> = ({
           {label}
         </Text>
       </View>
-      {count > 0 ? (
-        <View style={[styles.dot, isSelected && styles.dotSelected]} />
-      ) : null}
+      {showDot ? <View testID={`day-dot-${ymd(date)}`} style={styles.dot} /> : null}
     </Pressable>
   )
 }
@@ -62,9 +68,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   inner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -87,7 +93,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#0D9488',
   },
-  dotSelected: { backgroundColor: '#ffffff' },
 })
 
 export default DayCell
