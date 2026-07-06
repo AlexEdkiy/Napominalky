@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -49,8 +48,25 @@ export default function NewListScreen() {
   const { createList } = useShoppingLists()
   const [title, setTitle] = useState('')
   const [listType, setListType] = useState<ListType>('goods')
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
+
+  // Экран — transparentModal (react-navigation): на Android окно не resize'ится
+  // под клавиатуру, поэтому KeyboardAvoidingView не поднимает лист и кнопка
+  // «Создать задачу» уходит под клавиатуру. Поднимаем шторку вручную на высоту
+  // клавиатуры (обе платформы) — весь контент (поле + карточки + кнопка) остаётся
+  // над клавиатурой.
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height)
+    })
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0))
+    return () => {
+      show.remove()
+      hide.remove()
+    }
+  }, [])
 
   const handleCreate = (): void => {
     const trimmed = title.trim()
@@ -72,36 +88,23 @@ export default function NewListScreen() {
         accessibilityLabel="Закрыть"
         onPress={() => router.back()}
       />
-      {/*
-        Экран рендерится через Stack.Screen presentation=transparentModal (react-navigation,
-        та же Activity/Fragment) — поэтому паддинг сверху задаём на самом
-        KeyboardAvoidingView, а высоту шторки ограничиваем через maxHeight:'100%'
-        (в процентах от РЕЗУЛЬТИРУЮЩЕЙ высоты KAV, которая сама сжимается при
-        появлении клавиатуры через behavior 'padding'/'height'). Так поле
-        названия и кнопка «Создать задачу» гарантированно остаются видимыми —
-        ScrollView прокручивает контент внутри уже вычисленных границ, без
-        двойной компенсации высоты клавиатуры.
-      */}
-      <KeyboardAvoidingView
-        testID="new-list-kav"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.kav, { paddingTop: insets.top + MIN_TOP_GAP }]}
+      <View
+        testID="new-list-sheet"
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.screenBg,
+            marginTop: insets.top + MIN_TOP_GAP,
+            marginBottom: keyboardHeight,
+            paddingBottom: keyboardHeight > 0 ? 16 : insets.bottom + 16,
+          },
+        ]}
       >
-        <View
-          testID="new-list-sheet"
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.screenBg,
-              paddingBottom: insets.bottom + 16,
-            },
-          ]}
+        <ScrollView
+          testID="new-list-scroll"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
         >
-          <ScrollView
-            testID="new-list-scroll"
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.content}
-          >
             <View style={styles.handleWrap}>
               <View style={[styles.handle, { backgroundColor: colors.borderInput }]} />
             </View>
@@ -187,8 +190,7 @@ export default function NewListScreen() {
               <Text style={styles.createBtnLabel}>Создать задачу</Text>
             </Pressable>
           </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   )
 }
@@ -199,7 +201,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  kav: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     // Шторка размерится по контенту и встанет снизу (overlay/kav — justifyContent
     // flex-end). maxHeight ограничивает на маленьких экранах — тогда ScrollView

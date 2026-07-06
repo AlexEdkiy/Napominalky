@@ -227,12 +227,12 @@ describe('Экран «Новая задача» — соответствие м
     const readMergedStyle = (style: unknown): Record<string, unknown> =>
       (StyleSheet.flatten(style as never) ?? {}) as Record<string, unknown>
 
-    it('шторка (KeyboardAvoidingView) имеет верхний паддинг с учётом insets.top', async () => {
+    it('шторка имеет верхний отступ с учётом insets.top (не уезжает под статусбар)', async () => {
       const { getByTestId } = await render(<NewListScreen />)
-      const kav = getByTestId('new-list-kav')
-      const merged = readMergedStyle(kav.props.style)
-      // insets.top=44 в моке + минимальный зазор > 0
-      expect(merged.paddingTop as number).toBeGreaterThan(44)
+      const sheet = getByTestId('new-list-sheet')
+      const merged = readMergedStyle(sheet.props.style)
+      // insets.top=44 в моке + минимальный зазор > 44
+      expect(merged.marginTop as number).toBeGreaterThan(44)
     })
 
     it('шторка ограничена по высоте (maxHeight 90%) — контент не выталкивается за экран', async () => {
@@ -249,14 +249,14 @@ describe('Экран «Новая задача» — соответствие м
       expect(merged.flex).toBeUndefined()
     })
 
-    // Контроль исходного кода: behavior — единственный «недоступный извне» проп
-    // KeyboardAvoidingView (RN не прокидывает его в рендер хоста), поэтому
-    // проверяем платформенный выбор поведения напрямую по исходнику экрана
-    // (см. официальную рекомендацию RN: на Android с behavior=undefined клавиатура
-    // не поднимает контент внутри модалки — используем 'height').
-    it('исходник использует KeyboardAvoidingView behavior="padding" на iOS и "height" на Android', () => {
+    // Контроль исходного кода: на transparentModal (Android окно не resize'ится)
+    // KeyboardAvoidingView не поднимает лист — используем ручной слушатель клавиатуры
+    // и поднимаем шторку через marginBottom = keyboardHeight, чтобы кнопка «Создать»
+    // не уходила под клавиатуру.
+    it('исходник поднимает шторку вручную по высоте клавиатуры (Keyboard listener + marginBottom)', () => {
       const source = fs.readFileSync(path.resolve(__dirname, '../../../../app/lists/new.tsx'), 'utf-8')
-      expect(source).toMatch(/behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/)
+      expect(source).toMatch(/Keyboard\.addListener\('keyboardDidShow'/)
+      expect(source).toMatch(/marginBottom: keyboardHeight/)
     })
   })
 })
