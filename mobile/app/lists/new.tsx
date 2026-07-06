@@ -99,7 +99,6 @@ export default function NewListScreen() {
         >
           <ScrollView
             testID="new-list-scroll"
-            style={styles.scrollFlex}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.content}
           >
@@ -202,11 +201,14 @@ const styles = StyleSheet.create({
   },
   kav: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    maxHeight: '100%',
+    // Шторка размерится по контенту и встанет снизу (overlay/kav — justifyContent
+    // flex-end). maxHeight ограничивает на маленьких экранах — тогда ScrollView
+    // прокручивается. НЕ ставить flex:1 на ScrollView: внутри auto-height шторки
+    // это схлопывало её в ~0 (был виден лишь скруглённый верх у нижнего края).
+    maxHeight: '90%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
-  scrollFlex: { flex: 1 },
   content: { padding: 20, paddingTop: 8, gap: 24 },
   handleWrap: { alignItems: 'center', paddingBottom: 8 },
   handle: { width: 42, height: 5, borderRadius: 3 },

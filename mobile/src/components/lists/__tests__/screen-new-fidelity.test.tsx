@@ -235,18 +235,18 @@ describe('Экран «Новая задача» — соответствие м
       expect(merged.paddingTop as number).toBeGreaterThan(44)
     })
 
-    it('шторка ограничена по высоте (maxHeight) — контент не выталкивается за экран', async () => {
+    it('шторка ограничена по высоте (maxHeight 90%) — контент не выталкивается за экран', async () => {
       const { getByTestId } = await render(<NewListScreen />)
       const sheet = getByTestId('new-list-sheet')
       const merged = readMergedStyle(sheet.props.style)
-      expect(merged.maxHeight).toBe('100%')
+      expect(merged.maxHeight).toBe('90%')
     })
 
-    it('содержимое шторки прокручивается (ScrollView flex:1) — поле и кнопка доступны', async () => {
+    it('ScrollView НЕ flex:1 (иначе шторка схлопывается в auto-height контейнере)', async () => {
       const { getByTestId } = await render(<NewListScreen />)
       const scroll = getByTestId('new-list-scroll')
       const merged = readMergedStyle(scroll.props.style)
-      expect(merged.flex).toBe(1)
+      expect(merged.flex).toBeUndefined()
     })
 
     // Контроль исходного кода: behavior — единственный «недоступный извне» проп
