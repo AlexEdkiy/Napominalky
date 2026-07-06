@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native'
 import { router, Stack } from 'expo-router'
@@ -45,6 +46,7 @@ const TYPE_OPTIONS: readonly TypeOption[] = [
 export default function NewListScreen() {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  const { height: screenHeight } = useWindowDimensions()
   const { createList } = useShoppingLists()
   const [title, setTitle] = useState('')
   const [listType, setListType] = useState<ListType>('goods')
@@ -96,6 +98,10 @@ export default function NewListScreen() {
             backgroundColor: colors.screenBg,
             marginTop: insets.top + MIN_TOP_GAP,
             marginBottom: keyboardHeight,
+            // Высота в пикселях с учётом верхнего зазора и клавиатуры: лист
+            // помещается между статусбаром и клавиатурой, верх не срезается,
+            // а при длинном контенте ScrollView прокручивается.
+            maxHeight: screenHeight - (insets.top + MIN_TOP_GAP) - keyboardHeight,
             paddingBottom: keyboardHeight > 0 ? 16 : insets.bottom + 16,
           },
         ]}
@@ -202,11 +208,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sheet: {
-    // Шторка размерится по контенту и встанет снизу (overlay/kav — justifyContent
-    // flex-end). maxHeight ограничивает на маленьких экранах — тогда ScrollView
-    // прокручивается. НЕ ставить flex:1 на ScrollView: внутри auto-height шторки
-    // это схлопывало её в ~0 (был виден лишь скруглённый верх у нижнего края).
-    maxHeight: '90%',
+    // Лист встаёт снизу (overlay — justifyContent flex-end), размерится по контенту.
+    // Динамический maxHeight (px, задаётся инлайн с учётом insets.top + клавиатуры)
+    // не даёт верху уехать за статусбар и включает прокрутку ScrollView при длинном
+    // контенте. НЕ ставить flex:1 на ScrollView — в auto-height листе это схлопывало
+    // его в ~0.
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },

@@ -109,7 +109,11 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <ScrollView
+          style={styles.flex}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+        >
           <AboutSection
             title={title}
             notes={notes}

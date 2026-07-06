@@ -235,11 +235,15 @@ describe('Экран «Новая задача» — соответствие м
       expect(merged.marginTop as number).toBeGreaterThan(44)
     })
 
-    it('шторка ограничена по высоте (maxHeight 90%) — контент не выталкивается за экран', async () => {
+    it('шторка ограничена по высоте (динамический px с учётом insets.top) — верх не срезается', async () => {
       const { getByTestId } = await render(<NewListScreen />)
       const sheet = getByTestId('new-list-sheet')
       const merged = readMergedStyle(sheet.props.style)
-      expect(merged.maxHeight).toBe('90%')
+      // maxHeight = screenHeight - (insets.top + MIN_TOP_GAP) - keyboardHeight (px):
+      // положительное число, меньше высоты экрана (оставлен зазор сверху).
+      expect(typeof merged.maxHeight).toBe('number')
+      expect(merged.maxHeight as number).toBeGreaterThan(0)
+      expect(merged.maxHeight as number).toBeLessThan(1334)
     })
 
     it('ScrollView НЕ flex:1 (иначе шторка схлопывается в auto-height контейнере)', async () => {
