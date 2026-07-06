@@ -489,6 +489,44 @@ describe('ShoppingListsRepository.deleteItem — отмена уведомлен
   })
 })
 
+// ---- rescheduleAllPendingItems (переустановка расписания при старте) -------
+
+describe('ShoppingListsRepository.rescheduleAllPendingItems', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('переустанавливает уведомление для будущего reminderAt, отменяя старый notification_id', async () => {
+    mockSchedule.mockResolvedValueOnce('notif-new')
+    const row = itemRow({ reminderAt: futureIso(), notificationId: 'notif-old' })
+    const repo = new ShoppingListsRepository(createFakeDbNotif([], [row]) as never)
+
+    const count = await repo.rescheduleAllPendingItems()
+
+    expect(mockCancel).toHaveBeenCalledWith('notif-old')
+    expect(mockSchedule).toHaveBeenCalledTimes(1)
+    expect(count).toBe(1)
+  })
+
+  it('не трогает пункты без reminderAt', async () => {
+    const row = itemRow({ reminderAt: null })
+    const repo = new ShoppingListsRepository(createFakeDbNotif([], [row]) as never)
+
+    const count = await repo.rescheduleAllPendingItems()
+
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(count).toBe(0)
+  })
+
+  it('не трогает пункты с прошедшим reminderAt', async () => {
+    const row = itemRow({ reminderAt: pastIso() })
+    const repo = new ShoppingListsRepository(createFakeDbNotif([], [row]) as never)
+
+    const count = await repo.rescheduleAllPendingItems()
+
+    expect(mockSchedule).not.toHaveBeenCalled()
+    expect(count).toBe(0)
+  })
+})
+
 // ---- ShoppingListsRepository.setItemNotificationId --------------------------
 
 describe('ShoppingListsRepository.setItemNotificationId', () => {

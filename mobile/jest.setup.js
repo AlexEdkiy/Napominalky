@@ -20,12 +20,21 @@ jest.mock('expo-local-authentication', () => ({
 // Нативный expo-notifications недоступен в jsdom — мокаем планировщик.
 // scheduleNotificationAsync по умолчанию возвращает фиксированный id, тесты
 // могут переопределить поведение через mock-функции при необходимости.
+// getPermissionsAsync по умолчанию granted:true — не ослабляет существующие
+// тесты планирования (они не проверяют permission-гейт явно).
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   scheduleNotificationAsync: jest.fn(async () => 'notif-mock'),
   cancelScheduledNotificationAsync: jest.fn(async () => undefined),
   cancelAllScheduledNotificationsAsync: jest.fn(async () => undefined),
+  setNotificationChannelAsync: jest.fn(async () => null),
+  getPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted', canAskAgain: true, expires: 'never' })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted', canAskAgain: true, expires: 'never' })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   SchedulableTriggerInputTypes: { DATE: 'date' },
+  AndroidImportance: { UNKNOWN: 0, UNSPECIFIED: 1, NONE: 2, MIN: 3, LOW: 4, DEFAULT: 5, HIGH: 6, MAX: 7 },
+  AndroidNotificationVisibility: { UNKNOWN: 0, PUBLIC: 1, PRIVATE: 2, SECRET: 3 },
 }))
 
 // expo-linear-gradient недоступен в jsdom — проходной View.

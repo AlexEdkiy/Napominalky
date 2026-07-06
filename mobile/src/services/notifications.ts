@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import { SchedulableTriggerInputTypes } from 'expo-notifications'
 
@@ -38,6 +39,10 @@ export interface SchedulableListItem {
 }
 
 let handlerConfigured = false
+let androidChannelConfigured = false
+
+/** Id Android-канала по умолчанию, используемого всеми локальными уведомлениями. */
+export const DEFAULT_ANDROID_CHANNEL_ID = 'default'
 
 /**
  * Настраивает поведение уведомлений в foreground (баннер + список + sound).
@@ -57,13 +62,51 @@ export const configureNotificationHandler = (): void => {
   })
 }
 
+/**
+ * Создаёт Android-канал уведомлений по умолчанию (importance HIGH). На
+ * Android 8+ (API 26+) без явного канала система доставляет локальные
+ * уведомления ненадёжно, когда приложение не на переднем плане — это была
+ * основная причина «уведомление приходит только при открытом приложении».
+ * На iOS каналов нет — вызов no-op. Идемпотентна: повторные вызовы не
+ * пересоздают канал (после создания Android позволяет менять только
+ * имя/описание — пересоздание не требуется).
+ */
+export const ensureAndroidNotificationChannel = async (): Promise<void> => {
+  if (Platform.OS !== 'android') return
+  if (androidChannelConfigured) return
+  androidChannelConfigured = true
+  await Notifications.setNotificationChannelAsync(DEFAULT_ANDROID_CHANNEL_ID, {
+    name: 'Напоминания',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    enableVibrate: true,
+    enableLights: true,
+    showBadge: false,
+    bypassDnd: false,
+  })
+}
+
+/**
+ * true, если разрешение на уведомления уже выдано. НЕ показывает системный
+ * диалог (в отличие от requestPermissionsAsync) — безопасно вызывать перед
+ * каждым планированием.
+ */
+const hasNotificationPermission = async (): Promise<boolean> => {
+  const status = await Notifications.getPermissionsAsync()
+  return status.granted
+}
+
 /** Дата срабатывания: snoozed_until приоритетнее remind_at. */
 const triggerDateIso = (reminder: SchedulableReminder): string =>
   reminder.snoozed_until ?? reminder.remind_at
 
 /**
  * Планирует локальное уведомление на дату срабатывания. Прошедшие даты
- * (<= now) не ставятся в очередь — возвращает null. Иначе возвращает
+ * (<= now) не ставятся в очередь — возвращает null. Перед планированием
+ * гарантирует Android-канал и мягко проверяет разрешение (если разрешения
+ * нет — не планирует, возвращает null, без исключения). Иначе возвращает
  * identifier запланированного уведомления.
  */
 export const scheduleReminder = async (
@@ -73,10 +116,13 @@ export const scheduleReminder = async (
   const date = new Date(dateIso)
   if (date.getTime() <= Date.now()) return null
 
+  await ensureAndroidNotificationChannel()
+  if (!(await hasNotificationPermission())) return null
+
   const data: ReminderNotificationData = { type: 'reminder', uuid: reminder.uuid }
   return Notifications.scheduleNotificationAsync({
     content: { title: reminder.title, body: reminder.notes ?? '', data },
-    trigger: { type: SchedulableTriggerInputTypes.DATE, date },
+    trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
 }
 
@@ -110,13 +156,17 @@ export const rescheduleReminder = async (
 /**
  * Планирует локальное DATE-уведомление для пункта списка покупок.
  * title = item.name, body = item.comment ?? '', data.type = 'list_item'.
- * Прошедшая дата (<= now) → null (не ставится в очередь).
+ * Прошедшая дата (<= now) → null (не ставится в очередь). Перед планированием
+ * гарантирует Android-канал и мягко проверяет разрешение (нет прав → null).
  */
 export const scheduleItemReminder = async (
   item: SchedulableListItem,
 ): Promise<string | null> => {
   const date = new Date(item.reminderAt)
   if (date.getTime() <= Date.now()) return null
+
+  await ensureAndroidNotificationChannel()
+  if (!(await hasNotificationPermission())) return null
 
   const data: ItemNotificationData = {
     type: 'list_item',
@@ -125,7 +175,7 @@ export const scheduleItemReminder = async (
   }
   return Notifications.scheduleNotificationAsync({
     content: { title: item.name, body: item.comment ?? '', data },
-    trigger: { type: SchedulableTriggerInputTypes.DATE, date },
+    trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
 }
 

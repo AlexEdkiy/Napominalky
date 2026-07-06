@@ -292,6 +292,34 @@ export class RemindersRepository {
   }
 
   /**
+   * Переустанавливает локальные уведомления для всех активных (без tombstone),
+   * не выполненных напоминаний с будущей датой срабатывания (snoozed_until ??
+   * remind_at > now). Вызывается при старте приложения (FR-27/28): после
+   * перезагрузки устройства/переустановки приложения системные alarm могли
+   * быть потеряны — без этого прохода такие напоминания никогда не сработают.
+   * Идемпотентна: старый notification_id (если был) отменяется перед
+   * планированием нового — дублей не возникает.
+   */
+  public async rescheduleAllPending(now: Date = new Date()): Promise<number> {
+    const rows = await this.db
+      .select()
+      .from(reminders)
+      .where(and(isNull(reminders.deletedAt), eq(reminders.isCompleted, 0)))
+
+    let rescheduledCount = 0
+    for (const row of rows as ReminderRow[]) {
+      const reminder = toReminder(row)
+      const dateIso = reminder.snoozedUntil ?? reminder.remindAt
+      if (new Date(dateIso).getTime() <= now.getTime()) continue
+
+      const nid = await rescheduleReminder(toSchedulable(reminder), reminder.notificationId)
+      await this.setNotificationId(reminder.uuid, nid)
+      if (nid !== null) rescheduledCount += 1
+    }
+    return rescheduledCount
+  }
+
+  /**
    * Сохраняет локальный id запланированного уведомления. Поле notification_id
    * НЕ синхронизируется, поэтому пишем напрямую в таблицу, минуя outbox.
    */

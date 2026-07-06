@@ -23,6 +23,10 @@ const baseItem: ServerShoppingListItem = {
   category: 'products',
   quantity: 1,
   deadline: null,
+  reminder_at: null,
+  link: null,
+  comment: null,
+  tags: null,
   is_checked: false,
   position: 0,
   created_at: '2024-01-01T00:00:00Z',
@@ -123,6 +127,31 @@ describe('shoppingListItemMapper', () => {
     expect(row.name).toBe('Item')
     expect(row.category).toBe('products')
     expect(row.position).toBe(0)
+  })
+
+  it('маппит reminder_at (напоминание пункта) из сервера', () => {
+    const row = mappers.shopping_list_item.toRow({
+      ...baseItem,
+      reminder_at: '2026-07-01T18:00:00.000Z',
+    })
+    expect(row.reminderAt).toBe('2026-07-01T18:00:00.000Z')
+  })
+
+  it('маппит reminder_at=null если отсутствует (регресс: раньше поле терялось при sync)', () => {
+    const row = mappers.shopping_list_item.toRow(baseItem)
+    expect(row.reminderAt).toBeNull()
+  })
+
+  it('маппит link, comment, tags из сервера', () => {
+    const row = mappers.shopping_list_item.toRow({
+      ...baseItem,
+      link: 'https://example.com',
+      comment: 'Не забыть',
+      tags: '["обувь"]',
+    })
+    expect(row.link).toBe('https://example.com')
+    expect(row.comment).toBe('Не забыть')
+    expect(row.tags).toBe('["обувь"]')
   })
 })
 

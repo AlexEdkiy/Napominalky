@@ -38,7 +38,11 @@ export interface ServerShoppingList {
   deleted_at: string | null
 }
 
-/** Серверная запись элемента списка покупок (pull). */
+/**
+ * Серверная запись элемента списка покупок (pull). reminder_at — ISO-строка
+ * абсолютного момента напоминания пункта (immutable_datetime на backend);
+ * link/comment/tags — мета-поля пункта (tags — JSON-строка, как и локально).
+ */
 export interface ServerShoppingListItem {
   uuid: string
   shopping_list_uuid: string
@@ -46,6 +50,10 @@ export interface ServerShoppingListItem {
   category: string
   quantity: number
   deadline: string | null
+  reminder_at: string | null
+  link: string | null
+  comment: string | null
+  tags: string | null
   is_checked: boolean
   position: number
   created_at: string

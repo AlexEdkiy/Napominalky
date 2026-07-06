@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import * as Notifications from 'expo-notifications'
 import { router, type Href } from 'expo-router'
 
-import { configureNotificationHandler } from '@/services/notifications'
+import {
+  configureNotificationHandler,
+  ensureAndroidNotificationChannel,
+} from '@/services/notifications'
+import { rescheduleAllNotificationsOnStart } from '@/services/notificationsBootstrap'
 import {
   listRoute,
   parseNotificationData,
@@ -44,10 +48,11 @@ const ensurePermissions = async (): Promise<boolean> => {
 }
 
 /**
- * Корневой хук уведомлений (FR-27): настраивает foreground-handler, запрашивает
- * разрешения и навигирует по тапу на уведомление. Обрабатывает «холодный старт»
- * (приложение открыто тапом) через getLastNotificationResponseAsync, а тапы при
- * работающем приложении — через подписку (с cleanup).
+ * Корневой хук уведомлений (FR-27): настраивает foreground-handler, Android-канал,
+ * запрашивает разрешения, переустанавливает расписание будущих напоминаний и
+ * навигирует по тапу на уведомление. Обрабатывает «холодный старт» (приложение
+ * открыто тапом) через getLastNotificationResponseAsync, а тапы при работающем
+ * приложении — через подписку (с cleanup).
  */
 export const useNotifications = (): UseNotificationsResult => {
   const [granted, setGranted] = useState(false)
@@ -56,6 +61,7 @@ export const useNotifications = (): UseNotificationsResult => {
   useEffect(() => {
     let active = true
     configureNotificationHandler()
+    void ensureAndroidNotificationChannel()
 
     void ensurePermissions().then((value) => {
       if (active) setGranted(value)
@@ -66,6 +72,7 @@ export const useNotifications = (): UseNotificationsResult => {
       void Notifications.getLastNotificationResponseAsync().then(
         navigateFromResponse,
       )
+      void rescheduleAllNotificationsOnStart()
     }
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
