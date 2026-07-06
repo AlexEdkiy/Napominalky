@@ -71,12 +71,12 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
         accessibilityLabel="Выбрать дату и время"
         style={[styles.card, { backgroundColor: colors.surface }]}
       >
-        <IconSquare icon="alarm" iconColor={colors.amber} bgColor={colors.amberBg} size={48} radius={15} />
+        <IconSquare icon="alarm" iconColor={colors.amber} bgColor={colors.amberBg} size={44} radius={13} />
         <View style={styles.textBlock}>
           <Text style={[typography.cardTitle, styles.title, { color: colors.textPrimary }]}>
             Дата и время
           </Text>
-          <Text style={[typography.bodySm, { color: hasValue ? colors.textBody : colors.textTertiary }]}>
+          <Text style={[typography.bodySm, styles.value, { color: hasValue ? colors.amber : colors.textTertiary }]}>
             {hasValue ? formatRelativeReminder(value) : 'Выбрать дату и время'}
           </Text>
         </View>
@@ -118,13 +118,13 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 9 },
+  container: { gap: 8 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    borderRadius: 22,
-    padding: 16,
+    gap: 13,
+    borderRadius: 16,
+    padding: 13,
     shadowColor: '#101828',
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -132,10 +132,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   textBlock: { flex: 1, gap: 2 },
-  title: { fontSize: 17 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  chip: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 99 },
-  chipLabel: { fontWeight: '700' },
+  title: { fontSize: 16, fontWeight: '700' },
+  value: { fontSize: 13, fontWeight: '500' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20 },
+  chipLabel: { fontSize: 14, fontWeight: '700' },
   pressed: { opacity: 0.7 },
 })
 

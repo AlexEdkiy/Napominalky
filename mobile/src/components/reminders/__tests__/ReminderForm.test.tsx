@@ -5,6 +5,7 @@ import React from 'react'
 import { act, fireEvent, render } from '@testing-library/react-native'
 
 import ReminderForm from '@/components/reminders/ReminderForm'
+import { lightColors } from '@/theme/colors'
 
 jest.mock('@expo/vector-icons', () => {
   const { View, Text } = require('react-native')
@@ -235,6 +236,74 @@ describe('ReminderForm — footer', () => {
       />,
     )
     expect(getByText('Свет')).toBeTruthy()
+  })
+})
+
+describe('ReminderForm — точки секций (макет)', () => {
+  it('точка секции «О чём напомнить» бирюзовая (colors.accent)', async () => {
+    const { getByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    const style = [getByTestId('dot-about').props.style].flat()
+    expect(style).toContainEqual({ backgroundColor: lightColors.accent })
+  })
+
+  it('точка секции «Когда напомнить» янтарная (colors.amber)', async () => {
+    const { getByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    const style = [getByTestId('dot-when').props.style].flat()
+    expect(style).toContainEqual({ backgroundColor: lightColors.amber })
+  })
+
+  it('точка секции «Повтор» бирюзовая (colors.accent)', async () => {
+    const { getByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    const style = [getByTestId('dot-recurrence').props.style].flat()
+    expect(style).toContainEqual({ backgroundColor: lightColors.accent })
+  })
+})
+
+describe('ReminderForm — карточка «О чём напомнить»', () => {
+  it('содержит разделитель между заголовком и заметкой', async () => {
+    const { getByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    expect(getByTestId('about-card-divider')).toBeTruthy()
+  })
+
+  it('лейблы «ЗАГОЛОВОК»/«ЗАМЕТКА» отображаются', async () => {
+    const { getByText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    expect(getByText('ЗАГОЛОВОК')).toBeTruthy()
+    expect(getByText('ЗАМЕТКА')).toBeTruthy()
+  })
+})
+
+describe('ReminderForm — строка «Дата и время»', () => {
+  it('после выбора быстрого чипа отображает выбранное значение («Сегодня · ЧЧ:ММ»)', async () => {
+    setNow(BASE)
+    const { getByLabelText, getByText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Вечером'))
+    })
+    expect(getByText('Сегодня · 18:00')).toBeTruthy()
+  })
+})
+
+describe('ReminderForm — кнопка «Создать»', () => {
+  it('содержит иконку checkmark-circle', async () => {
+    const { getByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    expect(getByTestId('icon-checkmark-circle')).toBeTruthy()
+  })
+})
+
+describe('ReminderForm — сетка повтора (макет)', () => {
+  it('активная ячейка использует фон colors.accent, неактивная — colors.surface', async () => {
+    const { getByLabelText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Ежедневно'))
+    })
+    const activeStyle = [getByLabelText('Ежедневно').props.style].flat()
+    const inactiveStyle = [getByLabelText('Без повтора').props.style].flat()
+    expect(activeStyle).toContainEqual(
+      expect.objectContaining({ backgroundColor: lightColors.accent }),
+    )
+    expect(inactiveStyle).toContainEqual(
+      expect.objectContaining({ backgroundColor: lightColors.surface }),
+    )
   })
 })
 

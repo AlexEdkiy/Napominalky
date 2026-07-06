@@ -2,6 +2,7 @@ import React from 'react'
 import { act, fireEvent, render } from '@testing-library/react-native'
 
 import ReminderDateCard from '@/components/reminders/ReminderDateCard'
+import { lightColors } from '@/theme/colors'
 
 jest.mock('@expo/vector-icons', () => {
   const { View, Text } = require('react-native')
@@ -66,5 +67,22 @@ describe('ReminderDateCard', () => {
       fireEvent(picker, 'onChange', { type: 'set' }, new Date(2026, 6, 1, 10, 0))
     })
     expect(getByLabelText('Вечером').props.accessibilityState?.selected).toBe(false)
+  })
+
+  it('выбранное значение окрашено в colors.amber, а плейсхолдер — в colors.textTertiary', async () => {
+    setNow(BASE)
+    const { getByText, rerender } = await render(<ReminderDateCard value="" onChange={jest.fn()} />)
+    const placeholderStyle = [getByText('Выбрать дату и время').props.style].flat()
+    expect(placeholderStyle).toContainEqual(
+      expect.objectContaining({ color: lightColors.textTertiary }),
+    )
+
+    const evening = new Date(BASE)
+    evening.setHours(18, 0, 0, 0)
+    await act(async () => {
+      rerender(<ReminderDateCard value={evening.toISOString()} onChange={jest.fn()} />)
+    })
+    const valueStyle = [getByText('Сегодня · 18:00').props.style].flat()
+    expect(valueStyle).toContainEqual(expect.objectContaining({ color: lightColors.amber }))
   })
 })

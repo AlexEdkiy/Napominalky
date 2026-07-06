@@ -45,6 +45,20 @@ describe('formatRelativeReminder', () => {
     expect(result).toBe('Завтра · 10:30')
   })
 
+  it('возвращает «D мес · ЧЧ:ММ» для даты, отличной от сегодня/завтра', () => {
+    const date = new Date()
+    date.setDate(date.getDate() + 10)
+    date.setHours(14, 30, 0, 0)
+    const result = formatRelativeReminder(date.toISOString())
+    expect(result).toMatch(/^\d{1,2} \S+ · 14:30$/)
+    expect(result).toContain(`${date.getDate()} `)
+  })
+
+  it('добавляет год для даты не текущего года', () => {
+    const date = new Date(2099, 6, 10, 9, 5, 0, 0)
+    expect(formatRelativeReminder(date.toISOString())).toBe('10 июл 2099 · 09:05')
+  })
+
   it('возвращает исходную строку для невалидного входа', () => {
     expect(formatRelativeReminder('bad')).toBe('bad')
   })
