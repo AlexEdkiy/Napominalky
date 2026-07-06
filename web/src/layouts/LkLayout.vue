@@ -1,133 +1,188 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 
+import LkBottomNav from '@/components/lk/LkBottomNav.vue'
+import LkMobileHeader from '@/components/lk/LkMobileHeader.vue'
+import LkSidebar from '@/components/lk/LkSidebar.vue'
+import LkTopbar from '@/components/lk/LkTopbar.vue'
+import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
+import { useLkNavCounts } from '@/composables/useLkNavCounts'
+import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
 import { useAuthStore } from '@/stores/authStore'
+import { getUserDisplayName } from '@/utils/user'
 
-interface NavItem {
-  name: string
-  label: string
-}
-
-const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
+const { isDesktop } = useLkBreakpoint()
+const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
 
-const navItems: NavItem[] = [
-  { name: 'lk-notes', label: 'Заметки' },
-  { name: 'lk-lists', label: 'Списки покупок' },
-  { name: 'lk-reminders', label: 'Напоминания' },
-  { name: 'lk-account', label: 'Аккаунт' },
-]
+const isSidebarCollapsed = ref(false)
+const isCreateMenuOpen = ref(false)
 
-const userLabel = computed(() => auth.user?.name ?? auth.user?.email ?? '')
-
-onMounted(async () => {
-  if (auth.user !== null) return
-  try {
-    await auth.fetchMe()
-  } catch {
-    // Профиль подгрузит конкретный раздел; навигация остаётся доступной.
-  }
+const sectionMeta = computed(() => {
+  const name = typeof route.name === 'string' ? route.name : ''
+  return LK_SECTION_META[name] ?? LK_DEFAULT_SECTION_META
 })
 
-async function handleLogout(): Promise<void> {
-  await auth.logout()
-  await router.push({ name: 'login' })
+const sectionSubtitle = computed(() => {
+  if (route.name !== 'lk-dashboard') {
+    return sectionMeta.value.subtitle
+  }
+  const who = getUserDisplayName(auth.user)
+  if (!who) {
+    return sectionMeta.value.subtitle
+  }
+  // Макет: «Добрый день, {имя} — вот что запланировано» — продолжение
+  // предложения после тире со строчной буквы.
+  const lowerFirstSubtitle =
+    sectionMeta.value.subtitle.charAt(0).toLowerCase() + sectionMeta.value.subtitle.slice(1)
+  return `Добрый день, ${who} — ${lowerFirstSubtitle}`
+})
+
+function toggleSidebar(): void {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
+
+function toggleCreateMenu(): void {
+  isCreateMenuOpen.value = !isCreateMenuOpen.value
+}
+
+function closeCreateMenu(): void {
+  isCreateMenuOpen.value = false
+}
+
+onMounted(async () => {
+  if (auth.user === null) {
+    try {
+      await auth.fetchMe()
+    } catch {
+      // Профиль подгрузит конкретный раздел; навигация остаётся доступной.
+    }
+  }
+  void loadNavCounts()
+})
 </script>
 
 <template>
-  <div class="lk">
-    <header class="lk__header">
-      <RouterLink :to="{ name: 'lk-dashboard' }" class="lk__brand">
-        Личный кабинет
-      </RouterLink>
+  <div class="lk-shell" :class="isDesktop ? 'lk-shell--desktop' : 'lk-shell--mobile'">
+    <LkSidebar
+      v-if="isDesktop"
+      :collapsed="isSidebarCollapsed"
+      :active-tasks-count="activeTasksCount"
+      :notes-count="notesCount"
+      @create="toggleCreateMenu"
+    />
 
-      <nav class="lk__nav" aria-label="Разделы личного кабинета">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.name"
-          :to="{ name: item.name }"
-          class="lk__link"
-        >
-          {{ item.label }}
-        </RouterLink>
-        <RouterLink v-if="auth.isAdmin" to="/admin" class="lk__link">
-          Админ-панель
-        </RouterLink>
-      </nav>
+    <div class="lk-shell__main">
+      <LkTopbar
+        v-if="isDesktop"
+        :title="sectionMeta.title"
+        :subtitle="sectionSubtitle"
+        @toggle-sidebar="toggleSidebar"
+      />
+      <LkMobileHeader v-else :title="sectionMeta.title" :subtitle="sectionSubtitle" />
 
-      <div class="lk__user">
-        <span v-if="userLabel" class="lk__username">{{ userLabel }}</span>
-        <button type="button" class="lk__logout" @click="handleLogout">
-          Выйти
-        </button>
+      <main class="lk-shell__content">
+        <RouterView />
+      </main>
+
+      <LkBottomNav v-if="!isDesktop" @create="toggleCreateMenu" />
+    </div>
+
+    <div v-if="isCreateMenuOpen" class="lk-shell__overlay" @click="closeCreateMenu">
+      <div class="lk-shell__create-menu" @click.stop>
+        <RouterLink :to="{ name: 'lk-note-create' }" class="lk-shell__create-item" @click="closeCreateMenu">
+          Новая заметка
+        </RouterLink>
+        <RouterLink :to="{ name: 'lk-reminder-create' }" class="lk-shell__create-item" @click="closeCreateMenu">
+          Новое напоминание
+        </RouterLink>
+        <RouterLink :to="{ name: 'lk-lists' }" class="lk-shell__create-item" @click="closeCreateMenu">
+          Новый список покупок
+        </RouterLink>
       </div>
-    </header>
-
-    <main class="lk__content">
-      <RouterView />
-    </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.lk {
+.lk-shell {
   min-height: 100vh;
+  background: #eef1f0;
+  color: #1f2622;
+}
+
+.lk-shell--desktop {
+  display: flex;
+}
+
+.lk-shell--mobile {
   display: flex;
   flex-direction: column;
 }
 
-.lk__header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #e2e2e2;
-  flex-wrap: wrap;
-}
-
-.lk__brand {
-  font-weight: 700;
-  text-decoration: none;
-  color: inherit;
-}
-
-.lk__nav {
-  display: flex;
-  gap: 1rem;
+.lk-shell__main {
   flex: 1;
-}
-
-.lk__link {
-  text-decoration: none;
-  color: #555;
-  padding: 0.25rem 0;
-  border-bottom: 2px solid transparent;
-}
-
-.lk__link.router-link-active {
-  color: #1a1a1a;
-  border-bottom-color: #2563eb;
-}
-
-.lk__user {
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.lk__username {
-  color: #555;
-  font-size: 0.9rem;
+.lk-shell--mobile .lk-shell__main {
+  min-height: 0;
 }
 
-.lk__logout {
-  cursor: pointer;
-}
-
-.lk__content {
+.lk-shell__content {
   flex: 1;
   padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.lk-shell--mobile .lk-shell__content {
+  padding: 1rem;
+}
+
+.lk-shell__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 20, 0.35);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 40;
+}
+
+.lk-shell--desktop .lk-shell__overlay {
+  align-items: center;
+}
+
+.lk-shell__create-menu {
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 0.75rem;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lk-shell--desktop .lk-shell__create-menu {
+  border-radius: 16px;
+}
+
+.lk-shell__create-item {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #1f2622;
+  font-weight: 500;
+}
+
+.lk-shell__create-item:hover {
+  background: #eef1f0;
 }
 </style>
