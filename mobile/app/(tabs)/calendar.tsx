@@ -5,11 +5,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
+import CalendarCollapseHandle from '@/components/calendar/CalendarCollapseHandle'
 import DayRemindersSheet from '@/components/calendar/DayRemindersSheet'
 import MonthGrid from '@/components/calendar/MonthGrid'
 import { useCalendar } from '@/hooks/useCalendar'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import { animateLayoutChange } from '@/utils/layoutAnimation'
 import { formatMonthTitle, ymd } from '@/utils/dateRange'
 
 const startOfMonth = (date: Date): { year: number; month: number } => ({
@@ -28,6 +30,7 @@ export default function CalendarScreen(): React.JSX.Element {
   const [{ year, month }, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [search, setSearch] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
 
   const { byDay } = useCalendar(year, month)
 
@@ -38,6 +41,11 @@ export default function CalendarScreen(): React.JSX.Element {
 
   const handleAvatarPress = (): void => {
     router.push('/(tabs)/profile')
+  }
+
+  const handleToggleCollapsed = (): void => {
+    animateLayoutChange()
+    setCollapsed((prev) => !prev)
   }
 
   const dayReminders = filterByTitle(byDay.get(ymd(selectedDate)) ?? [], search)
@@ -81,8 +89,11 @@ export default function CalendarScreen(): React.JSX.Element {
           month={month}
           byDay={byDay}
           selectedDate={selectedDate}
+          collapsed={collapsed}
           onSelectDay={setSelectedDate}
         />
+
+        <CalendarCollapseHandle collapsed={collapsed} onToggle={handleToggleCollapsed} />
       </View>
 
       <DayRemindersSheet
@@ -116,15 +127,16 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   arrowBtn: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
-    backgroundColor: '#F4F7F9',
+    backgroundColor: '#F1F4F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
   monthTitle: {
     ...typography.screenTitle,
-    fontSize: 18,
+    fontSize: 17,
+    fontWeight: '700',
   },
 })

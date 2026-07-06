@@ -4,6 +4,8 @@ import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import type { Reminder } from '@/db/repositories/remindersRepo'
 import { formatTime } from '@/utils/datetime'
 import { formatDateTitle } from '@/utils/dateRange'
+import { pluralizeEvents } from '@/utils/pluralize'
+import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
 interface DayRemindersSheetProps {
@@ -14,10 +16,12 @@ interface DayRemindersSheetProps {
 
 interface ReminderRowProps {
   reminder: Reminder
+  timeColor: string
+  dotColor: string
   onPress: (uuid: string) => void
 }
 
-const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, onPress }) => {
+const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, timeColor, dotColor, onPress }) => {
   const title = reminder.title.trim().length > 0 ? reminder.title : 'Без названия'
 
   return (
@@ -28,13 +32,14 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, onPress }) => {
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       <View style={styles.timeCol}>
-        <Text style={styles.time}>{formatTime(reminder.remindAt)}</Text>
+        <Text style={[styles.time, { color: timeColor }]}>{formatTime(reminder.remindAt)}</Text>
       </View>
       <View style={styles.divider} />
       <View style={styles.contentCol}>
         <Text numberOfLines={1} style={styles.rowTitle}>{title}</Text>
         <Text style={styles.rowType}>Напоминание</Text>
       </View>
+      <View testID={`row-dot-${reminder.uuid}`} style={[styles.dot, { backgroundColor: dotColor }]} />
     </Pressable>
   )
 }
@@ -43,31 +48,54 @@ const DayRemindersSheet: React.FC<DayRemindersSheetProps> = ({
   date,
   reminders,
   onOpenReminder,
-}) => (
-  <View style={styles.container}>
-    <Text style={styles.heading}>{formatDateTitle(date)}</Text>
-    <FlatList
-      data={reminders}
-      keyExtractor={(item) => item.uuid}
-      renderItem={({ item }) => (
-        <ReminderRow reminder={item} onPress={onOpenReminder} />
-      )}
-      contentContainerStyle={styles.list}
-      ListEmptyComponent={
-        <Text style={styles.empty}>На этот день напоминаний нет</Text>
-      }
-    />
-  </View>
-)
+}) => {
+  const { colors } = useTheme()
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.headerRow}>
+        <Text style={styles.heading}>{formatDateTitle(date)}</Text>
+        <Text style={[styles.countLabel, { color: colors.accent }]}>
+          {pluralizeEvents(reminders.length)}
+        </Text>
+      </View>
+      <FlatList
+        data={reminders}
+        keyExtractor={(item) => item.uuid}
+        renderItem={({ item }) => (
+          <ReminderRow
+            reminder={item}
+            timeColor={colors.accent}
+            dotColor={colors.amber}
+            onPress={onOpenReminder}
+          />
+        )}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={<Text style={styles.empty}>Нет событий</Text>}
+      />
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 12 },
-  heading: {
-    ...typography.screenTitle,
-    fontSize: 20,
-    color: '#1B2733',
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     marginBottom: 8,
+  },
+  heading: {
+    ...typography.h1,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1B2733',
+  },
+  countLabel: {
+    ...typography.bodySm,
+    fontSize: 13,
+    fontWeight: '700',
   },
   list: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
   row: {
@@ -86,7 +114,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   timeCol: { minWidth: 48, alignItems: 'center' },
-  time: { ...typography.timeLabel, color: '#0D9488' },
+  time: { ...typography.timeLabel, fontSize: 16, fontWeight: '900' },
   divider: {
     width: 1,
     height: 32,
@@ -96,6 +124,11 @@ const styles = StyleSheet.create({
   contentCol: { flex: 1, gap: 2 },
   rowTitle: { ...typography.body, color: '#1B2733', fontWeight: '600' },
   rowType: { ...typography.bodySm, color: '#76828F' },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
   empty: {
     textAlign: 'center',
     ...typography.body,
