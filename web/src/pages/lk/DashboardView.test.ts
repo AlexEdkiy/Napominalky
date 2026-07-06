@@ -102,6 +102,17 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Напоминание r-1')
     expect(wrapper.text()).toContain('Напоминание r-2')
     expect(wrapper.text()).toContain('Все задачи')
+
+    // Порядок по макету: 4 стат-карточки в фиксированном порядке, затем
+    // «Задачи на сегодня» перед «Ближайшие напоминания».
+    const statLabels = wrapper.findAll('.lk-stat-card__label').map((label) => label.text())
+    expect(statLabels).toEqual(['Активных задач', 'Напоминаний сегодня', 'Заметок', 'Выполнено за неделю'])
+
+    const panelTitles = wrapper.findAll('.dashboard__panel-title').map((title) => title.text())
+    expect(panelTitles).toEqual(['Задачи на сегодня', 'Ближайшие напоминания'])
+
+    // 4-я карточка («Выполнено за неделю») — градиентная teal, по макету.
+    expect(wrapper.findAll('.lk-stat-card')[3]?.classes()).toContain('lk-stat-card--gradient')
   })
 
   it('shows empty states when there are no tasks or reminders today', async () => {

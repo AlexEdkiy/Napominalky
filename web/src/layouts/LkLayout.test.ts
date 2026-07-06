@@ -140,7 +140,78 @@ describe('LkLayout', () => {
     await wrapper.find('.lk-topbar__burger').trigger('click')
 
     expect(wrapper.find('.lk-sidebar--collapsed').exists()).toBe(true)
-    expect(wrapper.text()).not.toContain('Задачи и списки')
+    const sidebarText = wrapper.find('.lk-sidebar').text()
+    expect(sidebarText).not.toContain('Задачи и списки')
+    // Бренд-текст, метр синхронизации и имя пользователя тоже скрыты в узком режиме.
+    expect(sidebarText).not.toContain('Напоминалки')
+    expect(sidebarText).not.toContain('Личный кабинет')
+    expect(sidebarText).not.toContain('Синхронизация')
+    expect(sidebarText).not.toContain(user.name)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('greets the user on the dashboard subtitle per the design brief (lowercase after the dash)', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout('lk-dashboard')
+
+    expect(wrapper.find('.lk-topbar__subtitle').text()).toBe('Добрый день, Иван — вот что запланировано')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the topbar title/subtitle exactly as specified per section', async () => {
+    stubMatchMedia(true)
+
+    const casesByRoute: Array<[string, string, string]> = [
+      ['lk-tasks', 'Задачи и списки', 'Таблица дел с тегами, датами и напоминаниями'],
+      ['lk-calendar', 'Календарь', 'Все задачи и напоминания на месяц'],
+      ['lk-notes', 'Заметки', 'Быстрые записи в виде стикеров'],
+    ]
+
+    for (const [routeName, title, subtitle] of casesByRoute) {
+      const wrapper = await mountLayout(routeName)
+      expect(wrapper.find('.lk-topbar__title').text()).toBe(title)
+      expect(wrapper.find('.lk-topbar__subtitle').text()).toBe(subtitle)
+    }
+
+    vi.unstubAllGlobals()
+  })
+
+  it('shows badges with the active tasks / notes counts on their nav items', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue({
+      data: [
+        { uuid: 'l-1', title: 'Продукты', items_count: 5, checked_items_count: 2, created_at: '', updated_at: '' },
+      ],
+      meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 },
+      links: { first: null, last: null, prev: null, next: null },
+    })
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 1, total: 4 },
+      links: { first: null, last: null, prev: null, next: null },
+    })
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+    await vi.waitFor(() => expect(wrapper.find('.lk-sidebar__badge').exists()).toBe(true))
+
+    const badges = wrapper.findAll('.lk-sidebar__badge').map((badge) => badge.text())
+    expect(badges).toEqual(['3', '4'])
+
+    vi.unstubAllGlobals()
+  })
+
+  it('renders the brand block, divider and user row in the sidebar per the design brief', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    expect(wrapper.find('.lk-sidebar__brand-title').text()).toBe('Напоминалки')
+    expect(wrapper.find('.lk-sidebar__brand-subtitle').text()).toBe('Личный кабинет')
+    expect(wrapper.find('.lk-sidebar__divider').exists()).toBe(true)
+    expect(wrapper.find('.lk-sidebar__create').text()).toContain('Создать')
+    expect(wrapper.find('.lk-sidebar__sync-label').text()).toBe('Синхронизация')
+    expect(wrapper.find('.lk-sidebar__user-name').text()).toBe(user.name)
+    expect(wrapper.find('.lk-sidebar__user-email').text()).toBe(user.email)
 
     vi.unstubAllGlobals()
   })

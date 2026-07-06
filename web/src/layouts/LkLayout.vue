@@ -30,7 +30,14 @@ const sectionSubtitle = computed(() => {
     return sectionMeta.value.subtitle
   }
   const who = getUserDisplayName(auth.user)
-  return who ? `Добрый день, ${who} — ${sectionMeta.value.subtitle}` : sectionMeta.value.subtitle
+  if (!who) {
+    return sectionMeta.value.subtitle
+  }
+  // Макет: «Добрый день, {имя} — вот что запланировано» — продолжение
+  // предложения после тире со строчной буквы.
+  const lowerFirstSubtitle =
+    sectionMeta.value.subtitle.charAt(0).toLowerCase() + sectionMeta.value.subtitle.slice(1)
+  return `Добрый день, ${who} — ${lowerFirstSubtitle}`
 })
 
 function toggleSidebar(): void {
