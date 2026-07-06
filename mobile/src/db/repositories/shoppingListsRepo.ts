@@ -482,6 +482,33 @@ export class ShoppingListsRepository {
   }
 
   /**
+   * Переустанавливает локальные уведомления для всех активных (без tombstone),
+   * невыполненных элементов с заданным reminderAt в будущем. Вызывается при
+   * старте приложения (FR-27/28): после перезагрузки устройства/переустановки
+   * приложения системные alarm могли быть потеряны — без этого прохода такие
+   * напоминания никогда не сработают. Идемпотентна: старый notification_id
+   * (если был) отменяется перед планированием нового.
+   */
+  public async rescheduleAllPendingItems(now: Date = new Date()): Promise<number> {
+    const rows = await this.db
+      .select()
+      .from(shoppingListItems)
+      .where(and(isNull(shoppingListItems.deletedAt), eq(shoppingListItems.isChecked, 0)))
+
+    let rescheduledCount = 0
+    for (const row of rows as ShoppingListItemRow[]) {
+      const item = toItem(row)
+      if (item.reminderAt === null) continue
+      if (new Date(item.reminderAt).getTime() <= now.getTime()) continue
+
+      const nid = await rescheduleItemReminder(toSchedulableItem(item), item.notificationId)
+      await this.setItemNotificationId(item.uuid, nid)
+      if (nid !== null) rescheduledCount += 1
+    }
+    return rescheduledCount
+  }
+
+  /**
    * Сгруппированный запрос ближайших невыполненных дедлайнов для списков-задач.
    * Один SQL вместо N+1. Возвращает Map uuid → ISO-строка минимального дедлайна.
    */

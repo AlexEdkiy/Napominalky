@@ -1,7 +1,10 @@
+import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import {
+  DEFAULT_ANDROID_CHANNEL_ID,
   cancelReminder,
   configureNotificationHandler,
+  ensureAndroidNotificationChannel,
   rescheduleItemReminder,
   rescheduleReminder,
   scheduleItemReminder,
@@ -11,13 +14,19 @@ import {
 const mockSchedule = Notifications.scheduleNotificationAsync as jest.Mock
 const mockCancel = Notifications.cancelScheduledNotificationAsync as jest.Mock
 const mockSetHandler = Notifications.setNotificationHandler as jest.Mock
+const mockSetChannel = Notifications.setNotificationChannelAsync as jest.Mock
+const mockGetPermissions = Notifications.getPermissionsAsync as jest.Mock
 
 const future = (): string => new Date(Date.now() + 60_000).toISOString()
 const past = (): string => new Date(Date.now() - 60_000).toISOString()
 
+const originalPlatformOs = Platform.OS
+
 beforeEach(() => {
   jest.clearAllMocks()
   mockSchedule.mockResolvedValue('notif-1')
+  mockGetPermissions.mockResolvedValue({ granted: true, status: 'granted', canAskAgain: true, expires: 'never' })
+  Platform.OS = originalPlatformOs
 })
 
 describe('scheduleReminder', () => {
@@ -36,6 +45,7 @@ describe('scheduleReminder', () => {
     expect(arg.content.body).toBe('детали')
     expect(arg.trigger.type).toBe('date')
     expect(arg.trigger.date).toBeInstanceOf(Date)
+    expect(arg.trigger.channelId).toBe(DEFAULT_ANDROID_CHANNEL_ID)
   })
 
   it('прошедшую дату не планирует, возвращает null', async () => {
@@ -65,6 +75,22 @@ describe('scheduleReminder', () => {
   it('пустые notes дают пустой body', async () => {
     await scheduleReminder({ uuid: 'u1', title: 'T', remind_at: future() })
     expect(mockSchedule.mock.calls[0]?.[0].content.body).toBe('')
+  })
+})
+
+describe('scheduleReminder — без разрешения на уведомления', () => {
+  it('permission не granted → не планирует, возвращает null', async () => {
+    mockGetPermissions.mockResolvedValueOnce({
+      granted: false,
+      status: 'denied',
+      canAskAgain: true,
+      expires: 'never',
+    })
+
+    const id = await scheduleReminder({ uuid: 'u1', title: 'T', remind_at: future() })
+
+    expect(id).toBeNull()
+    expect(mockSchedule).not.toHaveBeenCalled()
   })
 })
 
@@ -127,6 +153,7 @@ describe('scheduleItemReminder', () => {
     expect(arg.content.body).toBe('Без жира')
     expect(arg.trigger.type).toBe('date')
     expect(arg.trigger.date).toBeInstanceOf(Date)
+    expect(arg.trigger.channelId).toBe(DEFAULT_ANDROID_CHANNEL_ID)
   })
 
   it('прошедшая дата → null, уведомление не планируется', async () => {
@@ -175,5 +202,53 @@ describe('rescheduleItemReminder', () => {
     expect(mockCancel).toHaveBeenCalledWith('old-id')
     expect(mockSchedule).toHaveBeenCalled()
     expect(id).toBe('notif-1')
+  })
+})
+
+describe('scheduleItemReminder — без разрешения на уведомления', () => {
+  it('permission не granted → не планирует, возвращает null', async () => {
+    mockGetPermissions.mockResolvedValueOnce({
+      granted: false,
+      status: 'denied',
+      canAskAgain: true,
+      expires: 'never',
+    })
+
+    const id = await scheduleItemReminder({
+      uuid: 'i1',
+      listUuid: 'l1',
+      name: 'Соль',
+      reminderAt: future(),
+    })
+
+    expect(id).toBeNull()
+    expect(mockSchedule).not.toHaveBeenCalled()
+  })
+})
+
+describe('ensureAndroidNotificationChannel', () => {
+  afterEach(() => {
+    Platform.OS = originalPlatformOs
+  })
+
+  it('на iOS — no-op, канал не создаётся', async () => {
+    Platform.OS = 'ios'
+    await ensureAndroidNotificationChannel()
+    expect(mockSetChannel).not.toHaveBeenCalled()
+  })
+
+  it('на Android создаёт канал default с importance HIGH; идемпотентен', async () => {
+    Platform.OS = 'android'
+    await ensureAndroidNotificationChannel()
+    await ensureAndroidNotificationChannel()
+
+    expect(mockSetChannel).toHaveBeenCalledTimes(1)
+    expect(mockSetChannel).toHaveBeenCalledWith(
+      DEFAULT_ANDROID_CHANNEL_ID,
+      expect.objectContaining({
+        name: expect.any(String),
+        importance: Notifications.AndroidImportance.HIGH,
+      }),
+    )
   })
 })
