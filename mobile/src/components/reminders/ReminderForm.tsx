@@ -45,9 +45,6 @@ const RECURRENCE_LABELS: Record<RecurrenceType, string> = {
   monthly: 'Ежемесячно',
 }
 
-const DOT_TEAL = '#17897a'
-const DOT_AMBER = '#d99a3e'
-
 const emptyValues: ReminderFormValues = { title: '', notes: '', remindAt: '', recurrence: 'none' }
 
 const ReminderForm: React.FC<ReminderFormProps> = ({
@@ -112,10 +109,7 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
-        >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
           <AboutSection
             title={title}
             notes={notes}
@@ -127,22 +121,6 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
           <WhenSection remindAt={remindAt} onChange={setRemindAt} colors={colors} />
 
           <RecurrenceSection value={recurrence} onChange={setRecurrence} colors={colors} />
-
-          <Pressable
-            onPress={handleSubmit}
-            accessibilityRole="button"
-            accessibilityLabel={submitLabel}
-            disabled={isSaving || !canSubmit}
-            style={({ pressed }) => [
-              styles.createBtn,
-              { backgroundColor: DOT_TEAL },
-              (!canSubmit || isSaving) && styles.createBtnDisabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-            <Text style={[typography.buttonLabel, styles.createBtnLabel]}>{submitLabel}</Text>
-          </Pressable>
 
           <Pressable
             onPress={handleExport}
@@ -172,6 +150,28 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
 
           {footer}
         </ScrollView>
+
+        <View
+          style={[
+            styles.bottomBar,
+            { backgroundColor: colors.screenBg, paddingBottom: insets.bottom + 20 },
+          ]}
+        >
+          <Pressable
+            onPress={handleSubmit}
+            accessibilityRole="button"
+            accessibilityLabel={submitLabel}
+            disabled={isSaving || !canSubmit}
+            style={({ pressed }) => [
+              styles.createBtn,
+              { backgroundColor: canSubmit && !isSaving ? colors.accent : colors.textFaint },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+            <Text style={[typography.buttonLabel, styles.createBtnLabel]}>{submitLabel}</Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </View>
   )
@@ -183,13 +183,23 @@ interface SectionHeadingProps {
   dotColor: string
   title: string
   colors: ColorPalette
+  testID?: string
 }
 
-const SectionHeading: React.FC<SectionHeadingProps> = ({ dotColor, title, colors }) => (
+const SectionHeading: React.FC<SectionHeadingProps> = ({ dotColor, title, colors, testID }) => (
   <View style={styles.sectionHeading}>
-    <View style={[styles.dot, { backgroundColor: dotColor }]} />
+    <View testID={testID} style={[styles.dot, { backgroundColor: dotColor }]} />
     <Text style={[typography.cardTitle, styles.sectionTitle, { color: colors.textPrimary }]}>{title}</Text>
   </View>
+)
+
+interface FieldLabelProps {
+  text: string
+  color: string
+}
+
+const FieldLabel: React.FC<FieldLabelProps> = ({ text, color }) => (
+  <Text style={[typography.inputLabel, styles.fieldLabel, { color }]}>{text}</Text>
 )
 
 interface AboutSectionProps {
@@ -202,30 +212,34 @@ interface AboutSectionProps {
 
 const AboutSection: React.FC<AboutSectionProps> = ({ title, notes, onTitleChange, onNotesChange, colors }) => (
   <View style={styles.section}>
-    <SectionHeading dotColor={DOT_TEAL} title="О чём напомнить" colors={colors} />
+    <SectionHeading dotColor={colors.accent} title="О чём напомнить" colors={colors} testID="dot-about" />
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
-      <Text style={[typography.inputLabel, styles.fieldLabel, { color: colors.textTertiary }]}>ЗАГОЛОВОК</Text>
-      <TextInput
-        value={title}
-        onChangeText={onTitleChange}
-        placeholder="Например, Стирка"
-        placeholderTextColor={colors.textTertiary}
-        style={[styles.titleInput, { color: colors.textPrimary }]}
-        returnKeyType="next"
-        accessibilityLabel="Заголовок напоминания"
-      />
-      <View style={[styles.divider, { backgroundColor: colors.borderInput }]} />
-      <Text style={[typography.inputLabel, styles.fieldLabel, { color: colors.textTertiary }]}>ЗАМЕТКА</Text>
-      <TextInput
-        value={notes}
-        onChangeText={onNotesChange}
-        placeholder="Добавьте детали"
-        placeholderTextColor={colors.textTertiary}
-        multiline
-        style={[styles.notesInput, { color: colors.textPrimary }]}
-        textAlignVertical="top"
-        accessibilityLabel="Заметка к напоминанию"
-      />
+      <View style={styles.fieldBlock}>
+        <FieldLabel text="ЗАГОЛОВОК" color={colors.textTertiary} />
+        <TextInput
+          value={title}
+          onChangeText={onTitleChange}
+          placeholder="Например, Стирка"
+          placeholderTextColor={colors.textTertiary}
+          style={[styles.titleInput, { color: colors.textPrimary }]}
+          returnKeyType="next"
+          accessibilityLabel="Заголовок напоминания"
+        />
+      </View>
+      <View testID="about-card-divider" style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
+      <View style={styles.fieldBlock}>
+        <FieldLabel text="ЗАМЕТКА" color={colors.textTertiary} />
+        <TextInput
+          value={notes}
+          onChangeText={onNotesChange}
+          placeholder="Добавьте детали"
+          placeholderTextColor={colors.textTertiary}
+          multiline
+          style={[styles.notesInput, { color: colors.textSecondary }]}
+          textAlignVertical="top"
+          accessibilityLabel="Заметка к напоминанию"
+        />
+      </View>
     </View>
   </View>
 )
@@ -238,7 +252,7 @@ interface WhenSectionProps {
 
 const WhenSection: React.FC<WhenSectionProps> = ({ remindAt, onChange, colors }) => (
   <View style={styles.section}>
-    <SectionHeading dotColor={DOT_AMBER} title="Когда напомнить" colors={colors} />
+    <SectionHeading dotColor={colors.amber} title="Когда напомнить" colors={colors} testID="dot-when" />
     <ReminderDateCard value={remindAt} onChange={onChange} />
   </View>
 )
@@ -251,7 +265,7 @@ interface RecurrenceSectionProps {
 
 const RecurrenceSection: React.FC<RecurrenceSectionProps> = ({ value, onChange, colors }) => (
   <View style={styles.section}>
-    <SectionHeading dotColor={DOT_TEAL} title="Повтор" colors={colors} />
+    <SectionHeading dotColor={colors.accent} title="Повтор" colors={colors} testID="dot-recurrence" />
     <View style={styles.recurrenceGrid}>
       {RECURRENCE_TYPES.map((type) => {
         const active = type === value
@@ -265,8 +279,8 @@ const RecurrenceSection: React.FC<RecurrenceSectionProps> = ({ value, onChange, 
             style={({ pressed }) => [
               styles.recChip,
               active
-                ? { backgroundColor: DOT_TEAL }
-                : { backgroundColor: colors.surface, borderColor: colors.borderInput, borderWidth: 1 },
+                ? { backgroundColor: colors.accent, borderColor: colors.accent, borderWidth: 1.5 }
+                : { backgroundColor: colors.surface, borderColor: colors.borderSubtle, borderWidth: 1.5 },
               pressed && styles.pressed,
             ]}
           >
@@ -304,50 +318,49 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
   },
-  content: { padding: 16, gap: 18 },
+  content: { padding: 18, gap: 18, paddingBottom: 8 },
   section: { gap: 10 },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  sectionTitle: { fontSize: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '700' },
   card: {
     borderRadius: 16,
-    padding: 16,
-    gap: 4,
+    paddingHorizontal: 16,
     shadowColor: '#101828',
     shadowOpacity: 0.05,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
     elevation: Platform.OS === 'android' ? 2 : 0,
   },
-  fieldLabel: { marginBottom: 2 },
-  titleInput: { fontSize: 17, fontWeight: '700', paddingVertical: 6 },
-  divider: { height: 1, marginVertical: 10 },
-  notesInput: { fontSize: 15, minHeight: 60, paddingVertical: 6 },
-  recurrenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  fieldBlock: { paddingVertical: 12, gap: 4 },
+  fieldLabel: { fontSize: 11, letterSpacing: 0.7 },
+  titleInput: { fontSize: 17, fontWeight: '700', padding: 0 },
+  divider: { height: 1 },
+  notesInput: { fontSize: 15, minHeight: 56, padding: 0 },
+  recurrenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   recChip: {
     flexBasis: '47%',
     flexGrow: 1,
-    paddingVertical: 13,
-    borderRadius: 14,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recChipLabel: { fontSize: 14, fontWeight: '700' },
+  recChipLabel: { fontSize: 15, fontWeight: '700' },
+  bottomBar: { paddingHorizontal: 18, paddingTop: 12 },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     height: 56,
-    borderRadius: 18,
-    marginTop: 4,
+    borderRadius: 16,
     shadowColor: '#0D9488',
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  createBtnDisabled: { opacity: 0.5 },
   createBtnLabel: { color: '#FFFFFF' },
   exportBtn: {
     flexDirection: 'row',

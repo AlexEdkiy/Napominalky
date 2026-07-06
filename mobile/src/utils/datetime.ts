@@ -34,7 +34,7 @@ export const formatTime = (iso: string): string => {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/** Относительная дата напоминания: «Сегодня · 15:00», «Завтра · 10:00», «12.06.2025». */
+/** Относительная дата напоминания: «Сегодня · 15:00», «Завтра · 10:00», «10 июл · 14:30». */
 export const formatRelativeReminder = (iso: string): string => {
   const date = new Date(iso)
   if (!Number.isFinite(date.getTime())) return iso
@@ -46,10 +46,9 @@ export const formatRelativeReminder = (iso: string): string => {
   const dayAfter = new Date(todayStart.getTime() + 2 * 86_400_000)
   if (date >= todayStart && date < tomorrowStart) return `Сегодня · ${time}`
   if (date >= tomorrowStart && date < dayAfter) return `Завтра · ${time}`
-  const day = pad(date.getDate())
-  const month = pad(date.getMonth() + 1)
-  const year = sameYear ? '' : `.${date.getFullYear()}`
-  return `${day}.${month}${year} · ${time}`
+  const month = MONTH_NAMES[date.getMonth()]
+  const year = sameYear ? '' : ` ${date.getFullYear()}`
+  return `${date.getDate()} ${month ?? ''}${year} · ${time}`
 }
 
 /** true, если дата-напоминание уже наступила (прошла) или сегодня. */
