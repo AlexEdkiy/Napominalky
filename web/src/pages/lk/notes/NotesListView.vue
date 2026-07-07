@@ -1,25 +1,28 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-import NoteCard from '@/components/notes/NoteCard.vue'
-import { useNotes } from '@/composables/useNotes'
-import type { NoteListParams } from '@/types/note'
+import LkNoteCard from '@/components/lk/notes/LkNoteCard.vue'
+import LkNoteSkeleton from '@/components/lk/notes/LkNoteSkeleton.vue'
+import LkNotesToolbar from '@/components/lk/notes/LkNotesToolbar.vue'
+import { useLkNotesList } from '@/composables/useLkNotesList'
 
 const router = useRouter()
-const { notes, isLoading, error, load } = useNotes()
-
-const search = ref('')
-const showArchived = ref(false)
-
-async function refresh(): Promise<void> {
-  const params: NoteListParams = { archived: showArchived.value }
-  const trimmed = search.value.trim()
-  if (trimmed) {
-    params.search = trimmed
-  }
-  await load(params)
-}
+const {
+  notes,
+  pinnedNotes,
+  otherNotes,
+  isLoading,
+  error,
+  hasMore,
+  searchQuery,
+  showArchived,
+  load,
+  loadMore,
+  pin,
+  archive,
+  remove,
+} = useLkNotesList()
 
 function handleCreate(): void {
   void router.push({ name: 'lk-note-create' })
@@ -29,73 +32,167 @@ function handleOpen(uuid: string): void {
   void router.push({ name: 'lk-note-edit', params: { uuid } })
 }
 
-onMounted(refresh)
+async function handlePin(uuid: string, isPinned: boolean): Promise<void> {
+  await pin(uuid, isPinned)
+}
+
+async function handleArchive(uuid: string, isArchived: boolean): Promise<void> {
+  await archive(uuid, isArchived)
+}
+
+async function handleRemove(uuid: string): Promise<void> {
+  if (!window.confirm('Удалить заметку безвозвратно?')) {
+    return
+  }
+  await remove(uuid)
+}
+
+onMounted(load)
 </script>
 
 <template>
-  <main class="notes">
-    <header class="notes__header">
-      <h1>Заметки</h1>
-      <button type="button" @click="handleCreate">Создать</button>
-    </header>
+  <section class="notes-view">
+    <LkNotesToolbar v-model:search="searchQuery" v-model:archived="showArchived" @create="handleCreate" />
 
-    <form class="notes__filters" @submit.prevent="refresh">
-      <div class="field">
-        <label for="note-search">Поиск</label>
-        <input id="note-search" v-model="search" type="search" placeholder="Поиск по заметкам" />
+    <div v-if="isLoading && notes.length === 0" class="notes-view__masonry" aria-live="polite">
+      <LkNoteSkeleton v-for="n in 6" :key="n" :variant="n % 2 === 0 ? 'tall' : 'short'" />
+    </div>
+
+    <div v-else-if="error" class="notes-view__state notes-view__state--error" role="alert">
+      <span>{{ error }}</span>
+      <button type="button" class="notes-view__retry-btn" @click="load">Повторить</button>
+    </div>
+
+    <template v-else-if="notes.length === 0">
+      <p class="notes-view__empty">
+        {{ showArchived ? 'В архиве пусто.' : 'Пока нет заметок.' }}
+        <button v-if="!showArchived" type="button" class="notes-view__empty-cta" @click="handleCreate">
+          Создать первую заметку
+        </button>
+      </p>
+    </template>
+
+    <template v-else>
+      <template v-if="pinnedNotes.length > 0">
+        <h2 class="notes-view__group-title">Закреплённые</h2>
+        <div class="notes-view__masonry">
+          <LkNoteCard
+            v-for="note in pinnedNotes"
+            :key="note.uuid"
+            :note="note"
+            @open="handleOpen"
+            @pin="handlePin"
+            @archive="handleArchive"
+            @remove="handleRemove"
+          />
+        </div>
+        <h2 v-if="otherNotes.length > 0" class="notes-view__group-title">Остальные</h2>
+      </template>
+
+      <div v-if="otherNotes.length > 0" class="notes-view__masonry">
+        <LkNoteCard
+          v-for="note in otherNotes"
+          :key="note.uuid"
+          :note="note"
+          @open="handleOpen"
+          @pin="handlePin"
+          @archive="handleArchive"
+          @remove="handleRemove"
+        />
       </div>
-      <label class="checkbox">
-        <input v-model="showArchived" type="checkbox" @change="refresh" />
-        Показывать архив
-      </label>
-      <button type="submit">Найти</button>
-    </form>
 
-    <p v-if="error" role="alert" class="error">{{ error }}</p>
-    <p v-if="isLoading">Загрузка…</p>
-    <p v-else-if="notes.length === 0" class="empty">Заметок пока нет.</p>
-
-    <section v-else class="notes__list">
-      <NoteCard v-for="note in notes" :key="note.uuid" :note="note" @open="handleOpen" />
-    </section>
-  </main>
+      <button v-if="hasMore" type="button" class="notes-view__load-more" @click="loadMore">Загрузить ещё</button>
+    </template>
+  </section>
 </template>
 
 <style scoped>
-.notes {
-  max-width: 720px;
+.notes-view {
+  max-width: 1240px;
   margin: 0 auto;
 }
 
-.notes__header {
+.notes-view__masonry {
+  column-count: 1;
+  column-gap: 1rem;
+}
+
+@media (min-width: 480px) {
+  .notes-view__masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .notes-view__masonry {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1400px) {
+  .notes-view__masonry {
+    column-count: 4;
+  }
+}
+
+.notes-view__group-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b716e;
+  margin: 0 0 0.6rem;
+}
+
+.notes-view__state {
+  padding: 2rem 0;
+  color: #6b716e;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
 }
 
-.notes__filters {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  margin: 1rem 0;
+.notes-view__state--error {
+  color: #cf5b4a;
 }
 
-.field {
+.notes-view__retry-btn {
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: #cf5b4a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notes-view__empty {
+  padding: 2rem 0;
+  color: #6b716e;
   display: flex;
   flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
 }
 
-.checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+.notes-view__empty-cta {
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  border: none;
+  background: #17897a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.error {
-  color: #c0392b;
-}
-
-.empty {
-  color: #777;
+.notes-view__load-more {
+  display: block;
+  margin: 1.25rem auto 0;
+  padding: 0.5rem 1.25rem;
+  border-radius: 10px;
+  border: none;
+  background: #fff;
+  color: #17897a;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 </style>

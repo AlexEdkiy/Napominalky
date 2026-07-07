@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 
 import { notesApi } from '@/api/notesApi'
+import type { PaginationMeta } from '@/types/api'
 import type { CreateNotePayload, Note, NoteListParams, UpdateNotePayload } from '@/types/note'
 
 /**
@@ -9,8 +10,12 @@ import type { CreateNotePayload, Note, NoteListParams, UpdateNotePayload } from 
  */
 export function useNotes() {
   const notes = ref<Note[]>([])
+  const meta = ref<PaginationMeta | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  // Запоминает фильтры (search/archived) последнего `load()`, чтобы `loadMore`
+  // дозагружал следующую страницу с теми же фильтрами, а не сбрасывал их.
+  let lastParams: NoteListParams = {}
 
   function resolveError(e: unknown): void {
     error.value = e instanceof Error ? e.message : 'Не удалось выполнить операцию'
@@ -26,13 +31,39 @@ export function useNotes() {
   async function load(params?: NoteListParams): Promise<void> {
     isLoading.value = true
     error.value = null
+    lastParams = params ?? {}
     try {
       const response = await notesApi.fetchNotes(params)
       notes.value = response.data
+      meta.value = response.meta
     } catch (e) {
       resolveError(e)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  /**
+   * Дозагружает следующую страницу заметок (с теми же search/archived, что
+   * и последний `load()`) и добавляет её к уже загруженным — в отличие от
+   * `load`, которая заменяет коллекцию. Не делает ничего, если страниц
+   * больше нет или `load` ещё не вызывалась.
+   */
+  async function loadMore(): Promise<void> {
+    if (meta.value === null || meta.value.current_page >= meta.value.last_page) {
+      return
+    }
+    error.value = null
+    try {
+      const response = await notesApi.fetchNotes({
+        ...lastParams,
+        page: meta.value.current_page + 1,
+        per_page: meta.value.per_page,
+      })
+      notes.value = [...notes.value, ...response.data]
+      meta.value = response.meta
+    } catch (e) {
+      resolveError(e)
     }
   }
 
@@ -96,5 +127,5 @@ export function useNotes() {
     }
   }
 
-  return { notes, isLoading, error, load, create, update, remove, pin, archive }
+  return { notes, meta, isLoading, error, load, loadMore, create, update, remove, pin, archive }
 }
