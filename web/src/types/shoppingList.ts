@@ -5,6 +5,14 @@ export type ShoppingCategory = 'products' | 'household' | 'pharmacy' | 'other'
 
 /**
  * Список покупок — зеркало ShoppingListResource (snake_case).
+ *
+ * ВНИМАНИЕ (расхождение с реальным API, обнаружено при разработке фазы 2 —
+ * см. web-lk-phase2.md): фактический `ShoppingListResource` на бэкенде
+ * дополнительно отдаёт поля `type` и `tags`, которых нет в этом интерфейсе.
+ * Бриф фазы 2 явно указывал считать их отсутствующими («не выдумывать
+ * поля») — интерфейс оставлен как есть, чтобы не расширять скоуп фазы
+ * молча, но это следует свести с ARCH/MBE и обновить в одной из следующих
+ * фаз (реальная типизация «категории/тега» списка, а не только пунктов).
  */
 export interface ShoppingList {
   uuid: string
@@ -17,6 +25,13 @@ export interface ShoppingList {
 
 /**
  * Позиция списка покупок — зеркало ShoppingListItemResource (snake_case).
+ *
+ * ВНИМАНИЕ (расхождение с реальным API, см. пометку у `ShoppingList` выше):
+ * фактический `ShoppingListItemResource` дополнительно отдаёт `quantity`,
+ * `deadline`, `reminder_at`, `link`, `comment`, `tags` — ни одно из этих
+ * полей здесь не отражено. Бриф фазы 2 прямым текстом требовал считать, что
+ * у пункта нет тегов/дат/времени/привязки к напоминанию, поэтому в этой фазе
+ * интерфейс намеренно не расширен; правка — предмет отдельной задачи.
  */
 export interface ShoppingListItem {
   uuid: string

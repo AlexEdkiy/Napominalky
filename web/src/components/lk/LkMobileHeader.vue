@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import LkBreadcrumbs from '@/components/lk/LkBreadcrumbs.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { getUserInitial } from '@/utils/user'
@@ -43,6 +44,8 @@ function toggleSearch(): void {
         {{ userInitial }}
       </RouterLink>
     </div>
+
+    <LkBreadcrumbs compact class="lk-mobile-header__breadcrumbs" />
 
     <div v-if="isSearchOpen" class="lk-mobile-header__search">
       <LkIcon name="search" :size="16" />
@@ -110,6 +113,26 @@ function toggleSearch(): void {
   justify-content: center;
   font-weight: 700;
   text-decoration: none;
+}
+
+.lk-mobile-header__breadcrumbs {
+  margin-top: 0.5rem;
+}
+
+.lk-mobile-header__breadcrumbs :deep(.lk-breadcrumbs__item--link) {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lk-mobile-header__breadcrumbs :deep(.lk-breadcrumbs__item--link:hover) {
+  color: #fff;
+}
+
+.lk-mobile-header__breadcrumbs :deep(.lk-breadcrumbs__item--current) {
+  color: #fff;
+}
+
+.lk-mobile-header__breadcrumbs :deep(.lk-breadcrumbs__sep) {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .lk-mobile-header__search {

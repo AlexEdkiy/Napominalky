@@ -29,6 +29,11 @@ export const shoppingListsApi = {
     return data
   },
 
+  fetchList: async (uuid: string): Promise<ShoppingList> => {
+    const { data } = await apiClient.get<ApiResponse<ShoppingList>>(`/shopping-lists/${uuid}`)
+    return data.data
+  },
+
   createList: async (payload: CreateShoppingListPayload): Promise<ShoppingList> => {
     const { data } = await apiClient.post<ApiResponse<ShoppingList>>('/shopping-lists', payload)
     return data.data
