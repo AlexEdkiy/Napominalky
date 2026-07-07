@@ -7,8 +7,11 @@ import type { LkCalendarEvent } from '@/types/lkCalendar'
 import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 import { ymd } from '@/utils/calendar'
 
-/** Сколько напоминаний запрашивать за раз для месячного вида (без date-range у API). */
-const CALENDAR_REMINDERS_PER_PAGE = 200
+/**
+ * Сколько напоминаний запрашивать за раз для месячного вида (без date-range у API).
+ * 100 — максимум, разрешённый валидацией API (IndexReminderRequest: per_page max:100).
+ */
+const CALENDAR_REMINDERS_PER_PAGE = 100
 /** Сколько списков покупок запрашивать для агрегации дедлайнов/напоминаний пунктов. */
 const CALENDAR_LISTS_PER_PAGE = 100
 
