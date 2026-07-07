@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-07 (завершён редизайн веб-ЛК фаза 3 «Календарь»: WEB-15, UITEST-3)
+> Последнее обновление: 2026-07-07 (веб-ЛК: фикс 422 календаря WEB-16; фаза 4 «Заметки» + favicon WEB-17, UITEST-4)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 50           | mobile-developer          |
-| WEB     | 15           | web-developer             |
+| WEB     | 17           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 3            | ux-ui-test-engineer       |
+| UITEST  | 4            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 5            | devops-engineer           |
-| DOC     | 5            | technical-writer          |
+| DOC     | 6            | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 74 |
+| Completed | 77 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1551,6 +1551,56 @@
   - [x] Позиция панели дня — JS-управляемая и покрыта тестом
   - [x] Сквозной тест агрегации напоминаний/дедлайнов/напоминаний пунктов
   - [x] Тесты зелёные (232), vue-tsc чист
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
+
+### WEB-16: Фикс 422 в календаре — per_page напоминаний 200→100 (лимит API)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-15
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Календарь (`useLkCalendar`) и мини-календарь right-rail «Задач» (`useCalendar`) запрашивали напоминания с `per_page=200`, тогда как валидация API `IndexReminderRequest` разрешает `max:100` → HTTP 422 на загрузке (у пользователя — «Request failed with status code 422»). Снижено до 100 (максимум API). Также чинило молчаливый сбой мини-календаря в разделе «Задачи и списки».
+- **Файлы:** `web/src/composables/useLkCalendar.ts`, `web/src/composables/useCalendar.ts` (+тесты)
+- **Критерии приёмки:**
+  - [x] per_page напоминаний ≤ 100 в обоих композаблах
+  - [x] Календарь загружается без 422
+  - [x] Тесты зелёные, vue-tsc чист
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
+
+### WEB-17: Раздел «Заметки» (masonry-стикеры) + форма заметки + favicon/title (фаза 4)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-14
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Раздел «Заметки» (`/lk/notes`) в новом стиле: masonry-стикеры через CSS `columns` (адаптив 1→2→3→4 + `break-inside:avoid`), пастельный фон карточки детерминированно по uuid, заголовок/превью тела (обрезка), пин/архив/удаление (оптимистично, удаление с подтверждением), группа «Закреплённые» над «Остальные», поиск с дебаунсом, переключатель архива, «Загрузить ещё» (`per_page=20 ≤ 100`), состояния скелет/пусто/ошибка. Форма заметки (`NoteEditView`) в новом стиле: заголовок, textarea авто-высоты, тумблеры «Закрепить»/«В архив», Сохранить/Удалить, крошка-хвост = заголовок; ошибки сохранения (в т.ч. 422) теперь всплывают в UI (ранее `useNotes` их проглатывал). Favicon вкладки браузера: бренд-колокол в amber-квадрате (`public/favicon.svg`, `%BASE_URL%` под `/napominalki/`), title «Напоминалки».
+- **Файлы:** `web/src/pages/lk/notes/{NotesListView,NoteEditView}.vue`, `web/src/components/lk/notes/{LkNoteCard,LkNotesToolbar,LkNoteSkeleton}.vue`, `web/src/composables/{useLkNotesList,useNotes}.ts`, `web/src/constants/lkNoteColors.ts`, `web/src/components/lk/LkIcon.vue` (иконки pin/archive), `web/index.html`, `web/public/favicon.svg`
+- **Критерии приёмки:**
+  - [x] Masonry-стикеры (CSS columns) с адаптивом колонок и группой «Закреплённые»
+  - [x] Пин/архив/удаление и поиск/фильтр архива на реальном API, per_page ≤ 100
+  - [x] Форма заметки в новом стиле, крошка-хвост = заголовок, ошибки сохранения видны
+  - [x] Favicon (бренд-колокол) + title «Напоминалки» на вкладке
+  - [x] vue-tsc OK, Vitest зелёный (271 тест)
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
+
+### UITEST-4: UI-fidelity аудит раздела «Заметки» + проверка favicon (фаза 4)
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-17
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Сверка фазы 4 (masonry/стикеры, детерминизм цвета, пин/архив/удаление, группировка, форма, состояния, favicon/title) с дизайн-брифом. Расхождений, требующих правок кода, не найдено; усилено покрытие (детерминизм цвета стикера, карточка). Статически подтверждён favicon (резолв под `/napominalki/`, копия в dist). Отмечена информационная находка (не дефект фазы): ошибки точечных действий pin/archive/delete заменяют весь контент блоком ошибки — общий паттерн приложения; рекомендован toast-подход отдельной задачей.
+- **Файлы:** `web/src/constants/lkNoteColors.test.ts`, `web/src/components/lk/notes/LkNoteCard.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка masonry/карточки/группировки/формы/состояний с брифом фазы 4
+  - [x] Favicon/title статически подтверждены
+  - [x] Fidelity-тесты усилены, Vitest зелёный (271)
 - **Создана:** 2026-07-07
 - **Завершена:** 2026-07-07
 
