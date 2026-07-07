@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-06-17 (завершена фича «Суперадмин»: DEV-13, MBE-9, WEB-10, TEST-12)
+> Последнее обновление: 2026-07-07 (завершён редизайн веб-ЛК фазы 1–2: WEB-13, WEB-14, UITEST-1, UITEST-2)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,18 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 50           | mobile-developer          |
-| WEB     | 12           | web-developer             |
+| WEB     | 14           | web-developer             |
 | TEST    | 15           | test-engineer             |
+| UITEST  | 2            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 5            | devops-engineer           |
-| DOC     | 3            | technical-writer          |
+| DOC     | 4            | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 68 |
+| Completed | 72 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1443,4 +1444,77 @@
   - [ ] Архитектурный документ разместить в /docs/architecture/
 - **Создана:** 2026-06-03
 - **Завершена:** 2026-06-03
+
+---
+
+## Feature: Редизайн веб-ЛК (личный кабинет)
+
+Адаптивный редизайн личного кабинета клиента в стиле мобильного приложения по дизайн-макетам (десктоп: тёмно-зелёный сайдбар; мобайл: зелёная шапка + нижняя навигация). Разделы: Обзор, Задачи и списки, Календарь, Заметки. Данные — из существующих API (без моков).
+
+### WEB-13: Адаптивная оболочка ЛК + раздел «Обзор» (фаза 1)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** WEB-14
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Переписана оболочка `LkLayout.vue` под адаптивный дизайн: десктоп-сайдбар (бренд, навигация Обзор/Задачи и списки/Календарь/Заметки с бейджами, кнопка «Создать», метр синхронизации, строка пользователя, сворачивание до ~84px) + topbar (бургер, заголовок/подзаголовок по разделу, поиск, колокол); мобайл — зелёная шапка с раскрывающимся поиском + нижняя навигация с центральным «+». Раздел «Обзор» на реальных данных: 4 стат-карточки, «Задачи на сегодня» (чекбокс), «Ближайшие напоминания», состояния loading/empty/error.
+- **Файлы:** `web/src/layouts/LkLayout.vue`, `web/src/components/lk/{LkSidebar,LkTopbar,LkMobileHeader,LkBottomNav,LkIcon,LkStatCard,LkOverviewReminderItem}.vue`, `web/src/composables/{useLkBreakpoint,useLkNavCounts,useLkDashboard}.ts`, `web/src/constants/lkNav.ts`, `web/src/pages/lk/DashboardView.vue`, `web/src/router/index.ts`
+- **Критерии приёмки:**
+  - [x] Оболочка переключает десктоп/мобайл по брейкпоинту 1024px (`useLkBreakpoint`/matchMedia)
+  - [x] Навигация с активным состоянием и бейджами (активные задачи, число заметок)
+  - [x] «Обзор» на реальных API (списки/напоминания/заметки), состояния loading/empty/error
+  - [x] vue-tsc OK, Vitest зелёный
+- **Создана:** 2026-07-06
+- **Завершена:** 2026-07-06
+
+### UITEST-1: UI-fidelity аудит оболочки/Обзора против дизайн-брифа (фаза 1)
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-13
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Поэлементная сверка оболочки и «Обзора» с дизайн-брифом (структура сайдбара/таббара, токены цветов, сворачивание, стат-карточки, заголовки разделов). Найдено и исправлено minor-расхождение (регистр буквы в приветствии). Усилены fidelity-тесты.
+- **Файлы:** `web/src/layouts/LkLayout.vue` (правка), `web/src/layouts/LkLayout.test.ts`, `web/src/components/lk/{LkStatCard,LkOverviewReminderItem,LkBottomNav}.test.ts`, `web/src/pages/lk/DashboardView.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка структуры/токенов оболочки и Обзора с брифом
+  - [x] Расхождения зафиксированы, критичное/minor исправлено
+  - [x] Fidelity-тесты усилены, Vitest зелёный
+- **Создана:** 2026-07-06
+- **Завершена:** 2026-07-06
+
+### WEB-14: Раздел «Задачи и списки» + хлебные крошки + домаппинг полей бэкенда (фаза 2)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-13
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Раздел «Задачи и списки» (`/lk/tasks`): десктоп — карточки списков (тип Купить/Сделать, теги, прогресс, дата, действия) + тулбар (поиск/сортировка/фильтры по завершённости/типу/тегу) + right-rail (мини-календарь с отметками напоминаний + ближайшие напоминания) на ≥1280px; мобайл — карточки в колонку. Хлебные крошки во всех разделах (кликабельная цепочка возврата, динамический хвост из загруженной сущности). Домаппинг реальных полей бэкенда: `type`/`tags` списков; `quantity`/`deadline`/`reminder_at`/`link`/`comment`/`tags` пунктов (в деталях списка); теги парсятся из JSON-строки в API-слое. Детали списка приведены в новый стиль.
+- **Файлы:** `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/{LkShoppingListCard,LkTasksFilterBar,LkTasksRightRail,LkMiniCalendar,LkListItemRow}.vue`, `web/src/components/lk/{LkBreadcrumbs,LkTagPill,LkCategoryPill}.vue`, `web/src/composables/{useLkTasksList,useLkUpcomingReminders,useLkBreadcrumbTail,useShoppingList}.ts`, `web/src/constants/{lkBreadcrumbs,lkTagColors,lkCategoryColors}.ts`, `web/src/utils/tags.ts`, `web/src/api/shoppingListsApi.ts`, `web/src/types/shoppingList.ts`, `web/src/pages/lk/lists/ListDetailView.vue`
+- **Критерии приёмки:**
+  - [x] Раздел «Задачи и списки» с карточками/фильтрами/сортировкой на реальных данных
+  - [x] Right-rail только при ≥1280px (мини-календарь + ближайшие напоминания)
+  - [x] Хлебные крошки во всех разделах, финальный сегмент некликабелен
+  - [x] Реальные поля бэкенда отображаются (type/tags/quantity/deadline/reminder_at/link/comment)
+  - [x] vue-tsc OK, Vitest зелёный (204 теста)
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
+
+### UITEST-2: UI-fidelity аудит раздела «Задачи и списки» (фаза 2)
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-14
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Сверка фазы 2 (крошки, «Задачи и списки», палитра тегов, метаданные пунктов, адаптив right-rail) с дизайн-брифом. Найден и исправлен HIGH-дефект: пункт меню «Создать → Новый список покупок» вёл на старую нередизайненную страницу `lk-lists` — переключён на редизайненный `lk-tasks`.
+- **Файлы:** `web/src/layouts/LkLayout.vue` (фикс маршрута), `web/src/layouts/LkLayout.test.ts`, `web/src/utils/shoppingList.ts`
+- **Критерии приёмки:**
+  - [x] Сверка вёрстки/токенов/палитры тегов с брифом фазы 2
+  - [x] HIGH-дефект навигации найден и исправлен
+  - [x] Тесты усилены, Vitest зелёный
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
 
