@@ -17,3 +17,5 @@ export type LkIconName =
   | 'trash'
   | 'link'
   | 'comment'
+  | 'pin'
+  | 'archive'
