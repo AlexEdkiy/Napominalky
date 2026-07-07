@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import type { PaginationMeta } from '@/types/api'
 import type {
   CreateShoppingListPayload,
   ShoppingList,
@@ -14,6 +15,7 @@ import type {
  */
 export function useShoppingLists() {
   const lists = ref<ShoppingList[]>([])
+  const meta = ref<PaginationMeta | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -34,10 +36,33 @@ export function useShoppingLists() {
     try {
       const response = await shoppingListsApi.fetchLists(params)
       lists.value = response.data
+      meta.value = response.meta
     } catch (e) {
       resolveError(e)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  /**
+   * Дозагружает следующую страницу списков и добавляет её к уже загруженным
+   * (в отличие от `load`, которая заменяет коллекцию). Не делает ничего,
+   * если страниц больше нет или `load` ещё не вызывалась.
+   */
+  async function loadMore(): Promise<void> {
+    if (meta.value === null || meta.value.current_page >= meta.value.last_page) {
+      return
+    }
+    error.value = null
+    try {
+      const response = await shoppingListsApi.fetchLists({
+        page: meta.value.current_page + 1,
+        per_page: meta.value.per_page,
+      })
+      lists.value = [...lists.value, ...response.data]
+      meta.value = response.meta
+    } catch (e) {
+      resolveError(e)
     }
   }
 
@@ -80,5 +105,5 @@ export function useShoppingLists() {
     }
   }
 
-  return { lists, isLoading, error, load, create, update, remove }
+  return { lists, meta, isLoading, error, load, loadMore, create, update, remove }
 }

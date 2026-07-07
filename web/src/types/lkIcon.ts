@@ -13,3 +13,7 @@ export type LkIconName =
   | 'menu'
   | 'plus'
   | 'check'
+  | 'edit'
+  | 'trash'
+  | 'link'
+  | 'comment'

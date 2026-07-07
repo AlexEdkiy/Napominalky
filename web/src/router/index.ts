@@ -104,12 +104,13 @@ const lkRoutes: RouteRecordRaw = {
       component: () => import('@/pages/lk/notes/NoteEditView.vue'),
       meta: { title: 'Заметка' },
     },
-    // Задачи и списки — раздел редизайна ЛК (фаза 1: переиспользует ListsView;
-    // полная таблица дел появится в фазе 2). /lk/lists остаётся рабочим deep-link.
+    // Задачи и списки — раздел редизайна ЛК (фаза 2: полноценный вид с
+    // фильтрами/сортировкой и right-rail). /lk/lists остаётся рабочим
+    // deep-link на старый ListsView (см. web-lk-phase2.md).
     {
       path: 'tasks',
       name: 'lk-tasks',
-      component: () => import('@/pages/lk/lists/ListsView.vue'),
+      component: () => import('@/pages/lk/tasks/TasksView.vue'),
       meta: { title: 'Задачи и списки' },
     },
     // Shopping lists

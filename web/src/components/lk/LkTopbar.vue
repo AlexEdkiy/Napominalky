@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LkBreadcrumbs from '@/components/lk/LkBreadcrumbs.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 
 interface Props {
@@ -25,6 +26,7 @@ const emit = defineEmits<{
     </button>
 
     <div class="lk-topbar__titles">
+      <LkBreadcrumbs class="lk-topbar__breadcrumbs" />
       <h1 class="lk-topbar__title">{{ title }}</h1>
       <p v-if="subtitle" class="lk-topbar__subtitle">{{ subtitle }}</p>
     </div>
@@ -68,6 +70,10 @@ const emit = defineEmits<{
 .lk-topbar__titles {
   flex: 1;
   min-width: 0;
+}
+
+.lk-topbar__breadcrumbs {
+  margin-bottom: 0.2rem;
 }
 
 .lk-topbar__title {

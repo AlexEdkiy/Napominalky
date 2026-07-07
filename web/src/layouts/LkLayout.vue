@@ -6,6 +6,7 @@ import LkBottomNav from '@/components/lk/LkBottomNav.vue'
 import LkMobileHeader from '@/components/lk/LkMobileHeader.vue'
 import LkSidebar from '@/components/lk/LkSidebar.vue'
 import LkTopbar from '@/components/lk/LkTopbar.vue'
+import { provideLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkNavCounts } from '@/composables/useLkNavCounts'
 import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
@@ -19,6 +20,11 @@ const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
 
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)
+
+// Общий реактивный «хвост» хлебных крошек (название списка/заметки/напоминания),
+// который пишут дочерние страницы через `useSetLkBreadcrumbTail` и читает
+// `LkBreadcrumbs` в topbar/mobile-шапке. См. `useLkBreadcrumbTail.ts`.
+provideLkBreadcrumbTail()
 
 const sectionMeta = computed(() => {
   const name = typeof route.name === 'string' ? route.name : ''
@@ -98,7 +104,7 @@ onMounted(async () => {
         <RouterLink :to="{ name: 'lk-reminder-create' }" class="lk-shell__create-item" @click="closeCreateMenu">
           Новое напоминание
         </RouterLink>
-        <RouterLink :to="{ name: 'lk-lists' }" class="lk-shell__create-item" @click="closeCreateMenu">
+        <RouterLink :to="{ name: 'lk-tasks' }" class="lk-shell__create-item" @click="closeCreateMenu">
           Новый список покупок
         </RouterLink>
       </div>

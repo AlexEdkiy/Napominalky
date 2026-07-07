@@ -80,7 +80,16 @@ describe('DashboardView', () => {
   it('renders the 4 stat numbers and both reminder lists from the API', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginated([
-        { uuid: 'l-1', title: 'Продукты', items_count: 5, checked_items_count: 2, created_at: '', updated_at: '' },
+        {
+          uuid: 'l-1',
+          title: 'Продукты',
+          type: 'goods',
+          tags: [],
+          items_count: 5,
+          checked_items_count: 2,
+          created_at: '',
+          updated_at: '',
+        },
       ]),
     )
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(

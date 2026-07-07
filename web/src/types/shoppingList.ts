@@ -4,11 +4,23 @@
 export type ShoppingCategory = 'products' | 'household' | 'pharmacy' | 'other'
 
 /**
- * Список покупок — зеркало ShoppingListResource (snake_case).
+ * Тип списка: `goods` — «Купить» (список покупок), `tasks` — «Сделать»
+ * (список дел).
+ */
+export type ShoppingListType = 'goods' | 'tasks'
+
+/**
+ * Список покупок — зеркало ShoppingListResource (snake_case), нормализованное
+ * на клиенте: `tags` — уже разобранный `string[]` (сервер хранит и отдаёт
+ * его непрозрачной JSON-строкой в TEXT-колонке; парсинг — в
+ * `api/shoppingListsApi.ts` через `utils/tags.ts#parseTags`, чтобы UI-слой
+ * везде работал с готовым массивом).
  */
 export interface ShoppingList {
   uuid: string
   title: string
+  type: ShoppingListType
+  tags: string[]
   items_count: number
   checked_items_count: number
   created_at: string
@@ -16,7 +28,12 @@ export interface ShoppingList {
 }
 
 /**
- * Позиция списка покупок — зеркало ShoppingListItemResource (snake_case).
+ * Позиция списка покупок — зеркало ShoppingListItemResource (snake_case),
+ * нормализованное на клиенте (`tags` уже разобран, см. пометку у
+ * `ShoppingList` выше). `deadline` — только дата (`YYYY-MM-DD`, без
+ * времени — известное ограничение бэкенда). `reminder_at` — дата и время
+ * (ISO 8601), отдельная привязка к напоминанию на уровне пункта (не путать с
+ * сущностью `Reminder` из `types/reminder.ts`).
  */
 export interface ShoppingListItem {
   uuid: string
@@ -25,6 +42,12 @@ export interface ShoppingListItem {
   category_label: string
   is_checked: boolean
   position: number
+  quantity: number | null
+  deadline: string | null
+  reminder_at: string | null
+  link: string | null
+  comment: string | null
+  tags: string[]
   created_at: string
   updated_at: string
 }

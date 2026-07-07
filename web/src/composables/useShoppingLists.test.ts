@@ -7,6 +7,8 @@ import type { ShoppingList } from '@/types/shoppingList'
 const list: ShoppingList = {
   uuid: 'l-1',
   title: 'Продукты',
+  type: 'goods',
+  tags: [],
   items_count: 3,
   checked_items_count: 1,
   created_at: '2026-06-01T00:00:00Z',
@@ -69,6 +71,57 @@ describe('useShoppingLists', () => {
 
     expect(error.value).toBe('network down')
     expect(isLoading.value).toBe(false)
+  })
+
+  it('load exposes the pagination meta from the response', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue({
+      data: [list],
+      meta: { current_page: 1, last_page: 3, per_page: 1, total: 3 },
+      links: { first: null, last: null, prev: null, next: null },
+    })
+
+    const { meta, load } = useShoppingLists()
+    await load()
+
+    expect(meta.value).toEqual({ current_page: 1, last_page: 3, per_page: 1, total: 3 })
+  })
+
+  it('loadMore appends the next page and advances meta', async () => {
+    const page2: ShoppingList = { ...list, uuid: 'l-2', title: 'Аптека' }
+    vi.mocked(shoppingListsApi.fetchLists)
+      .mockResolvedValueOnce({
+        data: [list],
+        meta: { current_page: 1, last_page: 2, per_page: 1, total: 2 },
+        links: { first: null, last: null, prev: null, next: null },
+      })
+      .mockResolvedValueOnce({
+        data: [page2],
+        meta: { current_page: 2, last_page: 2, per_page: 1, total: 2 },
+        links: { first: null, last: null, prev: null, next: null },
+      })
+
+    const { lists, meta, load, loadMore } = useShoppingLists()
+    await load({ page: 1, per_page: 1 })
+    await loadMore()
+
+    expect(shoppingListsApi.fetchLists).toHaveBeenLastCalledWith({ page: 2, per_page: 1 })
+    expect(lists.value.map((item) => item.uuid)).toEqual(['l-1', 'l-2'])
+    expect(meta.value?.current_page).toBe(2)
+  })
+
+  it('loadMore does nothing when the last page is already loaded', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue({
+      data: [list],
+      meta: { current_page: 1, last_page: 1, per_page: 15, total: 1 },
+      links: { first: null, last: null, prev: null, next: null },
+    })
+
+    const { load, loadMore } = useShoppingLists()
+    await load()
+    vi.mocked(shoppingListsApi.fetchLists).mockClear()
+    await loadMore()
+
+    expect(shoppingListsApi.fetchLists).not.toHaveBeenCalled()
   })
 })
 

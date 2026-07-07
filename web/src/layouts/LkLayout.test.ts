@@ -181,7 +181,16 @@ describe('LkLayout', () => {
   it('shows badges with the active tasks / notes counts on their nav items', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue({
       data: [
-        { uuid: 'l-1', title: 'Продукты', items_count: 5, checked_items_count: 2, created_at: '', updated_at: '' },
+        {
+          uuid: 'l-1',
+          title: 'Продукты',
+          type: 'goods',
+          tags: [],
+          items_count: 5,
+          checked_items_count: 2,
+          created_at: '',
+          updated_at: '',
+        },
       ],
       meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 },
       links: { first: null, last: null, prev: null, next: null },
@@ -197,6 +206,23 @@ describe('LkLayout', () => {
 
     const badges = wrapper.findAll('.lk-sidebar__badge').map((badge) => badge.text())
     expect(badges).toEqual(['3', '4'])
+
+    vi.unstubAllGlobals()
+  })
+
+  it('routes the "Новый список покупок" create-menu item to the redesigned lk-tasks section (not the legacy lk-lists page)', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    const createItems = wrapper.findAll('.lk-shell__create-item')
+    const listItem = createItems.find((item) => item.text() === 'Новый список покупок')
+
+    expect(listItem).toBeDefined()
+    // `:to` binding is resolved against router-link's `href`; the legacy
+    // deep-link route is `/lk/lists`, the redesigned one is `/lk/tasks` —
+    // asserting on the resolved href pins down which page users land on.
+    expect(listItem?.attributes('href')).toBe('/lk/tasks')
 
     vi.unstubAllGlobals()
   })

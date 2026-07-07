@@ -2,10 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import ItemRow from '@/components/lists/ItemRow.vue'
-import ProgressBar from '@/components/lists/ProgressBar.vue'
+import LkListItemRow from '@/components/lk/tasks/LkListItemRow.vue'
+import { useSetLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
+import { useShoppingList } from '@/composables/useShoppingList'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import type { ShoppingCategory, ShoppingListItem } from '@/types/shoppingList'
+import { shoppingListProgressPercent } from '@/utils/shoppingList'
 
 interface CategoryGroup {
   category: ShoppingCategory
@@ -16,8 +18,18 @@ interface CategoryGroup {
 const route = useRoute()
 const listUuid = route.params.uuid as string
 
-const { items, isLoading, error, totalCount, checkedCount, load, add, remove, check } =
-  useShoppingListItems(listUuid)
+const { list, isLoading: isListLoading, error: listError, load: loadList } = useShoppingList(listUuid)
+const {
+  items,
+  isLoading: isItemsLoading,
+  error: itemsError,
+  totalCount,
+  checkedCount,
+  load: loadItems,
+  add,
+  remove,
+  check,
+} = useShoppingListItems(listUuid)
 
 const newName = ref('')
 const newCategory = ref<ShoppingCategory>('products')
@@ -29,6 +41,12 @@ const categoryOptions: { value: ShoppingCategory; label: string }[] = [
   { value: 'other', label: 'Другое' },
 ]
 
+const isLoading = computed<boolean>(() => isListLoading.value || isItemsLoading.value)
+const error = computed<string | null>(() => listError.value ?? itemsError.value)
+const progressPercent = computed<number>(() =>
+  list.value ? shoppingListProgressPercent(list.value) : 0,
+)
+
 const groups = computed<CategoryGroup[]>(() => {
   const byCategory = new Map<ShoppingCategory, CategoryGroup>()
   for (const item of items.value) {
@@ -36,15 +54,15 @@ const groups = computed<CategoryGroup[]>(() => {
     if (group) {
       group.items.push(item)
     } else {
-      byCategory.set(item.category, {
-        category: item.category,
-        label: item.category_label,
-        items: [item],
-      })
+      byCategory.set(item.category, { category: item.category, label: item.category_label, items: [item] })
     }
   }
   return [...byCategory.values()]
 })
+
+// Хлебные крошки («Личный кабинет / Задачи и списки / {Название}») читают
+// название списка отсюда — из уже загруженной сущности, без лишних запросов.
+useSetLkBreadcrumbTail(() => list.value?.title ?? null)
 
 async function handleAdd(): Promise<void> {
   const name = newName.value.trim()
@@ -65,88 +83,169 @@ async function handleRemove(uuid: string): Promise<void> {
   await remove(uuid)
 }
 
-onMounted(() => load())
+onMounted(() => {
+  void loadList()
+  void loadItems()
+})
 </script>
 
 <template>
-  <main class="detail">
-    <header class="detail__header">
-      <h1>Список покупок</h1>
-      <ProgressBar :value="checkedCount" :max="totalCount" />
-    </header>
+  <section class="list-detail">
+    <p v-if="isLoading" class="list-detail__state" aria-live="polite">Загрузка…</p>
+    <p v-else-if="error" class="list-detail__state list-detail__state--error" role="alert">{{ error }}</p>
 
-    <form class="detail__add" @submit.prevent="handleAdd">
-      <div class="field">
-        <label for="item-name">Товар</label>
-        <input id="item-name" v-model="newName" type="text" placeholder="Например, Молоко" />
-      </div>
-      <div class="field">
-        <label for="item-category">Категория</label>
-        <select id="item-category" v-model="newCategory">
-          <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
+    <template v-else>
+      <header class="list-detail__header">
+        <h1 class="list-detail__title">{{ list?.title ?? 'Список покупок' }}</h1>
+        <div class="list-detail__progress">
+          <div class="list-detail__progress-track">
+            <div class="list-detail__progress-fill" :style="{ width: `${progressPercent}%` }" />
+          </div>
+          <span class="list-detail__progress-label">{{ checkedCount }} / {{ totalCount }}</span>
+        </div>
+      </header>
+
+      <form class="list-detail__add" @submit.prevent="handleAdd">
+        <input
+          v-model="newName"
+          type="text"
+          placeholder="Например, Молоко"
+          aria-label="Название нового пункта"
+        />
+        <select v-model="newCategory" aria-label="Категория пункта">
+          <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </select>
-      </div>
-      <button type="submit">Добавить</button>
-    </form>
+        <button type="submit">Добавить</button>
+      </form>
 
-    <p v-if="error" role="alert" class="error">{{ error }}</p>
-    <p v-if="isLoading">Загрузка…</p>
-    <p v-else-if="items.length === 0" class="empty">Товаров пока нет.</p>
+      <p v-if="items.length === 0" class="list-detail__empty">В списке пока нет пунктов.</p>
 
-    <section v-else class="detail__groups">
-      <div v-for="group in groups" :key="group.category" class="detail__group">
-        <h2 class="detail__group-title">{{ group.label }}</h2>
-        <ul class="detail__items">
-          <ItemRow
-            v-for="item in group.items"
-            :key="item.uuid"
-            :item="item"
-            @check="handleCheck"
-            @remove="handleRemove"
-          />
-        </ul>
+      <div v-else class="list-detail__groups">
+        <div v-for="group in groups" :key="group.category" class="list-detail__group">
+          <h2 class="list-detail__group-title">{{ group.label }}</h2>
+          <ul class="list-detail__items">
+            <LkListItemRow
+              v-for="item in group.items"
+              :key="item.uuid"
+              :item="item"
+              @check="handleCheck"
+              @remove="handleRemove"
+            />
+          </ul>
+        </div>
       </div>
-    </section>
-  </main>
+    </template>
+  </section>
 </template>
 
 <style scoped>
-.detail {
+.list-detail {
   max-width: 720px;
   margin: 0 auto;
 }
 
-.detail__add {
+.list-detail__state {
+  padding: 2rem 0;
+  color: #6b716e;
+}
+
+.list-detail__state--error {
+  color: #cf5b4a;
+}
+
+.list-detail__header {
+  background: #fff;
+  border-radius: 18px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+}
+
+.list-detail__title {
+  margin: 0 0 0.6rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2622;
+}
+
+.list-detail__progress {
   display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  margin: 1rem 0;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.field {
+.list-detail__progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #eef1f0;
+  overflow: hidden;
+}
+
+.list-detail__progress-fill {
+  height: 100%;
+  background: #17897a;
+  transition: width 0.2s ease;
+}
+
+.list-detail__progress-label {
+  font-size: 0.8rem;
+  color: #8a938f;
+  white-space: nowrap;
+}
+
+.list-detail__add {
   display: flex;
-  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
 }
 
-.detail__group-title {
-  font-size: 0.95rem;
-  color: #444;
-  margin: 1rem 0 0.25rem;
+.list-detail__add input,
+.list-detail__add select {
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #d8ebe4;
+  font-size: 0.9rem;
 }
 
-.detail__items {
+.list-detail__add input {
+  flex: 1;
+}
+
+.list-detail__add button {
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: none;
+  background: #17897a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.list-detail__empty {
+  color: #8a938f;
+  padding: 1rem 0;
+}
+
+.list-detail__group {
+  background: #fff;
+  border-radius: 18px;
+  padding: 0.5rem 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.85rem;
+}
+
+.list-detail__group-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b716e;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.list-detail__items {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.error {
-  color: #c0392b;
-}
-
-.empty {
-  color: #777;
 }
 </style>

@@ -9,6 +9,23 @@ import type {
   UpdateShoppingListItemPayload,
   UpdateShoppingListPayload,
 } from '@/types/shoppingList'
+import { parseTags } from '@/utils/tags'
+
+/**
+ * Форма ответа сервера «на проводе»: `tags` — непрозрачная JSON-строка
+ * (или уже массив/`null`) до нормализации через `parseTags`. См. пометку в
+ * `types/shoppingList.ts`.
+ */
+type ShoppingListWire = Omit<ShoppingList, 'tags'> & { tags: unknown }
+type ShoppingListItemWire = Omit<ShoppingListItem, 'tags'> & { tags: unknown }
+
+function normalizeList(wire: ShoppingListWire): ShoppingList {
+  return { ...wire, tags: parseTags(wire.tags) }
+}
+
+function normalizeItem(wire: ShoppingListItemWire): ShoppingListItem {
+  return { ...wire, tags: parseTags(wire.tags) }
+}
 
 function buildQueryParams(params?: ShoppingListParams): Record<string, number> {
   const query: Record<string, number> = {}
@@ -23,20 +40,25 @@ function buildQueryParams(params?: ShoppingListParams): Record<string, number> {
 
 export const shoppingListsApi = {
   fetchLists: async (params?: ShoppingListParams): Promise<PaginatedResponse<ShoppingList>> => {
-    const { data } = await apiClient.get<PaginatedResponse<ShoppingList>>('/shopping-lists', {
+    const { data } = await apiClient.get<PaginatedResponse<ShoppingListWire>>('/shopping-lists', {
       params: buildQueryParams(params),
     })
-    return data
+    return { ...data, data: data.data.map(normalizeList) }
+  },
+
+  fetchList: async (uuid: string): Promise<ShoppingList> => {
+    const { data } = await apiClient.get<ApiResponse<ShoppingListWire>>(`/shopping-lists/${uuid}`)
+    return normalizeList(data.data)
   },
 
   createList: async (payload: CreateShoppingListPayload): Promise<ShoppingList> => {
-    const { data } = await apiClient.post<ApiResponse<ShoppingList>>('/shopping-lists', payload)
-    return data.data
+    const { data } = await apiClient.post<ApiResponse<ShoppingListWire>>('/shopping-lists', payload)
+    return normalizeList(data.data)
   },
 
   updateList: async (uuid: string, payload: UpdateShoppingListPayload): Promise<ShoppingList> => {
-    const { data } = await apiClient.put<ApiResponse<ShoppingList>>(`/shopping-lists/${uuid}`, payload)
-    return data.data
+    const { data } = await apiClient.put<ApiResponse<ShoppingListWire>>(`/shopping-lists/${uuid}`, payload)
+    return normalizeList(data.data)
   },
 
   deleteList: async (uuid: string): Promise<void> => {
@@ -44,21 +66,21 @@ export const shoppingListsApi = {
   },
 
   fetchItems: async (listUuid: string): Promise<ShoppingListItem[]> => {
-    const { data } = await apiClient.get<ApiResponse<ShoppingListItem[]>>(
+    const { data } = await apiClient.get<ApiResponse<ShoppingListItemWire[]>>(
       `/shopping-lists/${listUuid}/items`,
     )
-    return data.data
+    return data.data.map(normalizeItem)
   },
 
   addItem: async (
     listUuid: string,
     payload: CreateShoppingListItemPayload,
   ): Promise<ShoppingListItem> => {
-    const { data } = await apiClient.post<ApiResponse<ShoppingListItem>>(
+    const { data } = await apiClient.post<ApiResponse<ShoppingListItemWire>>(
       `/shopping-lists/${listUuid}/items`,
       payload,
     )
-    return data.data
+    return normalizeItem(data.data)
   },
 
   updateItem: async (
@@ -66,11 +88,11 @@ export const shoppingListsApi = {
     itemUuid: string,
     payload: UpdateShoppingListItemPayload,
   ): Promise<ShoppingListItem> => {
-    const { data } = await apiClient.put<ApiResponse<ShoppingListItem>>(
+    const { data } = await apiClient.put<ApiResponse<ShoppingListItemWire>>(
       `/shopping-lists/${listUuid}/items/${itemUuid}`,
       payload,
     )
-    return data.data
+    return normalizeItem(data.data)
   },
 
   deleteItem: async (listUuid: string, itemUuid: string): Promise<void> => {
@@ -82,10 +104,10 @@ export const shoppingListsApi = {
     itemUuid: string,
     isChecked: boolean,
   ): Promise<ShoppingListItem> => {
-    const { data } = await apiClient.post<ApiResponse<ShoppingListItem>>(
+    const { data } = await apiClient.post<ApiResponse<ShoppingListItemWire>>(
       `/shopping-lists/${listUuid}/items/${itemUuid}/check`,
       { is_checked: isChecked },
     )
-    return data.data
+    return normalizeItem(data.data)
   },
 }
