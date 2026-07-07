@@ -1,194 +1,197 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 
-import MonthGrid from '@/components/calendar/MonthGrid.vue'
-import { useCalendar } from '@/composables/useCalendar'
-import type { Reminder } from '@/types/reminder'
-import { ymd } from '@/utils/calendar'
-
-const { currentYear, currentMonth, isLoading, error, byDay, load, prevMonth, nextMonth } =
-  useCalendar()
+import LkCalendarDayPanel from '@/components/lk/calendar/LkCalendarDayPanel.vue'
+import LkCalendarGrid from '@/components/lk/calendar/LkCalendarGrid.vue'
+import LkCalendarLegend from '@/components/lk/calendar/LkCalendarLegend.vue'
+import { useLkBreakpoint, useLkWideDesktop } from '@/composables/useLkBreakpoint'
+import { useLkCalendar } from '@/composables/useLkCalendar'
 
 const monthNames = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
 ] as const
 
-const selectedDate = ref<Date | null>(new Date())
+const { isDesktop } = useLkBreakpoint()
+// Day-панель — right-rail только на «широком» десктопе (≥1280px), иначе —
+// секция под сеткой (1024–1279px и мобайл). JS-управляемое переключение (как
+// у right-rail «Задач и списков» в фазе 2) вместо голого CSS media-query —
+// тестируемо и единообразно с остальной оболочкой ЛК.
+const { isWideDesktop } = useLkWideDesktop()
+const {
+  currentYear,
+  currentMonth,
+  selectedDate,
+  selectedDayEvents,
+  isLoading,
+  error,
+  byDay,
+  load,
+  prevMonth,
+  nextMonth,
+  goToday,
+  selectDay,
+} = useLkCalendar()
 
 const monthLabel = computed<string>(() => `${monthNames[currentMonth.value]} ${currentYear.value}`)
-
-const selectedDayReminders = computed<Reminder[]>(() => {
-  if (selectedDate.value === null) {
-    return []
-  }
-  return byDay.value.get(ymd(selectedDate.value)) ?? []
-})
-
-const selectedDayLabel = computed<string>(() => {
-  if (selectedDate.value === null) {
-    return ''
-  }
-  return selectedDate.value.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-})
-
-function formatTime(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-  return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-}
-
-function handleSelectDay(date: Date): void {
-  selectedDate.value = date
-}
 
 onMounted(load)
 </script>
 
 <template>
-  <section class="calendar">
-    <header class="calendar__nav">
-      <button type="button" class="calendar__nav-btn" aria-label="Предыдущий месяц" @click="prevMonth">
-        ‹
-      </button>
-      <h2 class="calendar__title">{{ monthLabel }}</h2>
-      <button type="button" class="calendar__nav-btn" aria-label="Следующий месяц" @click="nextMonth">
-        ›
-      </button>
+  <section class="calendar-view">
+    <header class="calendar-view__header">
+      <div class="calendar-view__nav">
+        <button type="button" class="calendar-view__nav-btn" aria-label="Предыдущий месяц" @click="prevMonth">
+          ‹
+        </button>
+        <h2 class="calendar-view__month">{{ monthLabel }}</h2>
+        <button type="button" class="calendar-view__nav-btn" aria-label="Следующий месяц" @click="nextMonth">
+          ›
+        </button>
+        <button type="button" class="calendar-view__today-btn" @click="goToday">Сегодня</button>
+      </div>
+
+      <LkCalendarLegend :compact="!isDesktop" />
     </header>
 
-    <p v-if="isLoading" class="calendar__state">Загрузка…</p>
-    <p v-else-if="error" class="calendar__state calendar__state--error" role="alert">{{ error }}</p>
+    <p v-if="isLoading" class="calendar-view__state" aria-live="polite">Загрузка…</p>
+    <div v-else-if="error" class="calendar-view__state calendar-view__state--error" role="alert">
+      <span>{{ error }}</span>
+      <button type="button" class="calendar-view__retry-btn" @click="load">Повторить</button>
+    </div>
 
-    <template v-else>
-      <MonthGrid
-        :year="currentYear"
-        :month="currentMonth"
-        :by-day="byDay"
-        :selected-date="selectedDate"
-        @select-day="handleSelectDay"
-      />
-
-      <div class="calendar__day">
-        <h3 class="calendar__day-title">{{ selectedDayLabel }}</h3>
-        <p v-if="selectedDayReminders.length === 0" class="calendar__state">
-          На этот день напоминаний нет.
-        </p>
-        <ul v-else class="calendar__list">
-          <li v-for="reminder in selectedDayReminders" :key="reminder.uuid" class="calendar__item">
-            <RouterLink
-              class="calendar__link"
-              :to="{ name: 'lk-reminder-edit', params: { uuid: reminder.uuid } }"
-            >
-              <span class="calendar__time">{{ formatTime(reminder.remind_at) }}</span>
-              <span class="calendar__item-title">{{ reminder.title }}</span>
-              <span
-                v-if="reminder.is_completed"
-                class="calendar__badge"
-                aria-label="Выполнено"
-              >✓</span>
-            </RouterLink>
-          </li>
-        </ul>
+    <div v-else class="calendar-view__layout" :class="{ 'calendar-view__layout--rail': isWideDesktop }">
+      <div class="calendar-view__main">
+        <LkCalendarGrid
+          :year="currentYear"
+          :month="currentMonth"
+          :by-day="byDay"
+          :selected-date="selectedDate"
+          :compact="!isDesktop"
+          @select-day="selectDay"
+        />
       </div>
-    </template>
+
+      <div class="calendar-view__day" :class="{ 'calendar-view__day--rail': isWideDesktop }">
+        <LkCalendarDayPanel :date="selectedDate" :events="selectedDayEvents" />
+      </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.calendar {
-  max-width: 640px;
+.calendar-view {
+  max-width: 1240px;
   margin: 0 auto;
 }
 
-.calendar__nav {
+.calendar-view__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
 }
 
-.calendar__nav-btn {
-  border: 1px solid #ddd;
-  border-radius: 6px;
+.calendar-view__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.calendar-view__nav-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
   background: #fff;
-  font-size: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  font-size: 1.1rem;
   line-height: 1;
-  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  color: #1f2622;
+}
+
+.calendar-view__nav-btn:hover {
+  background: #eef1f0;
+}
+
+.calendar-view__month {
+  margin: 0;
+  min-width: 9rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2622;
+  text-align: center;
+}
+
+.calendar-view__today-btn {
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 10px;
+  background: #d8ebe4;
+  color: #17897a;
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
 }
 
-.calendar__nav-btn:hover {
-  background: #f3f4f6;
+.calendar-view__today-btn:hover {
+  background: #c6ded6;
 }
 
-.calendar__title {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.calendar__state {
-  color: #555;
-  padding: 0.75rem 0;
-}
-
-.calendar__state--error {
-  color: #c0392b;
-}
-
-.calendar__day {
-  margin-top: 1.25rem;
-}
-
-.calendar__day-title {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-}
-
-.calendar__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.calendar__item {
-  margin-bottom: 0.5rem;
-}
-
-.calendar__link {
+.calendar-view__state {
+  padding: 2rem 0;
+  color: #6b716e;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
-  text-decoration: none;
-  color: inherit;
 }
 
-.calendar__link:hover {
-  background: #f3f4f6;
+.calendar-view__state--error {
+  color: #cf5b4a;
 }
 
-.calendar__time {
-  font-variant-numeric: tabular-nums;
-  color: #2563eb;
+.calendar-view__retry-btn {
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: #cf5b4a;
+  color: #fff;
   font-weight: 600;
+  cursor: pointer;
 }
 
-.calendar__item-title {
+.calendar-view__layout {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.25rem;
+}
+
+.calendar-view__main {
+  min-width: 0;
+}
+
+.calendar-view__day {
+  width: 100%;
+}
+
+.calendar-view__layout--rail {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.calendar-view__layout--rail .calendar-view__main {
   flex: 1;
 }
 
-.calendar__badge {
-  color: #166534;
+.calendar-view__day--rail {
+  width: 320px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
 }
 </style>
