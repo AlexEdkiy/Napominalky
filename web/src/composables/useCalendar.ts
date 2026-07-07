@@ -7,8 +7,9 @@ import { ymd } from '@/utils/calendar'
 /**
  * Сколько напоминаний запрашивать за раз для месячного вида.
  * Date-range фильтра у API нет — выбираем большой пул и группируем на клиенте.
+ * 100 — максимум, разрешённый валидацией API (IndexReminderRequest: per_page max:100).
  */
-const CALENDAR_PER_PAGE = 200
+const CALENDAR_PER_PAGE = 100
 
 /**
  * Read-only месячный вид: состояние месяца, загрузка напоминаний

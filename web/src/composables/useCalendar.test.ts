@@ -59,7 +59,7 @@ describe('useCalendar', () => {
   it('load fetches all reminders sorted by remind_at', async () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue({
       data: [makeReminder('r-1', '2026-06-10T07:00:00Z')],
-      meta: { current_page: 1, last_page: 1, per_page: 200, total: 1 },
+      meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 },
       links: { first: null, last: null, prev: null, next: null },
     })
 
@@ -81,7 +81,7 @@ describe('useCalendar', () => {
         makeReminder('r-2', local.toISOString()),
         makeReminder('r-3', new Date(2026, 5, 11, 8, 0).toISOString()),
       ],
-      meta: { current_page: 1, last_page: 1, per_page: 200, total: 3 },
+      meta: { current_page: 1, last_page: 1, per_page: 100, total: 3 },
       links: { first: null, last: null, prev: null, next: null },
     })
 

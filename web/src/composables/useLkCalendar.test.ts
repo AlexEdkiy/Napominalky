@@ -61,7 +61,7 @@ function makeItem(
 
 const paginated = <T>(data: T[]) => ({
   data,
-  meta: { current_page: 1, last_page: 1, per_page: 200, total: data.length },
+  meta: { current_page: 1, last_page: 1, per_page: 100, total: data.length },
   links: { first: null, last: null, prev: null, next: null },
 })
 
