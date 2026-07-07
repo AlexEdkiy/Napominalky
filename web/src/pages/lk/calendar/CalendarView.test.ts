@@ -5,7 +5,9 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import CalendarView from './CalendarView.vue'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { LK_DESKTOP_QUERY, LK_WIDE_DESKTOP_QUERY } from '@/composables/useLkBreakpoint'
 import type { Reminder } from '@/types/reminder'
+import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 
 function makeReminder(uuid: string, remindAt: string): Reminder {
   return {
@@ -21,6 +23,43 @@ function makeReminder(uuid: string, remindAt: string): Reminder {
     source_type: null,
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
+  }
+}
+
+function makeList(uuid: string, type: ShoppingList['type']): ShoppingList {
+  return {
+    uuid,
+    title: 'Список',
+    type,
+    tags: [],
+    items_count: 1,
+    checked_items_count: 0,
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+  }
+}
+
+function makeItem(
+  uuid: string,
+  name: string,
+  overrides: Partial<Pick<ShoppingListItem, 'deadline' | 'reminder_at'>>,
+): ShoppingListItem {
+  return {
+    uuid,
+    name,
+    category: 'products',
+    category_label: 'Продукты',
+    is_checked: false,
+    position: 1,
+    quantity: null,
+    deadline: null,
+    reminder_at: null,
+    link: null,
+    comment: null,
+    tags: [],
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+    ...overrides,
   }
 }
 
@@ -41,10 +80,21 @@ function createTestRouter() {
   })
 }
 
-function stubMatchMedia(matches: boolean): void {
+/**
+ * Стаб `window.matchMedia`. Принимает либо один флаг (одинаковый ответ для
+ * любого media-query — как в большинстве тестов ниже), либо карту
+ * `query -> matches` — нужна, чтобы независимо задать `isDesktop`
+ * (`LK_DESKTOP_QUERY`) и `isWideDesktop` (`LK_WIDE_DESKTOP_QUERY`), напр. для
+ * состояния 1024–1279px (десктоп-сетка, но day-панель ещё не right-rail).
+ */
+function stubMatchMedia(matches: boolean | Record<string, boolean>): void {
   vi.stubGlobal(
     'matchMedia',
-    vi.fn().mockReturnValue({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+    vi.fn((query: string) => ({
+      matches: typeof matches === 'boolean' ? matches : (matches[query] ?? false),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
   )
 }
 
@@ -153,6 +203,71 @@ describe('CalendarView', () => {
 
     expect(wrapper.text()).toContain('Напоминание r-1')
     expect(wrapper.text()).toContain('14:00')
+  })
+
+  it('positions the day panel as a right rail only from the wide-desktop breakpoint (>=1280px)', async () => {
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+
+    // 1024-1279px: desktop grid (chips), but the day panel is still a section
+    // below the grid, not a right rail.
+    stubMatchMedia({ [LK_DESKTOP_QUERY]: true, [LK_WIDE_DESKTOP_QUERY]: false })
+    const narrowDesktop = await mountCalendarView()
+    await vi.waitFor(() => expect(narrowDesktop.wrapper.text()).not.toContain('Загрузка'))
+    expect(narrowDesktop.wrapper.find('.calendar-view__day--rail').exists()).toBe(false)
+    expect(narrowDesktop.wrapper.find('.calendar-view__layout--rail').exists()).toBe(false)
+    vi.unstubAllGlobals()
+
+    // >=1280px: right rail.
+    stubMatchMedia({ [LK_DESKTOP_QUERY]: true, [LK_WIDE_DESKTOP_QUERY]: true })
+    const wideDesktop = await mountCalendarView()
+    await vi.waitFor(() => expect(wideDesktop.wrapper.text()).not.toContain('Загрузка'))
+    expect(wideDesktop.wrapper.find('.calendar-view__day--rail').exists()).toBe(true)
+    expect(wideDesktop.wrapper.find('.calendar-view__layout--rail').exists()).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
+  it('aggregates a reminder, a goods-list deadline and a task-list reminder into the grid and day panel end-to-end', async () => {
+    stubMatchMedia(true)
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 15, 21, 0).toISOString())]),
+    )
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([makeList('l-goods', 'goods'), makeList('l-tasks', 'tasks')]),
+    )
+    vi.mocked(shoppingListsApi.fetchItems).mockImplementation(async (uuid: string) => {
+      if (uuid === 'l-goods') {
+        return [makeItem('i-1', 'Купить молоко', { deadline: '2026-07-15' })]
+      }
+      return [makeItem('i-2', 'Сдать отчёт', { reminder_at: new Date(2026, 6, 15, 8, 0).toISOString() })]
+    })
+
+    const { wrapper } = await mountCalendarView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const cells = wrapper.findAll('.lk-calendar-grid__cell')
+    const day15 = cells.find((cell) => cell.text().startsWith('15'))
+    expect(day15).toBeDefined()
+    // Reminder + goods deadline + task reminder — 3 events, all visible (limit is 3).
+    expect(day15?.findAll('.lk-calendar-grid__event')).toHaveLength(3)
+
+    await day15?.trigger('click')
+
+    const rows = wrapper.findAll('.lk-calendar-event-row')
+    expect(rows).toHaveLength(3)
+    const rowTexts = rows.map((row) => row.text())
+    expect(rowTexts.some((text) => text.includes('Напоминания') && text.includes('Напоминание r-1'))).toBe(
+      true,
+    )
+    expect(rowTexts.some((text) => text.includes('Списки') && text.includes('Купить молоко'))).toBe(true)
+    expect(rowTexts.some((text) => text.includes('Дела') && text.includes('Сдать отчёт'))).toBe(true)
+
+    const taskRow = rows.find((row) => row.text().includes('Сдать отчёт'))
+    expect(taskRow?.find('a').attributes('href')).toBe('/lk/lists/l-tasks')
+    const goodsRow = rows.find((row) => row.text().includes('Купить молоко'))
+    expect(goodsRow?.find('a').attributes('href')).toBe('/lk/lists/l-goods')
+    const reminderRow = rows.find((row) => row.text().includes('Напоминание r-1'))
+    expect(reminderRow?.find('a').attributes('href')).toBe('/lk/reminders/r-1')
   })
 })
 

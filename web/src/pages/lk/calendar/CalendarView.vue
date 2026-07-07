@@ -4,7 +4,7 @@ import { computed, onMounted } from 'vue'
 import LkCalendarDayPanel from '@/components/lk/calendar/LkCalendarDayPanel.vue'
 import LkCalendarGrid from '@/components/lk/calendar/LkCalendarGrid.vue'
 import LkCalendarLegend from '@/components/lk/calendar/LkCalendarLegend.vue'
-import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
+import { useLkBreakpoint, useLkWideDesktop } from '@/composables/useLkBreakpoint'
 import { useLkCalendar } from '@/composables/useLkCalendar'
 
 const monthNames = [
@@ -13,6 +13,11 @@ const monthNames = [
 ] as const
 
 const { isDesktop } = useLkBreakpoint()
+// Day-панель — right-rail только на «широком» десктопе (≥1280px), иначе —
+// секция под сеткой (1024–1279px и мобайл). JS-управляемое переключение (как
+// у right-rail «Задач и списков» в фазе 2) вместо голого CSS media-query —
+// тестируемо и единообразно с остальной оболочкой ЛК.
+const { isWideDesktop } = useLkWideDesktop()
 const {
   currentYear,
   currentMonth,
@@ -56,7 +61,7 @@ onMounted(load)
       <button type="button" class="calendar-view__retry-btn" @click="load">Повторить</button>
     </div>
 
-    <div v-else class="calendar-view__layout">
+    <div v-else class="calendar-view__layout" :class="{ 'calendar-view__layout--rail': isWideDesktop }">
       <div class="calendar-view__main">
         <LkCalendarGrid
           :year="currentYear"
@@ -68,7 +73,7 @@ onMounted(load)
         />
       </div>
 
-      <div class="calendar-view__day">
+      <div class="calendar-view__day" :class="{ 'calendar-view__day--rail': isWideDesktop }">
         <LkCalendarDayPanel :date="selectedDate" :events="selectedDayEvents" />
       </div>
     </div>
@@ -174,21 +179,19 @@ onMounted(load)
   width: 100%;
 }
 
-@media (min-width: 1280px) {
-  .calendar-view__layout {
-    flex-direction: row;
-    align-items: flex-start;
-  }
+.calendar-view__layout--rail {
+  flex-direction: row;
+  align-items: flex-start;
+}
 
-  .calendar-view__main {
-    flex: 1;
-  }
+.calendar-view__layout--rail .calendar-view__main {
+  flex: 1;
+}
 
-  .calendar-view__day {
-    width: 320px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 0;
-  }
+.calendar-view__day--rail {
+  width: 320px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
 }
 </style>
