@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-07 (завершён редизайн веб-ЛК фазы 1–2: WEB-13, WEB-14, UITEST-1, UITEST-2)
+> Последнее обновление: 2026-07-07 (завершён редизайн веб-ЛК фаза 3 «Календарь»: WEB-15, UITEST-3)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 50           | mobile-developer          |
-| WEB     | 14           | web-developer             |
+| WEB     | 15           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 2            | ux-ui-test-engineer       |
+| UITEST  | 3            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 5            | devops-engineer           |
-| DOC     | 4            | technical-writer          |
+| DOC     | 5            | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 72 |
+| Completed | 74 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1515,6 +1515,42 @@
   - [x] Сверка вёрстки/токенов/палитры тегов с брифом фазы 2
   - [x] HIGH-дефект навигации найден и исправлен
   - [x] Тесты усилены, Vitest зелёный
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
+
+### WEB-15: Раздел «Календарь» — сетка месяца + события дня, агрегация напоминаний и дедлайнов пунктов (фаза 3)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-14
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Раздел «Календарь» (`/lk/calendar`) в новом стиле: сетка месяца 6×7 (навигация ‹/›/«Сегодня», состояния сегодня/выбран/вне месяца, цветные чипы событий + «+N», на мобайле — точки-индикаторы) и панель выбранного дня (right-rail ≥1280px или секция ниже) со списком событий (метка типа, время/«весь день», клик → источник). Унифицированная модель `LkCalendarEvent` агрегирует события из напоминаний (`remind_at`) и пунктов списков с `deadline`/`reminder_at`; тип и цвет по источнику: списки teal, напоминания amber, дела blue (+легенда). Устойчивость: падение загрузки пунктов не рушит календарь (напоминания остаются). Date-range фильтра у API нет — пул тянется и группируется на клиенте.
+- **Реализация:** `useLkCalendar.ts` (агрегация/состояние месяца/byDay/устойчивость), компоненты `LkCalendarGrid`/`LkCalendarDayPanel`/`LkCalendarEventRow`/`LkCalendarLegend`, тип `types/lkCalendar.ts`, цвета `constants/lkCalendarColors.ts`. Реюз `utils/calendar.ts` (getCalendarDays/ymd/sameDay). Старый `MonthGrid.vue` удалён; `useCalendar.ts` сохранён (используется мини-календарём right-rail «Задач»).
+- **Файлы:** `web/src/composables/useLkCalendar.ts`, `web/src/components/lk/calendar/{LkCalendarGrid,LkCalendarDayPanel,LkCalendarEventRow,LkCalendarLegend}.vue`, `web/src/types/lkCalendar.ts`, `web/src/constants/lkCalendarColors.ts`, `web/src/pages/lk/calendar/CalendarView.vue`
+- **Критерии приёмки:**
+  - [x] Сетка месяца 6×7 с навигацией и состояниями дней, чипы/точки событий
+  - [x] Панель дня со списком событий (тип/время/route), пустое состояние
+  - [x] Агрегация напоминаний + дедлайнов/напоминаний пунктов (goods→list, tasks→task), устойчивость при падении пунктов
+  - [x] Легенда и цвета типов по брифу, адаптив (right-rail ≥1280px)
+  - [x] vue-tsc OK, Vitest зелёный (232 теста)
+- **Создана:** 2026-07-07
+- **Завершена:** 2026-07-07
+
+### UITEST-3: UI-fidelity аудит раздела «Календарь» (фаза 3)
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-15
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Сверка фазы 3 (агрегация событий, сетка/чипы/точки, панель дня, легенда/цвета, навигация месяца, состояния) с дизайн-брифом. Позиция панели дня переведена с CSS-only `@media` на JS-управление (`useLkWideDesktop` + классы) для единообразия с фазой 2 и тестируемости; добавлен сквозной тест агрегации 3 типов событий. Отмечена low-находка: `deadline` парсится через `new Date('YYYY-MM-DD')` (UTC-полночь) — для МSK не проявляется, рекомендовано DEV/ARCH.
+- **Файлы:** `web/src/pages/lk/calendar/CalendarView.vue`, `web/src/pages/lk/calendar/CalendarView.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка агрегации/сетки/панели/легенды/навигации с брифом фазы 3
+  - [x] Позиция панели дня — JS-управляемая и покрыта тестом
+  - [x] Сквозной тест агрегации напоминаний/дедлайнов/напоминаний пунктов
+  - [x] Тесты зелёные (232), vue-tsc чист
 - **Создана:** 2026-07-07
 - **Завершена:** 2026-07-07
 
