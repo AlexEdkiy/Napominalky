@@ -11,6 +11,12 @@ const item: ShoppingListItem = {
   category_label: 'Продукты',
   is_checked: false,
   position: 1,
+  quantity: null,
+  deadline: null,
+  reminder_at: null,
+  link: null,
+  comment: null,
+  tags: [],
   created_at: '2026-06-01T00:00:00Z',
   updated_at: '2026-06-01T00:00:00Z',
 }

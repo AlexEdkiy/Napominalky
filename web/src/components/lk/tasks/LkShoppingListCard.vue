@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
+import LkTagPill from '@/components/lk/LkTagPill.vue'
 import type { ShoppingList } from '@/types/shoppingList'
 import { formatRelativeDate } from '@/utils/datetime'
 import { isShoppingListCompleted, shoppingListProgressPercent } from '@/utils/shoppingList'
@@ -22,13 +23,12 @@ const isRenaming = ref(false)
 const renameValue = ref(props.list.title)
 const renameInput = ref<HTMLInputElement | null>(null)
 
-// Список покупок (ShoppingList) не несёт поля «категория»/«тег» — только
-// пункты (ShoppingListItem) имеют category_label. Статус завершения —
-// единственный реально доступный признак, показываем его вместо
-// выдуманного pill'а категории на уровне списка (см. utils/shoppingList.ts).
+// Статус завершения — производный признак (все пункты отмечены), дополняет
+// реальные `type`/`tags` списка (см. utils/shoppingList.ts).
 const isCompleted = computed<boolean>(() => isShoppingListCompleted(props.list))
 const progressPercent = computed<number>(() => shoppingListProgressPercent(props.list))
 const updatedLabel = computed<string>(() => formatRelativeDate(props.list.updated_at))
+const typeLabel = computed<string>(() => (props.list.type === 'tasks' ? 'Сделать' : 'Купить'))
 
 function handleOpen(): void {
   if (!isRenaming.value) {
@@ -77,12 +77,13 @@ function handleRemove(event: Event): void {
       </form>
       <h3 v-else class="lk-shopping-list-card__title">{{ list.title }}</h3>
 
-      <span
-        class="lk-shopping-list-card__status"
-        :class="isCompleted ? 'lk-shopping-list-card__status--done' : 'lk-shopping-list-card__status--active'"
-      >
-        {{ isCompleted ? 'Завершён' : 'В работе' }}
+      <span class="lk-shopping-list-card__type" :class="`lk-shopping-list-card__type--${list.type}`">
+        {{ typeLabel }}
       </span>
+    </div>
+
+    <div v-if="list.tags.length > 0" class="lk-shopping-list-card__tags">
+      <LkTagPill v-for="tag in list.tags" :key="tag" :tag="tag" />
     </div>
 
     <div class="lk-shopping-list-card__progress">
@@ -95,7 +96,15 @@ function handleRemove(event: Event): void {
     </div>
 
     <div class="lk-shopping-list-card__footer">
-      <span class="lk-shopping-list-card__updated">Обновлён: {{ updatedLabel }}</span>
+      <span class="lk-shopping-list-card__footer-info">
+        <span
+          class="lk-shopping-list-card__status"
+          :class="isCompleted ? 'lk-shopping-list-card__status--done' : 'lk-shopping-list-card__status--active'"
+        >
+          {{ isCompleted ? 'Завершён' : 'В работе' }}
+        </span>
+        <span class="lk-shopping-list-card__updated">Обновлён: {{ updatedLabel }}</span>
+      </span>
       <div class="lk-shopping-list-card__actions">
         <button
           type="button"
@@ -145,6 +154,38 @@ function handleRemove(event: Event): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.lk-shopping-list-card__type {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.lk-shopping-list-card__type--goods {
+  background: #d8ebe4;
+  color: #17897a;
+}
+
+.lk-shopping-list-card__type--tasks {
+  background: #f7ebd5;
+  color: #c98a2b;
+}
+
+.lk-shopping-list-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.lk-shopping-list-card__footer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .lk-shopping-list-card__status {

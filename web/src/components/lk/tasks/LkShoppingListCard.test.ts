@@ -7,6 +7,8 @@ import type { ShoppingList } from '@/types/shoppingList'
 const list: ShoppingList = {
   uuid: 'l-1',
   title: 'Продукты на неделю',
+  type: 'goods',
+  tags: [],
   items_count: 4,
   checked_items_count: 2,
   created_at: '2026-07-01T00:00:00Z',
@@ -30,6 +32,31 @@ describe('LkShoppingListCard', () => {
 
     expect(wrapper.find('.lk-shopping-list-card__status').text()).toBe('Завершён')
     expect(wrapper.find('.lk-shopping-list-card__status--done').exists()).toBe(true)
+  })
+
+  it('renders the "Купить" type badge for a goods list and "Сделать" for a tasks list', () => {
+    const goods = mount(LkShoppingListCard, { props: { list: { ...list, type: 'goods' } } })
+    expect(goods.find('.lk-shopping-list-card__type').text()).toBe('Купить')
+    expect(goods.find('.lk-shopping-list-card__type--goods').exists()).toBe(true)
+
+    const tasks = mount(LkShoppingListCard, { props: { list: { ...list, type: 'tasks' } } })
+    expect(tasks.find('.lk-shopping-list-card__type').text()).toBe('Сделать')
+    expect(tasks.find('.lk-shopping-list-card__type--tasks').exists()).toBe(true)
+  })
+
+  it('renders a colored pill for every real tag from the API', () => {
+    const wrapper = mount(LkShoppingListCard, {
+      props: { list: { ...list, tags: ['Покупки', 'Важное'] } },
+    })
+
+    const tags = wrapper.findAll('.lk-tag-pill').map((tag) => tag.text())
+    expect(tags).toEqual(['Покупки', 'Важное'])
+  })
+
+  it('does not render the tags block when the list has no tags', () => {
+    const wrapper = mount(LkShoppingListCard, { props: { list: { ...list, tags: [] } } })
+
+    expect(wrapper.find('.lk-shopping-list-card__tags').exists()).toBe(false)
   })
 
   it('emits open when the card body is clicked', async () => {

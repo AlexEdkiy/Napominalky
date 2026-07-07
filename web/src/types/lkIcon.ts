@@ -15,3 +15,5 @@ export type LkIconName =
   | 'check'
   | 'edit'
   | 'trash'
+  | 'link'
+  | 'comment'

@@ -14,12 +14,15 @@ const { isWideDesktop } = useLkWideDesktop()
 const {
   lists,
   filteredLists,
+  availableTags,
   isLoading,
   error,
   hasMore,
   searchQuery,
   sortBy,
   filterBy,
+  typeFilter,
+  tagFilter,
   load,
   loadMore,
   create,
@@ -73,7 +76,14 @@ onMounted(() => load())
     <div class="tasks-view__layout">
       <div class="tasks-view__main">
         <div class="tasks-view__toolbar">
-          <LkTasksFilterBar v-model:search="searchQuery" v-model:sort="sortBy" v-model:filter="filterBy" />
+          <LkTasksFilterBar
+            v-model:search="searchQuery"
+            v-model:sort="sortBy"
+            v-model:filter="filterBy"
+            v-model:type="typeFilter"
+            v-model:tag="tagFilter"
+            :available-tags="availableTags"
+          />
           <button type="button" class="tasks-view__create-btn" @click="openCreateForm">
             <LkIcon name="plus" :size="16" />
             Новый список

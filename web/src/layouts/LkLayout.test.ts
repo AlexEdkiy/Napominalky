@@ -181,7 +181,16 @@ describe('LkLayout', () => {
   it('shows badges with the active tasks / notes counts on their nav items', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue({
       data: [
-        { uuid: 'l-1', title: 'Продукты', items_count: 5, checked_items_count: 2, created_at: '', updated_at: '' },
+        {
+          uuid: 'l-1',
+          title: 'Продукты',
+          type: 'goods',
+          tags: [],
+          items_count: 5,
+          checked_items_count: 2,
+          created_at: '',
+          updated_at: '',
+        },
       ],
       meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 },
       links: { first: null, last: null, prev: null, next: null },

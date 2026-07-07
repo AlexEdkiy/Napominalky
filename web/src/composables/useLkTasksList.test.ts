@@ -8,6 +8,8 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
   return {
     uuid: 'l-1',
     title: 'Продукты',
+    type: 'goods',
+    tags: [],
     items_count: 4,
     checked_items_count: 2,
     created_at: '2026-06-01T00:00:00Z',
@@ -106,6 +108,48 @@ describe('useLkTasksList', () => {
     await load()
 
     expect(hasMore.value).toBe(true)
+  })
+
+  it('filters by list type (goods / tasks)', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods' }),
+        makeList({ uuid: 'l-2', title: 'Дела на день', type: 'tasks' }),
+      ]),
+    )
+
+    const { load, filteredLists, typeFilter } = useLkTasksList()
+    await load()
+
+    typeFilter.value = 'goods'
+    expect(filteredLists.value.map((list) => list.uuid)).toEqual(['l-1'])
+
+    typeFilter.value = 'tasks'
+    expect(filteredLists.value.map((list) => list.uuid)).toEqual(['l-2'])
+
+    typeFilter.value = 'all'
+    expect(filteredLists.value).toHaveLength(2)
+  })
+
+  it('filters by tag and exposes the unique available tags across loaded lists', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([
+        makeList({ uuid: 'l-1', title: 'Продукты', tags: ['Покупки', 'Важное'] }),
+        makeList({ uuid: 'l-2', title: 'Аптека', tags: ['Здоровье'] }),
+        makeList({ uuid: 'l-3', title: 'Дом', tags: [] }),
+      ]),
+    )
+
+    const { load, filteredLists, tagFilter, availableTags } = useLkTasksList()
+    await load()
+
+    expect(availableTags.value).toEqual(['Важное', 'Здоровье', 'Покупки'])
+
+    tagFilter.value = 'Здоровье'
+    expect(filteredLists.value.map((list) => list.uuid)).toEqual(['l-2'])
+
+    tagFilter.value = 'all'
+    expect(filteredLists.value).toHaveLength(3)
   })
 
   it('reports the error message when loading fails', async () => {

@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import LkIcon from '@/components/lk/LkIcon.vue'
-import type { LkTasksFilterBy, LkTasksSortBy } from '@/composables/useLkTasksList'
+import type { LkTasksFilterBy, LkTasksSortBy, LkTasksTypeFilter } from '@/composables/useLkTasksList'
+
+interface Props {
+  /** Уникальные имена тегов среди загруженных списков — опции фильтра по тегу. */
+  availableTags: string[]
+}
+
+defineProps<Props>()
 
 const search = defineModel<string>('search', { required: true })
 const sort = defineModel<LkTasksSortBy>('sort', { required: true })
 const filter = defineModel<LkTasksFilterBy>('filter', { required: true })
+const type = defineModel<LkTasksTypeFilter>('type', { required: true })
+const tag = defineModel<string>('tag', { required: true })
 </script>
 
 <template>
@@ -29,6 +38,22 @@ const filter = defineModel<LkTasksFilterBy>('filter', { required: true })
       <option value="all">Все</option>
       <option value="active">Есть незавершённые</option>
       <option value="completed">Завершённые</option>
+    </select>
+
+    <select v-model="type" class="lk-tasks-filter-bar__select" aria-label="Фильтр по типу списка">
+      <option value="all">Все типы</option>
+      <option value="goods">Купить</option>
+      <option value="tasks">Сделать</option>
+    </select>
+
+    <select
+      v-if="availableTags.length > 0"
+      v-model="tag"
+      class="lk-tasks-filter-bar__select"
+      aria-label="Фильтр по тегу"
+    >
+      <option value="all">Все теги</option>
+      <option v-for="tagName in availableTags" :key="tagName" :value="tagName">{{ tagName }}</option>
     </select>
   </div>
 </template>

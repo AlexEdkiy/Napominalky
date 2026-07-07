@@ -101,6 +101,15 @@ withDefaults(defineProps<Props>(), { size: 20 })
       <path d="M10 11v6" />
       <path d="M14 11v6" />
     </template>
+
+    <template v-else-if="name === 'link'">
+      <path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.14 1.13" />
+      <path d="M14 11a5 5 0 0 0-7.07 0l-2 2a5 5 0 0 0 7.07 7.07l1.13-1.13" />
+    </template>
+
+    <template v-else-if="name === 'comment'">
+      <path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1-4.4A8 8 0 1 1 21 12Z" />
+    </template>
   </svg>
 </template>
 

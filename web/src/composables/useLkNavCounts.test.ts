@@ -9,6 +9,8 @@ function makeList(itemsCount: number, checkedCount: number): ShoppingList {
   return {
     uuid: `l-${itemsCount}-${checkedCount}`,
     title: 'Продукты',
+    type: 'goods',
+    tags: [],
     items_count: itemsCount,
     checked_items_count: checkedCount,
     created_at: '2026-06-01T00:00:00Z',

@@ -7,6 +7,8 @@ import type { ShoppingList } from '@/types/shoppingList'
 const list: ShoppingList = {
   uuid: 'l-1',
   title: 'Продукты',
+  type: 'goods',
+  tags: [],
   items_count: 3,
   checked_items_count: 1,
   created_at: '2026-06-01T00:00:00Z',

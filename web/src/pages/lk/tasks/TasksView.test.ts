@@ -11,6 +11,8 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
   return {
     uuid: 'l-1',
     title: 'Продукты',
+    type: 'goods',
+    tags: [],
     items_count: 4,
     checked_items_count: 2,
     created_at: '2026-07-01T00:00:00Z',
@@ -154,6 +156,48 @@ describe('TasksView', () => {
 
     const selects = wrapper.findAll('select')
     await selects[1]?.setValue('completed')
+
+    expect(wrapper.text()).toContain('Аптека')
+    expect(wrapper.text()).not.toContain('Продукты')
+    vi.unstubAllGlobals()
+  })
+
+  it('filters by list type via the type select', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods' }),
+        makeList({ uuid: 'l-2', title: 'Дела на день', type: 'tasks' }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const selects = wrapper.findAll('select')
+    await selects[2]?.setValue('tasks')
+
+    expect(wrapper.text()).toContain('Дела на день')
+    expect(wrapper.text()).not.toContain('Продукты')
+    vi.unstubAllGlobals()
+  })
+
+  it('renders tag pills on cards and filters by tag once tags are present', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({ uuid: 'l-1', title: 'Продукты', tags: ['Покупки'] }),
+        makeList({ uuid: 'l-2', title: 'Аптека', tags: ['Здоровье'] }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    expect(wrapper.findAll('.lk-tag-pill').map((tag) => tag.text())).toEqual(['Покупки', 'Здоровье'])
+
+    const selects = wrapper.findAll('select')
+    await selects[3]?.setValue('Здоровье')
 
     expect(wrapper.text()).toContain('Аптека')
     expect(wrapper.text()).not.toContain('Продукты')
