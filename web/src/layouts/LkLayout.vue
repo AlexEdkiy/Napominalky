@@ -104,7 +104,7 @@ onMounted(async () => {
         <RouterLink :to="{ name: 'lk-reminder-create' }" class="lk-shell__create-item" @click="closeCreateMenu">
           Новое напоминание
         </RouterLink>
-        <RouterLink :to="{ name: 'lk-lists' }" class="lk-shell__create-item" @click="closeCreateMenu">
+        <RouterLink :to="{ name: 'lk-tasks' }" class="lk-shell__create-item" @click="closeCreateMenu">
           Новый список покупок
         </RouterLink>
       </div>

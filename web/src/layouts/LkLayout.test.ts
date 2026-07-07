@@ -210,6 +210,23 @@ describe('LkLayout', () => {
     vi.unstubAllGlobals()
   })
 
+  it('routes the "Новый список покупок" create-menu item to the redesigned lk-tasks section (not the legacy lk-lists page)', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    const createItems = wrapper.findAll('.lk-shell__create-item')
+    const listItem = createItems.find((item) => item.text() === 'Новый список покупок')
+
+    expect(listItem).toBeDefined()
+    // `:to` binding is resolved against router-link's `href`; the legacy
+    // deep-link route is `/lk/lists`, the redesigned one is `/lk/tasks` —
+    // asserting on the resolved href pins down which page users land on.
+    expect(listItem?.attributes('href')).toBe('/lk/tasks')
+
+    vi.unstubAllGlobals()
+  })
+
   it('renders the brand block, divider and user row in the sidebar per the design brief', async () => {
     stubMatchMedia(true)
     const wrapper = await mountLayout()

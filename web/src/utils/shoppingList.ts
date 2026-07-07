@@ -19,10 +19,9 @@ export function shoppingListProgressPercent(list: ShoppingList): number {
 
 /**
  * Список считается завершённым, если в нём есть хотя бы один пункт и все
- * пункты отмечены выполненными. `ShoppingList` не несёт признака «категории»
- * или «тега» (в отличие от макета) — этот статус выполнения используется
- * вместо выдуманного поля как единственный реально доступный признак для
- * фильтра/pill на карточке списка.
+ * пункты отмечены выполненными. Используется для фильтра «завершённые» и
+ * статус-pill на карточке списка (независимо от реальных `type`/`tags`,
+ * которые отображаются отдельными pill'ами — см. `LkShoppingListCard.vue`).
  */
 export function isShoppingListCompleted(list: ShoppingList): boolean {
   return list.items_count > 0 && list.checked_items_count === list.items_count
