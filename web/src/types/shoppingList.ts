@@ -63,17 +63,27 @@ export interface ShoppingListParams {
 /**
  * Полезная нагрузка создания списка (POST /shopping-lists).
  * `uuid` опционален — клиент может задать его для офлайн-синхронизации.
+ * `type` по умолчанию `goods` (см. `StoreListRequest` на бэкенде). `tags` —
+ * массив имён тегов на клиенте; сериализуется в непрозрачную JSON-строку
+ * перед отправкой (см. `api/shoppingListsApi.ts`), симметрично `parseTags`
+ * при чтении.
  */
 export interface CreateShoppingListPayload {
   title: string
+  type?: ShoppingListType
+  tags?: string[]
   uuid?: string
 }
 
 /**
  * Полезная нагрузка обновления списка (PUT /shopping-lists/{uuid}).
+ * `type`/`tags` опциональны — метаданные списка можно менять частично
+ * (UI редактирования этих полей не обязателен, но контракт готов к нему).
  */
 export interface UpdateShoppingListPayload {
-  title: string
+  title?: string
+  type?: ShoppingListType
+  tags?: string[]
 }
 
 /**

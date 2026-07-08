@@ -219,6 +219,30 @@ describe('TasksView', () => {
     vi.unstubAllGlobals()
   })
 
+  it('opens the create-list dialog and prepends the created list to the grid', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
+    vi.mocked(shoppingListsApi.createList).mockResolvedValue(
+      makeList({ uuid: 'l-9', title: 'Дача', type: 'tasks', tags: ['Дом'] }),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.tasks-view__create-btn').trigger('click')
+    expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(true)
+
+    await wrapper.find('#create-list-title').setValue('Дача')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.createList).toHaveBeenCalledWith({ title: 'Дача', type: 'goods', tags: [] }),
+    )
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Дача'))
+    expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
   it('shows the right-rail on wide desktop and hides it on narrower screens', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
 

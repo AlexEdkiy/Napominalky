@@ -27,6 +27,21 @@ function normalizeItem(wire: ShoppingListItemWire): ShoppingListItem {
   return { ...wire, tags: parseTags(wire.tags) }
 }
 
+/**
+ * Сериализует `tags: string[]` в непрозрачную JSON-строку перед отправкой на
+ * сервер (симметрично `parseTags` при чтении) — бэкенд хранит теги списка в
+ * TEXT-колонке. Поле опускается, если `tags` не передан.
+ */
+function serializeTagsPayload<T extends { tags?: string[] }>(
+  payload: T,
+): Omit<T, 'tags'> & { tags?: string } {
+  const { tags, ...rest } = payload
+  if (tags === undefined) {
+    return rest
+  }
+  return { ...rest, tags: JSON.stringify(tags) }
+}
+
 function buildQueryParams(params?: ShoppingListParams): Record<string, number> {
   const query: Record<string, number> = {}
   if (params?.page !== undefined) {
@@ -52,12 +67,18 @@ export const shoppingListsApi = {
   },
 
   createList: async (payload: CreateShoppingListPayload): Promise<ShoppingList> => {
-    const { data } = await apiClient.post<ApiResponse<ShoppingListWire>>('/shopping-lists', payload)
+    const { data } = await apiClient.post<ApiResponse<ShoppingListWire>>(
+      '/shopping-lists',
+      serializeTagsPayload(payload),
+    )
     return normalizeList(data.data)
   },
 
   updateList: async (uuid: string, payload: UpdateShoppingListPayload): Promise<ShoppingList> => {
-    const { data } = await apiClient.put<ApiResponse<ShoppingListWire>>(`/shopping-lists/${uuid}`, payload)
+    const { data } = await apiClient.put<ApiResponse<ShoppingListWire>>(
+      `/shopping-lists/${uuid}`,
+      serializeTagsPayload(payload),
+    )
     return normalizeList(data.data)
   },
 

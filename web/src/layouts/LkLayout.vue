@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import LkBottomNav from '@/components/lk/LkBottomNav.vue'
+import LkCreateListDialog from '@/components/lk/LkCreateListDialog.vue'
+import LkCreateMenu from '@/components/lk/LkCreateMenu.vue'
 import LkMobileHeader from '@/components/lk/LkMobileHeader.vue'
 import LkSidebar from '@/components/lk/LkSidebar.vue'
 import LkTopbar from '@/components/lk/LkTopbar.vue'
@@ -11,15 +13,18 @@ import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkNavCounts } from '@/composables/useLkNavCounts'
 import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
 import { useAuthStore } from '@/stores/authStore'
+import type { ShoppingList } from '@/types/shoppingList'
 import { getUserDisplayName } from '@/utils/user'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const { isDesktop } = useLkBreakpoint()
 const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
 
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)
+const isListDialogOpen = ref(false)
 
 // Общий реактивный «хвост» хлебных крошек (название списка/заметки/напоминания),
 // который пишут дочерние страницы через `useSetLkBreadcrumbTail` и читает
@@ -58,7 +63,38 @@ function closeCreateMenu(): void {
   isCreateMenuOpen.value = false
 }
 
+function handleGlobalKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && isCreateMenuOpen.value) {
+    closeCreateMenu()
+  }
+}
+
+function handleSelectNote(): void {
+  closeCreateMenu()
+  void router.push({ name: 'lk-note-create' })
+}
+
+function handleSelectReminder(): void {
+  closeCreateMenu()
+  void router.push({ name: 'lk-reminder-create' })
+}
+
+function handleSelectList(): void {
+  closeCreateMenu()
+  isListDialogOpen.value = true
+}
+
+function closeListDialog(): void {
+  isListDialogOpen.value = false
+}
+
+function handleListCreated(list: ShoppingList): void {
+  isListDialogOpen.value = false
+  void router.push({ name: 'lk-list-detail', params: { uuid: list.uuid } })
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleGlobalKeydown)
   if (auth.user === null) {
     try {
       await auth.fetchMe()
@@ -67,6 +103,10 @@ onMounted(async () => {
     }
   }
   void loadNavCounts()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
@@ -96,19 +136,22 @@ onMounted(async () => {
       <LkBottomNav v-if="!isDesktop" @create="toggleCreateMenu" />
     </div>
 
-    <div v-if="isCreateMenuOpen" class="lk-shell__overlay" @click="closeCreateMenu">
+    <div
+      v-if="isCreateMenuOpen"
+      class="lk-shell__create-overlay"
+      :class="{ 'lk-shell__create-overlay--desktop': isDesktop }"
+      @click="closeCreateMenu"
+    >
       <div class="lk-shell__create-menu" @click.stop>
-        <RouterLink :to="{ name: 'lk-note-create' }" class="lk-shell__create-item" @click="closeCreateMenu">
-          Новая заметка
-        </RouterLink>
-        <RouterLink :to="{ name: 'lk-reminder-create' }" class="lk-shell__create-item" @click="closeCreateMenu">
-          Новое напоминание
-        </RouterLink>
-        <RouterLink :to="{ name: 'lk-tasks' }" class="lk-shell__create-item" @click="closeCreateMenu">
-          Новый список покупок
-        </RouterLink>
+        <LkCreateMenu
+          @select-note="handleSelectNote"
+          @select-reminder="handleSelectReminder"
+          @select-list="handleSelectList"
+        />
       </div>
     </div>
+
+    <LkCreateListDialog v-if="isListDialogOpen" @close="closeListDialog" @created="handleListCreated" />
   </div>
 </template>
 
@@ -150,7 +193,7 @@ onMounted(async () => {
   padding: 1rem;
 }
 
-.lk-shell__overlay {
+.lk-shell__create-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 20, 0.35);
@@ -160,35 +203,30 @@ onMounted(async () => {
   z-index: 40;
 }
 
-.lk-shell--desktop .lk-shell__overlay {
-  align-items: center;
+/*
+ * Desktop: имитируем поповер у кнопки «Создать» в сайдбаре (без затемнения
+ * фона, карточка ближе к левому нижнему углу, где расположена кнопка) —
+ * mobile сохраняет затемнённый нижний action-sheet.
+ */
+.lk-shell__create-overlay--desktop {
+  background: transparent;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0 0 5.5rem 1.25rem;
 }
 
 .lk-shell__create-menu {
   background: #fff;
   border-radius: 16px 16px 0 0;
-  padding: 0.75rem;
+  padding: 0.5rem;
   width: 100%;
   max-width: 360px;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
 }
 
-.lk-shell--desktop .lk-shell__create-menu {
+.lk-shell__create-overlay--desktop .lk-shell__create-menu {
   border-radius: 16px;
-}
-
-.lk-shell__create-item {
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  text-decoration: none;
-  color: #1f2622;
-  font-weight: 500;
-}
-
-.lk-shell__create-item:hover {
-  background: #eef1f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  max-width: 280px;
 }
 </style>
