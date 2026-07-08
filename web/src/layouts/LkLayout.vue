@@ -25,6 +25,25 @@ const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)
 const isListDialogOpen = ref(false)
+const createButtonRect = ref<DOMRect | null>(null)
+
+const MENU_WIDTH = 280
+const MENU_MARGIN = 12
+
+// Позиция поповера «Создать» на десктопе: привязан к фактическому положению
+// кнопки в сайдбаре (`createButtonRect`, приходит от `LkSidebar` через
+// событие `create`), а не к фиксированному месту в углу экрана — см. бриф
+// «поповер, привязанный к кнопке «Создать»» (позиционирование корректное).
+const createMenuAnchorStyle = computed(() => {
+  const rect = createButtonRect.value
+  if (!isDesktop.value || rect === null) {
+    return undefined
+  }
+  const maxLeft = Math.max(MENU_MARGIN, window.innerWidth - MENU_WIDTH - MENU_MARGIN)
+  const left = Math.min(rect.right + MENU_MARGIN, maxLeft)
+  const top = Math.min(rect.top, Math.max(MENU_MARGIN, window.innerHeight - 260))
+  return { position: 'fixed' as const, top: `${top}px`, left: `${left}px` }
+})
 
 // Общий реактивный «хвост» хлебных крошек (название списка/заметки/напоминания),
 // который пишут дочерние страницы через `useSetLkBreadcrumbTail` и читает
@@ -55,8 +74,9 @@ function toggleSidebar(): void {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
 
-function toggleCreateMenu(): void {
+function toggleCreateMenu(anchor?: DOMRect): void {
   isCreateMenuOpen.value = !isCreateMenuOpen.value
+  createButtonRect.value = anchor ?? null
 }
 
 function closeCreateMenu(): void {
@@ -142,7 +162,7 @@ onUnmounted(() => {
       :class="{ 'lk-shell__create-overlay--desktop': isDesktop }"
       @click="closeCreateMenu"
     >
-      <div class="lk-shell__create-menu" @click.stop>
+      <div class="lk-shell__create-menu" :style="createMenuAnchorStyle" @click.stop>
         <LkCreateMenu
           @select-note="handleSelectNote"
           @select-reminder="handleSelectReminder"
@@ -205,8 +225,12 @@ onUnmounted(() => {
 
 /*
  * Desktop: имитируем поповер у кнопки «Создать» в сайдбаре (без затемнения
- * фона, карточка ближе к левому нижнему углу, где расположена кнопка) —
- * mobile сохраняет затемнённый нижний action-sheet.
+ * фона; сам оверлей — прозрачный слой на весь экран только для перехвата
+ * клика вне поповера). Фактическая позиция карточки — инлайн-стиль
+ * `createMenuAnchorStyle`, вычисленный из `getBoundingClientRect()` кнопки
+ * (см. `LkSidebar.vue`), поэтому поповер всегда рядом с кнопкой, а не в
+ * фиксированном углу экрана. Ниже — фолбэк-позиция на случай, если якорь
+ * почему-то недоступен; mobile сохраняет затемнённый нижний action-sheet.
  */
 .lk-shell__create-overlay--desktop {
   background: transparent;

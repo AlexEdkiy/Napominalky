@@ -287,6 +287,39 @@ describe('LkLayout', () => {
     vi.unstubAllGlobals()
   })
 
+  it('anchors the desktop popover to the actual "Создать" button position, not a fixed screen corner', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    // Кнопка «Создать» реально расположена в верхней трети сайдбара (сразу
+    // после 4 пунктов навигации) — сильно выше нижнего угла экрана.
+    // Поповер должен быть привязан именно к её фактическому положению
+    // (getBoundingClientRect), а не к жёстко зашитому месту в углу.
+    const createButton = wrapper.find('.lk-sidebar__create').element as HTMLElement
+    vi.spyOn(createButton, 'getBoundingClientRect').mockReturnValue({
+      top: 260,
+      left: 20,
+      right: 236,
+      bottom: 306,
+      width: 216,
+      height: 46,
+      x: 20,
+      y: 260,
+      toJSON: () => ({}),
+    })
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+
+    const menu = wrapper.find('.lk-shell__create-menu')
+    const style = (menu.element as HTMLElement).style
+    expect(style.position).toBe('fixed')
+    expect(style.top).toBe('260px')
+    // Открывается правее кнопки (right + отступ), а не у левого края экрана.
+    expect(parseInt(style.left, 10)).toBeGreaterThan(236)
+
+    vi.unstubAllGlobals()
+  })
+
   it('renders the brand block, divider and user row in the sidebar per the design brief', async () => {
     stubMatchMedia(true)
     const wrapper = await mountLayout()

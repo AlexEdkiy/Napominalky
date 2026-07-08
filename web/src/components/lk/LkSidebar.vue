@@ -16,7 +16,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  create: []
+  create: [anchor: DOMRect]
 }>()
 
 const route = useRoute()
@@ -33,6 +33,13 @@ function badgeFor(key: 'activeTasks' | 'notes' | undefined): number | null {
     return props.notesCount
   }
   return null
+}
+
+// Передаём фактическое положение кнопки, чтобы поповер «Создать» на десктопе
+// открывался рядом с ней (см. `LkLayout.vue`), а не в оторванном от кнопки
+// месте (в макете поповер привязан к кнопке в сайдбаре).
+function handleCreateClick(event: MouseEvent): void {
+  emit('create', (event.currentTarget as HTMLElement).getBoundingClientRect())
 }
 </script>
 
@@ -72,7 +79,7 @@ function badgeFor(key: 'activeTasks' | 'notes' | undefined): number | null {
       </RouterLink>
     </nav>
 
-    <button type="button" class="lk-sidebar__create" @click="emit('create')">
+    <button type="button" class="lk-sidebar__create" @click="handleCreateClick">
       <LkIcon name="plus" :size="18" />
       <span v-if="!collapsed">Создать</span>
     </button>
