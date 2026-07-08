@@ -1,15 +1,31 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
+import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkOverviewReminderItem from '@/components/lk/LkOverviewReminderItem.vue'
 import LkStatCard from '@/components/lk/LkStatCard.vue'
 import { useLkDashboard } from '@/composables/useLkDashboard'
 
-const { isLoading, error, stats, todaysReminders, upcomingReminders, load, completeTodayReminder } =
-  useLkDashboard()
+const router = useRouter()
+const {
+  isLoading,
+  error,
+  stats,
+  todaysReminders,
+  upcomingReminders,
+  pendingCompleteUuid,
+  load,
+  requestComplete,
+  confirmComplete,
+  cancelComplete,
+} = useLkDashboard()
 
 onMounted(load)
+
+function openReminder(uuid: string): void {
+  void router.push({ name: 'lk-reminder-edit', params: { uuid } })
+}
 </script>
 
 <template>
@@ -27,14 +43,22 @@ onMounted(load)
           variant="blue"
           :value="String(stats.activeTasksCount)"
           label="Активных задач"
+          :to="{ name: 'lk-tasks' }"
         />
         <LkStatCard
           icon="bell"
           variant="amber"
           :value="String(stats.remindersTodayCount)"
           label="Напоминаний сегодня"
+          :to="{ name: 'lk-reminders' }"
         />
-        <LkStatCard icon="note" variant="teal" :value="String(stats.notesCount)" label="Заметок" />
+        <LkStatCard
+          icon="note"
+          variant="teal"
+          :value="String(stats.notesCount)"
+          label="Заметок"
+          :to="{ name: 'lk-notes' }"
+        />
         <LkStatCard
           icon="check"
           variant="gradient"
@@ -61,7 +85,8 @@ onMounted(load)
               :key="reminder.uuid"
               :reminder="reminder"
               variant="today"
-              @complete="completeTodayReminder"
+              @complete="requestComplete"
+              @open="openReminder"
             />
           </ul>
         </section>
@@ -82,11 +107,21 @@ onMounted(load)
               :key="reminder.uuid"
               :reminder="reminder"
               variant="upcoming"
+              @open="openReminder"
             />
           </ul>
         </section>
       </div>
     </template>
+
+    <LkConfirmDialog
+      v-if="pendingCompleteUuid !== null"
+      title="Подтвердите выполнение задачи"
+      confirm-label="Да"
+      cancel-label="Отмена"
+      @confirm="confirmComplete"
+      @cancel="cancelComplete"
+    />
   </section>
 </template>
 

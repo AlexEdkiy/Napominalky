@@ -62,4 +62,51 @@ describe('LkOverviewReminderItem', () => {
 
     expect(wrapper.emitted('complete')?.[0]).toEqual(['r-1'])
   })
+
+  it('does not emit open when the checkbox is clicked (stopPropagation, no navigation)', async () => {
+    const wrapper = mount(LkOverviewReminderItem, {
+      props: { reminder: makeReminder(new Date(2026, 6, 6, 21, 0).toISOString()), variant: 'today' },
+    })
+
+    await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
+
+    expect(wrapper.emitted('open')).toBeUndefined()
+  })
+
+  it('emits open with the reminder uuid when the row body is clicked (today variant)', async () => {
+    const wrapper = mount(LkOverviewReminderItem, {
+      props: { reminder: makeReminder(new Date(2026, 6, 6, 21, 0).toISOString()), variant: 'today' },
+    })
+
+    await wrapper.find('.lk-reminder-item__body').trigger('click')
+
+    expect(wrapper.emitted('open')?.[0]).toEqual(['r-1'])
+    expect(wrapper.emitted('complete')).toBeUndefined()
+  })
+
+  it('emits open with the reminder uuid when the row body is clicked (upcoming variant)', async () => {
+    const wrapper = mount(LkOverviewReminderItem, {
+      props: { reminder: makeReminder(new Date(2026, 6, 9, 8, 30).toISOString()), variant: 'upcoming' },
+    })
+
+    await wrapper.find('.lk-reminder-item__body').trigger('click')
+
+    expect(wrapper.emitted('open')?.[0]).toEqual(['r-1'])
+  })
+
+  it('emits open on Enter/Space keydown for keyboard accessibility', async () => {
+    const wrapper = mount(LkOverviewReminderItem, {
+      props: { reminder: makeReminder(new Date(2026, 6, 6, 21, 0).toISOString()), variant: 'today' },
+    })
+
+    const body = wrapper.find('.lk-reminder-item__body')
+    expect(body.attributes('role')).toBe('button')
+    expect(body.attributes('tabindex')).toBe('0')
+
+    await body.trigger('keydown.enter')
+    expect(wrapper.emitted('open')).toHaveLength(1)
+
+    await body.trigger('keydown.space')
+    expect(wrapper.emitted('open')).toHaveLength(2)
+  })
 })

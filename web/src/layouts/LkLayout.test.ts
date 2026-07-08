@@ -6,6 +6,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import LkLayout from './LkLayout.vue'
 import { notesApi } from '@/api/notesApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { syncApi } from '@/api/syncApi'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types/auth'
 
@@ -97,6 +98,10 @@ describe('LkLayout', () => {
       data: [],
       meta: { current_page: 1, last_page: 1, per_page: 1, total: 0 },
       links: { first: null, last: null, prev: null, next: null },
+    })
+    vi.mocked(syncApi.fetchChanges).mockResolvedValue({
+      data: { notes: [], shopping_lists: [], shopping_list_items: [], reminders: [] },
+      meta: { cursor: 0, has_more: false },
     })
   })
 
@@ -328,9 +333,65 @@ describe('LkLayout', () => {
     expect(wrapper.find('.lk-sidebar__brand-subtitle').text()).toBe('Личный кабинет')
     expect(wrapper.find('.lk-sidebar__divider').exists()).toBe(true)
     expect(wrapper.find('.lk-sidebar__create').text()).toContain('Создать')
-    expect(wrapper.find('.lk-sidebar__sync-label').text()).toBe('Синхронизация')
+    expect(wrapper.find('.lk-sidebar__sync-label').text()).toBe('Синхронизация с сервером')
     expect(wrapper.find('.lk-sidebar__user-name').text()).toBe(user.name)
     expect(wrapper.find('.lk-sidebar__user-email').text()).toBe(user.email)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('animates the sync meter while a sync is in flight and shows an idle status once it settles', async () => {
+    stubMatchMedia(true)
+    let resolveSync: (() => void) | undefined
+    vi.mocked(syncApi.fetchChanges).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSync = () =>
+          resolve({
+            data: { notes: [], shopping_lists: [], shopping_list_items: [], reminders: [] },
+            meta: { cursor: 1, has_more: false },
+          })
+      }),
+    )
+
+    const wrapper = await mountLayout()
+
+    expect(wrapper.find('.lk-sidebar__sync').classes()).toContain('lk-sidebar__sync--syncing')
+    expect(wrapper.find('.lk-sidebar__sync-status').text()).toBe('Синхронизация…')
+
+    resolveSync?.()
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-sidebar__sync').classes()).not.toContain('lk-sidebar__sync--syncing'),
+    )
+    expect(wrapper.find('.lk-sidebar__sync-status').text()).toContain('Синхронизировано')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('re-runs the sync when the sync meter button is clicked', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-sidebar__sync').classes()).not.toContain('lk-sidebar__sync--syncing'),
+    )
+
+    vi.mocked(syncApi.fetchChanges).mockClear()
+    await wrapper.find('.lk-sidebar__sync').trigger('click')
+
+    expect(syncApi.fetchChanges).toHaveBeenCalledWith(0)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('hides the sync meter when the sidebar is collapsed', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-sidebar__sync').classes()).not.toContain('lk-sidebar__sync--syncing'),
+    )
+
+    await wrapper.find('.lk-topbar__burger').trigger('click')
+
+    expect(wrapper.find('.lk-sidebar__sync').exists()).toBe(false)
 
     vi.unstubAllGlobals()
   })
@@ -346,5 +407,12 @@ vi.mock('@/api/shoppingListsApi', () => ({
 vi.mock('@/api/notesApi', () => ({
   notesApi: {
     fetchNotes: vi.fn(),
+  },
+}))
+
+vi.mock('@/api/syncApi', () => ({
+  syncApi: {
+    fetchChanges: vi.fn(),
+    fetchConflicts: vi.fn(),
   },
 }))

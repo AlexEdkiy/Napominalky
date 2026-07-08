@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
+import { useSyncMeter } from '@/composables/useSyncMeter'
 import { isLkNavItemActive, LK_NAV_ITEMS } from '@/constants/lkNav'
 import { useAuthStore } from '@/stores/authStore'
 import { getUserDisplayName, getUserInitial } from '@/utils/user'
@@ -21,9 +22,24 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const auth = useAuthStore()
+const { isSyncing, lastSyncedAt, runSync } = useSyncMeter()
 
 const userLabel = computed(() => getUserDisplayName(auth.user))
 const userInitial = computed(() => getUserInitial(auth.user))
+
+const syncStatusLabel = computed<string>(() => {
+  if (isSyncing.value) {
+    return 'Синхронизация…'
+  }
+  if (lastSyncedAt.value) {
+    const time = lastSyncedAt.value.toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return `Синхронизировано в ${time}`
+  }
+  return 'Ожидание синхронизации'
+})
 
 function badgeFor(key: 'activeTasks' | 'notes' | undefined): number | null {
   if (key === 'activeTasks') {
@@ -86,10 +102,18 @@ function handleCreateClick(event: MouseEvent): void {
 
     <div class="lk-sidebar__spacer" />
 
-    <div v-if="!collapsed" class="lk-sidebar__sync">
-      <span class="lk-sidebar__sync-label">Синхронизация</span>
+    <button
+      v-if="!collapsed"
+      type="button"
+      class="lk-sidebar__sync"
+      :class="{ 'lk-sidebar__sync--syncing': isSyncing }"
+      aria-label="Запустить синхронизацию с сервером"
+      @click="runSync"
+    >
+      <span class="lk-sidebar__sync-label">Синхронизация с сервером</span>
       <div class="lk-sidebar__sync-track"><div class="lk-sidebar__sync-fill" /></div>
-    </div>
+      <span class="lk-sidebar__sync-status">{{ syncStatusLabel }}</span>
+    </button>
 
     <RouterLink :to="{ name: 'lk-account' }" class="lk-sidebar__user">
       <span class="lk-sidebar__avatar">{{ userInitial }}</span>
@@ -243,12 +267,39 @@ function handleCreateClick(event: MouseEvent): void {
   padding: 0.5rem 0.25rem;
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.lk-sidebar__sync:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lk-sidebar__sync:focus-visible {
+  outline: 2px solid #e9a63c;
+  outline-offset: 2px;
+}
+
+.lk-sidebar__sync-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lk-sidebar__sync-status {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .lk-sidebar__sync-track {
+  position: relative;
   height: 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
 }
 
 .lk-sidebar__sync-fill {
@@ -256,6 +307,21 @@ function handleCreateClick(event: MouseEvent): void {
   width: 100%;
   border-radius: 999px;
   background: #17897a;
+}
+
+.lk-sidebar__sync--syncing .lk-sidebar__sync-fill {
+  position: absolute;
+  width: 40%;
+  animation: lk-sync-indeterminate 1.1s ease-in-out infinite;
+}
+
+@keyframes lk-sync-indeterminate {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 .lk-sidebar__user {
