@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-08 (мобилка: точные будильники Android 12+ — пуши по времени MOB-51)
+> Последнее обновление: 2026-07-08 (веб-ЛК редизайн завершён — фаза 5 финал: WEB-18, UITEST-5)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 51           | mobile-developer          |
-| WEB     | 17           | web-developer             |
+| WEB     | 18           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 4            | ux-ui-test-engineer       |
+| UITEST  | 5            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 5            | devops-engineer           |
-| DOC     | 7            | technical-writer          |
+| DOC     | 8            | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 78 |
+| Completed | 80 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1621,6 +1621,44 @@
   - [x] SCHEDULE_EXACT_ALARM + USE_EXACT_ALARM в манифесте
   - [x] tsc чист, тесты уведомлений зелёные (22)
   - [x] Пересборка APK (versionCode 29) для проверки на устройстве
+- **Создана:** 2026-07-08
+- **Завершена:** 2026-07-08
+
+---
+
+## Feature: Редизайн веб-ЛК — финал (создание/формы)
+
+### WEB-18: Единое меню «Создать» + форма создания списка + формы напоминаний в новом стиле (фаза 5)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-17
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Финал редизайна ЛК. Единое меню «Создать» (`LkCreateMenu`): desktop-поповер у кнопки «Создать» (привязка к её координатам, закрытие вне/Esc) / mobile action-sheet от центральной «+»; 3 пункта — Заметка(teal)/Напоминание(amber)/Список(blue). Полноценная форма создания списка (`LkCreateListDialog`, модалка desktop / нижний лист mobile): название + тип Купить/Сделать (goods/tasks) + теги-чипы; `CreateShoppingListPayload`/`UpdateShoppingListPayload` расширены `type`/`tags`, теги сериализуются в JSON-строку (`serializeTagsPayload`, симметрично `parseTags`); заменила старую инлайн-форму в `TasksView` (единый путь создания из меню и «+ Новый список»). `ReminderEditView` переведён в новый стиль (карточка, повтор-пиллы, textarea авто-высоты, крошка-хвост, прямые вызовы remindersApi → ошибки 422 видны). `RemindersView` в новом стиле (карточки `LkReminderCard`: статус/повтор-бейджи, выполнить/+10м/+1ч/редакт/удалить, фильтр-пиллы, per_page=100).
+- **Файлы:** `web/src/components/lk/{LkCreateMenu,LkCreateListDialog}.vue`, `web/src/layouts/LkLayout.vue`, `web/src/components/lk/LkSidebar.vue`, `web/src/pages/lk/tasks/TasksView.vue`, `web/src/pages/lk/reminders/{ReminderEditView,RemindersView}.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`, `web/src/api/shoppingListsApi.ts`, `web/src/types/shoppingList.ts`
+- **Критерии приёмки:**
+  - [x] Меню «Создать» (поповер desktop / лист mobile), 3 пункта, «Список» открывает диалог
+  - [x] Форма создания списка: название+тип+теги, сериализация тегов, валидация/ошибки
+  - [x] ReminderEditView в новом стиле, крошка-хвост, ошибки 422 видны
+  - [x] RemindersView в новом стиле, per_page ≤100
+  - [x] vue-tsc OK, Vitest зелёный (311)
+- **Создана:** 2026-07-08
+- **Завершена:** 2026-07-08
+
+### UITEST-5: UI-fidelity аудит фазы 5 (меню «Создать»/формы)
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-18
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Сверка фазы 5 (меню «Создать», форма списка, формы напоминаний, RemindersView) с брифом. Найден и исправлен MEDIUM-дефект: desktop-поповер «Создать» позиционировался у нижнего угла экрана вместо кнопки — привязан к её `getBoundingClientRect()` с клэмпом по вьюпорту. Добавлен fidelity-тест на anchoring.
+- **Файлы:** `web/src/layouts/LkLayout.vue`, `web/src/components/lk/LkSidebar.vue`, `web/src/layouts/LkLayout.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка меню/форм/списка напоминаний с брифом фазы 5
+  - [x] MEDIUM-дефект позиционирования поповера исправлен и покрыт тестом
+  - [x] Тесты зелёные (311), vue-tsc чист
 - **Создана:** 2026-07-08
 - **Завершена:** 2026-07-08
 
