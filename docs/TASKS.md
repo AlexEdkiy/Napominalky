@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-07 (веб-ЛК: фикс 422 календаря WEB-16; фаза 4 «Заметки» + favicon WEB-17, UITEST-4)
+> Последнее обновление: 2026-07-08 (мобилка: точные будильники Android 12+ — пуши по времени MOB-51)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
-| MOB     | 50           | mobile-developer          |
+| MOB     | 51           | mobile-developer          |
 | WEB     | 17           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 4            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 5            | devops-engineer           |
-| DOC     | 6            | technical-writer          |
+| DOC     | 7            | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 77 |
+| Completed | 78 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1603,4 +1603,24 @@
   - [x] Fidelity-тесты усилены, Vitest зелёный (271)
 - **Создана:** 2026-07-07
 - **Завершена:** 2026-07-07
+
+---
+
+## Feature: Мобилка — надёжность уведомлений
+
+### MOB-51: Точные будильники на Android 12+ — пуши по времени, а не при открытии приложения
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/mobile/AGENTS.md`
+- **Описание:** Жалоба: локальные уведомления на Android срабатывали не по установленному времени, а в момент открытия/активации приложения. Причина: `expo-notifications` (`ExpoSchedulingDelegate.kt`) на Android 12+/API 31+ планирует точный будильник (`setExactAndAllowWhileIdle`) только при `alarmManager.canScheduleExactAlarms()==true`, иначе откатывается на неточный (`setAndAllowWhileIdle`) — ОС батчит и откладывает доставку до пробуждения/foreground. Разрешений exact-alarm в манифесте не было. Добавлены `SCHEDULE_EXACT_ALARM` (API 31–32) и `USE_EXACT_ALARM` (API 33+) в `app.json` android.permissions → `canScheduleExactAlarms()` истинно → доставка точно по времени даже при закрытом приложении. Предыдущий фикс (Android-канал + reschedule-on-start + маппинг reminder_at) устранял только foreground-показ, но не точность доставки. Требует пересборки APK (нативный манифест), versionCode 29.
+- **Файлы:** `mobile/app.json` (android.permissions), `mobile/src/services/notifications.ts` (пояснительный комментарий — не удалять разрешения)
+- **Критерии приёмки:**
+  - [x] SCHEDULE_EXACT_ALARM + USE_EXACT_ALARM в манифесте
+  - [x] tsc чист, тесты уведомлений зелёные (22)
+  - [x] Пересборка APK (versionCode 29) для проверки на устройстве
+- **Создана:** 2026-07-08
+- **Завершена:** 2026-07-08
 
