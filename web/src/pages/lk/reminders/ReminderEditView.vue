@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { isAxiosError } from 'axios'
 
 import { remindersApi } from '@/api/remindersApi'
-import { useReminders } from '@/composables/useReminders'
+import { useSetLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { dateTimeLocalToIso, isoToDateTimeLocal } from '@/utils/datetime'
 import type { ValidationErrorResponse } from '@/types/api'
 import type { RecurrenceType } from '@/types/reminder'
-
-const route = useRoute()
-const router = useRouter()
-const { create, update, remove } = useReminders()
 
 const recurrenceOptions: { value: RecurrenceType; label: string }[] = [
   { value: 'none', label: 'Без повтора' },
@@ -20,22 +16,38 @@ const recurrenceOptions: { value: RecurrenceType; label: string }[] = [
   { value: 'monthly', label: 'Ежемесячно' },
 ]
 
+const route = useRoute()
+const router = useRouter()
+
 const uuidParam = computed<string | null>(() => {
   const value = route.params.uuid
   return typeof value === 'string' ? value : null
 })
 const isCreate = computed<boolean>(() => uuidParam.value === null)
 
-const form = reactive({
-  title: '',
-  notes: '',
-  remind_at: '',
-  recurrence: 'none' as RecurrenceType,
-})
+const form = reactive({ title: '', notes: '', remind_at: '', recurrence: 'none' as RecurrenceType })
 const errors = ref<Record<string, string[]>>({})
 const generalError = ref<string | null>(null)
 const isLoading = ref(false)
 const isSubmitting = ref(false)
+const notesTextarea = ref<HTMLTextAreaElement | null>(null)
+
+// Крошка-хвост читает уже загруженный заголовок напоминания. На маршруте
+// создания (`lk-reminder-create`) значение игнорируется — там хвост
+// статический (см. `constants/lkBreadcrumbs.ts`).
+const loadedTitle = ref<string | null>(null)
+useSetLkBreadcrumbTail(() => loadedTitle.value)
+
+async function resizeTextarea(): Promise<void> {
+  await nextTick()
+  const el = notesTextarea.value
+  if (el) {
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+}
+
+watch(() => form.notes, resizeTextarea)
 
 function applyValidation(error: unknown): void {
   if (isAxiosError<ValidationErrorResponse>(error) && error.response?.status === 422) {
@@ -54,6 +66,8 @@ async function loadReminder(uuid: string): Promise<void> {
     form.notes = reminder.notes ?? ''
     form.remind_at = isoToDateTimeLocal(reminder.remind_at)
     form.recurrence = reminder.recurrence
+    loadedTitle.value = reminder.title
+    await resizeTextarea()
   } catch {
     generalError.value = 'Не удалось загрузить напоминание.'
   } finally {
@@ -77,12 +91,12 @@ async function handleSubmit(): Promise<void> {
       remind_at: remindAtIso,
       recurrence: form.recurrence,
     }
-    const result = isCreate.value
-      ? await create(payload)
-      : await update(uuidParam.value as string, payload)
-    if (result !== null) {
-      await router.push({ name: 'lk-reminders' })
+    if (isCreate.value) {
+      await remindersApi.createReminder(payload)
+    } else {
+      await remindersApi.updateReminder(uuidParam.value as string, payload)
     }
+    await router.push({ name: 'lk-reminders' })
   } catch (error) {
     applyValidation(error)
   } finally {
@@ -97,10 +111,10 @@ async function handleDelete(): Promise<void> {
   if (!window.confirm('Удалить напоминание безвозвратно?')) {
     return
   }
-  const ok = await remove(uuidParam.value)
-  if (ok) {
+  try {
+    await remindersApi.deleteReminder(uuidParam.value)
     await router.push({ name: 'lk-reminders' })
-  } else {
+  } catch {
     generalError.value = 'Не удалось удалить напоминание.'
   }
 }
@@ -113,50 +127,68 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="reminder-edit">
-    <h1>{{ isCreate ? 'Новое напоминание' : 'Редактирование напоминания' }}</h1>
+  <section class="reminder-edit">
+    <p v-if="isLoading" class="reminder-edit__state" aria-live="polite">Загрузка…</p>
 
-    <p v-if="isLoading">Загрузка…</p>
+    <form v-else class="reminder-edit__card" novalidate @submit.prevent="handleSubmit">
+      <h1 class="reminder-edit__title">{{ isCreate ? 'Новое напоминание' : 'Редактирование напоминания' }}</h1>
 
-    <form v-else novalidate @submit.prevent="handleSubmit">
-      <p v-if="generalError" role="alert" class="error">{{ generalError }}</p>
+      <p v-if="generalError" role="alert" class="reminder-edit__error">{{ generalError }}</p>
 
-      <div class="field">
+      <div class="reminder-edit__field">
         <label for="reminder-title">Заголовок</label>
         <input id="reminder-title" v-model="form.title" type="text" required />
-        <span v-if="errors.title" class="error">{{ errors.title[0] }}</span>
+        <span v-if="errors.title" class="reminder-edit__error">{{ errors.title[0] }}</span>
       </div>
 
-      <div class="field">
+      <div class="reminder-edit__field">
         <label for="reminder-notes">Заметки</label>
-        <textarea id="reminder-notes" v-model="form.notes" rows="4"></textarea>
-        <span v-if="errors.notes" class="error">{{ errors.notes[0] }}</span>
+        <textarea
+          id="reminder-notes"
+          ref="notesTextarea"
+          v-model="form.notes"
+          class="reminder-edit__textarea"
+          rows="3"
+        ></textarea>
+        <span v-if="errors.notes" class="reminder-edit__error">{{ errors.notes[0] }}</span>
       </div>
 
-      <div class="field">
-        <label for="reminder-remind-at">Дата и время</label>
+      <div class="reminder-edit__field">
+        <label for="reminder-remind-at">Когда</label>
         <input id="reminder-remind-at" v-model="form.remind_at" type="datetime-local" required />
-        <span v-if="errors.remind_at" class="error">{{ errors.remind_at[0] }}</span>
+        <span v-if="errors.remind_at" class="reminder-edit__error">{{ errors.remind_at[0] }}</span>
       </div>
 
-      <fieldset class="field">
-        <legend>Повтор</legend>
-        <label v-for="option in recurrenceOptions" :key="option.value" class="radio">
-          <input v-model="form.recurrence" type="radio" :value="option.value" />
-          {{ option.label }}
-        </label>
-        <span v-if="errors.recurrence" class="error">{{ errors.recurrence[0] }}</span>
-      </fieldset>
+      <div class="reminder-edit__field">
+        <span class="reminder-edit__label">Повтор</span>
+        <div class="reminder-edit__recurrence" role="radiogroup" aria-label="Повтор напоминания">
+          <button
+            v-for="option in recurrenceOptions"
+            :key="option.value"
+            type="button"
+            class="reminder-edit__recurrence-btn"
+            :class="{ 'reminder-edit__recurrence-btn--active': form.recurrence === option.value }"
+            role="radio"
+            :aria-checked="form.recurrence === option.value"
+            @click="form.recurrence = option.value"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+        <span v-if="errors.recurrence" class="reminder-edit__error">{{ errors.recurrence[0] }}</span>
+      </div>
 
-      <div class="actions">
-        <button type="submit" :disabled="isSubmitting">
+      <div class="reminder-edit__actions">
+        <button type="submit" class="reminder-edit__save" :disabled="isSubmitting">
           {{ isSubmitting ? 'Сохранение…' : 'Сохранить' }}
         </button>
-        <button v-if="!isCreate" type="button" class="danger" @click="handleDelete">Удалить</button>
-        <RouterLink :to="{ name: 'lk-reminders' }">Отмена</RouterLink>
+        <button v-if="!isCreate" type="button" class="reminder-edit__delete" @click="handleDelete">
+          Удалить
+        </button>
+        <RouterLink :to="{ name: 'lk-reminders' }" class="reminder-edit__cancel">Отмена</RouterLink>
       </div>
     </form>
-  </main>
+  </section>
 </template>
 
 <style scoped>
@@ -165,32 +197,119 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.field {
+.reminder-edit__state {
+  padding: 2rem 0;
+  color: #6b716e;
+}
+
+.reminder-edit__card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 1.25rem 1.4rem 1.4rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.reminder-edit__title {
+  margin: 0 0 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2622;
+}
+
+.reminder-edit__field {
   display: flex;
   flex-direction: column;
+  gap: 0.35rem;
   margin-bottom: 1rem;
+}
+
+.reminder-edit__field label,
+.reminder-edit__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b716e;
+}
+
+.reminder-edit__field input,
+.reminder-edit__textarea {
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #d8ebe4;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: #1f2622;
+}
+
+.reminder-edit__textarea {
+  resize: none;
+  overflow: hidden;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
+.reminder-edit__recurrence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reminder-edit__recurrence-btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #d8ebe4;
+  background: #fff;
+  color: #6b716e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reminder-edit__recurrence-btn--active {
+  background: #f7ebd5;
+  border-color: #c98a2b;
+  color: #c98a2b;
+}
+
+.reminder-edit__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reminder-edit__save {
+  padding: 0.55rem 1.1rem;
   border: none;
-  padding: 0;
+  border-radius: 10px;
+  background: #17897a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.radio {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+.reminder-edit__save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
+.reminder-edit__delete {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 10px;
+  background: #f6dfda;
+  color: #cf5b4a;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.danger {
-  color: #c0392b;
+.reminder-edit__cancel {
+  color: #6b716e;
+  font-size: 0.88rem;
+  text-decoration: underline;
 }
 
-.error {
-  color: #c0392b;
+.reminder-edit__error {
+  display: block;
+  color: #cf5b4a;
+  font-size: 0.8rem;
 }
 </style>

@@ -2,9 +2,19 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import ReminderCard from '@/components/reminders/ReminderCard.vue'
+import LkIcon from '@/components/lk/LkIcon.vue'
+import LkReminderCard from '@/components/lk/reminders/LkReminderCard.vue'
 import { useReminders } from '@/composables/useReminders'
 import type { ReminderStatusFilter, SnoozeOption } from '@/types/reminder'
+
+/** Разумный верхний предел страницы (см. контракт API, `per_page` ≤ 100). */
+const REMINDERS_PER_PAGE = 100
+
+const statusOptions: { value: ReminderStatusFilter; label: string }[] = [
+  { value: 'pending', label: 'Активные' },
+  { value: 'completed', label: 'Выполненные' },
+  { value: 'all', label: 'Все' },
+]
 
 const router = useRouter()
 const { reminders, isLoading, error, load, complete, snooze, remove } = useReminders()
@@ -12,7 +22,7 @@ const { reminders, isLoading, error, load, complete, snooze, remove } = useRemin
 const status = ref<ReminderStatusFilter>('pending')
 
 async function refresh(): Promise<void> {
-  await load({ status: status.value, sort: 'remind_at', order: 'asc' })
+  await load({ status: status.value, sort: 'remind_at', order: 'asc', per_page: REMINDERS_PER_PAGE })
 }
 
 function changeStatus(next: ReminderStatusFilter): void {
@@ -47,38 +57,41 @@ onMounted(refresh)
 </script>
 
 <template>
-  <main class="reminders">
-    <header class="reminders__header">
-      <h1>Напоминания</h1>
-      <button type="button" @click="handleCreate">Создать</button>
-    </header>
+  <section class="reminders-view">
+    <div class="reminders-view__toolbar">
+      <nav class="reminders-view__filters" aria-label="Фильтр по статусу">
+        <button
+          v-for="option in statusOptions"
+          :key="option.value"
+          type="button"
+          class="reminders-view__filter"
+          :class="{ 'reminders-view__filter--active': status === option.value }"
+          @click="changeStatus(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </nav>
 
-    <nav class="reminders__filters" aria-label="Фильтр по статусу">
-      <button
-        type="button"
-        :class="{ active: status === 'pending' }"
-        @click="changeStatus('pending')"
-      >
-        Активные
+      <button type="button" class="reminders-view__create-btn" @click="handleCreate">
+        <LkIcon name="plus" :size="16" />
+        Новое напоминание
       </button>
-      <button
-        type="button"
-        :class="{ active: status === 'completed' }"
-        @click="changeStatus('completed')"
-      >
-        Выполненные
-      </button>
-      <button type="button" :class="{ active: status === 'all' }" @click="changeStatus('all')">
-        Все
-      </button>
-    </nav>
+    </div>
 
-    <p v-if="error" role="alert" class="error">{{ error }}</p>
-    <p v-if="isLoading">Загрузка…</p>
-    <p v-else-if="reminders.length === 0" class="empty">Напоминаний пока нет.</p>
+    <p v-if="isLoading && reminders.length === 0" class="reminders-view__state" aria-live="polite">Загрузка…</p>
+    <p v-else-if="error" class="reminders-view__state reminders-view__state--error" role="alert">{{ error }}</p>
 
-    <section v-else class="reminders__list">
-      <ReminderCard
+    <template v-else-if="reminders.length === 0">
+      <p class="reminders-view__empty">
+        Напоминаний пока нет.
+        <button type="button" class="reminders-view__empty-cta" @click="handleCreate">
+          Создать первое напоминание
+        </button>
+      </p>
+    </template>
+
+    <div v-else class="reminders-view__list">
+      <LkReminderCard
         v-for="reminder in reminders"
         :key="reminder.uuid"
         :reminder="reminder"
@@ -87,38 +100,100 @@ onMounted(refresh)
         @snooze="handleSnooze"
         @remove="handleRemove"
       />
-    </section>
-  </main>
+    </div>
+  </section>
 </template>
 
 <style scoped>
-.reminders {
-  max-width: 720px;
+.reminders-view {
+  max-width: 760px;
   margin: 0 auto;
 }
 
-.reminders__header {
+.reminders-view__toolbar {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
-.reminders__filters {
+.reminders-view__filters {
   display: flex;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: 0.4rem;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.3rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
-.reminders__filters button.active {
-  font-weight: 700;
-  border-bottom: 2px solid #3730a3;
+.reminders-view__filter {
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: #6b716e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.error {
-  color: #c0392b;
+.reminders-view__filter--active {
+  background: #d8ebe4;
+  color: #17897a;
 }
 
-.empty {
-  color: #777;
+.reminders-view__create-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: #e9a63c;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reminders-view__create-btn:hover {
+  background: #d99a3e;
+}
+
+.reminders-view__state {
+  padding: 2rem 0;
+  color: #6b716e;
+}
+
+.reminders-view__state--error {
+  color: #cf5b4a;
+}
+
+.reminders-view__empty {
+  padding: 2rem 0;
+  color: #6b716e;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.reminders-view__empty-cta {
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  border: none;
+  background: #17897a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reminders-view__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 </style>

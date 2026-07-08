@@ -69,11 +69,16 @@ function stubMatchMedia(matches: boolean) {
 // вложенном RouterView не совпадёт с реальной и раздел отрендерится дважды).
 const TestHost = { template: '<RouterView />' }
 
-async function mountLayout(routeName = 'lk-dashboard') {
+async function mountLayoutWithRouter(routeName = 'lk-dashboard') {
   const router = createTestRouter()
   await router.push({ name: routeName })
   const wrapper = mount(TestHost, { global: { plugins: [router] } })
   await wrapper.vm.$nextTick()
+  return { wrapper, router }
+}
+
+async function mountLayout(routeName = 'lk-dashboard') {
+  const { wrapper } = await mountLayoutWithRouter(routeName)
   return wrapper
 }
 
@@ -210,19 +215,107 @@ describe('LkLayout', () => {
     vi.unstubAllGlobals()
   })
 
-  it('routes the "Новый список покупок" create-menu item to the redesigned lk-tasks section (not the legacy lk-lists page)', async () => {
+  it('opens the create menu with the 3 redesigned items (Заметка/Напоминание/Список)', async () => {
     stubMatchMedia(true)
     const wrapper = await mountLayout()
 
     await wrapper.find('.lk-sidebar__create').trigger('click')
-    const createItems = wrapper.findAll('.lk-shell__create-item')
-    const listItem = createItems.find((item) => item.text() === 'Новый список покупок')
+    const items = wrapper.findAll('.lk-create-menu__item').map((item) => item.text())
 
-    expect(listItem).toBeDefined()
-    // `:to` binding is resolved against router-link's `href`; the legacy
-    // deep-link route is `/lk/lists`, the redesigned one is `/lk/tasks` —
-    // asserting on the resolved href pins down which page users land on.
-    expect(listItem?.attributes('href')).toBe('/lk/tasks')
+    expect(items).toEqual(['Заметка', 'Напоминание', 'Список'])
+
+    vi.unstubAllGlobals()
+  })
+
+  it('navigates to note/reminder creation when picking those create-menu items', async () => {
+    stubMatchMedia(true)
+    const { wrapper, router } = await mountLayoutWithRouter()
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    const items = wrapper.findAll('.lk-create-menu__item')
+    await items[0]?.trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-note-create'))
+    expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('opens the create-list dialog (not a route navigation) when picking "Список"', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    const items = wrapper.findAll('.lk-create-menu__item')
+    await items[2]?.trigger('click')
+
+    expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(true)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('closes the create menu on Escape and on outside click', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(true)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    await wrapper.find('.lk-shell__create-overlay').trigger('click')
+    expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the create menu as a mobile bottom action-sheet and a desktop popover', async () => {
+    stubMatchMedia(false)
+    const mobile = await mountLayout()
+    await mobile.find('.lk-bottom-nav__create').trigger('click')
+    expect(mobile.find('.lk-shell__create-overlay--desktop').exists()).toBe(false)
+    vi.unstubAllGlobals()
+
+    stubMatchMedia(true)
+    const desktop = await mountLayout()
+    await desktop.find('.lk-sidebar__create').trigger('click')
+    expect(desktop.find('.lk-shell__create-overlay--desktop').exists()).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
+  it('anchors the desktop popover to the actual "Создать" button position, not a fixed screen corner', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    // Кнопка «Создать» реально расположена в верхней трети сайдбара (сразу
+    // после 4 пунктов навигации) — сильно выше нижнего угла экрана.
+    // Поповер должен быть привязан именно к её фактическому положению
+    // (getBoundingClientRect), а не к жёстко зашитому месту в углу.
+    const createButton = wrapper.find('.lk-sidebar__create').element as HTMLElement
+    vi.spyOn(createButton, 'getBoundingClientRect').mockReturnValue({
+      top: 260,
+      left: 20,
+      right: 236,
+      bottom: 306,
+      width: 216,
+      height: 46,
+      x: 20,
+      y: 260,
+      toJSON: () => ({}),
+    })
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+
+    const menu = wrapper.find('.lk-shell__create-menu')
+    const style = (menu.element as HTMLElement).style
+    expect(style.position).toBe('fixed')
+    expect(style.top).toBe('260px')
+    // Открывается правее кнопки (right + отступ), а не у левого края экрана.
+    expect(parseInt(style.left, 10)).toBeGreaterThan(236)
 
     vi.unstubAllGlobals()
   })
@@ -246,6 +339,7 @@ describe('LkLayout', () => {
 vi.mock('@/api/shoppingListsApi', () => ({
   shoppingListsApi: {
     fetchLists: vi.fn(),
+    createList: vi.fn(),
   },
 }))
 

@@ -2,12 +2,14 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import LkCreateListDialog from '@/components/lk/LkCreateListDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkShoppingListCard from '@/components/lk/tasks/LkShoppingListCard.vue'
 import LkTasksFilterBar from '@/components/lk/tasks/LkTasksFilterBar.vue'
 import LkTasksRightRail from '@/components/lk/tasks/LkTasksRightRail.vue'
 import { useLkTasksList } from '@/composables/useLkTasksList'
 import { useLkWideDesktop } from '@/composables/useLkBreakpoint'
+import type { ShoppingList } from '@/types/shoppingList'
 
 const router = useRouter()
 const { isWideDesktop } = useLkWideDesktop()
@@ -25,32 +27,23 @@ const {
   tagFilter,
   load,
   loadMore,
-  create,
   update,
   remove,
 } = useLkTasksList()
 
-const isCreating = ref(false)
-const newListTitle = ref('')
+const isCreateDialogOpen = ref(false)
 
-function openCreateForm(): void {
-  isCreating.value = true
+function openCreateDialog(): void {
+  isCreateDialogOpen.value = true
 }
 
-function cancelCreate(): void {
-  isCreating.value = false
-  newListTitle.value = ''
+function closeCreateDialog(): void {
+  isCreateDialogOpen.value = false
 }
 
-async function handleCreate(): Promise<void> {
-  const title = newListTitle.value.trim()
-  if (!title) {
-    return
-  }
-  const created = await create({ title })
-  if (created) {
-    cancelCreate()
-  }
+function handleCreated(created: ShoppingList): void {
+  lists.value = [created, ...lists.value]
+  closeCreateDialog()
 }
 
 function handleOpen(uuid: string): void {
@@ -84,23 +77,11 @@ onMounted(() => load())
             v-model:tag="tagFilter"
             :available-tags="availableTags"
           />
-          <button type="button" class="tasks-view__create-btn" @click="openCreateForm">
+          <button type="button" class="tasks-view__create-btn" @click="openCreateDialog">
             <LkIcon name="plus" :size="16" />
             Новый список
           </button>
         </div>
-
-        <form v-if="isCreating" class="tasks-view__create-form" @submit.prevent="handleCreate">
-          <input
-            v-model="newListTitle"
-            type="text"
-            placeholder="Название списка, например «Продукты»"
-            aria-label="Название нового списка"
-            autofocus
-          />
-          <button type="submit">Создать</button>
-          <button type="button" class="tasks-view__create-cancel" @click="cancelCreate">Отмена</button>
-        </form>
 
         <p v-if="isLoading && lists.length === 0" class="tasks-view__state" aria-live="polite">Загрузка…</p>
         <p v-else-if="error" class="tasks-view__state tasks-view__state--error" role="alert">{{ error }}</p>
@@ -108,7 +89,7 @@ onMounted(() => load())
         <template v-else-if="filteredLists.length === 0">
           <p v-if="lists.length === 0" class="tasks-view__empty">
             Пока нет списков.
-            <button type="button" class="tasks-view__empty-cta" @click="openCreateForm">
+            <button type="button" class="tasks-view__empty-cta" @click="openCreateDialog">
               Создать первый список
             </button>
           </p>
@@ -133,6 +114,8 @@ onMounted(() => load())
 
       <LkTasksRightRail v-if="isWideDesktop" class="tasks-view__rail" />
     </div>
+
+    <LkCreateListDialog v-if="isCreateDialogOpen" @close="closeCreateDialog" @created="handleCreated" />
   </section>
 </template>
 
@@ -176,38 +159,6 @@ onMounted(() => load())
 
 .tasks-view__create-btn:hover {
   background: #d99a3e;
-}
-
-.tasks-view__create-form {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.tasks-view__create-form input {
-  flex: 1;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid #d8ebe4;
-  font-size: 0.9rem;
-}
-
-.tasks-view__create-form button {
-  padding: 0.5rem 0.9rem;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.tasks-view__create-form button[type='submit'] {
-  background: #17897a;
-  color: #fff;
-}
-
-.tasks-view__create-cancel {
-  background: #eef1f0;
-  color: #6b716e;
 }
 
 .tasks-view__state {
