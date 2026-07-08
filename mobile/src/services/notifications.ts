@@ -38,6 +38,15 @@ export interface SchedulableListItem {
   reminderAt: string
 }
 
+// ВАЖНО (Android 12+/API 31+): expo-notifications планирует ТОЧНЫЙ будильник
+// (setExactAndAllowWhileIdle) только если alarmManager.canScheduleExactAlarms()
+// == true, иначе откатывается на НЕТОЧНЫЙ (setAndAllowWhileIdle) — ОС батчит
+// такие алармы и откладывает доставку до пробуждения/открытия приложения
+// («уведомление приходит только когда откроешь приложение»). Точный режим
+// требует объявленных в app.json android.permissions разрешений
+// SCHEDULE_EXACT_ALARM (API 31–32) и USE_EXACT_ALARM (API 33+). НЕ удалять их.
+// См. expo-notifications ExpoSchedulingDelegate.kt.
+
 let handlerConfigured = false
 let androidChannelConfigured = false
 
