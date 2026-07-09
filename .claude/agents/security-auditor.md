@@ -1,7 +1,7 @@
 ---
 name: security-auditor
 description: Аудит безопасности — OWASP Top 10, мобильная безопасность (expo-secure-store), авторизация API, зависимости, секреты, конфигурация
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Glob

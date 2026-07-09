@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Проверяет качество кода, соответствие стандартам PSR-12/TypeScript, SOLID-принципы, потенциальные баги и edge cases — только читает код, не изменяет
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Glob

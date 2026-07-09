@@ -1,7 +1,7 @@
 ---
 name: backend-developer
 description: Реализует доменный слой мобильного приложения — модели, миграции, сервисы, действия, DTO, политики, события, уведомления
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Write
