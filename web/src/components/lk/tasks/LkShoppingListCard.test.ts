@@ -51,6 +51,38 @@ describe('LkShoppingListCard', () => {
     expect(tasks.find('.lk-shopping-list-card__progress-fill').attributes('style')).toContain('rgb(201, 138, 43)')
   })
 
+  it('paints the "Новый"/"В работе" status pill with the teal accent for a goods list', () => {
+    const brandNew = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'goods', items_count: 4, checked_items_count: 0 } },
+    })
+    const brandNewStyle = brandNew.find('.lk-shopping-list-card__status').attributes('style')
+    expect(brandNewStyle).toContain('rgb(216, 235, 228)')
+    expect(brandNewStyle).toContain('rgb(23, 137, 122)')
+
+    const active = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'goods', items_count: 4, checked_items_count: 2 } },
+    })
+    const activeStyle = active.find('.lk-shopping-list-card__status').attributes('style')
+    expect(activeStyle).toContain('rgb(216, 235, 228)')
+    expect(activeStyle).toContain('rgb(23, 137, 122)')
+  })
+
+  it('paints the "Новый"/"В работе" status pill with the amber accent for a tasks list', () => {
+    const brandNew = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'tasks', items_count: 4, checked_items_count: 0 } },
+    })
+    const brandNewStyle = brandNew.find('.lk-shopping-list-card__status').attributes('style')
+    expect(brandNewStyle).toContain('rgb(247, 235, 213)')
+    expect(brandNewStyle).toContain('rgb(201, 138, 43)')
+
+    const active = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'tasks', items_count: 4, checked_items_count: 2 } },
+    })
+    const activeStyle = active.find('.lk-shopping-list-card__status').attributes('style')
+    expect(activeStyle).toContain('rgb(247, 235, 213)')
+    expect(activeStyle).toContain('rgb(201, 138, 43)')
+  })
+
   it('renders the "Купить" type badge for a goods list and "Сделать" for a tasks list', () => {
     const goods = mount(LkShoppingListCard, { props: { list: { ...list, type: 'goods' } } })
     expect(goods.find('.lk-shopping-list-card__type').text()).toBe('Купить')
