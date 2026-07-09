@@ -94,6 +94,7 @@ jest.mock('@/components/common/BaseInput', () => {
 
 import React from 'react'
 import { render, fireEvent } from '@testing-library/react-native'
+import * as SecureStore from 'expo-secure-store'
 import LoginScreen from '../../../app/(auth)/login'
 
 describe('LoginScreen — smoke', () => {
@@ -127,5 +128,45 @@ describe('LoginScreen — smoke', () => {
   it('рендерит ссылку «Нет аккаунта?»', async () => {
     const { getByText } = await render(<LoginScreen />)
     expect(getByText('Нет аккаунта? Зарегистрироваться')).toBeTruthy()
+  })
+})
+
+describe('LoginScreen — запоминание email', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('подгружает сохранённый email при монтировании', async () => {
+    ;(SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('saved@example.com')
+
+    const { findByDisplayValue } = await render(<LoginScreen />)
+
+    expect(await findByDisplayValue('saved@example.com')).toBeTruthy()
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith('lk_last_email')
+  })
+
+  it('сохраняет email после успешного входа при включённом «Запомнить меня»', async () => {
+    const { getByLabelText } = await render(<LoginScreen />)
+    await fireEvent.changeText(getByLabelText('Email'), 'user@example.com')
+    await fireEvent.press(getByLabelText('Войти'))
+
+    const [, options] = mockLoginMutate.mock.calls[0]
+    await options.onSuccess()
+
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith('lk_last_email', 'user@example.com')
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled()
+  })
+
+  it('удаляет сохранённый email после входа, если «Запомнить меня» выключено', async () => {
+    const { getByLabelText } = await render(<LoginScreen />)
+    await fireEvent.changeText(getByLabelText('Email'), 'user@example.com')
+    await fireEvent(getByLabelText('Запомнить меня'), 'valueChange', false)
+    await fireEvent.press(getByLabelText('Войти'))
+
+    const [, options] = mockLoginMutate.mock.calls[0]
+    await options.onSuccess()
+
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('lk_last_email')
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
   })
 })
