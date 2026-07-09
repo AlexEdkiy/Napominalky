@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-09 (веб-ЛК: доработки «Обзора» — кликабельные плашки/подтверждение/переходы/метр синка: WEB-19, UITEST-6)
+> Последнее обновление: 2026-07-09 (фикс READONLY-логина Redis OPS-6; списки статус/цвета + логин веб WEB-20, UITEST-7)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 51           | mobile-developer          |
-| WEB     | 19           | web-developer             |
+| WEB     | 20           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 6            | ux-ui-test-engineer       |
+| UITEST  | 7            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
-| OPS     | 5            | devops-engineer           |
-| DOC     | 9            | technical-writer          |
+| OPS     | 6            | devops-engineer           |
+| DOC     | 10           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 82 |
+| Completed | 85 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1697,6 +1697,59 @@
   - [x] Сверка кликабельности плашек/попапа/переходов/метра с требованиями
   - [x] Токены/палитра совпадают, z-index модалок не конфликтует
   - [x] Тесты зелёные (340), vue-tsc чист
+- **Создана:** 2026-07-09
+- **Завершена:** 2026-07-09
+
+---
+
+## Feature: Списки/логин — доработки + инфра-фикс
+
+### OPS-6: Фикс READONLY при входе — коллизия Redis-алиаса, backend бил в чужую read-only реплику
+- **Исполнитель:** devops-engineer
+- **Статус:** completed
+- **Приоритет:** critical
+- **Зависимости:** —
+- **Блокирует:** вход в аккаунт (веб+МП)
+- **Стандарты:** —
+- **Описание:** Вход падал с `READONLY You can't write against a read only replica ... @user_script:1`. Причина: контейнер `reminders_serve` был подключён к двум docker-сетям — своей `project_reminders` (master `reminders_redis`, алиас `redis`) и чужой `insure-platform_default` (`insure_redis` = read-only slave, тоже алиас `redis`); DNS-коллизия резолвила `redis` в чужую реплику → запись сессии/throttle (Lua EVAL) отклонялась. Фикс: (1) `docker network disconnect insure-platform_default reminders_serve`; (2) `.env` `REDIS_HOST=redis`→`reminders_redis` (уникальный алиас) + `config:clear` + рестарт. Проверка: `Cache::put` ок, `POST /api/v1/auth/login` → 422 вместо 500.
+- **Файлы:** `project/.env` (REDIS_HOST; gitignored, не в репозитории), docker-сеть reminders_serve
+- **Критерии приёмки:**
+  - [x] backend пишет в master-Redis (не в read-only реплику)
+  - [x] Логин возвращает корректную 422/401 вместо 500 READONLY (веб и МП)
+- **Создана:** 2026-07-09
+- **Завершена:** 2026-07-09
+
+### WEB-20: Списки — открытие нового на редактирование, статус «Новый», акцент по типу; логин — запоминание email + показ пароля
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-18
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** По замечаниям: (1) после создания списка сразу переход на его детали (`lk-list-detail`) — из меню «Создать» и из TasksView. (2) Статус «Новый» (нет выполненных пунктов) — `shoppingListStatus` new/active/done, в карточке. (3) Акцент по типу списка: покупки (goods) — teal `#17897a`, задачи (tasks) — amber `#c98a2b`; helper `shoppingListAccent`, применён к прогресс-бару (карточка+детали), статус-плашкам, кнопке «Добавить», цвету чекбоксов пунктов. (4) Логин (`LoginView`): предзаполнение email из localStorage + чекбокс «Запомнить меня» (дефолт вкл, пароль не сохраняется); показ пароля по кнопке-«глазу» (иконки eye/eye-off в LkIcon).
+- **Файлы:** `web/src/utils/shoppingList.ts`, `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/{LkShoppingListCard,LkListItemRow}.vue`, `web/src/pages/lk/lists/ListDetailView.vue`, `web/src/pages/auth/LoginView.vue`, `web/src/components/lk/LkIcon.vue`, `web/src/types/lkIcon.ts`
+- **Критерии приёмки:**
+  - [x] Новый список открывается на редактирование (оба входа)
+  - [x] Статус «Новый»/«В работе»/«Завершён»
+  - [x] Акцент по типу (goods teal / tasks amber): прогресс/статус/кнопки/чекбоксы
+  - [x] Логин: запоминание email + показ пароля; ошибки 422/401/403 не сломаны
+  - [x] vue-tsc OK, Vitest зелёный (362)
+- **Создана:** 2026-07-09
+- **Завершена:** 2026-07-09
+
+### UITEST-7: UI-fidelity аудит статуса/акцента списков и логина
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-20
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Сверка 4 доработок с требованиями и палитрой ЛК. Расхождений нет; усилены fidelity-тесты (точные HEX акцента по типу — статус-плашка и кнопка «Добавить»). Замечено (вне скоупа): кнопка «Новый список» в TasksView использует `#e9a63c` вместо токена `#c98a2b` — не привязана к типу, оставлено.
+- **Файлы:** `web/src/components/lk/tasks/LkShoppingListCard.test.ts`, `web/src/pages/lk/lists/ListDetailView.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка создания/статуса/акцента/логина с требованиями
+  - [x] Fidelity-тесты на HEX акцента усилены
+  - [x] Тесты зелёные (362), vue-tsc чист
 - **Создана:** 2026-07-09
 - **Завершена:** 2026-07-09
 
