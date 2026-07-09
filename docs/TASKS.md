@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-09 (фикс READONLY-логина Redis OPS-6; списки статус/цвета + логин веб WEB-20, UITEST-7)
+> Последнее обновление: 2026-07-09 (фикс READONLY Redis OPS-6; веб WEB-20/UITEST-7; МП логин — глаз+запоминание email MOB-52)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
-| MOB     | 51           | mobile-developer          |
+| MOB     | 52           | mobile-developer          |
 | WEB     | 20           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 7            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 6            | devops-engineer           |
-| DOC     | 10           | technical-writer          |
+| DOC     | 11           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 85 |
+| Completed | 86 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1750,6 +1750,23 @@
   - [x] Сверка создания/статуса/акцента/логина с требованиями
   - [x] Fidelity-тесты на HEX акцента усилены
   - [x] Тесты зелёные (362), vue-tsc чист
+- **Создана:** 2026-07-09
+- **Завершена:** 2026-07-09
+
+### MOB-52: Логин — показ пароля по «глазу» + запоминание email
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/mobile/AGENTS.md`
+- **Описание:** Экран входа МП (`app/(auth)/login.tsx`): (1) показ пароля по кнопке-«глазу» — в `BaseInput` добавлен prop `passwordToggle` (Ionicons eye/eye-off справа в поле, переключает `secureTextEntry`, accessibilityLabel «Показать/Скрыть пароль»); (2) запоминание email через `expo-secure-store` (ключ `lk_last_email`): предзаполнение при монтировании + переключатель «Запомнить меня» (RN Switch, дефолт вкл), сохранение/очистка после успешного входа; пароль не сохраняется. Ошибка входа READONLY была устранена ранее на бэкенде (OPS-6), мобильный код логина не менялся. Требует пересборки APK (versionCode 30).
+- **Файлы:** `mobile/app/(auth)/login.tsx`, `mobile/src/components/common/BaseInput.tsx` (+тесты)
+- **Критерии приёмки:**
+  - [x] Показ пароля по «глазу» (BaseInput passwordToggle)
+  - [x] Запоминание email (secure-store) + переключатель; пароль не сохраняется
+  - [x] tsc чист, Jest по затронутым зелёный
+  - [x] Пересборка APK (versionCode 30)
 - **Создана:** 2026-07-09
 - **Завершена:** 2026-07-09
 
