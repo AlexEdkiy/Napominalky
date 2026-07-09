@@ -1,7 +1,7 @@
 ---
 name: devops-engineer
 description: Настраивает Docker и CI/CD для Laravel backend, Expo EAS Build для мобильного приложения, Vite/Nginx для веб-приложения
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Write

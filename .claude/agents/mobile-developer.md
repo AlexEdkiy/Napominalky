@@ -1,7 +1,7 @@
 ---
 name: mobile-developer
 description: Реализует мобильное приложение на React Native + Expo для iOS и Android — экраны, компоненты, хуки, stores, навигация, push-уведомления
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Write

@@ -1,7 +1,7 @@
 ---
 name: mobile-backend-developer
 description: Реализует backend REST API мобильного приложения для управления напоминаниями и списками покупок — контроллеры, ресурсы, сервисы, уведомления
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Write

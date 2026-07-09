@@ -1,7 +1,7 @@
 ---
 name: architect
 description: Проектирует архитектуру фич — классы, API-контракты, файловую структуру и план реализации для всех агентов; только читает код, не пишет
-model: opus
+model: claude-fable-5
 tools:
   - Read
   - Glob

@@ -1,7 +1,7 @@
 ---
 name: web-developer
 description: Реализует веб-интерфейс на Vue.js 3 + TypeScript — административная панель владельца ресурса и личный кабинет клиента
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Write

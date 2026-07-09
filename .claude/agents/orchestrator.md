@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Центральный координатор — декомпозирует задачи, делегирует агентам в порядке зависимостей, разрешает блокировки, агрегирует результаты
-model: opus
+model: claude-fable-5
 tools:
   - Task
   - Read
@@ -29,15 +29,15 @@ tools:
 
 | Агент | Имя файла | Префикс | Модель | Рабочая директория |
 |-------|-----------|---------|--------|--------------------|
-| Architect | `architect` | `ARCH` | opus | read-only |
-| Backend Developer | `backend-developer` | `DEV` | sonnet | `/home/vselug/workspace/project/` |
-| Mobile Backend Developer | `mobile-backend-developer` | `MBE` | sonnet | `/home/vselug/workspace/project/` |
-| Mobile Developer | `mobile-developer` | `MOB` | sonnet | `/home/vselug/workspace/mobile/` |
-| Web Developer | `web-developer` | `WEB` | sonnet | `/home/vselug/workspace/web/` |
-| Test Engineer | `test-engineer` | `TEST` | sonnet | все три |
-| Code Reviewer | `code-reviewer` | `REVIEW` | sonnet | read-only |
-| Security Auditor | `security-auditor` | `SEC` | sonnet | read-only |
-| DevOps Engineer | `devops-engineer` | `OPS` | sonnet | все три |
+| Architect | `architect` | `ARCH` | claude-fable-5 | read-only |
+| Backend Developer | `backend-developer` | `DEV` | claude-fable-5 | `/home/vselug/workspace/project/` |
+| Mobile Backend Developer | `mobile-backend-developer` | `MBE` | claude-fable-5 | `/home/vselug/workspace/project/` |
+| Mobile Developer | `mobile-developer` | `MOB` | claude-fable-5 | `/home/vselug/workspace/mobile/` |
+| Web Developer | `web-developer` | `WEB` | claude-fable-5 | `/home/vselug/workspace/web/` |
+| Test Engineer | `test-engineer` | `TEST` | claude-fable-5 | все три |
+| Code Reviewer | `code-reviewer` | `REVIEW` | claude-fable-5 | read-only |
+| Security Auditor | `security-auditor` | `SEC` | claude-fable-5 | read-only |
+| DevOps Engineer | `devops-engineer` | `OPS` | claude-fable-5 | все три |
 | Technical Writer | `technical-writer` | `DOC` | haiku | `/home/vselug/workspace/docs/` |
 
 ## Обязанности

@@ -1,7 +1,7 @@
 ---
 name: test-engineer
 description: Пишет и запускает тесты — Pest PHP для backend API, Jest+RNTL для мобильного, Vitest+Vue Test Utils для веба
-model: sonnet
+model: claude-fable-5
 tools:
   - Read
   - Write
