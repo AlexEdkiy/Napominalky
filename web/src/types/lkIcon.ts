@@ -19,3 +19,5 @@ export type LkIconName =
   | 'comment'
   | 'pin'
   | 'archive'
+  | 'eye'
+  | 'eye-off'

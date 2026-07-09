@@ -42,8 +42,8 @@ function closeCreateDialog(): void {
 }
 
 function handleCreated(created: ShoppingList): void {
-  lists.value = [created, ...lists.value]
   closeCreateDialog()
+  void router.push({ name: 'lk-list-detail', params: { uuid: created.uuid } })
 }
 
 function handleOpen(uuid: string): void {

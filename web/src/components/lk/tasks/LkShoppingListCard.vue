@@ -5,7 +5,7 @@ import LkIcon from '@/components/lk/LkIcon.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
 import type { ShoppingList } from '@/types/shoppingList'
 import { formatRelativeDate } from '@/utils/datetime'
-import { isShoppingListCompleted, shoppingListProgressPercent } from '@/utils/shoppingList'
+import { shoppingListAccent, shoppingListProgressPercent, shoppingListStatus } from '@/utils/shoppingList'
 
 interface Props {
   list: ShoppingList
@@ -23,9 +23,13 @@ const isRenaming = ref(false)
 const renameValue = ref(props.list.title)
 const renameInput = ref<HTMLInputElement | null>(null)
 
-// Статус завершения — производный признак (все пункты отмечены), дополняет
+const STATUS_LABELS = { new: 'Новый', active: 'В работе', done: 'Завершён' } as const
+
+// Статус списка — производный признак (доля отмеченных пунктов), дополняет
 // реальные `type`/`tags` списка (см. utils/shoppingList.ts).
-const isCompleted = computed<boolean>(() => isShoppingListCompleted(props.list))
+const status = computed(() => shoppingListStatus(props.list))
+const statusLabel = computed<string>(() => STATUS_LABELS[status.value])
+const accent = computed(() => shoppingListAccent(props.list.type))
 const progressPercent = computed<number>(() => shoppingListProgressPercent(props.list))
 const updatedLabel = computed<string>(() => formatRelativeDate(props.list.updated_at))
 const typeLabel = computed<string>(() => (props.list.type === 'tasks' ? 'Сделать' : 'Купить'))
@@ -88,7 +92,10 @@ function handleRemove(event: Event): void {
 
     <div class="lk-shopping-list-card__progress">
       <div class="lk-shopping-list-card__progress-track">
-        <div class="lk-shopping-list-card__progress-fill" :style="{ width: `${progressPercent}%` }" />
+        <div
+          class="lk-shopping-list-card__progress-fill"
+          :style="{ width: `${progressPercent}%`, background: accent.color }"
+        />
       </div>
       <span class="lk-shopping-list-card__progress-label">
         {{ list.checked_items_count }} / {{ list.items_count }}
@@ -99,9 +106,10 @@ function handleRemove(event: Event): void {
       <span class="lk-shopping-list-card__footer-info">
         <span
           class="lk-shopping-list-card__status"
-          :class="isCompleted ? 'lk-shopping-list-card__status--done' : 'lk-shopping-list-card__status--active'"
+          :class="`lk-shopping-list-card__status--${status}`"
+          :style="status !== 'done' ? { background: accent.soft, color: accent.color } : undefined"
         >
-          {{ isCompleted ? 'Завершён' : 'В работе' }}
+          {{ statusLabel }}
         </span>
         <span class="lk-shopping-list-card__updated">Обновлён: {{ updatedLabel }}</span>
       </span>
@@ -196,14 +204,14 @@ function handleRemove(event: Event): void {
   border-radius: 999px;
 }
 
+.lk-shopping-list-card__status--new,
 .lk-shopping-list-card__status--active {
-  background: #d8ebe4;
-  color: #17897a;
+  /* Цвет фона/текста задаётся инлайн по акценту типа списка (goods/tasks). */
 }
 
 .lk-shopping-list-card__status--done {
-  background: #eef1f0;
-  color: #6b716e;
+  background: #d8ebe4;
+  color: #17897a;
 }
 
 .lk-shopping-list-card__progress {

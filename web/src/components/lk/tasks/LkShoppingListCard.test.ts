@@ -16,7 +16,7 @@ const list: ShoppingList = {
 }
 
 describe('LkShoppingListCard', () => {
-  it('renders the title, progress fraction and "В работе" status for an incomplete list', () => {
+  it('renders the title, progress fraction and "В работе" status for a partially checked list', () => {
     const wrapper = mount(LkShoppingListCard, { props: { list } })
 
     expect(wrapper.find('.lk-shopping-list-card__title').text()).toBe('Продукты на неделю')
@@ -32,6 +32,55 @@ describe('LkShoppingListCard', () => {
 
     expect(wrapper.find('.lk-shopping-list-card__status').text()).toBe('Завершён')
     expect(wrapper.find('.lk-shopping-list-card__status--done').exists()).toBe(true)
+  })
+
+  it('shows "Новый" when no items are checked, including an empty list', () => {
+    const wrapper = mount(LkShoppingListCard, {
+      props: { list: { ...list, items_count: 0, checked_items_count: 0 } },
+    })
+
+    expect(wrapper.find('.lk-shopping-list-card__status').text()).toBe('Новый')
+    expect(wrapper.find('.lk-shopping-list-card__status--new').exists()).toBe(true)
+  })
+
+  it('uses the teal accent for a goods list and the amber accent for a tasks list', () => {
+    const goods = mount(LkShoppingListCard, { props: { list: { ...list, type: 'goods' } } })
+    expect(goods.find('.lk-shopping-list-card__progress-fill').attributes('style')).toContain('rgb(23, 137, 122)')
+
+    const tasks = mount(LkShoppingListCard, { props: { list: { ...list, type: 'tasks' } } })
+    expect(tasks.find('.lk-shopping-list-card__progress-fill').attributes('style')).toContain('rgb(201, 138, 43)')
+  })
+
+  it('paints the "Новый"/"В работе" status pill with the teal accent for a goods list', () => {
+    const brandNew = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'goods', items_count: 4, checked_items_count: 0 } },
+    })
+    const brandNewStyle = brandNew.find('.lk-shopping-list-card__status').attributes('style')
+    expect(brandNewStyle).toContain('rgb(216, 235, 228)')
+    expect(brandNewStyle).toContain('rgb(23, 137, 122)')
+
+    const active = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'goods', items_count: 4, checked_items_count: 2 } },
+    })
+    const activeStyle = active.find('.lk-shopping-list-card__status').attributes('style')
+    expect(activeStyle).toContain('rgb(216, 235, 228)')
+    expect(activeStyle).toContain('rgb(23, 137, 122)')
+  })
+
+  it('paints the "Новый"/"В работе" status pill with the amber accent for a tasks list', () => {
+    const brandNew = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'tasks', items_count: 4, checked_items_count: 0 } },
+    })
+    const brandNewStyle = brandNew.find('.lk-shopping-list-card__status').attributes('style')
+    expect(brandNewStyle).toContain('rgb(247, 235, 213)')
+    expect(brandNewStyle).toContain('rgb(201, 138, 43)')
+
+    const active = mount(LkShoppingListCard, {
+      props: { list: { ...list, type: 'tasks', items_count: 4, checked_items_count: 2 } },
+    })
+    const activeStyle = active.find('.lk-shopping-list-card__status').attributes('style')
+    expect(activeStyle).toContain('rgb(247, 235, 213)')
+    expect(activeStyle).toContain('rgb(201, 138, 43)')
   })
 
   it('renders the "Купить" type badge for a goods list and "Сделать" for a tasks list', () => {

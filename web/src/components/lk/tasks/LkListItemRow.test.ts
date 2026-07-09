@@ -69,6 +69,14 @@ describe('LkListItemRow', () => {
     expect(wrapper.find('.lk-list-item-row__meta-chip--link').exists()).toBe(false)
   })
 
+  it('defaults the checkbox accent to teal and applies a custom accent color when provided', () => {
+    const teal = mount(LkListItemRow, { props: { item: makeItem() } })
+    expect(teal.find('.lk-list-item-row__checkbox').attributes('style')).toContain('#17897a')
+
+    const amber = mount(LkListItemRow, { props: { item: makeItem(), accentColor: '#c98a2b' } })
+    expect(amber.find('.lk-list-item-row__checkbox').attributes('style')).toContain('#c98a2b')
+  })
+
   it('emits check and remove events', async () => {
     const wrapper = mount(LkListItemRow, { props: { item: makeItem() } })
 

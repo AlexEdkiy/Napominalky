@@ -7,7 +7,7 @@ import { useSetLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useShoppingList } from '@/composables/useShoppingList'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import type { ShoppingCategory, ShoppingListItem } from '@/types/shoppingList'
-import { shoppingListProgressPercent } from '@/utils/shoppingList'
+import { shoppingListAccent, shoppingListProgressPercent } from '@/utils/shoppingList'
 
 interface CategoryGroup {
   category: ShoppingCategory
@@ -46,6 +46,9 @@ const error = computed<string | null>(() => listError.value ?? itemsError.value)
 const progressPercent = computed<number>(() =>
   list.value ? shoppingListProgressPercent(list.value) : 0,
 )
+// Акцент формы (прогресс-бар, чекбоксы, кнопка добавления) — по типу списка:
+// покупки (goods) — teal, задачи (tasks) — amber (см. utils/shoppingList.ts).
+const accent = computed(() => shoppingListAccent(list.value?.type ?? 'goods'))
 
 const groups = computed<CategoryGroup[]>(() => {
   const byCategory = new Map<ShoppingCategory, CategoryGroup>()
@@ -99,7 +102,10 @@ onMounted(() => {
         <h1 class="list-detail__title">{{ list?.title ?? 'Список покупок' }}</h1>
         <div class="list-detail__progress">
           <div class="list-detail__progress-track">
-            <div class="list-detail__progress-fill" :style="{ width: `${progressPercent}%` }" />
+            <div
+              class="list-detail__progress-fill"
+              :style="{ width: `${progressPercent}%`, background: accent.color }"
+            />
           </div>
           <span class="list-detail__progress-label">{{ checkedCount }} / {{ totalCount }}</span>
         </div>
@@ -115,7 +121,7 @@ onMounted(() => {
         <select v-model="newCategory" aria-label="Категория пункта">
           <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </select>
-        <button type="submit">Добавить</button>
+        <button type="submit" :style="{ background: accent.color }">Добавить</button>
       </form>
 
       <p v-if="items.length === 0" class="list-detail__empty">В списке пока нет пунктов.</p>
@@ -128,6 +134,7 @@ onMounted(() => {
               v-for="item in group.items"
               :key="item.uuid"
               :item="item"
+              :accent-color="accent.color"
               @check="handleCheck"
               @remove="handleRemove"
             />

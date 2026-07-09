@@ -177,6 +177,41 @@ describe('ListDetailView', () => {
     expect(shoppingListsApi.addItem).toHaveBeenCalledWith('l-1', { name: 'Хлеб', category: 'products' })
   })
 
+  it('applies the amber accent to the progress bar and checkboxes for a tasks list', async () => {
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue({ ...list, type: 'tasks' })
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
+
+    const wrapper = await mountDetail()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    expect(wrapper.find('.list-detail__progress-fill').attributes('style')).toContain('rgb(201, 138, 43)')
+    expect(wrapper.find('.lk-list-item-row__checkbox').attributes('style')).toContain('#c98a2b')
+  })
+
+  it('applies the teal accent to the progress bar for a goods list', async () => {
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue({ ...list, type: 'goods' })
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
+
+    const wrapper = await mountDetail()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    expect(wrapper.find('.list-detail__progress-fill').attributes('style')).toContain('rgb(23, 137, 122)')
+  })
+
+  it('applies the type accent to the "Добавить" button (teal for goods, amber for tasks)', async () => {
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue({ ...list, type: 'goods' })
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
+
+    const goodsWrapper = await mountDetail()
+    await vi.waitFor(() => expect(goodsWrapper.text()).not.toContain('Загрузка'))
+    expect(goodsWrapper.find('.list-detail__add button').attributes('style')).toContain('rgb(23, 137, 122)')
+
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue({ ...list, type: 'tasks' })
+    const tasksWrapper = await mountDetail()
+    await vi.waitFor(() => expect(tasksWrapper.text()).not.toContain('Загрузка'))
+    expect(tasksWrapper.find('.list-detail__add button').attributes('style')).toContain('rgb(201, 138, 43)')
+  })
+
   it('checks and removes an item', async () => {
     vi.mocked(shoppingListsApi.fetchList).mockResolvedValue(list)
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])

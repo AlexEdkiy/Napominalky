@@ -124,6 +124,19 @@ withDefaults(defineProps<Props>(), { size: 20 })
       <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
       <path d="M10 12h4" />
     </template>
+
+    <template v-else-if="name === 'eye'">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </template>
+
+    <template v-else-if="name === 'eye-off'">
+      <path d="M3 3l18 18" />
+      <path
+        d="M10.6 5.2A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17.9 17.9 0 0 1-3.1 4.1M6.7 6.7A17.6 17.6 0 0 0 2 12s3.6 7 10 7a10.5 10.5 0 0 0 4.3-.9"
+      />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </template>
   </svg>
 </template>
 

@@ -219,14 +219,14 @@ describe('TasksView', () => {
     vi.unstubAllGlobals()
   })
 
-  it('opens the create-list dialog and prepends the created list to the grid', async () => {
+  it('opens the create-list dialog and navigates to the new list detail page on success', async () => {
     stubMatchMedia(true)
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
     vi.mocked(shoppingListsApi.createList).mockResolvedValue(
       makeList({ uuid: 'l-9', title: 'Дача', type: 'tasks', tags: ['Дом'] }),
     )
 
-    const { wrapper } = await mountTasksView()
+    const { wrapper, router } = await mountTasksView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.tasks-view__create-btn').trigger('click')
@@ -238,7 +238,8 @@ describe('TasksView', () => {
     await vi.waitFor(() =>
       expect(shoppingListsApi.createList).toHaveBeenCalledWith({ title: 'Дача', type: 'goods', tags: [] }),
     )
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Дача'))
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-list-detail'))
+    expect(router.currentRoute.value.params.uuid).toBe('l-9')
     expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(false)
     vi.unstubAllGlobals()
   })
