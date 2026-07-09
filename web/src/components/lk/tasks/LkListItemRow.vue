@@ -9,9 +9,11 @@ import { formatDate, formatDateTime } from '@/utils/datetime'
 
 interface Props {
   item: ShoppingListItem
+  /** Акцентный цвет чекбокса — задаётся типом родительского списка (goods/tasks). */
+  accentColor?: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { accentColor: '#17897a' })
 
 const emit = defineEmits<{
   check: [uuid: string, isChecked: boolean]
@@ -52,6 +54,7 @@ function handleRemove(): void {
           :id="`lk-item-${item.uuid}`"
           type="checkbox"
           class="lk-list-item-row__checkbox"
+          :style="{ accentColor: accentColor }"
           :checked="item.is_checked"
           @change="handleToggle"
         />
