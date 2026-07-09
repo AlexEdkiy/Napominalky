@@ -42,6 +42,8 @@ export function useLkDashboard() {
   const stats = ref<LkOverviewStats>(emptyStats())
   const todaysReminders = ref<Reminder[]>([])
   const upcomingReminders = ref<Reminder[]>([])
+  /** UUID напоминания, ожидающего подтверждения выполнения (попап «Да/Отмена»). */
+  const pendingCompleteUuid = ref<string | null>(null)
 
   function splitByToday(reminders: Reminder[]): { today: Reminder[]; upcoming: Reminder[] } {
     const todayKey = ymd(new Date())
@@ -105,13 +107,36 @@ export function useLkDashboard() {
     }
   }
 
+  /** Открывает попап подтверждения выполнения для напоминания с данным uuid. */
+  function requestComplete(uuid: string): void {
+    pendingCompleteUuid.value = uuid
+  }
+
+  /** Подтверждение из попапа («Да») — фактически завершает напоминание. */
+  async function confirmComplete(): Promise<void> {
+    const uuid = pendingCompleteUuid.value
+    pendingCompleteUuid.value = null
+    if (uuid !== null) {
+      await completeTodayReminder(uuid)
+    }
+  }
+
+  /** Отмена из попапа («Отмена»/Esc/клик вне) — закрывает его без изменений. */
+  function cancelComplete(): void {
+    pendingCompleteUuid.value = null
+  }
+
   return {
     isLoading,
     error,
     stats,
     todaysReminders,
     upcomingReminders,
+    pendingCompleteUuid,
     load,
     completeTodayReminder,
+    requestComplete,
+    confirmComplete,
+    cancelComplete,
   }
 }

@@ -11,6 +11,7 @@ import LkTopbar from '@/components/lk/LkTopbar.vue'
 import { provideLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkNavCounts } from '@/composables/useLkNavCounts'
+import { useSyncMeter } from '@/composables/useSyncMeter'
 import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
 import { useAuthStore } from '@/stores/authStore'
 import type { ShoppingList } from '@/types/shoppingList'
@@ -21,6 +22,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const { isDesktop } = useLkBreakpoint()
 const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
+const { runSync } = useSyncMeter()
 
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)
@@ -123,6 +125,7 @@ onMounted(async () => {
     }
   }
   void loadNavCounts()
+  void runSync()
 })
 
 onUnmounted(() => {

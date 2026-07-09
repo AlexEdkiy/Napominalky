@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
+
 import LkIcon from '@/components/lk/LkIcon.vue'
 import type { LkIconName } from '@/types/lkIcon'
 
@@ -7,19 +9,26 @@ interface Props {
   value: string
   label: string
   variant: 'teal' | 'amber' | 'blue' | 'gradient'
+  /** Если задан — карточка становится кликабельной ссылкой на раздел ЛК. */
+  to?: RouteLocationRaw
 }
 
 defineProps<Props>()
 </script>
 
 <template>
-  <article class="lk-stat-card" :class="`lk-stat-card--${variant}`">
+  <component
+    :is="to ? RouterLink : 'article'"
+    :to="to"
+    class="lk-stat-card"
+    :class="[`lk-stat-card--${variant}`, { 'lk-stat-card--clickable': to !== undefined }]"
+  >
     <span class="lk-stat-card__icon">
       <LkIcon :name="icon" :size="20" />
     </span>
     <span class="lk-stat-card__value">{{ value }}</span>
     <span class="lk-stat-card__label">{{ label }}</span>
-  </article>
+  </component>
 </template>
 
 <style scoped>
@@ -31,6 +40,22 @@ defineProps<Props>()
   border-radius: 18px;
   background: #fff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  text-decoration: none;
+}
+
+.lk-stat-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lk-stat-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.lk-stat-card--clickable:focus-visible {
+  outline: 2px solid #17897a;
+  outline-offset: 2px;
 }
 
 .lk-stat-card__icon {

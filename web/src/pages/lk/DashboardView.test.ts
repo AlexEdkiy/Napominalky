@@ -39,6 +39,9 @@ function createTestRouter() {
     routes: [
       { path: '/lk', name: 'lk-dashboard', component: DashboardView },
       { path: '/lk/tasks', name: 'lk-tasks', component: { template: '<div />' } },
+      { path: '/lk/reminders', name: 'lk-reminders', component: { template: '<div />' } },
+      { path: '/lk/notes', name: 'lk-notes', component: { template: '<div />' } },
+      { path: '/lk/reminders/:uuid', name: 'lk-reminder-edit', component: { template: '<div />' } },
     ],
   })
 }
@@ -47,7 +50,7 @@ async function mountDashboard() {
   const router = createTestRouter()
   await router.push({ name: 'lk-dashboard' })
   const wrapper = mount(DashboardView, { global: { plugins: [router] } })
-  return wrapper
+  return { wrapper, router }
 }
 
 describe('DashboardView', () => {
@@ -71,7 +74,7 @@ describe('DashboardView', () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
 
-    const wrapper = await mountDashboard()
+    const { wrapper } = await mountDashboard()
 
     expect(wrapper.text()).toContain('Загрузка')
     resolveLists?.()
@@ -100,7 +103,7 @@ describe('DashboardView', () => {
     )
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 4))
 
-    const wrapper = await mountDashboard()
+    const { wrapper } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     expect(wrapper.text()).toContain('Активных задач')
@@ -129,7 +132,7 @@ describe('DashboardView', () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
 
-    const wrapper = await mountDashboard()
+    const { wrapper } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     expect(wrapper.text()).toContain('Нет задач на сегодня')
@@ -141,11 +144,46 @@ describe('DashboardView', () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
 
-    const wrapper = await mountDashboard()
+    const { wrapper } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).toContain('network down'))
   })
 
-  it('marks a reminder as complete when its checkbox is clicked', async () => {
+  it('opens a confirmation popup on checkbox click, without completing or navigating yet', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper, router } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
+
+    expect(wrapper.text()).toContain('Подтвердите выполнение задачи')
+    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('lk-dashboard')
+  })
+
+  it('does not complete the reminder when the confirmation popup is cancelled', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
+    await wrapper.find('.lk-confirm-dialog__cancel').trigger('click')
+
+    expect(wrapper.text()).not.toContain('Подтвердите выполнение задачи')
+    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
+    expect(wrapper.text()).not.toContain('Нет задач на сегодня')
+  })
+
+  it('marks a reminder as complete only after confirming with "Да" in the popup', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
       paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
@@ -155,13 +193,63 @@ describe('DashboardView', () => {
       makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString()),
     )
 
-    const wrapper = await mountDashboard()
+    const { wrapper } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
-    await vi.waitFor(() => expect(remindersApi.completeReminder).toHaveBeenCalledWith('r-1'))
+    await wrapper.find('.lk-confirm-dialog__confirm').trigger('click')
 
+    await vi.waitFor(() => expect(remindersApi.completeReminder).toHaveBeenCalledWith('r-1'))
+    expect(wrapper.text()).not.toContain('Подтвердите выполнение задачи')
     expect(wrapper.text()).toContain('Нет задач на сегодня')
+  })
+
+  it('navigates to the reminder edit form when clicking a "today" row body (not the checkbox)', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper, router } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-reminder-item__body').trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-reminder-edit'))
+    expect(router.currentRoute.value.params.uuid).toBe('r-1')
+  })
+
+  it('navigates to the reminder edit form when clicking an "upcoming" row body', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-2', new Date(2026, 6, 8, 10, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper, router } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-reminder-item__body').trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-reminder-edit'))
+    expect(router.currentRoute.value.params.uuid).toBe('r-2')
+  })
+
+  it('navigates to the stat card target route when a stat card is clicked', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper, router } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const cards = wrapper.findAll('.lk-stat-card')
+    // «Выполнено за неделю» (4-я карточка) остаётся статичной — не кликабельна.
+    expect(cards[3]?.classes()).not.toContain('lk-stat-card--clickable')
+
+    await cards[0]?.trigger('click')
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-tasks'))
   })
 })
 

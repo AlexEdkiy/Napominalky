@@ -116,6 +116,55 @@ describe('useLkDashboard', () => {
     expect(todaysReminders.value).toHaveLength(0)
     expect(stats.value.remindersTodayCount).toBe(0)
   })
+
+  it('requestComplete stores the pending uuid without completing it yet', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { pendingCompleteUuid, todaysReminders, load, requestComplete } = useLkDashboard()
+    await load()
+
+    requestComplete('r-1')
+
+    expect(pendingCompleteUuid.value).toBe('r-1')
+    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
+    expect(todaysReminders.value).toHaveLength(1)
+  })
+
+  it('cancelComplete clears the pending uuid without completing anything', async () => {
+    const { pendingCompleteUuid, requestComplete, cancelComplete } = useLkDashboard()
+
+    requestComplete('r-1')
+    cancelComplete()
+
+    expect(pendingCompleteUuid.value).toBeNull()
+    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
+  })
+
+  it('confirmComplete completes the pending reminder and clears the pending uuid', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+    vi.mocked(remindersApi.completeReminder).mockResolvedValue(
+      makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString()),
+    )
+
+    const { pendingCompleteUuid, todaysReminders, load, requestComplete, confirmComplete } =
+      useLkDashboard()
+    await load()
+
+    requestComplete('r-1')
+    await confirmComplete()
+
+    expect(remindersApi.completeReminder).toHaveBeenCalledWith('r-1')
+    expect(pendingCompleteUuid.value).toBeNull()
+    expect(todaysReminders.value).toHaveLength(0)
+  })
 })
 
 vi.mock('@/api/shoppingListsApi', () => ({
