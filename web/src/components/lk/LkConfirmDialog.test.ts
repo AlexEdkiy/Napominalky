@@ -14,6 +14,17 @@ describe('LkConfirmDialog', () => {
     expect(wrapper.find('.lk-confirm-dialog__cancel').text()).toBe('Отмена')
   })
 
+  it('focuses the confirm button ("Да") when the dialog mounts, per the design brief', () => {
+    const wrapper = mount(LkConfirmDialog, {
+      props: { title: 'Подтвердите выполнение задачи' },
+      attachTo: document.body,
+    })
+
+    expect(document.activeElement).toBe(wrapper.find('.lk-confirm-dialog__confirm').element)
+
+    wrapper.unmount()
+  })
+
   it('supports custom labels and an optional message', () => {
     const wrapper = mount(LkConfirmDialog, {
       props: {
