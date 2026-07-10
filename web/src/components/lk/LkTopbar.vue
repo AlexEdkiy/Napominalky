@@ -4,7 +4,6 @@ import LkIcon from '@/components/lk/LkIcon.vue'
 
 interface Props {
   title: string
-  subtitle: string
 }
 
 defineProps<Props>()
@@ -28,7 +27,6 @@ const emit = defineEmits<{
     <div class="lk-topbar__titles">
       <LkBreadcrumbs class="lk-topbar__breadcrumbs" />
       <h1 class="lk-topbar__title">{{ title }}</h1>
-      <p v-if="subtitle" class="lk-topbar__subtitle">{{ subtitle }}</p>
     </div>
 
     <div class="lk-topbar__search">
@@ -88,15 +86,6 @@ const emit = defineEmits<{
   font-weight: 900;
   letter-spacing: -0.01em;
   color: #1f2622;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lk-topbar__subtitle {
-  margin: 0.15rem 0 0;
-  font-size: 0.85rem;
-  color: #8a938f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

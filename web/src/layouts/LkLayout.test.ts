@@ -164,27 +164,29 @@ describe('LkLayout', () => {
   })
 
   it('greets the user on the dashboard subtitle per the design brief (lowercase after the dash)', async () => {
-    stubMatchMedia(true)
+    // Подзаголовок в desktop-topbar по макету не выводится — приветствие
+    // показывается в мобильной шапке (там макет предусматривает подзаголовок).
+    stubMatchMedia(false)
     const wrapper = await mountLayout('lk-dashboard')
 
-    expect(wrapper.find('.lk-topbar__subtitle').text()).toBe('Добрый день, Иван — вот что запланировано')
+    expect(wrapper.find('.lk-mobile-header__subtitle').text()).toBe('Добрый день, Иван — вот что запланировано')
 
     vi.unstubAllGlobals()
   })
 
-  it('shows the topbar title/subtitle exactly as specified per section', async () => {
+  it('shows the topbar title per section (без подзаголовка — по десктоп-макету)', async () => {
     stubMatchMedia(true)
 
-    const casesByRoute: Array<[string, string, string]> = [
-      ['lk-tasks', 'Задачи и списки', 'Таблица дел с тегами, датами и напоминаниями'],
-      ['lk-calendar', 'Календарь', 'Все задачи и напоминания на месяц'],
-      ['lk-notes', 'Заметки', 'Быстрые записи в виде стикеров'],
+    const casesByRoute: Array<[string, string]> = [
+      ['lk-tasks', 'Задачи и списки'],
+      ['lk-calendar', 'Календарь'],
+      ['lk-notes', 'Заметки'],
     ]
 
-    for (const [routeName, title, subtitle] of casesByRoute) {
+    for (const [routeName, title] of casesByRoute) {
       const wrapper = await mountLayout(routeName)
       expect(wrapper.find('.lk-topbar__title').text()).toBe(title)
-      expect(wrapper.find('.lk-topbar__subtitle').text()).toBe(subtitle)
+      expect(wrapper.find('.lk-topbar__subtitle').exists()).toBe(false)
     }
 
     vi.unstubAllGlobals()
