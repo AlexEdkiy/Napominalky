@@ -29,6 +29,9 @@ final class UpdateController extends Controller
             tags: $request->has('tags')
                 ? ($request->filled('tags') ? $request->string('tags')->toString() : null)
                 : $shoppingList->tags,
+            isCompleted: $request->has('is_completed')
+                ? $request->boolean('is_completed')
+                : $shoppingList->is_completed,
         );
 
         $updated = ($this->updateList)($shoppingList, $data);

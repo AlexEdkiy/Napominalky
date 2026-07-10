@@ -33,6 +33,7 @@ final class StoreController extends Controller
             title: $request->string('title')->toString(),
             type: $request->filled('type') ? $request->string('type')->toString() : 'goods',
             tags: $request->filled('tags') ? $request->string('tags')->toString() : null,
+            isCompleted: $request->boolean('is_completed'),
         );
 
         $list = ($this->createList)($request->user(), $data, $uuid);

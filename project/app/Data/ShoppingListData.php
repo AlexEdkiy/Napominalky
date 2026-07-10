@@ -10,5 +10,6 @@ readonly class ShoppingListData
         public string $title,
         public string $type = 'goods',
         public ?string $tags = null,
+        public bool $isCompleted = false,
     ) {}
 }

@@ -16,6 +16,7 @@ final class CreateListAction
             'title' => $data->title,
             'type' => $data->type,
             'tags' => $data->tags,
+            'is_completed' => $data->isCompleted,
         ]);
         $list->user_id = $user->id;
 

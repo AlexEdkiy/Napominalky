@@ -15,6 +15,7 @@ final class UpdateListAction
             'title' => $data->title,
             'type' => $data->type,
             'tags' => $data->tags,
+            'is_completed' => $data->isCompleted,
         ]);
 
         return $list;
