@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-09 (фикс READONLY Redis OPS-6; веб WEB-20/UITEST-7; МП логин — глаз+запоминание email MOB-52)
+> Последнее обновление: 2026-07-10 (веб-ЛК: 6 форм в модалках по макету — WEB-21, UITEST-8)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 20           | web-developer             |
+| WEB     | 21           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 7            | ux-ui-test-engineer       |
+| UITEST  | 8            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 6            | devops-engineer           |
-| DOC     | 11           | technical-writer          |
+| DOC     | 12           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 86 |
+| Completed | 88 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1769,4 +1769,42 @@
   - [x] Пересборка APK (versionCode 30)
 - **Создана:** 2026-07-09
 - **Завершена:** 2026-07-09
+
+---
+
+## Feature: Веб-ЛК — формы в модалках по макету
+
+### WEB-21: 6 форм создания/редактирования в центральных модалках по десктоп-макету
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-18
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** 3 формы (задача/список, заметка, напоминание) в состояниях new/edit = 6 форм приведены к десктоп-макету и переведены в центральные модалки поверх раздела. Единый синглтон `useLkForms` (openTaskForm/openNoteForm/openReminderForm/closeForm), 3 модалки рендерятся один раз в `LkLayout`. Задача-форма создаёт/редактирует список (Название, Тип goods/tasks, теги-пресеты; после создания — открытие в lk-list-detail). Заметка-форма: Заголовок, Текст, выбор цвета стикера (реальное поле `color`: teal/coral/amber/purple), без тега/тумблеров; `LkNoteCard` красит по реальному color с uuid-фолбэком. Напоминание-форма: пилюли Дата (Сегодня/Завтра/Выходные/Через неделю) + Время (amber) + Повтор → сборка remind_at (локально→ISO). Старые страницы NoteEditView/ReminderEditView и LkCreateListDialog удалены; deep-link-маршруты → тонкие redirect-view. Стиль модалок точно по макету (scrim, 580px, лейблы, инпуты, пилюли, футер Удалить/Отмена/Сохранить), адаптив на мобайле.
+- **Отклонения (по решению/ограничениям):** задача-форма без Описания/Даты/Напоминания (список — контейнер пунктов); заметка — 4 цвета вместо 6 (лимит бэкенда notes.color); тег заметки отсутствует (нет в модели).
+- **Файлы:** `web/src/composables/useLkForms.ts`, `web/src/components/lk/{LkTaskFormDialog,LkNoteFormDialog,LkReminderFormDialog}.vue`, `web/src/layouts/LkLayout.vue`, `web/src/pages/lk/{tasks/TasksView,notes/NotesListView,reminders/RemindersView,DashboardView,lists/ListDetailView}.vue`, `web/src/components/lk/{notes/LkNoteCard,tasks/LkTasksRightRail}.vue`, `web/src/pages/lk/{notes/NoteFormRedirectView,reminders/ReminderFormRedirectView}.vue`, `web/src/types/note.ts`, `web/src/router/index.ts`, `web/src/constants/lkNoteColors.ts`
+- **Критерии приёмки:**
+  - [x] 3 формы (new+edit) — центральные модалки по макету, открываются из всех точек входа
+  - [x] Задача→список (тип/теги-пресеты, открытие на редактирование); заметка (цвет); напоминание (пилюли даты/времени/повтора, remind_at)
+  - [x] Старые страницы/диалог удалены, deep-link не сломан
+  - [x] vue-tsc OK, Vitest зелёный (417)
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+### UITEST-8: UI-fidelity аудит 6 форм против десктоп-макета
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-21
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Поэлементная сверка 6 форм и стиля модалок с макетом (scrim/размеры/лейблы/инпуты/пилюли/чипы/футер/закрытие; поля и точки входа каждой формы; сборка remind_at, запись color). High/med расхождений не найдено; добавлено 11 fidelity-тестов (лейблы/placeholder/пилюли/свотчи; remind_at «В выходные»=ближайшая суббота, «Через неделю»=+7 через fake timers). Low-замечания зафиксированы без правок.
+- **Файлы:** `web/src/components/lk/{LkTaskFormDialog,LkNoteFormDialog,LkReminderFormDialog}.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка стиля модалок и полей всех 6 форм с макетом
+  - [x] Проверена сборка remind_at и запись color заметки
+  - [x] Fidelity-тесты добавлены, Vitest зелёный (417), vue-tsc чист
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
 
