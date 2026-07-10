@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
-import { colorForNote } from '@/constants/lkNoteColors'
+import { colorForNoteValue } from '@/constants/lkNoteColors'
 import type { Note } from '@/types/note'
 import { formatRelativeDate } from '@/utils/datetime'
 
@@ -19,7 +19,7 @@ const emit = defineEmits<{
   remove: [uuid: string]
 }>()
 
-const color = computed(() => colorForNote(props.note.uuid))
+const color = computed(() => colorForNoteValue(props.note.color, props.note.uuid))
 const updatedLabel = computed<string>(() => formatRelativeDate(props.note.updated_at))
 const hasBody = computed<boolean>(() => (props.note.body ?? '').trim().length > 0)
 

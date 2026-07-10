@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 
 import LkMiniCalendar from '@/components/lk/tasks/LkMiniCalendar.vue'
 import LkOverviewReminderItem from '@/components/lk/LkOverviewReminderItem.vue'
 import { useCalendar } from '@/composables/useCalendar'
+import { useLkForms } from '@/composables/useLkForms'
 import { useLkUpcomingReminders } from '@/composables/useLkUpcomingReminders'
 
+const { openReminderForm, remindersVersion } = useLkForms()
 const { currentYear, currentMonth, byDay, load: loadCalendar } = useCalendar()
 const { isLoading, error, reminders, load: loadReminders } = useLkUpcomingReminders()
+
+function handleOpenReminder(uuid: string): void {
+  const reminder = reminders.value.find((candidate) => candidate.uuid === uuid)
+  openReminderForm(reminder)
+}
+
+// Модалка «Напоминание» рендерится в `LkLayout` — обновляем свой список
+// ближайших напоминаний после успешного сохранения/удаления через неё.
+watch(remindersVersion, () => void loadReminders())
 
 onMounted(() => {
   void loadCalendar()
@@ -37,6 +48,7 @@ onMounted(() => {
           :key="reminder.uuid"
           :reminder="reminder"
           variant="upcoming"
+          @open="handleOpenReminder"
         />
       </ul>
     </section>

@@ -92,16 +92,20 @@ const lkRoutes: RouteRecordRaw = {
       component: () => import('@/pages/lk/notes/NotesListView.vue'),
       meta: { title: 'Заметки' },
     },
+    // Форма заметки — центральная модалка (`LkNoteFormDialog`, рендерится в
+    // `LkLayout`), не отдельная страница. Эти 2 маршрута — только тонкие
+    // deep-link редиректы (см. `NoteFormRedirectView.vue`): открывают модалку
+    // через `useLkForms` и сразу возвращают на список заметок.
     {
       path: 'notes/new',
       name: 'lk-note-create',
-      component: () => import('@/pages/lk/notes/NoteEditView.vue'),
+      component: () => import('@/pages/lk/notes/NoteFormRedirectView.vue'),
       meta: { title: 'Новая заметка' },
     },
     {
       path: 'notes/:uuid',
       name: 'lk-note-edit',
-      component: () => import('@/pages/lk/notes/NoteEditView.vue'),
+      component: () => import('@/pages/lk/notes/NoteFormRedirectView.vue'),
       meta: { title: 'Заметка' },
     },
     // Задачи и списки — раздел редизайна ЛК (фаза 2: полноценный вид с
@@ -133,16 +137,19 @@ const lkRoutes: RouteRecordRaw = {
       component: () => import('@/pages/lk/reminders/RemindersView.vue'),
       meta: { title: 'Напоминания' },
     },
+    // Форма напоминания — центральная модалка (`LkReminderFormDialog`,
+    // рендерится в `LkLayout`), не отдельная страница. Эти 2 маршрута —
+    // тонкие deep-link редиректы (см. `ReminderFormRedirectView.vue`).
     {
       path: 'reminders/new',
       name: 'lk-reminder-create',
-      component: () => import('@/pages/lk/reminders/ReminderEditView.vue'),
+      component: () => import('@/pages/lk/reminders/ReminderFormRedirectView.vue'),
       meta: { title: 'Новое напоминание' },
     },
     {
       path: 'reminders/:uuid',
       name: 'lk-reminder-edit',
-      component: () => import('@/pages/lk/reminders/ReminderEditView.vue'),
+      component: () => import('@/pages/lk/reminders/ReminderFormRedirectView.vue'),
       meta: { title: 'Напоминание' },
     },
     // Sync

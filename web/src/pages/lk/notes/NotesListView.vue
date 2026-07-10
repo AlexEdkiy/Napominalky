@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, watch } from 'vue'
 
 import LkNoteCard from '@/components/lk/notes/LkNoteCard.vue'
 import LkNoteSkeleton from '@/components/lk/notes/LkNoteSkeleton.vue'
 import LkNotesToolbar from '@/components/lk/notes/LkNotesToolbar.vue'
+import { useLkForms } from '@/composables/useLkForms'
 import { useLkNotesList } from '@/composables/useLkNotesList'
 
-const router = useRouter()
+const { openNoteForm, notesVersion } = useLkForms()
 const {
   notes,
   pinnedNotes,
@@ -25,11 +25,12 @@ const {
 } = useLkNotesList()
 
 function handleCreate(): void {
-  void router.push({ name: 'lk-note-create' })
+  openNoteForm()
 }
 
 function handleOpen(uuid: string): void {
-  void router.push({ name: 'lk-note-edit', params: { uuid } })
+  const note = notes.value.find((candidate) => candidate.uuid === uuid)
+  openNoteForm(note)
 }
 
 async function handlePin(uuid: string, isPinned: boolean): Promise<void> {
@@ -46,6 +47,10 @@ async function handleRemove(uuid: string): Promise<void> {
   }
   await remove(uuid)
 }
+
+// Модалка «Заметка» рендерится в `LkLayout`, а не здесь — перезагружаем
+// после успешного сохранения/удаления через неё (см. `notifyNoteSaved`).
+watch(notesVersion, () => void load())
 
 onMounted(load)
 </script>

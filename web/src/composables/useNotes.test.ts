@@ -8,6 +8,7 @@ const note: Note = {
   uuid: 'n-1',
   title: 'Первая',
   body: 'Текст',
+  color: null,
   is_pinned: false,
   is_archived: false,
   created_at: '2026-06-01T00:00:00Z',

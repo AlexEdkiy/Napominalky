@@ -125,15 +125,12 @@ describe('LkShoppingListCard', () => {
     expect(wrapper.emitted('open')).toBeUndefined()
   })
 
-  it('emits rename with the new title after editing and saving', async () => {
+  it('emits edit with the full list (to open the task/list form) without triggering open', async () => {
     const wrapper = mount(LkShoppingListCard, { props: { list } })
 
     await wrapper.find('.lk-shopping-list-card__action:not(.lk-shopping-list-card__action--danger)').trigger('click')
-    const input = wrapper.find('.lk-shopping-list-card__rename input')
-    await input.setValue('Продукты (обновлено)')
-    await wrapper.find('.lk-shopping-list-card__rename').trigger('submit')
 
-    expect(wrapper.emitted('rename')).toEqual([['l-1', 'Продукты (обновлено)']])
+    expect(wrapper.emitted('edit')).toEqual([[list]])
     expect(wrapper.emitted('open')).toBeUndefined()
   })
 })

@@ -180,6 +180,9 @@ describe('useLkCalendar', () => {
     const { load, selectDay, selectedDayEvents } = useLkCalendar()
     await load()
 
+    // День без событий (не завязываемся на «сегодня», иначе тест ломается,
+    // когда реальная текущая дата совпадает с датой напоминания — 10 июля).
+    selectDay(new Date(2026, 0, 1, 12, 0))
     expect(selectedDayEvents.value).toHaveLength(0)
     selectDay(new Date(2026, 6, 10, 12, 0))
     expect(selectedDayEvents.value).toHaveLength(1)

@@ -1,10 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { defineComponent } from 'vue'
+import type { VueWrapper } from '@vue/test-utils'
 
 import TasksView from './TasksView.vue'
+import LkTaskFormDialog from '@/components/lk/LkTaskFormDialog.vue'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { ShoppingList } from '@/types/shoppingList'
 
 function makeList(overrides: Partial<ShoppingList>): ShoppingList {
@@ -55,17 +59,45 @@ function stubMatchMedia(matches: boolean) {
   )
 }
 
+// `useLkForms`/`tasksVersion` — module-level singleton: если не размонтировать
+// компоненты предыдущих тестов, их `watch(tasksVersion, ...)` продолжает
+// реагировать на бампы версии из последующих тестов и многократно дёргает
+// API. Отслеживаем все смонтированные обёртки и размонтируем их в `afterEach`.
+const mountedWrappers: VueWrapper[] = []
+
 async function mountTasksView() {
   const router = createTestRouter()
   await router.push({ name: 'lk-tasks' })
   const wrapper = mount(TasksView, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
+  return { wrapper, router }
+}
+
+// Модалка «Задача/список» рендерится один раз в `LkLayout`, а не в
+// `TasksView` — для интеграционных тестов (create/edit через модалку)
+// монтируем оба компонента рядом, как это делает реальный `LkLayout`.
+const TasksViewWithDialog = defineComponent({
+  components: { TasksView, LkTaskFormDialog },
+  template: '<div><TasksView /><LkTaskFormDialog /></div>',
+})
+
+async function mountTasksViewWithDialog() {
+  const router = createTestRouter()
+  await router.push({ name: 'lk-tasks' })
+  const wrapper = mount(TasksViewWithDialog, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
   return { wrapper, router }
 }
 
 describe('TasksView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLkFormsForTests()
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(emptyReminders)
+  })
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 
   it('shows a loading state before the lists resolve', async () => {
@@ -219,20 +251,62 @@ describe('TasksView', () => {
     vi.unstubAllGlobals()
   })
 
-  it('opens the create-list dialog and navigates to the new list detail page on success', async () => {
+  it('opens the task/list form modal via the "+" button (not a route navigation)', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.tasks-view__create-btn').trigger('click')
+
+    expect(useLkForms().isTaskFormOpen.value).toBe(true)
+    expect(useLkForms().taskFormList.value).toBeNull()
+    vi.unstubAllGlobals()
+  })
+
+  it('opens the task/list form modal via the empty-state CTA', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.tasks-view__empty-cta').trigger('click')
+
+    expect(useLkForms().isTaskFormOpen.value).toBe(true)
+  })
+
+  it('opens the task/list form in edit mode with the full list when the card pencil is clicked', async () => {
+    stubMatchMedia(true)
+    const created = makeList({ uuid: 'l-1', title: 'Продукты' })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([created]))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-shopping-list-card__action:not(.lk-shopping-list-card__action--danger)').trigger('click')
+
+    const forms = useLkForms()
+    expect(forms.isTaskFormOpen.value).toBe(true)
+    expect(forms.taskFormList.value).toEqual(created)
+    vi.unstubAllGlobals()
+  })
+
+  it('creates a list end-to-end through the modal and navigates to the new list detail page', async () => {
     stubMatchMedia(true)
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
     vi.mocked(shoppingListsApi.createList).mockResolvedValue(
       makeList({ uuid: 'l-9', title: 'Дача', type: 'tasks', tags: ['Дом'] }),
     )
 
-    const { wrapper, router } = await mountTasksView()
+    const { wrapper, router } = await mountTasksViewWithDialog()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.tasks-view__create-btn').trigger('click')
-    expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Новая задача / покупка"]').exists()).toBe(true)
 
-    await wrapper.find('#create-list-title').setValue('Дача')
+    await wrapper.find('#task-form-title').setValue('Дача')
     await wrapper.find('form').trigger('submit')
 
     await vi.waitFor(() =>
@@ -240,7 +314,26 @@ describe('TasksView', () => {
     )
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-list-detail'))
     expect(router.currentRoute.value.params.uuid).toBe('l-9')
-    expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Новая задача / покупка"]').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('reloads the list grid after a save through the modal (tasksVersion bump)', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValueOnce(paginatedLists([]))
+    vi.mocked(shoppingListsApi.createList).mockResolvedValue(makeList({ uuid: 'l-9', title: 'Дача' }))
+
+    const { wrapper } = await mountTasksViewWithDialog()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValueOnce(
+      paginatedLists([makeList({ uuid: 'l-9', title: 'Дача' })]),
+    )
+    await wrapper.find('.tasks-view__create-btn').trigger('click')
+    await wrapper.find('#task-form-title').setValue('Дача')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.waitFor(() => expect(shoppingListsApi.fetchLists).toHaveBeenCalledTimes(2))
     vi.unstubAllGlobals()
   })
 

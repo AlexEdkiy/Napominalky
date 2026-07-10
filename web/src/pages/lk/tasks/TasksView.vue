@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import LkCreateListDialog from '@/components/lk/LkCreateListDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkShoppingListCard from '@/components/lk/tasks/LkShoppingListCard.vue'
 import LkTasksFilterBar from '@/components/lk/tasks/LkTasksFilterBar.vue'
 import LkTasksRightRail from '@/components/lk/tasks/LkTasksRightRail.vue'
+import { useLkForms } from '@/composables/useLkForms'
 import { useLkTasksList } from '@/composables/useLkTasksList'
 import { useLkWideDesktop } from '@/composables/useLkBreakpoint'
 import type { ShoppingList } from '@/types/shoppingList'
 
 const router = useRouter()
 const { isWideDesktop } = useLkWideDesktop()
+const { openTaskForm, tasksVersion } = useLkForms()
 const {
   lists,
   filteredLists,
@@ -27,31 +28,15 @@ const {
   tagFilter,
   load,
   loadMore,
-  update,
   remove,
 } = useLkTasksList()
-
-const isCreateDialogOpen = ref(false)
-
-function openCreateDialog(): void {
-  isCreateDialogOpen.value = true
-}
-
-function closeCreateDialog(): void {
-  isCreateDialogOpen.value = false
-}
-
-function handleCreated(created: ShoppingList): void {
-  closeCreateDialog()
-  void router.push({ name: 'lk-list-detail', params: { uuid: created.uuid } })
-}
 
 function handleOpen(uuid: string): void {
   void router.push({ name: 'lk-list-detail', params: { uuid } })
 }
 
-async function handleRename(uuid: string, title: string): Promise<void> {
-  await update(uuid, { title })
+function handleEdit(list: ShoppingList): void {
+  openTaskForm(list)
 }
 
 async function handleRemove(uuid: string): Promise<void> {
@@ -60,6 +45,11 @@ async function handleRemove(uuid: string): Promise<void> {
   }
   await remove(uuid)
 }
+
+// Модалка «Задача/список» рендерится в `LkLayout`, а не здесь — при
+// успешном создании/изменении/удалении списка (см. `notifyTaskSaved`)
+// перезагружаем свою страницу.
+watch(tasksVersion, () => void load())
 
 onMounted(() => load())
 </script>
@@ -77,7 +67,7 @@ onMounted(() => load())
             v-model:tag="tagFilter"
             :available-tags="availableTags"
           />
-          <button type="button" class="tasks-view__create-btn" @click="openCreateDialog">
+          <button type="button" class="tasks-view__create-btn" @click="openTaskForm()">
             <LkIcon name="plus" :size="16" />
             Новый список
           </button>
@@ -89,7 +79,7 @@ onMounted(() => load())
         <template v-else-if="filteredLists.length === 0">
           <p v-if="lists.length === 0" class="tasks-view__empty">
             Пока нет списков.
-            <button type="button" class="tasks-view__empty-cta" @click="openCreateDialog">
+            <button type="button" class="tasks-view__empty-cta" @click="openTaskForm()">
               Создать первый список
             </button>
           </p>
@@ -102,7 +92,7 @@ onMounted(() => load())
             :key="list.uuid"
             :list="list"
             @open="handleOpen"
-            @rename="handleRename"
+            @edit="handleEdit"
             @remove="handleRemove"
           />
         </div>
@@ -114,8 +104,6 @@ onMounted(() => load())
 
       <LkTasksRightRail v-if="isWideDesktop" class="tasks-view__rail" />
     </div>
-
-    <LkCreateListDialog v-if="isCreateDialogOpen" @close="closeCreateDialog" @created="handleCreated" />
   </section>
 </template>
 
