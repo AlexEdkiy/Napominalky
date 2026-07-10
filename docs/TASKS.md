@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-10 (веб-ЛК: topbar по макету — бургер/колокол в чипах, иконка-тоггл, заголовок 22/900 — WEB-23)
+> Последнее обновление: 2026-07-10 (веб-ЛК: убран подзаголовок из десктоп-topbar по макету — WEB-24)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 23           | web-developer             |
+| WEB     | 24           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 8            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 6            | devops-engineer           |
-| DOC     | 14           | technical-writer          |
+| DOC     | 15           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 90 |
+| Completed | 91 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1837,6 +1837,22 @@
 - **Критерии приёмки:**
   - [x] Бургер/колокол/поиск — чипы `#f2f4f3` r12; бургер = иконка-тоггл
   - [x] Заголовок 22/900, хедер 78px, токены по макету
+  - [x] vue-tsc OK, Vitest зелёный (436)
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+### WEB-24: Убран подзаголовок из десктоп-topbar (в макете его нет ни на одном разделе)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-23
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** По замечанию: в десктоп-макете topbar рендерит только заголовок, подзаголовка нет ни на одном разделе (ранее ошибочно оставлен как «отклонение»). Удалён подзаголовок и его проп из `LkTopbar`; `LkLayout` больше не передаёт subtitle в topbar. Подзаголовок остаётся в мобильной шапке (`LkMobileHeader`) — там мобильный макет его предусматривает; приветствие дашборда и подзаголовки разделов теперь проверяются на мобильной шапке.
+- **Файлы:** `web/src/components/lk/LkTopbar.vue`, `web/src/layouts/LkLayout.vue`, `web/src/components/lk/LkTopbar.test.ts`, `web/src/layouts/LkLayout.test.ts`
+- **Критерии приёмки:**
+  - [x] Десктоп-topbar без подзаголовка (по макету)
+  - [x] Подзаголовок/приветствие сохранены в мобильной шапке, покрытие перенесено
   - [x] vue-tsc OK, Vitest зелёный (436)
 - **Создана:** 2026-07-10
 - **Завершена:** 2026-07-10
