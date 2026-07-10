@@ -166,6 +166,13 @@ describe('TasksView', () => {
     expect(wrapper.findAll('.lk-task-row')).toHaveLength(2)
     expect(wrapper.text()).toContain('Продукты')
     expect(wrapper.text()).toContain('4 пункта · 2 куплено')
+    // Тексты кнопок тулбара и нижней строки — как в макете.
+    expect(wrapper.find('.tasks-view__create-btn').text()).toContain('Новая задача')
+    expect(wrapper.find('.tasks-view__add').text()).toContain('Добавить задачу')
+    // Пустые Теги/Дата/Напоминание — прочерки «—» (у списков без
+    // датированных пунктов; принятое отклонение от скриншотов).
+    const emptyCells = wrapper.findAll('.lk-task-row')[0]!.findAll('.lk-task-row__empty')
+    expect(emptyCells.map((cell) => cell.text())).toEqual(['—', '—', '—'])
   })
 
   it('renders tag pills in the tags column', async () => {
@@ -194,7 +201,8 @@ describe('TasksView', () => {
 
     expect(wrapper.find('.lk-task-row__date').text()).toBe('Сегодня')
     expect(wrapper.find('.lk-task-row__date').classes()).toContain('lk-task-row__date--today')
-    expect(wrapper.find('.lk-task-row__reminder').text()).toContain('09:00')
+    // Формат колонки НАПОМИНАНИЕ — «⏰ HH:MM», как в макете.
+    expect(wrapper.find('.lk-task-row__reminder').text()).toBe('⏰ 09:00')
     vi.useRealTimers()
   })
 
@@ -212,8 +220,13 @@ describe('TasksView', () => {
 
     const tabs = wrapper.findAll('.tasks-view__tab')
     expect(tabs.map((tab) => tab.text())).toEqual(['Все', 'Активные', 'Выполненные'])
+    // Активная вкладка выделена визуально (тёмный сегмент), не только логически.
+    expect(tabs[0]?.classes()).toContain('tasks-view__tab--active')
+    expect(tabs[0]?.attributes('aria-selected')).toBe('true')
 
     await tabs[1]?.trigger('click')
+    expect(tabs[1]?.classes()).toContain('tasks-view__tab--active')
+    expect(tabs[0]?.classes()).not.toContain('tasks-view__tab--active')
     expect(wrapper.text()).toContain('Продукты')
     expect(wrapper.text()).not.toContain('Аптека')
 
@@ -247,9 +260,12 @@ describe('TasksView', () => {
     const titleHeader = wrapper.findAll('.tasks-view__sort')[0]
     await titleHeader?.trigger('click')
     expect(titleHeader?.classes()).toContain('tasks-view__sort--active')
+    expect(titleHeader?.find('.tasks-view__sort-arrow').text()).toBe('↑')
     expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual(['Аптека', 'Продукты'])
 
     await titleHeader?.trigger('click')
+    // Реверс: стрелка активной колонки переворачивается вниз.
+    expect(titleHeader?.find('.tasks-view__sort-arrow').text()).toBe('↓')
     expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual(['Продукты', 'Аптека'])
   })
 

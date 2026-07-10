@@ -71,6 +71,8 @@ describe('LkTaskFormDialog', () => {
 
     expect(wrapper.find('.lk-form-dialog__title').text()).toBe('Новая задача / покупка')
     expect((wrapper.find('#task-form-title').element as HTMLInputElement).value).toBe('')
+    // Прогресс «M / N» — только в edit-режиме (в new списка ещё нет).
+    expect(wrapper.find('.lk-form-dialog__progress').exists()).toBe(false)
     expect(wrapper.find('.lk-form-dialog__delete').exists()).toBe(false)
     expect(wrapper.text()).toContain('В списке пока нет пунктов')
     expect(shoppingListsApi.createList).not.toHaveBeenCalled()
@@ -104,9 +106,13 @@ describe('LkTaskFormDialog', () => {
     expect(types.map((button) => button.text())).toEqual(['Купить', 'Сделать'])
     expect(types[0]?.classes()).toContain('lk-form-dialog__type--active-goods')
     expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Например, Молоко')
+    // Кнопка «Добавить» по умолчанию (goods) — teal.
+    expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(23, 137, 122)')
 
     await types[1]?.trigger('click')
     expect(types[1]?.classes()).toContain('lk-form-dialog__type--active-tasks')
+    // Активный остаётся ровно один: «Купить» теряет подсветку.
+    expect(types[0]?.classes()).not.toContain('lk-form-dialog__type--active-goods')
     expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Например, Помыть окна')
     // Кнопка «Добавить» перекрашивается в amber по типу.
     expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(201, 138, 43)')
@@ -386,6 +392,7 @@ describe('LkTaskFormDialog', () => {
     expect(labels).toEqual(['Название', 'Тип', 'Пункты', 'Теги'])
     expect(wrapper.find('#task-form-title').attributes('placeholder')).toBe('Что нужно сделать или купить?')
     expect(wrapper.find('.lk-form-dialog__submit').text()).toBe('Сохранить')
+    expect(wrapper.find('.lk-form-dialog__cancel').text()).toBe('Отмена')
     expect(wrapper.find('input[type="date"]').exists()).toBe(false)
     expect(wrapper.find('input[type="datetime-local"]').exists()).toBe(false)
     vi.unstubAllGlobals()
