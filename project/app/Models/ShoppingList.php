@@ -32,6 +32,7 @@ class ShoppingList extends Model
         'title',
         'type',
         'tags',
+        'is_completed',
     ];
 
     /**
@@ -95,6 +96,7 @@ class ShoppingList extends Model
     protected function casts(): array
     {
         return [
+            'is_completed' => 'boolean',
             'server_revision' => 'integer',
         ];
     }

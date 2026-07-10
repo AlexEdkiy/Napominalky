@@ -34,6 +34,7 @@ function makeList(uuid: string, type: ShoppingList['type']): ShoppingList {
     tags: [],
     items_count: 1,
     checked_items_count: 0,
+    is_completed: false,
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
   }

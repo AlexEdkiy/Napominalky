@@ -202,6 +202,7 @@ describe('LkLayout', () => {
           tags: [],
           items_count: 5,
           checked_items_count: 2,
+          is_completed: false,
           created_at: '',
           updated_at: '',
         },

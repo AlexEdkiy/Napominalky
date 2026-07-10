@@ -99,6 +99,7 @@ describe('DashboardView', () => {
           title: 'Продукты',
           type: 'goods',
           tags: [],
+          is_completed: false,
           items_count: 5,
           checked_items_count: 2,
           created_at: '',

@@ -151,6 +151,7 @@ describe('LkBreadcrumbs', () => {
       tags: [],
       items_count: 0,
       checked_items_count: 0,
+      is_completed: false,
       created_at: '2026-07-01T00:00:00Z',
       updated_at: '2026-07-01T00:00:00Z',
     }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ShoppingList } from '@/types/shoppingList'
-import { isShoppingListCompleted, shoppingListAccent, shoppingListStatus } from '@/utils/shoppingList'
+import { isShoppingListCompleted, shoppingListAccent } from '@/utils/shoppingList'
 
 function makeList(overrides: Partial<ShoppingList>): ShoppingList {
   return {
@@ -11,39 +11,24 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
     tags: [],
     items_count: 4,
     checked_items_count: 0,
+    is_completed: false,
     created_at: '2026-07-01T00:00:00Z',
     updated_at: '2026-07-01T00:00:00Z',
     ...overrides,
   }
 }
 
-describe('shoppingListStatus', () => {
-  it('returns "new" when no items are checked', () => {
-    expect(shoppingListStatus(makeList({ items_count: 4, checked_items_count: 0 }))).toBe('new')
-  })
-
-  it('returns "new" for an empty list without any items', () => {
-    expect(shoppingListStatus(makeList({ items_count: 0, checked_items_count: 0 }))).toBe('new')
-  })
-
-  it('returns "active" when some but not all items are checked', () => {
-    expect(shoppingListStatus(makeList({ items_count: 4, checked_items_count: 2 }))).toBe('active')
-  })
-
-  it('returns "done" when every item is checked', () => {
-    expect(shoppingListStatus(makeList({ items_count: 4, checked_items_count: 4 }))).toBe('done')
-  })
-})
-
 describe('isShoppingListCompleted', () => {
-  it('agrees with shoppingListStatus === "done"', () => {
-    const done = makeList({ items_count: 3, checked_items_count: 3 })
-    const active = makeList({ items_count: 3, checked_items_count: 1 })
-    const empty = makeList({ items_count: 0, checked_items_count: 0 })
+  it('follows the explicit is_completed flag, not the checked items counters', () => {
+    // Флаг важнее счётчиков: все пункты куплены, но список не завершён.
+    expect(
+      isShoppingListCompleted(makeList({ items_count: 3, checked_items_count: 3, is_completed: false })),
+    ).toBe(false)
 
-    expect(isShoppingListCompleted(done)).toBe(true)
-    expect(isShoppingListCompleted(active)).toBe(false)
-    expect(isShoppingListCompleted(empty)).toBe(false)
+    // И наоборот: пункты не отмечены, но список завершён вручную.
+    expect(
+      isShoppingListCompleted(makeList({ items_count: 3, checked_items_count: 0, is_completed: true })),
+    ).toBe(true)
   })
 })
 

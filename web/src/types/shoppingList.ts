@@ -23,6 +23,12 @@ export interface ShoppingList {
   tags: string[]
   items_count: number
   checked_items_count: number
+  /**
+   * Флаг «список выполнен» — отдельное поле, НЕ производное от отметок
+   * пунктов (решение пользователя): чекбокс в таблице «Задачи и списки»
+   * переключает его через PUT /shopping-lists/{uuid}.
+   */
+  is_completed: boolean
   created_at: string
   updated_at: string
 }
@@ -72,6 +78,7 @@ export interface CreateShoppingListPayload {
   title: string
   type?: ShoppingListType
   tags?: string[]
+  is_completed?: boolean
   uuid?: string
 }
 
@@ -84,6 +91,7 @@ export interface UpdateShoppingListPayload {
   title?: string
   type?: ShoppingListType
   tags?: string[]
+  is_completed?: boolean
 }
 
 /**

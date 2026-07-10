@@ -25,7 +25,7 @@ const reminderFormReminder = ref<Reminder | null>(null)
 /**
  * Счётчики версий — увеличиваются при успешном создании/изменении/удалении
  * через соответствующую модалку. Страницы разделов (`TasksView`,
- * `NotesListView`, `RemindersView`, `ListDetailView`, `LkTasksRightRail`)
+ * `NotesListView`, `RemindersView`, `LkTasksRightRail`)
  * подписываются на них через `watch`, чтобы перезагрузить свои данные без
  * прямой связи с модалкой (она рендерится в `LkLayout`, а не на странице).
  */

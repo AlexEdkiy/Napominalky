@@ -9,7 +9,7 @@ import LkTaskFormDialog from '@/components/lk/LkTaskFormDialog.vue'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 
 function makeList(overrides: Partial<ShoppingList>): ShoppingList {
   return {
@@ -19,6 +19,27 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
     tags: [],
     items_count: 4,
     checked_items_count: 2,
+    is_completed: false,
+    created_at: '2026-07-01T00:00:00Z',
+    updated_at: '2026-07-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
+  return {
+    uuid: 'i-1',
+    name: 'Молоко',
+    category: 'products',
+    category_label: 'Продукты',
+    is_checked: false,
+    position: 0,
+    quantity: null,
+    deadline: null,
+    reminder_at: null,
+    link: null,
+    comment: null,
+    tags: [],
     created_at: '2026-07-01T00:00:00Z',
     updated_at: '2026-07-01T00:00:00Z',
     ...overrides,
@@ -27,7 +48,7 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
 
 const paginatedLists = (data: ShoppingList[]) => ({
   data,
-  meta: { current_page: 1, last_page: 1, per_page: 20, total: data.length },
+  meta: { current_page: 1, last_page: 1, per_page: 100, total: data.length },
   links: { first: null, last: null, prev: null, next: null },
 })
 
@@ -42,7 +63,6 @@ function createTestRouter() {
     history: createMemoryHistory(),
     routes: [
       { path: '/lk/tasks', name: 'lk-tasks', component: TasksView },
-      { path: '/lk/lists/:uuid', name: 'lk-list-detail', component: { template: '<div />' } },
       { path: '/lk/calendar', name: 'lk-calendar', component: { template: '<div />' } },
     ],
   })
@@ -94,10 +114,12 @@ describe('TasksView', () => {
     vi.clearAllMocks()
     resetLkFormsForTests()
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(emptyReminders)
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
   })
 
   afterEach(() => {
     mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
+    vi.unstubAllGlobals()
   })
 
   it('shows a loading state before the lists resolve', async () => {
@@ -113,14 +135,21 @@ describe('TasksView', () => {
 
     expect(wrapper.text()).toContain('Загрузка')
     resolveLists?.()
-    vi.unstubAllGlobals()
   })
 
-  it('renders lists from the API', async () => {
+  it('shows an error message when the API call fails', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockRejectedValue(new Error('network down'))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('network down'))
+  })
+
+  it('renders the table with the макет column headers and one row per list', async () => {
     stubMatchMedia(true)
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginatedLists([
-        makeList({ uuid: 'l-1', title: 'Продукты' }),
+        makeList({ uuid: 'l-1', title: 'Продукты', items_count: 4, checked_items_count: 2 }),
         makeList({ uuid: 'l-2', title: 'Аптека' }),
       ]),
     )
@@ -128,10 +157,166 @@ describe('TasksView', () => {
     const { wrapper } = await mountTasksView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
-    expect(wrapper.findAll('.lk-shopping-list-card')).toHaveLength(2)
+    expect(wrapper.findAll('.tasks-view__sort').map((th) => th.text().replace(/[↑↓]\s*$/, '').trim())).toEqual([
+      'Задача',
+      'Теги',
+      'Дата',
+      'Напоминание',
+    ])
+    expect(wrapper.findAll('.lk-task-row')).toHaveLength(2)
     expect(wrapper.text()).toContain('Продукты')
+    expect(wrapper.text()).toContain('4 пункта · 2 куплено')
+    // Тексты кнопок тулбара и нижней строки — как в макете.
+    expect(wrapper.find('.tasks-view__create-btn').text()).toContain('Новая задача')
+    expect(wrapper.find('.tasks-view__add').text()).toContain('Добавить задачу')
+    // Пустые Теги/Дата/Напоминание — прочерки «—» (у списков без
+    // датированных пунктов; принятое отклонение от скриншотов).
+    const emptyCells = wrapper.findAll('.lk-task-row')[0]!.findAll('.lk-task-row__empty')
+    expect(emptyCells.map((cell) => cell.text())).toEqual(['—', '—', '—'])
+  })
+
+  it('renders tag pills in the tags column', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([makeList({ uuid: 'l-1', tags: ['Покупки', 'Важное'] })]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    expect(wrapper.findAll('.lk-tag-pill').map((tag) => tag.text())).toEqual(['Покупки', 'Важное'])
+  })
+
+  it('shows the derived nearest item deadline and reminder once the background fetch resolves', async () => {
+    stubMatchMedia(true)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-03-10T12:00:00'))
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({ uuid: 'l-1' })]))
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({ uuid: 'i-1', deadline: '2026-03-10', reminder_at: '2026-03-10T09:00:00' }),
+    ])
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row__date').exists()).toBe(true))
+
+    expect(wrapper.find('.lk-task-row__date').text()).toBe('Сегодня')
+    expect(wrapper.find('.lk-task-row__date').classes()).toContain('lk-task-row__date--today')
+    // Формат колонки НАПОМИНАНИЕ — «⏰ HH:MM», как в макете.
+    expect(wrapper.find('.lk-task-row__reminder').text()).toBe('⏰ 09:00')
+    vi.useRealTimers()
+  })
+
+  it('filters rows by the Все/Активные/Выполненные tabs using is_completed', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({ uuid: 'l-1', title: 'Продукты', is_completed: false }),
+        makeList({ uuid: 'l-2', title: 'Аптека', is_completed: true }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const tabs = wrapper.findAll('.tasks-view__tab')
+    expect(tabs.map((tab) => tab.text())).toEqual(['Все', 'Активные', 'Выполненные'])
+    // Активная вкладка выделена визуально (тёмный сегмент), не только логически.
+    expect(tabs[0]?.classes()).toContain('tasks-view__tab--active')
+    expect(tabs[0]?.attributes('aria-selected')).toBe('true')
+
+    await tabs[1]?.trigger('click')
+    expect(tabs[1]?.classes()).toContain('tasks-view__tab--active')
+    expect(tabs[0]?.classes()).not.toContain('tasks-view__tab--active')
+    expect(wrapper.text()).toContain('Продукты')
+    expect(wrapper.text()).not.toContain('Аптека')
+
+    await tabs[2]?.trigger('click')
     expect(wrapper.text()).toContain('Аптека')
-    vi.unstubAllGlobals()
+    expect(wrapper.text()).not.toContain('Продукты')
+  })
+
+  it('marks a completed row with the completed modifier (strike-through styling)', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([makeList({ uuid: 'l-1', is_completed: true })]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    expect(wrapper.find('.lk-task-row').classes()).toContain('lk-task-row--completed')
+    expect((wrapper.find('.lk-task-row__checkbox').element as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('sorts rows by title on a header click and reverses on the second click', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([makeList({ uuid: 'l-1', title: 'Продукты' }), makeList({ uuid: 'l-2', title: 'Аптека' })]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const titleHeader = wrapper.findAll('.tasks-view__sort')[0]
+    await titleHeader?.trigger('click')
+    expect(titleHeader?.classes()).toContain('tasks-view__sort--active')
+    expect(titleHeader?.find('.tasks-view__sort-arrow').text()).toBe('↑')
+    expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual(['Аптека', 'Продукты'])
+
+    await titleHeader?.trigger('click')
+    // Реверс: стрелка активной колонки переворачивается вниз.
+    expect(titleHeader?.find('.tasks-view__sort-arrow').text()).toBe('↓')
+    expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual(['Продукты', 'Аптека'])
+  })
+
+  it('toggles is_completed through the row checkbox (updateList) without opening the modal', async () => {
+    stubMatchMedia(true)
+    const list = makeList({ uuid: 'l-1', is_completed: false })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([list]))
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, is_completed: true })
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-task-row__checkbox').trigger('click')
+    await wrapper.find('.lk-task-row__checkbox').trigger('change')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { is_completed: true }),
+    )
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
+  })
+
+  it('opens the task form in edit mode when a row is clicked', async () => {
+    stubMatchMedia(true)
+    const list = makeList({ uuid: 'l-1', title: 'Продукты' })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([list]))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-task-row').trigger('click')
+
+    const forms = useLkForms()
+    expect(forms.isTaskFormOpen.value).toBe(true)
+    expect(forms.taskFormList.value).toEqual(list)
+  })
+
+  it('opens the task form in create mode via the «+ Новая задача» button and the add row', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({})]))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.tasks-view__create-btn').trigger('click')
+    expect(useLkForms().isTaskFormOpen.value).toBe(true)
+    expect(useLkForms().taskFormList.value).toBeNull()
+
+    resetLkFormsForTests()
+    await wrapper.find('.tasks-view__add-row').trigger('click')
+    expect(useLkForms().isTaskFormOpen.value).toBe(true)
+    expect(useLkForms().taskFormList.value).toBeNull()
   })
 
   it('shows the empty state with a create CTA when there are no lists at all', async () => {
@@ -141,184 +326,12 @@ describe('TasksView', () => {
     const { wrapper } = await mountTasksView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
-    expect(wrapper.text()).toContain('Пока нет списков')
-    expect(wrapper.find('.tasks-view__empty-cta').exists()).toBe(true)
-    vi.unstubAllGlobals()
-  })
-
-  it('shows an error message when the API call fails', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockRejectedValue(new Error('network down'))
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).toContain('network down'))
-    vi.unstubAllGlobals()
-  })
-
-  it('filters the rendered lists by search query', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
-      paginatedLists([
-        makeList({ uuid: 'l-1', title: 'Продукты' }),
-        makeList({ uuid: 'l-2', title: 'Аптека' }),
-      ]),
-    )
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('input[type="search"]').setValue('апт')
-
-    expect(wrapper.text()).toContain('Аптека')
-    expect(wrapper.text()).not.toContain('Продукты')
-    vi.unstubAllGlobals()
-  })
-
-  it('filters by completion status via the filter select', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
-      paginatedLists([
-        makeList({ uuid: 'l-1', title: 'Продукты', items_count: 4, checked_items_count: 2 }),
-        makeList({ uuid: 'l-2', title: 'Аптека', items_count: 3, checked_items_count: 3 }),
-      ]),
-    )
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    const selects = wrapper.findAll('select')
-    await selects[1]?.setValue('completed')
-
-    expect(wrapper.text()).toContain('Аптека')
-    expect(wrapper.text()).not.toContain('Продукты')
-    vi.unstubAllGlobals()
-  })
-
-  it('filters by list type via the type select', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
-      paginatedLists([
-        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods' }),
-        makeList({ uuid: 'l-2', title: 'Дела на день', type: 'tasks' }),
-      ]),
-    )
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    const selects = wrapper.findAll('select')
-    await selects[2]?.setValue('tasks')
-
-    expect(wrapper.text()).toContain('Дела на день')
-    expect(wrapper.text()).not.toContain('Продукты')
-    vi.unstubAllGlobals()
-  })
-
-  it('renders tag pills on cards and filters by tag once tags are present', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
-      paginatedLists([
-        makeList({ uuid: 'l-1', title: 'Продукты', tags: ['Покупки'] }),
-        makeList({ uuid: 'l-2', title: 'Аптека', tags: ['Здоровье'] }),
-      ]),
-    )
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    expect(wrapper.findAll('.lk-tag-pill').map((tag) => tag.text())).toEqual(['Покупки', 'Здоровье'])
-
-    const selects = wrapper.findAll('select')
-    await selects[3]?.setValue('Здоровье')
-
-    expect(wrapper.text()).toContain('Аптека')
-    expect(wrapper.text()).not.toContain('Продукты')
-    vi.unstubAllGlobals()
-  })
-
-  it('navigates to the list detail route when a card is opened', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
-      paginatedLists([makeList({ uuid: 'l-1', title: 'Продукты' })]),
-    )
-
-    const { wrapper, router } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.lk-shopping-list-card').trigger('click')
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-list-detail'))
-    expect(router.currentRoute.value.params.uuid).toBe('l-1')
-    vi.unstubAllGlobals()
-  })
-
-  it('opens the task/list form modal via the "+" button (not a route navigation)', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.tasks-view__create-btn').trigger('click')
-
-    expect(useLkForms().isTaskFormOpen.value).toBe(true)
-    expect(useLkForms().taskFormList.value).toBeNull()
-    vi.unstubAllGlobals()
-  })
-
-  it('opens the task/list form modal via the empty-state CTA', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
+    expect(wrapper.text()).toContain('Пока нет задач')
     await wrapper.find('.tasks-view__empty-cta').trigger('click')
-
     expect(useLkForms().isTaskFormOpen.value).toBe(true)
   })
 
-  it('opens the task/list form in edit mode with the full list when the card pencil is clicked', async () => {
-    stubMatchMedia(true)
-    const created = makeList({ uuid: 'l-1', title: 'Продукты' })
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([created]))
-
-    const { wrapper } = await mountTasksView()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.lk-shopping-list-card__action:not(.lk-shopping-list-card__action--danger)').trigger('click')
-
-    const forms = useLkForms()
-    expect(forms.isTaskFormOpen.value).toBe(true)
-    expect(forms.taskFormList.value).toEqual(created)
-    vi.unstubAllGlobals()
-  })
-
-  it('creates a list end-to-end through the modal and navigates to the new list detail page', async () => {
-    stubMatchMedia(true)
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([]))
-    vi.mocked(shoppingListsApi.createList).mockResolvedValue(
-      makeList({ uuid: 'l-9', title: 'Дача', type: 'tasks', tags: ['Дом'] }),
-    )
-
-    const { wrapper, router } = await mountTasksViewWithDialog()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.tasks-view__create-btn').trigger('click')
-    expect(wrapper.find('[aria-label="Новая задача / покупка"]').exists()).toBe(true)
-
-    await wrapper.find('#task-form-title').setValue('Дача')
-    await wrapper.find('form').trigger('submit')
-
-    await vi.waitFor(() =>
-      expect(shoppingListsApi.createList).toHaveBeenCalledWith({ title: 'Дача', type: 'goods', tags: [] }),
-    )
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-list-detail'))
-    expect(router.currentRoute.value.params.uuid).toBe('l-9')
-    expect(wrapper.find('[aria-label="Новая задача / покупка"]').exists()).toBe(false)
-    vi.unstubAllGlobals()
-  })
-
-  it('reloads the list grid after a save through the modal (tasksVersion bump)', async () => {
+  it('creates a list end-to-end through the modal and reloads the table (tasksVersion bump)', async () => {
     stubMatchMedia(true)
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValueOnce(paginatedLists([]))
     vi.mocked(shoppingListsApi.createList).mockResolvedValue(makeList({ uuid: 'l-9', title: 'Дача' }))
@@ -333,8 +346,11 @@ describe('TasksView', () => {
     await wrapper.find('#task-form-title').setValue('Дача')
     await wrapper.find('form').trigger('submit')
 
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.createList).toHaveBeenCalledWith({ title: 'Дача', type: 'goods', tags: [] }),
+    )
     await vi.waitFor(() => expect(shoppingListsApi.fetchLists).toHaveBeenCalledTimes(2))
-    vi.unstubAllGlobals()
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
   })
 
   it('shows the right-rail on wide desktop and hides it on narrower screens', async () => {
@@ -350,13 +366,13 @@ describe('TasksView', () => {
     const narrow = await mountTasksView()
     await vi.waitFor(() => expect(narrow.wrapper.text()).not.toContain('Загрузка'))
     expect(narrow.wrapper.find('.lk-tasks-right-rail').exists()).toBe(false)
-    vi.unstubAllGlobals()
   })
 })
 
 vi.mock('@/api/shoppingListsApi', () => ({
   shoppingListsApi: {
     fetchLists: vi.fn(),
+    fetchList: vi.fn(),
     createList: vi.fn(),
     updateList: vi.fn(),
     deleteList: vi.fn(),
