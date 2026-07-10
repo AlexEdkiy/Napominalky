@@ -9,6 +9,7 @@ function makeNote(overrides: Partial<Note>): Note {
     uuid: 'n-1',
     title: 'Заметка',
     body: 'Текст',
+    color: null,
     is_pinned: false,
     is_archived: false,
     created_at: '2026-07-01T00:00:00Z',

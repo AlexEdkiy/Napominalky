@@ -1,10 +1,17 @@
 /**
+ * Цвет стикера заметки — бэкенд принимает только эти 4 значения (nullable).
+ * См. `App\Http\Requests\Note\StoreNoteRequest`/`UpdateNoteRequest`.
+ */
+export type NoteColor = 'teal' | 'coral' | 'amber' | 'purple'
+
+/**
  * Заметка — зеркало NoteResource (snake_case).
  */
 export interface Note {
   uuid: string
   title: string
   body: string | null
+  color: NoteColor | null
   is_pinned: boolean
   is_archived: boolean
   created_at: string
@@ -18,6 +25,7 @@ export interface Note {
 export interface CreateNotePayload {
   title: string
   body?: string | null
+  color?: NoteColor | null
   uuid?: string
   is_pinned?: boolean
   is_archived?: boolean
@@ -29,6 +37,7 @@ export interface CreateNotePayload {
 export interface UpdateNotePayload {
   title?: string
   body?: string | null
+  color?: NoteColor | null
   is_pinned?: boolean
   is_archived?: boolean
 }

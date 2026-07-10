@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { onMounted, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkOverviewReminderItem from '@/components/lk/LkOverviewReminderItem.vue'
 import LkStatCard from '@/components/lk/LkStatCard.vue'
 import { useLkDashboard } from '@/composables/useLkDashboard'
+import { useLkForms } from '@/composables/useLkForms'
 
-const router = useRouter()
+const { openReminderForm, remindersVersion } = useLkForms()
 const {
   isLoading,
   error,
@@ -21,10 +22,17 @@ const {
   cancelComplete,
 } = useLkDashboard()
 
+// Модалка «Напоминание» рендерится в `LkLayout` — перезагружаем сводку после
+// успешного сохранения/удаления через неё (см. `notifyReminderSaved`).
+watch(remindersVersion, () => void load())
+
 onMounted(load)
 
 function openReminder(uuid: string): void {
-  void router.push({ name: 'lk-reminder-edit', params: { uuid } })
+  const reminder = [...todaysReminders.value, ...upcomingReminders.value].find(
+    (candidate) => candidate.uuid === uuid,
+  )
+  openReminderForm(reminder)
 }
 </script>
 

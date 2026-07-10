@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkReminderCard from '@/components/lk/reminders/LkReminderCard.vue'
+import { useLkForms } from '@/composables/useLkForms'
 import { useReminders } from '@/composables/useReminders'
 import type { ReminderStatusFilter, SnoozeOption } from '@/types/reminder'
 
@@ -16,7 +16,7 @@ const statusOptions: { value: ReminderStatusFilter; label: string }[] = [
   { value: 'all', label: 'Все' },
 ]
 
-const router = useRouter()
+const { openReminderForm, remindersVersion } = useLkForms()
 const { reminders, isLoading, error, load, complete, snooze, remove } = useReminders()
 
 const status = ref<ReminderStatusFilter>('pending')
@@ -31,11 +31,12 @@ function changeStatus(next: ReminderStatusFilter): void {
 }
 
 function handleCreate(): void {
-  void router.push({ name: 'lk-reminder-create' })
+  openReminderForm()
 }
 
 function handleOpen(uuid: string): void {
-  void router.push({ name: 'lk-reminder-edit', params: { uuid } })
+  const reminder = reminders.value.find((candidate) => candidate.uuid === uuid)
+  openReminderForm(reminder)
 }
 
 async function handleComplete(uuid: string): Promise<void> {
@@ -52,6 +53,10 @@ async function handleRemove(uuid: string): Promise<void> {
   }
   await remove(uuid)
 }
+
+// Модалка «Напоминание» рендерится в `LkLayout`, а не здесь — перезагружаем
+// после успешного сохранения/удаления через неё (см. `notifyReminderSaved`).
+watch(remindersVersion, () => void refresh())
 
 onMounted(refresh)
 </script>

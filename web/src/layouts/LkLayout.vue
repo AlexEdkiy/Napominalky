@@ -1,32 +1,33 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 
 import LkBottomNav from '@/components/lk/LkBottomNav.vue'
-import LkCreateListDialog from '@/components/lk/LkCreateListDialog.vue'
 import LkCreateMenu from '@/components/lk/LkCreateMenu.vue'
 import LkMobileHeader from '@/components/lk/LkMobileHeader.vue'
+import LkNoteFormDialog from '@/components/lk/LkNoteFormDialog.vue'
+import LkReminderFormDialog from '@/components/lk/LkReminderFormDialog.vue'
 import LkSidebar from '@/components/lk/LkSidebar.vue'
+import LkTaskFormDialog from '@/components/lk/LkTaskFormDialog.vue'
 import LkTopbar from '@/components/lk/LkTopbar.vue'
 import { provideLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
+import { useLkForms } from '@/composables/useLkForms'
 import { useLkNavCounts } from '@/composables/useLkNavCounts'
 import { useSyncMeter } from '@/composables/useSyncMeter'
 import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
 import { useAuthStore } from '@/stores/authStore'
-import type { ShoppingList } from '@/types/shoppingList'
 import { getUserDisplayName } from '@/utils/user'
 
 const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 const { isDesktop } = useLkBreakpoint()
 const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
 const { runSync } = useSyncMeter()
+const { openTaskForm, openNoteForm, openReminderForm, tasksVersion, notesVersion } = useLkForms()
 
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)
-const isListDialogOpen = ref(false)
 const createButtonRect = ref<DOMRect | null>(null)
 
 const MENU_WIDTH = 280
@@ -93,27 +94,24 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
 
 function handleSelectNote(): void {
   closeCreateMenu()
-  void router.push({ name: 'lk-note-create' })
+  openNoteForm()
 }
 
 function handleSelectReminder(): void {
   closeCreateMenu()
-  void router.push({ name: 'lk-reminder-create' })
+  openReminderForm()
 }
 
 function handleSelectList(): void {
   closeCreateMenu()
-  isListDialogOpen.value = true
+  openTaskForm()
 }
 
-function closeListDialog(): void {
-  isListDialogOpen.value = false
-}
-
-function handleListCreated(list: ShoppingList): void {
-  isListDialogOpen.value = false
-  void router.push({ name: 'lk-list-detail', params: { uuid: list.uuid } })
-}
+// Бейджи навигации (число активных задач/заметок) считаются по спискам и
+// заметкам — перезагружаем их при каждом успешном сохранении/удалении через
+// модалки «Задача/список» и «Заметка» (см. `useLkForms`, версии-счётчики).
+watch(tasksVersion, () => void loadNavCounts())
+watch(notesVersion, () => void loadNavCounts())
 
 onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown)
@@ -174,7 +172,9 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <LkCreateListDialog v-if="isListDialogOpen" @close="closeListDialog" @created="handleListCreated" />
+    <LkTaskFormDialog />
+    <LkNoteFormDialog />
+    <LkReminderFormDialog />
   </div>
 </template>
 

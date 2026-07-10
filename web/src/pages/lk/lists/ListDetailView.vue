@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import LkIcon from '@/components/lk/LkIcon.vue'
 import LkListItemRow from '@/components/lk/tasks/LkListItemRow.vue'
+import { useLkForms } from '@/composables/useLkForms'
 import { useSetLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useShoppingList } from '@/composables/useShoppingList'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
@@ -17,6 +19,7 @@ interface CategoryGroup {
 
 const route = useRoute()
 const listUuid = route.params.uuid as string
+const { openTaskForm, tasksVersion } = useLkForms()
 
 const { list, isLoading: isListLoading, error: listError, load: loadList } = useShoppingList(listUuid)
 const {
@@ -86,6 +89,17 @@ async function handleRemove(uuid: string): Promise<void> {
   await remove(uuid)
 }
 
+function handleEditList(): void {
+  if (list.value) {
+    openTaskForm(list.value)
+  }
+}
+
+// Модалка «Задача/список» рендерится в `LkLayout`, а не здесь — перезагружаем
+// список после успешного сохранения через неё (название/тип/теги могли
+// измениться, см. `notifyTaskSaved`).
+watch(tasksVersion, () => void loadList())
+
 onMounted(() => {
   void loadList()
   void loadItems()
@@ -99,7 +113,17 @@ onMounted(() => {
 
     <template v-else>
       <header class="list-detail__header">
-        <h1 class="list-detail__title">{{ list?.title ?? 'Список покупок' }}</h1>
+        <div class="list-detail__title-row">
+          <h1 class="list-detail__title">{{ list?.title ?? 'Список покупок' }}</h1>
+          <button
+            type="button"
+            class="list-detail__edit"
+            aria-label="Редактировать список"
+            @click="handleEditList"
+          >
+            <LkIcon name="edit" :size="16" />
+          </button>
+        </div>
         <div class="list-detail__progress">
           <div class="list-detail__progress-track">
             <div
@@ -168,11 +192,37 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
+.list-detail__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
 .list-detail__title {
-  margin: 0 0 0.6rem;
+  margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
   color: #1f2622;
+}
+
+.list-detail__edit {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: #eef1f0;
+  color: #6b716e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.list-detail__edit:hover {
+  background: #d8ebe4;
+  color: #17897a;
 }
 
 .list-detail__progress {
