@@ -60,6 +60,19 @@ describe('useShoppingList', () => {
 
     expect(ok).toBe(false)
   })
+
+  it('resolves the uuid getter on EACH call (reactive to route param changes)', async () => {
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue(list)
+
+    let uuid = 'l-1'
+    const { load } = useShoppingList(() => uuid)
+    await load()
+    expect(shoppingListsApi.fetchList).toHaveBeenLastCalledWith('l-1')
+
+    uuid = 'l-2'
+    await load()
+    expect(shoppingListsApi.fetchList).toHaveBeenLastCalledWith('l-2')
+  })
 })
 
 vi.mock('@/api/shoppingListsApi', () => ({
