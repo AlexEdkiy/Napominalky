@@ -4,7 +4,7 @@ import type { VueWrapper } from '@vue/test-utils'
 
 import LkTopbar from './LkTopbar.vue'
 
-function mountTopbar(props: { title: string; subtitle: string }): VueWrapper {
+function mountTopbar(props: { title: string }): VueWrapper {
   return mount(LkTopbar, {
     props,
     global: {
@@ -15,17 +15,14 @@ function mountTopbar(props: { title: string; subtitle: string }): VueWrapper {
 }
 
 describe('LkTopbar', () => {
-  it('renders the title and subtitle, hiding the subtitle when empty', () => {
-    const wrapper = mountTopbar({ title: 'Задачи и списки', subtitle: 'Таблица дел' })
+  it('renders only the title — подзаголовка в topbar по макету нет', () => {
+    const wrapper = mountTopbar({ title: 'Задачи и списки' })
     expect(wrapper.find('h1.lk-topbar__title').text()).toBe('Задачи и списки')
-    expect(wrapper.find('.lk-topbar__subtitle').text()).toBe('Таблица дел')
-
-    const noSubtitle = mountTopbar({ title: 'Обзор', subtitle: '' })
-    expect(noSubtitle.find('.lk-topbar__subtitle').exists()).toBe(false)
+    expect(wrapper.find('.lk-topbar__subtitle').exists()).toBe(false)
   })
 
   it('renders the burger as a chip with the sidebar-toggle icon (panel, not 3 lines) per the mockup', () => {
-    const wrapper = mountTopbar({ title: 'Обзор', subtitle: '' })
+    const wrapper = mountTopbar({ title: 'Обзор' })
     const burger = wrapper.find('button.lk-topbar__burger')
 
     expect(burger.attributes('aria-label')).toBe('Свернуть/развернуть сайдбар')
@@ -40,7 +37,7 @@ describe('LkTopbar', () => {
   })
 
   it('emits toggleSidebar when the burger chip is clicked', async () => {
-    const wrapper = mountTopbar({ title: 'Обзор', subtitle: '' })
+    const wrapper = mountTopbar({ title: 'Обзор' })
 
     await wrapper.find('.lk-topbar__burger').trigger('click')
 
@@ -48,7 +45,7 @@ describe('LkTopbar', () => {
   })
 
   it('renders the global search with the mockup placeholder and an accessible label', () => {
-    const wrapper = mountTopbar({ title: 'Обзор', subtitle: '' })
+    const wrapper = mountTopbar({ title: 'Обзор' })
     const input = wrapper.find('.lk-topbar__search input')
 
     expect(input.attributes('type')).toBe('search')
@@ -58,7 +55,7 @@ describe('LkTopbar', () => {
   })
 
   it('renders the bell as a chip with an unread indicator dot', () => {
-    const wrapper = mountTopbar({ title: 'Обзор', subtitle: '' })
+    const wrapper = mountTopbar({ title: 'Обзор' })
     const bell = wrapper.find('button.lk-topbar__bell')
 
     expect(bell.attributes('aria-label')).toBe('Уведомления')
@@ -70,7 +67,7 @@ describe('LkTopbar', () => {
   })
 
   it('keeps the breadcrumbs slot above the title inside the titles block', () => {
-    const wrapper = mountTopbar({ title: 'Обзор', subtitle: '' })
+    const wrapper = mountTopbar({ title: 'Обзор' })
     const titles = wrapper.find('.lk-topbar__titles')
     const children = Array.from(titles.element.children).map((el) => el.className)
 

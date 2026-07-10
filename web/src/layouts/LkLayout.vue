@@ -142,12 +142,7 @@ onUnmounted(() => {
     />
 
     <div class="lk-shell__main">
-      <LkTopbar
-        v-if="isDesktop"
-        :title="sectionMeta.title"
-        :subtitle="sectionSubtitle"
-        @toggle-sidebar="toggleSidebar"
-      />
+      <LkTopbar v-if="isDesktop" :title="sectionMeta.title" @toggle-sidebar="toggleSidebar" />
       <LkMobileHeader v-else :title="sectionMeta.title" :subtitle="sectionSubtitle" />
 
       <main class="lk-shell__content">
