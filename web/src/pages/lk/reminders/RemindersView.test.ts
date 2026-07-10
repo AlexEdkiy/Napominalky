@@ -1,9 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { defineComponent } from 'vue'
+import type { VueWrapper } from '@vue/test-utils'
 
 import RemindersView from './RemindersView.vue'
+import LkReminderFormDialog from '@/components/lk/LkReminderFormDialog.vue'
 import { remindersApi } from '@/api/remindersApi'
+import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { Reminder } from '@/types/reminder'
 
 function makeReminder(overrides: Partial<Reminder>): Reminder {
@@ -41,16 +45,44 @@ function createTestRouter() {
   })
 }
 
+// `useLkForms`/`remindersVersion` — module-level singleton: если не
+// размонтировать компоненты, их `watch(remindersVersion, ...)` продолжает
+// реагировать на бампы версии из последующих тестов. Отслеживаем обёртки и
+// размонтируем в `afterEach`.
+const mountedWrappers: VueWrapper[] = []
+
 async function mountView() {
   const router = createTestRouter()
   await router.push({ name: 'lk-reminders' })
   const wrapper = mount(RemindersView, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
+  return { wrapper, router }
+}
+
+// Модалка «Напоминание» рендерится один раз в `LkLayout`, а не в
+// `RemindersView` — для интеграционных тестов (create/edit через модалку)
+// монтируем оба компонента рядом, как это делает реальный `LkLayout`.
+const RemindersViewWithDialog = defineComponent({
+  components: { RemindersView, LkReminderFormDialog },
+  template: '<div><RemindersView /><LkReminderFormDialog /></div>',
+})
+
+async function mountViewWithDialog() {
+  const router = createTestRouter()
+  await router.push({ name: 'lk-reminders' })
+  const wrapper = mount(RemindersViewWithDialog, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
   return { wrapper, router }
 }
 
 describe('RemindersView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLkFormsForTests()
+  })
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 
   it('loads pending reminders (per_page <= 100) on mount', async () => {
@@ -115,29 +147,76 @@ describe('RemindersView', () => {
     )
   })
 
-  it('navigates to the edit route when a card is opened', async () => {
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginatedReminders([makeReminder({ uuid: 'r-1' })]),
-    )
+  it('opens the reminder form modal (edit) with the full reminder when a card is clicked', async () => {
+    const reminder = makeReminder({ uuid: 'r-1' })
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginatedReminders([reminder]))
 
     const { wrapper, router } = await mountView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.lk-reminder-card').trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-reminder-edit'))
-    expect(router.currentRoute.value.params.uuid).toBe('r-1')
+    const forms = useLkForms()
+    expect(forms.isReminderFormOpen.value).toBe(true)
+    expect(forms.reminderFormReminder.value).toEqual(reminder)
+    expect(router.currentRoute.value.name).toBe('lk-reminders')
   })
 
-  it('navigates to the create route from the toolbar button', async () => {
+  it('opens the reminder form modal (creation) from the toolbar button, without navigating', async () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginatedReminders([]))
 
-    const { wrapper, router } = await mountView()
+    const { wrapper } = await mountView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.reminders-view__create-btn').trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-reminder-create'))
+    const forms = useLkForms()
+    expect(forms.isReminderFormOpen.value).toBe(true)
+    expect(forms.reminderFormReminder.value).toBeNull()
+  })
+
+  it('creates a reminder end-to-end through the modal and closes it', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 6, 9, 10, 0))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginatedReminders([]))
+    vi.mocked(remindersApi.createReminder).mockResolvedValue(makeReminder({ uuid: 'r-2' }))
+
+    const { wrapper } = await mountViewWithDialog()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.reminders-view__create-btn').trigger('click')
+    expect(wrapper.find('[aria-label="Новое напоминание"]').exists()).toBe(true)
+
+    await wrapper.find('#reminder-form-title').setValue('Купить корм')
+    const pillGroups = wrapper.findAll('.lk-form-dialog__pills')
+    await pillGroups[0]!.findAll('.lk-form-dialog__pill')[0]!.trigger('click')
+    await pillGroups[1]!.findAll('.lk-form-dialog__pill')[0]!.trigger('click')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.waitFor(() => expect(remindersApi.createReminder).toHaveBeenCalled())
+    expect(wrapper.find('[aria-label="Новое напоминание"]').exists()).toBe(false)
+    vi.useRealTimers()
+  })
+
+  it('reloads the reminders list after a save through the modal (remindersVersion bump)', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 6, 9, 10, 0))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValueOnce(paginatedReminders([]))
+    vi.mocked(remindersApi.createReminder).mockResolvedValue(makeReminder({ uuid: 'r-2' }))
+
+    const { wrapper } = await mountViewWithDialog()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValueOnce(paginatedReminders([makeReminder({ uuid: 'r-2' })]))
+    await wrapper.find('.reminders-view__create-btn').trigger('click')
+    await wrapper.find('#reminder-form-title').setValue('Купить корм')
+    const pillGroups = wrapper.findAll('.lk-form-dialog__pills')
+    await pillGroups[0]!.findAll('.lk-form-dialog__pill')[0]!.trigger('click')
+    await pillGroups[1]!.findAll('.lk-form-dialog__pill')[0]!.trigger('click')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.waitFor(() => expect(remindersApi.fetchReminders).toHaveBeenCalledTimes(2))
+    vi.useRealTimers()
   })
 
   it('completes a reminder', async () => {

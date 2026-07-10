@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
@@ -15,13 +15,9 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   open: [uuid: string]
-  rename: [uuid: string, title: string]
+  edit: [list: ShoppingList]
   remove: [uuid: string]
 }>()
-
-const isRenaming = ref(false)
-const renameValue = ref(props.list.title)
-const renameInput = ref<HTMLInputElement | null>(null)
 
 const STATUS_LABELS = { new: 'Новый', active: 'В работе', done: 'Завершён' } as const
 
@@ -35,29 +31,12 @@ const updatedLabel = computed<string>(() => formatRelativeDate(props.list.update
 const typeLabel = computed<string>(() => (props.list.type === 'tasks' ? 'Сделать' : 'Купить'))
 
 function handleOpen(): void {
-  if (!isRenaming.value) {
-    emit('open', props.list.uuid)
-  }
+  emit('open', props.list.uuid)
 }
 
-async function startRename(event: Event): Promise<void> {
+function handleEdit(event: Event): void {
   event.stopPropagation()
-  renameValue.value = props.list.title
-  isRenaming.value = true
-  await nextTick()
-  renameInput.value?.focus()
-}
-
-function saveRename(): void {
-  const trimmed = renameValue.value.trim()
-  if (trimmed && trimmed !== props.list.title) {
-    emit('rename', props.list.uuid, trimmed)
-  }
-  isRenaming.value = false
-}
-
-function cancelRename(): void {
-  isRenaming.value = false
+  emit('edit', props.list)
 }
 
 function handleRemove(event: Event): void {
@@ -69,17 +48,7 @@ function handleRemove(event: Event): void {
 <template>
   <article class="lk-shopping-list-card" @click="handleOpen">
     <div class="lk-shopping-list-card__main">
-      <form v-if="isRenaming" class="lk-shopping-list-card__rename" @submit.prevent="saveRename" @click.stop>
-        <input
-          ref="renameInput"
-          v-model="renameValue"
-          type="text"
-          :aria-label="`Новое название списка ${list.title}`"
-        />
-        <button type="submit" class="lk-shopping-list-card__rename-save">Сохранить</button>
-        <button type="button" class="lk-shopping-list-card__rename-cancel" @click="cancelRename">Отмена</button>
-      </form>
-      <h3 v-else class="lk-shopping-list-card__title">{{ list.title }}</h3>
+      <h3 class="lk-shopping-list-card__title">{{ list.title }}</h3>
 
       <span class="lk-shopping-list-card__type" :class="`lk-shopping-list-card__type--${list.type}`">
         {{ typeLabel }}
@@ -117,8 +86,8 @@ function handleRemove(event: Event): void {
         <button
           type="button"
           class="lk-shopping-list-card__action"
-          :aria-label="`Переименовать ${list.title}`"
-          @click="startRename"
+          :aria-label="`Редактировать ${list.title}`"
+          @click="handleEdit"
         >
           <LkIcon name="edit" :size="15" />
         </button>
@@ -273,41 +242,5 @@ function handleRemove(event: Event): void {
 .lk-shopping-list-card__action--danger:hover {
   background: #f6dfda;
   color: #cf5b4a;
-}
-
-.lk-shopping-list-card__rename {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.lk-shopping-list-card__rename input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.35rem 0.5rem;
-  border-radius: 8px;
-  border: 1px solid #d8ebe4;
-  font-size: 0.9rem;
-}
-
-.lk-shopping-list-card__rename-save,
-.lk-shopping-list-card__rename-cancel {
-  font-size: 0.78rem;
-  border: none;
-  border-radius: 8px;
-  padding: 0.3rem 0.5rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.lk-shopping-list-card__rename-save {
-  background: #17897a;
-  color: #fff;
-}
-
-.lk-shopping-list-card__rename-cancel {
-  background: #eef1f0;
-  color: #6b716e;
 }
 </style>

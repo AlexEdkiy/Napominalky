@@ -7,6 +7,7 @@ import LkLayout from './LkLayout.vue'
 import { notesApi } from '@/api/notesApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { syncApi } from '@/api/syncApi'
+import { resetLkFormsForTests } from '@/composables/useLkForms'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types/auth'
 
@@ -86,6 +87,7 @@ async function mountLayout(routeName = 'lk-dashboard') {
 describe('LkLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLkFormsForTests()
     setActivePinia(createPinia())
     const auth = useAuthStore()
     auth.setUser(user)
@@ -232,7 +234,7 @@ describe('LkLayout', () => {
     vi.unstubAllGlobals()
   })
 
-  it('navigates to note/reminder creation when picking those create-menu items', async () => {
+  it('opens the note form modal (not a route navigation) when picking "Заметка"', async () => {
     stubMatchMedia(true)
     const { wrapper, router } = await mountLayoutWithRouter()
 
@@ -240,13 +242,29 @@ describe('LkLayout', () => {
     const items = wrapper.findAll('.lk-create-menu__item')
     await items[0]?.trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-note-create'))
     expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Новая заметка"]').exists()).toBe(true)
+    expect(router.currentRoute.value.name).toBe('lk-dashboard')
 
     vi.unstubAllGlobals()
   })
 
-  it('opens the create-list dialog (not a route navigation) when picking "Список"', async () => {
+  it('opens the reminder form modal (not a route navigation) when picking "Напоминание"', async () => {
+    stubMatchMedia(true)
+    const { wrapper, router } = await mountLayoutWithRouter()
+
+    await wrapper.find('.lk-sidebar__create').trigger('click')
+    const items = wrapper.findAll('.lk-create-menu__item')
+    await items[1]?.trigger('click')
+
+    expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Новое напоминание"]').exists()).toBe(true)
+    expect(router.currentRoute.value.name).toBe('lk-dashboard')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('opens the task/list form modal (not a route navigation) when picking "Список"', async () => {
     stubMatchMedia(true)
     const wrapper = await mountLayout()
 
@@ -255,7 +273,7 @@ describe('LkLayout', () => {
     await items[2]?.trigger('click')
 
     expect(wrapper.find('.lk-shell__create-overlay').exists()).toBe(false)
-    expect(wrapper.find('[aria-label="Новый список"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Новая задача / покупка"]').exists()).toBe(true)
 
     vi.unstubAllGlobals()
   })

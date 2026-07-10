@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import LkNoteCard from './LkNoteCard.vue'
-import { colorForNote } from '@/constants/lkNoteColors'
+import { NAMED_NOTE_COLORS, colorForNote } from '@/constants/lkNoteColors'
 import type { Note } from '@/types/note'
 
 /** Конвертирует `#rrggbb` в строку `rgb(r, g, b)`, как её нормализует jsdom в inline style. */
@@ -19,6 +19,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
     uuid: 'note-1',
     title: 'Список покупок',
     body: 'Молоко, хлеб, яйца',
+    color: null,
     is_pinned: false,
     is_archived: false,
     created_at: '2026-07-01T00:00:00Z',
@@ -43,8 +44,8 @@ describe('LkNoteCard', () => {
     expect(wrapper.find('.lk-note-card__title').exists()).toBe(true)
   })
 
-  it('applies the deterministic pastel background from colorForNote(uuid)', () => {
-    const note = makeNote({ uuid: 'sticker-uuid-7' })
+  it('falls back to the deterministic pastel background by uuid when color is null', () => {
+    const note = makeNote({ uuid: 'sticker-uuid-7', color: null })
     const wrapper = mount(LkNoteCard, { props: { note } })
 
     // jsdom нормализует hex в inline style в rgb() — сравниваем через
@@ -52,6 +53,16 @@ describe('LkNoteCard', () => {
     const expectedBg = colorForNote(note.uuid).bg
     const cardEl = wrapper.find('.lk-note-card').element as HTMLElement
     expect(cardEl.style.background).toBe(hexToRgb(expectedBg))
+  })
+
+  it('paints the sticker using the real note.color when it is set (ignoring the uuid fallback)', () => {
+    const note = makeNote({ uuid: 'sticker-uuid-7', color: 'coral' })
+    const wrapper = mount(LkNoteCard, { props: { note } })
+
+    const cardEl = wrapper.find('.lk-note-card').element as HTMLElement
+    expect(cardEl.style.background).toBe(hexToRgb(NAMED_NOTE_COLORS.coral.bg))
+    // Не совпадает с фолбэком по uuid — реальный цвет имеет приоритет.
+    expect(cardEl.style.background).not.toBe(hexToRgb(colorForNote(note.uuid).bg))
   })
 
   it('renders the pin button as inactive (outline) when the note is not pinned', () => {

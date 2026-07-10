@@ -11,6 +11,19 @@ export interface LkNoteColor {
   accent: string
 }
 
+/**
+ * Палитра РЕАЛЬНОГО поля `notes.color` (см. `types/note.ts#NoteColor`) —
+ * бэкенд принимает только `teal | coral | amber | purple`. Тона переиспользуют
+ * ту же палитру, что и `lkTagColors.ts` (teal, «Важное»/coral, amber, лиловый
+ * «Звонки»/purple), чтобы визуальный язык оставался единым в приложении.
+ */
+export const NAMED_NOTE_COLORS: Record<'teal' | 'coral' | 'amber' | 'purple', LkNoteColor> = {
+  teal: { bg: '#d8ebe4', accent: '#17897a' },
+  coral: { bg: '#f6dfda', accent: '#cf5b4a' },
+  amber: { bg: '#f7ebd5', accent: '#c98a2b' },
+  purple: { bg: '#e6e1f5', accent: '#7b6bb0' },
+}
+
 const NOTE_PALETTE: LkNoteColor[] = [
   { bg: '#f7ebd5', accent: '#c98a2b' },
   { bg: '#d8ebe4', accent: '#17897a' },
@@ -38,4 +51,16 @@ function hashString(value: string): number {
 export function colorForNote(uuid: string): LkNoteColor {
   const index = hashString(uuid) % NOTE_PALETTE.length
   return NOTE_PALETTE[index] ?? DEFAULT_NOTE_COLOR
+}
+
+/**
+ * Цвет стикера по РЕАЛЬНОМУ значению `note.color` — если оно задано;
+ * иначе — прежний детерминированный фолбэк по `uuid` (`colorForNote`), чтобы
+ * старые заметки без цвета не «прыгали» между перерисовками.
+ */
+export function colorForNoteValue(color: string | null, uuid: string): LkNoteColor {
+  if (color !== null && color in NAMED_NOTE_COLORS) {
+    return NAMED_NOTE_COLORS[color as keyof typeof NAMED_NOTE_COLORS]
+  }
+  return colorForNote(uuid)
 }

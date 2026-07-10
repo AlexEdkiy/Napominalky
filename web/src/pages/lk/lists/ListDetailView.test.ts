@@ -6,6 +6,7 @@ import { defineComponent, h } from 'vue'
 import ListDetailView from './ListDetailView.vue'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { provideLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
+import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 
 const list: ShoppingList = {
@@ -68,6 +69,7 @@ async function mountDetail() {
 describe('ListDetailView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLkFormsForTests()
   })
 
   it('shows a loading state before the list and items resolve', async () => {
@@ -226,6 +228,35 @@ describe('ListDetailView', () => {
 
     await wrapper.find('.lk-list-item-row__remove').trigger('click')
     await vi.waitFor(() => expect(shoppingListsApi.deleteItem).toHaveBeenCalledWith('l-1', 'i-1'))
+  })
+
+  it('opens the task/list form (edit mode) with the loaded list when the pencil button is clicked', async () => {
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue(list)
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
+
+    const wrapper = await mountDetail()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.list-detail__edit').trigger('click')
+
+    const forms = useLkForms()
+    expect(forms.isTaskFormOpen.value).toBe(true)
+    expect(forms.taskFormList.value).toEqual(list)
+  })
+
+  it('reloads the list after a successful save through the task/list form (tasksVersion bump)', async () => {
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue(list)
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
+
+    const wrapper = await mountDetail()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+    vi.mocked(shoppingListsApi.fetchList).mockClear()
+
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue({ ...list, title: 'Обновлено' })
+    useLkForms().notifyTaskSaved()
+
+    await vi.waitFor(() => expect(shoppingListsApi.fetchList).toHaveBeenCalledWith('l-1'))
+    await vi.waitFor(() => expect(wrapper.find('.list-detail__title').text()).toBe('Обновлено'))
   })
 })
 

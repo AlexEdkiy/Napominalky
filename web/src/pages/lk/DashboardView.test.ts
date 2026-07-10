@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import type { VueWrapper } from '@vue/test-utils'
 
 import DashboardView from './DashboardView.vue'
 import { notesApi } from '@/api/notesApi'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { Reminder } from '@/types/reminder'
 
 const TODAY = new Date(2026, 6, 6, 9, 0)
@@ -46,22 +48,31 @@ function createTestRouter() {
   })
 }
 
+// `useLkForms`/`remindersVersion` — module-level singleton: если не
+// размонтировать компоненты, их `watch(remindersVersion, ...)` продолжает
+// реагировать на бампы версии из последующих тестов. Отслеживаем обёртки и
+// размонтируем в `afterEach`.
+const mountedWrappers: VueWrapper[] = []
+
 async function mountDashboard() {
   const router = createTestRouter()
   await router.push({ name: 'lk-dashboard' })
   const wrapper = mount(DashboardView, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
   return { wrapper, router }
 }
 
 describe('DashboardView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLkFormsForTests()
     vi.useFakeTimers()
     vi.setSystemTime(TODAY)
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 
   it('shows a loading state before the data resolves', async () => {
@@ -204,11 +215,10 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Нет задач на сегодня')
   })
 
-  it('navigates to the reminder edit form when clicking a "today" row body (not the checkbox)', async () => {
+  it('opens the reminder form modal (not a route navigation) when clicking a "today" row body', async () => {
+    const reminder = makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([reminder]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
 
     const { wrapper, router } = await mountDashboard()
@@ -216,24 +226,40 @@ describe('DashboardView', () => {
 
     await wrapper.find('.lk-reminder-item__body').trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-reminder-edit'))
-    expect(router.currentRoute.value.params.uuid).toBe('r-1')
+    const forms = useLkForms()
+    expect(forms.isReminderFormOpen.value).toBe(true)
+    expect(forms.reminderFormReminder.value).toEqual(reminder)
+    expect(router.currentRoute.value.name).toBe('lk-dashboard')
   })
 
-  it('navigates to the reminder edit form when clicking an "upcoming" row body', async () => {
+  it('opens the reminder form modal when clicking an "upcoming" row body', async () => {
+    const reminder = makeReminder('r-2', new Date(2026, 6, 8, 10, 0).toISOString())
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-2', new Date(2026, 6, 8, 10, 0).toISOString())]),
-    )
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([reminder]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
 
-    const { wrapper, router } = await mountDashboard()
+    const { wrapper } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.lk-reminder-item__body').trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-reminder-edit'))
-    expect(router.currentRoute.value.params.uuid).toBe('r-2')
+    const forms = useLkForms()
+    expect(forms.isReminderFormOpen.value).toBe(true)
+    expect(forms.reminderFormReminder.value).toEqual(reminder)
+  })
+
+  it('reloads the overview after a save through the reminder form modal (remindersVersion bump)', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+    vi.mocked(shoppingListsApi.fetchLists).mockClear()
+
+    useLkForms().notifyReminderSaved()
+
+    await vi.waitFor(() => expect(shoppingListsApi.fetchLists).toHaveBeenCalledTimes(1))
   })
 
   it('navigates to the stat card target route when a stat card is clicked', async () => {

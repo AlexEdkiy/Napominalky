@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { defineComponent } from 'vue'
+import type { VueWrapper } from '@vue/test-utils'
 
 import NotesListView from './NotesListView.vue'
+import LkNoteFormDialog from '@/components/lk/LkNoteFormDialog.vue'
 import { notesApi } from '@/api/notesApi'
+import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { Note } from '@/types/note'
 
 function makeNote(overrides: Partial<Note>): Note {
@@ -11,6 +15,7 @@ function makeNote(overrides: Partial<Note>): Note {
     uuid: 'n-1',
     title: 'Заметка',
     body: 'Немного текста заметки',
+    color: null,
     is_pinned: false,
     is_archived: false,
     created_at: '2026-07-01T00:00:00Z',
@@ -36,21 +41,45 @@ function createTestRouter() {
   })
 }
 
+// `useLkForms`/`notesVersion` — module-level singleton: если не размонтировать
+// компоненты, их `watch(notesVersion, ...)` продолжает реагировать на бампы
+// версии из последующих тестов. Отслеживаем обёртки и размонтируем в `afterEach`.
+const mountedWrappers: VueWrapper[] = []
+
 async function mountNotesView() {
   const router = createTestRouter()
   await router.push({ name: 'lk-notes' })
   const wrapper = mount(NotesListView, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
+  return { wrapper, router }
+}
+
+// Модалка «Заметка» рендерится один раз в `LkLayout`, а не в `NotesListView` —
+// для интеграционных тестов (create/edit через модалку) монтируем оба
+// компонента рядом, как это делает реальный `LkLayout`.
+const NotesViewWithDialog = defineComponent({
+  components: { NotesListView, LkNoteFormDialog },
+  template: '<div><NotesListView /><LkNoteFormDialog /></div>',
+})
+
+async function mountNotesViewWithDialog() {
+  const router = createTestRouter()
+  await router.push({ name: 'lk-notes' })
+  const wrapper = mount(NotesViewWithDialog, { global: { plugins: [router] } })
+  mountedWrappers.push(wrapper)
   return { wrapper, router }
 }
 
 describe('NotesListView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetLkFormsForTests()
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.useRealTimers()
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 
   it('shows a loading state before the notes resolve', async () => {
@@ -220,25 +249,64 @@ describe('NotesListView', () => {
     expect(notesApi.deleteNote).not.toHaveBeenCalled()
   })
 
-  it('navigates to the create route when the toolbar button is clicked', async () => {
+  it('opens the note form modal (creation) when the toolbar button is clicked, without navigating', async () => {
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([]))
 
     const { wrapper, router } = await mountNotesView()
     await vi.waitFor(() => expect(wrapper.findAll('.lk-note-skeleton')).toHaveLength(0))
 
     await wrapper.find('.lk-notes-toolbar__create').trigger('click')
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-note-create'))
+
+    const forms = useLkForms()
+    expect(forms.isNoteFormOpen.value).toBe(true)
+    expect(forms.noteFormNote.value).toBeNull()
+    expect(router.currentRoute.value.name).toBe('lk-notes')
   })
 
-  it('navigates to the edit route when a note card is opened', async () => {
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([makeNote({ uuid: 'n-1' })]))
+  it('opens the note form modal (edit) with the full note when a card is clicked', async () => {
+    const note = makeNote({ uuid: 'n-1', title: 'Список покупок на дачу' })
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([note]))
 
-    const { wrapper, router } = await mountNotesView()
+    const { wrapper } = await mountNotesView()
     await vi.waitFor(() => expect(wrapper.findAll('.lk-note-skeleton')).toHaveLength(0))
 
     await wrapper.find('.lk-note-card').trigger('click')
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-note-edit'))
-    expect(router.currentRoute.value.params.uuid).toBe('n-1')
+
+    const forms = useLkForms()
+    expect(forms.isNoteFormOpen.value).toBe(true)
+    expect(forms.noteFormNote.value).toEqual(note)
+  })
+
+  it('creates a note end-to-end through the modal and closes it', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.createNote).mockResolvedValue(makeNote({ uuid: 'n-2', title: 'Новая заметка' }))
+
+    const { wrapper } = await mountNotesViewWithDialog()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-note-skeleton')).toHaveLength(0))
+
+    await wrapper.find('.lk-notes-toolbar__create').trigger('click')
+    expect(wrapper.find('[aria-label="Новая заметка"]').exists()).toBe(true)
+
+    await wrapper.find('#note-form-title').setValue('Новая заметка')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.waitFor(() => expect(notesApi.createNote).toHaveBeenCalled())
+    expect(wrapper.find('[aria-label="Новая заметка"]').exists()).toBe(false)
+  })
+
+  it('reloads the notes grid after a save through the modal (notesVersion bump)', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValueOnce(paginated([]))
+    vi.mocked(notesApi.createNote).mockResolvedValue(makeNote({ uuid: 'n-2', title: 'Новая заметка' }))
+
+    const { wrapper } = await mountNotesViewWithDialog()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-note-skeleton')).toHaveLength(0))
+
+    vi.mocked(notesApi.fetchNotes).mockResolvedValueOnce(paginated([makeNote({ uuid: 'n-2' })]))
+    await wrapper.find('.lk-notes-toolbar__create').trigger('click')
+    await wrapper.find('#note-form-title').setValue('Новая заметка')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.waitFor(() => expect(notesApi.fetchNotes).toHaveBeenCalledTimes(2))
   })
 
   it('shows a "load more" button when there is another page and requests it', async () => {
