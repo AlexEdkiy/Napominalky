@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-10 (веб-ЛК: фикс открытия чужого списка + крошки/тень заметки по макету — WEB-22)
+> Последнее обновление: 2026-07-10 (веб-ЛК: topbar по макету — бургер/колокол в чипах, иконка-тоггл, заголовок 22/900 — WEB-23)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 22           | web-developer             |
+| WEB     | 23           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 8            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 6            | devops-engineer           |
-| DOC     | 13           | technical-writer          |
+| DOC     | 14           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 89 |
+| Completed | 90 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1822,6 +1822,22 @@
   - [x] Крошки: «Главная», teal-текущая, шеврон, крошка открытой формы
   - [x] Карточка заметки: цветная верхняя граница + тень по макету
   - [x] vue-tsc OK, Vitest зелёный (430)
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+### WEB-23: Topbar по десктоп-макету (бургер/колокол в чипах, иконка-тоггл, заголовок 22/900, токены)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-21
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Поэлементная сверка topbar с макетом и приведение «хрома»: хедер height 78px/padding 0 30px/border #e6e9e7; бургер — иконка-тоггл сайдбара (новая `sidebar` в LkIcon) в чипе 44×44 `#f2f4f3` r12 (была гамбургер без фона); заголовок H1 22px/900; поиск и колокол — чипы `#f2f4f3` r12 (были #eef1f0 r10), колокол 44×44, точка-индикатор 8×8 `#e2685f` с рамкой. Подзаголовок оставлен (осознанное отклонение — в макетном topbar его нет). Крошки не трогались (приведены ранее).
+- **Файлы:** `web/src/components/lk/LkTopbar.vue`, `web/src/components/lk/LkIcon.vue`, `web/src/types/lkIcon.ts`, `web/src/components/lk/LkTopbar.test.ts`
+- **Критерии приёмки:**
+  - [x] Бургер/колокол/поиск — чипы `#f2f4f3` r12; бургер = иконка-тоггл
+  - [x] Заголовок 22/900, хедер 78px, токены по макету
+  - [x] vue-tsc OK, Vitest зелёный (436)
 - **Создана:** 2026-07-10
 - **Завершена:** 2026-07-10
 
