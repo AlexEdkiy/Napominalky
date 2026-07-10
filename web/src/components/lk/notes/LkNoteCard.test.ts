@@ -65,6 +65,24 @@ describe('LkNoteCard', () => {
     expect(cardEl.style.background).not.toBe(hexToRgb(colorForNote(note.uuid).bg))
   })
 
+  it('draws a 4px top border in the note accent color (sticker style per mockup)', () => {
+    const note = makeNote({ uuid: 'sticker-uuid-7', color: 'coral' })
+    const wrapper = mount(LkNoteCard, { props: { note } })
+
+    const cardEl = wrapper.find('.lk-note-card').element as HTMLElement
+    expect(cardEl.style.borderTopWidth).toBe('4px')
+    expect(cardEl.style.borderTopStyle).toBe('solid')
+    expect(cardEl.style.borderTopColor).toBe(hexToRgb(NAMED_NOTE_COLORS.coral.accent))
+  })
+
+  it('uses the uuid-fallback accent for the top border when color is null', () => {
+    const note = makeNote({ uuid: 'sticker-uuid-7', color: null })
+    const wrapper = mount(LkNoteCard, { props: { note } })
+
+    const cardEl = wrapper.find('.lk-note-card').element as HTMLElement
+    expect(cardEl.style.borderTopColor).toBe(hexToRgb(colorForNote(note.uuid).accent))
+  })
+
   it('renders the pin button as inactive (outline) when the note is not pinned', () => {
     const wrapper = mount(LkNoteCard, { props: { note: makeNote({ is_pinned: false }) } })
 

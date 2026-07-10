@@ -48,7 +48,7 @@ function handleRemove(event: Event): void {
     class="lk-note-card"
     role="button"
     tabindex="0"
-    :style="{ background: color.bg }"
+    :style="{ background: color.bg, borderTop: `4px solid ${color.accent}` }"
     @click="handleOpen"
     @keydown.enter="handleOpen"
     @keydown.space.prevent="handleOpen"
@@ -101,7 +101,9 @@ function handleRemove(event: Event): void {
   break-inside: avoid;
   margin-bottom: 1rem;
   border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  /* Тень как в макете; цветная верхняя граница (4px, accent заметки)
+     задаётся inline через `color.accent` — цвет зависит от данных. */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   padding: 1rem 1.1rem 0.75rem;
   cursor: pointer;
   text-align: left;
@@ -110,7 +112,7 @@ function handleRemove(event: Event): void {
 
 .lk-note-card:hover,
 .lk-note-card:focus-visible {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.1);
   outline: none;
 }
 

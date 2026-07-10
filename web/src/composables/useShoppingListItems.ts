@@ -1,4 +1,5 @@
-import { computed, ref } from 'vue'
+import { computed, ref, toValue } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import type {
@@ -9,9 +10,12 @@ import type {
 
 /**
  * Инкапсулирует реактивное состояние позиций конкретного списка покупок.
- * Принимает uuid списка как аргумент.
+ * Принимает uuid списка как `MaybeRefOrGetter` и резолвит его через
+ * `toValue()` ВНУТРИ каждого метода — иначе при навигации между деталями
+ * двух списков (компонент переиспользуется Vue) методы продолжили бы
+ * работать со старым uuid, замкнутым при первом монтировании.
  */
-export function useShoppingListItems(listUuid: string) {
+export function useShoppingListItems(listUuid: MaybeRefOrGetter<string>) {
   const items = ref<ShoppingListItem[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -36,7 +40,7 @@ export function useShoppingListItems(listUuid: string) {
     isLoading.value = true
     error.value = null
     try {
-      items.value = await shoppingListsApi.fetchItems(listUuid)
+      items.value = await shoppingListsApi.fetchItems(toValue(listUuid))
     } catch (e) {
       resolveError(e)
     } finally {
@@ -47,7 +51,7 @@ export function useShoppingListItems(listUuid: string) {
   async function add(payload: CreateShoppingListItemPayload): Promise<ShoppingListItem | null> {
     error.value = null
     try {
-      const item = await shoppingListsApi.addItem(listUuid, payload)
+      const item = await shoppingListsApi.addItem(toValue(listUuid), payload)
       items.value = [...items.value, item]
       return item
     } catch (e) {
@@ -62,7 +66,7 @@ export function useShoppingListItems(listUuid: string) {
   ): Promise<ShoppingListItem | null> {
     error.value = null
     try {
-      const item = await shoppingListsApi.updateItem(listUuid, itemUuid, payload)
+      const item = await shoppingListsApi.updateItem(toValue(listUuid), itemUuid, payload)
       replaceItem(item)
       return item
     } catch (e) {
@@ -74,7 +78,7 @@ export function useShoppingListItems(listUuid: string) {
   async function remove(itemUuid: string): Promise<boolean> {
     error.value = null
     try {
-      await shoppingListsApi.deleteItem(listUuid, itemUuid)
+      await shoppingListsApi.deleteItem(toValue(listUuid), itemUuid)
       items.value = items.value.filter((item) => item.uuid !== itemUuid)
       return true
     } catch (e) {
@@ -86,7 +90,7 @@ export function useShoppingListItems(listUuid: string) {
   async function check(itemUuid: string, isChecked: boolean): Promise<ShoppingListItem | null> {
     error.value = null
     try {
-      const item = await shoppingListsApi.checkItem(listUuid, itemUuid, isChecked)
+      const item = await shoppingListsApi.checkItem(toValue(listUuid), itemUuid, isChecked)
       replaceItem(item)
       return item
     } catch (e) {

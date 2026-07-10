@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { defineComponent, h } from 'vue'
+import { defineComponent } from 'vue'
 
 import ListDetailView from './ListDetailView.vue'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
@@ -242,6 +242,75 @@ describe('ListDetailView', () => {
     const forms = useLkForms()
     expect(forms.isTaskFormOpen.value).toBe(true)
     expect(forms.taskFormList.value).toEqual(list)
+  })
+
+  it('reloads data and shows the NEW empty list after in-place navigation uuid A → B (component reuse)', async () => {
+    // Сценарий бага: пользователь на детали списка A создаёт новый список B,
+    // task-форма пушит lk-list-detail с новым uuid — Vue переиспользует
+    // компонент (setup не выполняется заново), но должен показаться ИМЕННО B.
+    const listB: ShoppingList = {
+      ...list,
+      uuid: 'l-2',
+      title: 'Новый пустой список',
+      items_count: 0,
+      checked_items_count: 0,
+    }
+    vi.mocked(shoppingListsApi.fetchList).mockImplementation(
+      (uuid) => Promise.resolve(uuid === 'l-2' ? listB : list),
+    )
+    vi.mocked(shoppingListsApi.fetchItems).mockImplementation(
+      (uuid) => Promise.resolve(uuid === 'l-2' ? [] : [makeItem({ uuid: 'i-1', name: 'Молоко' })]),
+    )
+
+    const router = createTestRouter()
+    await router.push({ name: 'lk-list-detail', params: { uuid: 'l-1' } })
+    const wrapper = mount(makeHost(), { global: { plugins: [router] } })
+    await vi.waitFor(() => expect(wrapper.find('.list-detail__title').text()).toBe('Продукты на неделю'))
+    expect(wrapper.text()).toContain('Молоко')
+
+    // Черновик формы добавления пункта не должен «переехать» на новый список.
+    await wrapper.find('.list-detail__add input').setValue('Черновик')
+
+    await router.push({ name: 'lk-list-detail', params: { uuid: 'l-2' } })
+
+    await vi.waitFor(() => expect(wrapper.find('.list-detail__title').text()).toBe('Новый пустой список'))
+    expect(shoppingListsApi.fetchList).toHaveBeenCalledWith('l-2')
+    expect(shoppingListsApi.fetchItems).toHaveBeenCalledWith('l-2')
+    expect(wrapper.text()).not.toContain('Молоко')
+    expect(wrapper.text()).toContain('В списке пока нет пунктов')
+    expect(wrapper.find('.tail').text()).toBe('Новый пустой список')
+    expect((wrapper.find('.list-detail__add input').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('adds and removes items under the NEW uuid after in-place navigation A → B', async () => {
+    const listB: ShoppingList = { ...list, uuid: 'l-2', title: 'Список B', items_count: 0, checked_items_count: 0 }
+    vi.mocked(shoppingListsApi.fetchList).mockImplementation(
+      (uuid) => Promise.resolve(uuid === 'l-2' ? listB : list),
+    )
+    vi.mocked(shoppingListsApi.fetchItems).mockImplementation(
+      (uuid) => Promise.resolve(uuid === 'l-2' ? [] : [makeItem({ uuid: 'i-1', name: 'Молоко' })]),
+    )
+    vi.mocked(shoppingListsApi.addItem).mockResolvedValue(makeItem({ uuid: 'i-9', name: 'Хлеб' }))
+    vi.mocked(shoppingListsApi.deleteItem).mockResolvedValue(undefined)
+
+    const router = createTestRouter()
+    await router.push({ name: 'lk-list-detail', params: { uuid: 'l-1' } })
+    const wrapper = mount(makeHost(), { global: { plugins: [router] } })
+    await vi.waitFor(() => expect(wrapper.find('.list-detail__title').text()).toBe('Продукты на неделю'))
+
+    await router.push({ name: 'lk-list-detail', params: { uuid: 'l-2' } })
+    await vi.waitFor(() => expect(wrapper.find('.list-detail__title').text()).toBe('Список B'))
+
+    // Мутации на «новом» списке идут под новый uuid, а не под замкнутый старый.
+    await wrapper.find('.list-detail__add input').setValue('Хлеб')
+    await wrapper.find('.list-detail__add').trigger('submit')
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.addItem).toHaveBeenCalledWith('l-2', { name: 'Хлеб', category: 'products' }),
+    )
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Хлеб'))
+    await wrapper.find('.lk-list-item-row__remove').trigger('click')
+    await vi.waitFor(() => expect(shoppingListsApi.deleteItem).toHaveBeenCalledWith('l-2', 'i-9'))
   })
 
   it('reloads the list after a successful save through the task/list form (tasksVersion bump)', async () => {

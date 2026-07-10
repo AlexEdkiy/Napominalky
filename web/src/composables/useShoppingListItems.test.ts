@@ -62,6 +62,22 @@ describe('useShoppingListItems', () => {
     expect(items.value[0]?.is_checked).toBe(true)
   })
 
+  it('resolves the uuid getter on EACH call (reactive to route param changes)', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
+    vi.mocked(shoppingListsApi.addItem).mockResolvedValue({ ...item, uuid: 'i-3', name: 'Хлеб' })
+
+    let uuid = 'l-1'
+    const { load, add } = useShoppingListItems(() => uuid)
+    await load()
+    expect(shoppingListsApi.fetchItems).toHaveBeenLastCalledWith('l-1')
+
+    uuid = 'l-2'
+    await load()
+    expect(shoppingListsApi.fetchItems).toHaveBeenLastCalledWith('l-2')
+    await add({ name: 'Хлеб', category: 'products' })
+    expect(shoppingListsApi.addItem).toHaveBeenCalledWith('l-2', { name: 'Хлеб', category: 'products' })
+  })
+
   it('remove drops the item from the collection', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
     vi.mocked(shoppingListsApi.deleteItem).mockResolvedValue(undefined)

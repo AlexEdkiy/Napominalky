@@ -18,7 +18,10 @@ interface CategoryGroup {
 }
 
 const route = useRoute()
-const listUuid = route.params.uuid as string
+// Геттер, а не снимок: при навигации lk-list-detail → lk-list-detail с другим
+// uuid Vue переиспользует компонент (setup не выполняется заново) — композаблы
+// должны читать АКТУАЛЬНЫЙ uuid маршрута при каждом вызове своих методов.
+const listUuid = (): string => route.params.uuid as string
 const { openTaskForm, tasksVersion } = useLkForms()
 
 const { list, isLoading: isListLoading, error: listError, load: loadList } = useShoppingList(listUuid)
@@ -66,7 +69,7 @@ const groups = computed<CategoryGroup[]>(() => {
   return [...byCategory.values()]
 })
 
-// Хлебные крошки («Личный кабинет / Задачи и списки / {Название}») читают
+// Хлебные крошки («Главная / Задачи и списки / {Название}») читают
 // название списка отсюда — из уже загруженной сущности, без лишних запросов.
 useSetLkBreadcrumbTail(() => list.value?.title ?? null)
 
@@ -99,6 +102,24 @@ function handleEditList(): void {
 // список после успешного сохранения через неё (название/тип/теги могли
 // измениться, см. `notifyTaskSaved`).
 watch(tasksVersion, () => void loadList())
+
+// Смена uuid в рамках того же маршрута (создали список, находясь на детали
+// другого) — компонент переиспользуется, перезагружаем данные под новый uuid
+// и сбрасываем форму добавления пункта. Guard по типу: при уходе с маршрута
+// uuid становится undefined — перезагрузка не нужна.
+watch(
+  () => route.params.uuid,
+  (uuid) => {
+    if (typeof uuid !== 'string') {
+      return
+    }
+    newName.value = ''
+    newCategory.value = 'products'
+    void loadList()
+    void loadItems()
+  },
+  { flush: 'post' },
+)
 
 onMounted(() => {
   void loadList()
