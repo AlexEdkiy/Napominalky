@@ -80,6 +80,12 @@ withDefaults(defineProps<Props>(), { size: 20 })
       <path d="M4 17h16" />
     </template>
 
+    <template v-else-if="name === 'sidebar'">
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M9 4v16" />
+      <path d="M5.5 8h1" />
+    </template>
+
     <template v-else-if="name === 'plus'">
       <path d="M12 5v14" />
       <path d="M5 12h14" />
