@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-10 (веб-ЛК: 6 форм в модалках по макету — WEB-21, UITEST-8)
+> Последнее обновление: 2026-07-10 (веб-ЛК: фикс открытия чужого списка + крошки/тень заметки по макету — WEB-22)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 11           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 21           | web-developer             |
+| WEB     | 22           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 8            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 6            | devops-engineer           |
-| DOC     | 12           | technical-writer          |
+| DOC     | 13           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 88 |
+| Completed | 89 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1805,6 +1805,23 @@
   - [x] Сверка стиля модалок и полей всех 6 форм с макетом
   - [x] Проверена сборка remind_at и запись color заметки
   - [x] Fidelity-тесты добавлены, Vitest зелёный (417), vue-tsc чист
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+### WEB-22: Фикс открытия чужого списка (реактивный uuid) + крошки и тень/граница заметки по макету
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-21
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) Баг: при создании нового (пустого) списка, находясь на детали другого списка, открывался старый список — `ListDetailView` фиксировал `route.params.uuid` один раз, а `useShoppingList`/`useShoppingListItems` замыкались на снимок; при переходе lk-list-detail→lk-list-detail Vue переиспользует компонент (setup не перезапускается). Фикс: композаблы принимают `MaybeRefOrGetter<string>` и резолвят uuid через `toValue` внутри каждого метода; `ListDetailView` передаёт геттер + `watch(route.params.uuid)` перезагружает список/пункты и сбрасывает форму. (2) Крошки по макету: первая метка «Личный кабинет»→«Главная», текущая крошка teal `#17897a`/700, ссылки `#8a938f`, разделитель-шеврон; при открытой форме-модалке добавляется крошка формы («Новая задача / покупка» и т.п.) через `useLkForms`. (3) Карточка заметки: цветная верхняя граница `4px solid accent` + тень `0 6px 16px rgba(0,0,0,.06)` как в макете.
+- **Файлы:** `web/src/composables/{useShoppingList,useShoppingListItems}.ts`, `web/src/pages/lk/lists/ListDetailView.vue`, `web/src/constants/lkBreadcrumbs.ts`, `web/src/components/lk/LkBreadcrumbs.vue`, `web/src/components/lk/notes/LkNoteCard.vue`
+- **Критерии приёмки:**
+  - [x] Новый список открывается правильным и пустым (в т.ч. с детали другого списка); reproduction-тест A→B
+  - [x] Крошки: «Главная», teal-текущая, шеврон, крошка открытой формы
+  - [x] Карточка заметки: цветная верхняя граница + тень по макету
+  - [x] vue-tsc OK, Vitest зелёный (430)
 - **Создана:** 2026-07-10
 - **Завершена:** 2026-07-10
 
