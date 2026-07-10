@@ -246,6 +246,63 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  // ---------------------------------------------------------------------
+  // UI-fidelity: поэлементное соответствие макету (см. web-lk-forms.md,
+  // форма 1) — лейблы секций, placeholder, 7 пресет-тегов в порядке макета
+  // и раскраска чипов из tagPal (невыбран bg=tagPal.bg; выбран bg=tagPal.fg).
+  // ---------------------------------------------------------------------
+
+  it('renders the макет section labels, placeholder and submit label', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm()
+    await wrapper.vm.$nextTick()
+
+    const labels = wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())
+    expect(labels).toEqual(['Название', 'Тип', 'Теги'])
+    expect(wrapper.find('#task-form-title').attributes('placeholder')).toBe('Что нужно сделать или купить?')
+    expect(wrapper.find('.lk-form-dialog__submit').text()).toBe('Создать')
+    expect(wrapper.find('.lk-form-dialog__cancel').text()).toBe('Отмена')
+    vi.unstubAllGlobals()
+  })
+
+  it('shows «Сохранить» as the submit label in edit mode', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.lk-form-dialog__submit').text()).toBe('Сохранить')
+    vi.unstubAllGlobals()
+  })
+
+  it('renders all 7 preset tag chips in the макет order with tagPal colors', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm()
+    await wrapper.vm.$nextTick()
+
+    const chips = wrapper.findAll('.lk-form-dialog__tag')
+    expect(chips.map((chip) => chip.text())).toEqual([
+      'Покупки',
+      'Дом',
+      'Личное',
+      'Важное',
+      'Звонки',
+      'Счета',
+      'Здоровье',
+    ])
+
+    // Невыбранный чип «Покупки»: bg = tagPal.bg (#d8ebe4), текст = tagPal.fg.
+    const shopping = chips[0]!
+    expect(shopping.attributes('style')).toContain('rgb(216, 235, 228)')
+
+    // Выбранный чип: bg = tagPal.fg (#17897a), текст белый.
+    await shopping.trigger('click')
+    expect(shopping.classes()).toContain('lk-form-dialog__tag--active')
+    const activeStyle = shopping.attributes('style') ?? ''
+    expect(activeStyle).toContain('rgb(23, 137, 122)')
+    expect(activeStyle).toContain('rgb(255, 255, 255)')
+    vi.unstubAllGlobals()
+  })
+
   it('renders as a bottom sheet on mobile and a centered modal on desktop', async () => {
     stubMatchMedia(false)
     const router = createTestRouter()

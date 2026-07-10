@@ -212,6 +212,56 @@ describe('LkNoteFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  // ---------------------------------------------------------------------
+  // UI-fidelity: поэлементное соответствие макету (см. web-lk-forms.md,
+  // форма 2) — лейблы секций, placeholder'ы и ровно 4 свотча цвета стикера
+  // в порядке teal/coral/amber/purple (ограничение бэкенда, не 6 из макета).
+  // ---------------------------------------------------------------------
+
+  it('renders the макет section labels, placeholders and submit label', async () => {
+    const wrapper = mountDialog()
+    useLkForms().openNoteForm()
+    await wrapper.vm.$nextTick()
+
+    const labels = wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())
+    expect(labels).toEqual(['Заголовок', 'Текст', 'Цвет стикера'])
+    expect(wrapper.find('#note-form-title').attributes('placeholder')).toBe('О чём заметка?')
+    expect(wrapper.find('#note-form-body').attributes('placeholder')).toBe('Запишите, пока не забылось…')
+    expect(wrapper.find('.lk-form-dialog__submit').text()).toBe('Создать')
+
+    // В форме НЕТ тега и тумблеров «Закрепить»/«В архив» (решение брифа).
+    expect(wrapper.text()).not.toContain('Закрепить')
+    expect(wrapper.text()).not.toContain('Архив')
+    vi.unstubAllGlobals()
+  })
+
+  it('shows «Сохранить» as the submit label in edit mode', async () => {
+    const wrapper = mountDialog()
+    useLkForms().openNoteForm(note)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.lk-form-dialog__submit').text()).toBe('Сохранить')
+    vi.unstubAllGlobals()
+  })
+
+  it('renders exactly 4 color swatches in the teal/coral/amber/purple order with pastel fills', async () => {
+    const wrapper = mountDialog()
+    useLkForms().openNoteForm()
+    await wrapper.vm.$nextTick()
+
+    const swatches = wrapper.findAll('.lk-note-form-dialog__swatch')
+    expect(swatches.map((swatch) => swatch.attributes('aria-label'))).toEqual([
+      'teal',
+      'coral',
+      'amber',
+      'purple',
+    ])
+    // Пастельные фоны из NAMED_NOTE_COLORS: teal #d8ebe4 и coral #f6dfda.
+    expect(swatches[0]!.attributes('style')).toContain('rgb(216, 235, 228)')
+    expect(swatches[1]!.attributes('style')).toContain('rgb(246, 223, 218)')
+    vi.unstubAllGlobals()
+  })
+
   it('renders as a bottom sheet on mobile and a centered modal on desktop', async () => {
     stubMatchMedia(false)
     const mobile = mount(LkNoteFormDialog)
