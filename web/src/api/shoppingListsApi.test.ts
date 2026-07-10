@@ -10,6 +10,7 @@ const wireList = {
   tags: '["Покупки","Здоровье"]',
   items_count: 0,
   checked_items_count: 0,
+  is_completed: false,
   created_at: '2026-07-01T00:00:00Z',
   updated_at: '2026-07-01T00:00:00Z',
 }
@@ -53,6 +54,15 @@ describe('shoppingListsApi', () => {
       title: 'Продукты',
       tags: '["Покупки","Здоровье"]',
     })
+  })
+
+  it('passes is_completed through to PUT and returns it from the resource', async () => {
+    vi.mocked(apiClient.put).mockResolvedValue({ data: { data: { ...wireList, is_completed: true } } })
+
+    const result = await shoppingListsApi.updateList('l-1', { is_completed: true })
+
+    expect(apiClient.put).toHaveBeenCalledWith('/shopping-lists/l-1', { is_completed: true })
+    expect(result.is_completed).toBe(true)
   })
 
   it('normalizes the opaque tags JSON string back into a string array on fetch', async () => {

@@ -124,10 +124,14 @@ const lkRoutes: RouteRecordRaw = {
       component: () => import('@/pages/lk/lists/ListsView.vue'),
       meta: { title: 'Списки покупок' },
     },
+    // Детали списка — теперь центральная модалка «Задача/покупка»
+    // (`LkTaskFormDialog` редактирует и пункты). Маршрут остаётся рабочим
+    // deep-link'ом: тонкий редирект открывает модалку поверх таблицы
+    // «Задачи и списки» (см. `ListFormRedirectView.vue`).
     {
       path: 'lists/:uuid',
       name: 'lk-list-detail',
-      component: () => import('@/pages/lk/lists/ListDetailView.vue'),
+      component: () => import('@/pages/lk/lists/ListFormRedirectView.vue'),
       meta: { title: 'Список покупок' },
     },
     // Reminders

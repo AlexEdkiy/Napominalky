@@ -6,7 +6,7 @@ import type { InjectionKey, Ref } from 'vue'
  * (название списка покупок, заметки, напоминания), которая уже загружена
  * конкретной страницей. Общий на всю оболочку ЛК — предоставляется в
  * `LkLayout`, читается в `LkBreadcrumbs`, записывается страницами с
- * динамическим хвостом (`ListDetailView`, `NoteEditView`, `ReminderEditView`).
+ * динамическим хвостом (`NoteEditView`, `ReminderEditView`).
  */
 export type LkBreadcrumbTailRef = Ref<string | null>
 

@@ -22,3 +22,4 @@ export type LkIconName =
   | 'archive'
   | 'eye'
   | 'eye-off'
+  | 'cart'

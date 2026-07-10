@@ -34,6 +34,7 @@ function makeList(itemsCount: number, checkedCount: number, uuid: string): Shopp
     tags: [],
     items_count: itemsCount,
     checked_items_count: checkedCount,
+    is_completed: false,
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
   }

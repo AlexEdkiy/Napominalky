@@ -136,6 +136,12 @@ withDefaults(defineProps<Props>(), { size: 20 })
       <circle cx="12" cy="12" r="3" />
     </template>
 
+    <template v-else-if="name === 'cart'">
+      <circle cx="9" cy="20" r="1.5" />
+      <circle cx="18" cy="20" r="1.5" />
+      <path d="M2 3h2.5l2.3 11.6a1.5 1.5 0 0 0 1.5 1.2h8.9a1.5 1.5 0 0 0 1.5-1.2L20.5 7H5.1" />
+    </template>
+
     <template v-else-if="name === 'eye-off'">
       <path d="M3 3l18 18" />
       <path
