@@ -11,6 +11,7 @@ export type LkIconName =
   | 'search'
   | 'gear'
   | 'menu'
+  | 'sidebar'
   | 'plus'
   | 'check'
   | 'edit'
