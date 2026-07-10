@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-10 (веб-ЛК: убран подзаголовок из десктоп-topbar по макету — WEB-24)
+> Последнее обновление: 2026-07-10 (веб-ЛК: плоская таблица «Задачи и списки» + переработка формы + бэкенд is_completed — MBE-12, WEB-25, UITEST-9)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,21 +9,21 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
-| MBE     | 11           | mobile-backend-developer  |
+| MBE     | 12           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 24           | web-developer             |
+| WEB     | 25           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 8            | ux-ui-test-engineer       |
+| UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 0            | security-auditor          |
 | OPS     | 6            | devops-engineer           |
-| DOC     | 15           | technical-writer          |
+| DOC     | 16           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 91 |
+| Completed | 94 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1854,6 +1854,60 @@
   - [x] Десктоп-topbar без подзаголовка (по макету)
   - [x] Подзаголовок/приветствие сохранены в мобильной шапке, покрытие перенесено
   - [x] vue-tsc OK, Vitest зелёный (436)
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+---
+
+## Feature: «Задачи и списки» — плоская таблица + переработка формы задачи
+
+### MBE-12: Поле `is_completed` у списка покупок (флаг «список выполнен»)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** WEB-25
+- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Описание:** Добавлен булев флаг `is_completed` спискам покупок (независимо от отметок пунктов) — для чекбокса/фильтра «Выполненные»/зачёркивания в таблице. Миграция (boolean default false), модель (fillable+cast), `ShoppingListResource`, валидация Store/Update, прокидка через DTO `ShoppingListData` + Create/UpdateListAction + контроллеры. Миграция применена к основной и тестовой БД. Pest: default false, PUT сохраняет, PUT без поля не сбрасывает, не-boolean → 422. Полный прогон 285 зелёных.
+- **Файлы:** `project/database/migrations/2026_07_10_100000_add_is_completed_to_shopping_lists_table.php`, `project/app/Models/ShoppingList.php`, `project/app/Http/Resources/ShoppingListResource.php`, `project/app/Http/Requests/ShoppingList/{Store,Update}ListRequest.php`, `project/app/Data/ShoppingListData.php`, `project/app/Actions/ShoppingList/{Create,Update}ListAction.php`, контроллеры Store/Update, `project/tests/Feature/ShoppingLists/ListCompletedFlagTest.php`
+- **Критерии приёмки:**
+  - [x] Миграция is_completed (default false), применена к обеим БД
+  - [x] Ресурс отдаёт, Store/Update принимают, PUT без поля не сбрасывает
+  - [x] Pest зелёный (285)
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+### WEB-25: Плоская таблица «Задачи и списки» + переработка формы задачи/покупки
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** MBE-12, WEB-21
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Раздел «Задачи и списки» переведён из сетки карточек в плоскую таблицу по вёрстке: тулбар (вкладки Все/Активные/Выполненные по `is_completed`, «+ Новая задача»), сортируемые колонки ЗАДАЧА(чекбокс→is_completed + «N пунктов · M куплено»)/ТЕГИ/ДАТА/НАПОМИНАНИЕ, зачёркивание выполненных, клик по строке → форма edit, строка «+ Добавить задачу». Колонки Дата/Напоминание — производные от `deadline`/`reminder_at` ПУНКТОВ (параллельный fetchItems, read-only; у списка своих date/reminder нет — по решению пользователя «без бэкенда»). Форма задачи (`LkTaskFormDialog`) переработана в редактор списка: шапка+прогресс M/N, тумблер Купить(teal)/Сделать(amber), инлайн-добавление/чек/удаление пунктов, теги-пресеты + «Свой тег», футер Удалить/Отмена/Сохранить; new-режим создаёт список только при первом действии (пустые не плодятся). `ListDetailView` заменён модалкой; `lk-list-detail` → тонкий redirect. Тип `ShoppingList` + `is_completed`.
+- **Файлы:** `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/LkTaskTableRow.vue`, `web/src/composables/useLkTasksTable.ts`, `web/src/components/lk/LkTaskFormDialog.vue`, `web/src/pages/lk/lists/ListFormRedirectView.vue`, `web/src/utils/shoppingList.ts`, `web/src/types/shoppingList.ts`, `web/src/router/index.ts`, `web/src/components/lk/LkIcon.vue` (cart)
+- **Отклонения (по решению пользователя «без бэкенда»):** форма без секций Дата/Напоминание; в таблице Дата/Напоминание производные от пунктов (у списков без датированных пунктов — «—», отличается от скринов, где даты заполнены).
+- **Критерии приёмки:**
+  - [x] Плоская таблица (колонки/сортировка/вкладки/чекбокс→is_completed/строка→модалка/«+ Добавить»)
+  - [x] Форма: тип/пункты инлайн/теги пресет+свой/футер; new не плодит пустые списки
+  - [x] Derive даты/напоминания из пунктов; ListDetailView→redirect
+  - [x] vue-tsc OK, Vitest зелёный (404)
+- **Создана:** 2026-07-10
+- **Завершена:** 2026-07-10
+
+### UITEST-9: UI-fidelity аудит таблицы «Задачи и списки» и формы задачи против вёрстки
+- **Исполнитель:** ux-ui-test-engineer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-25
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Поэлементная сверка таблицы (вкладки/сортировка/чекбокс/колонки/derive/строка→модалка) и формы (тумблер типа/пункты/теги/футер/new-логика без пустых списков) с 3 скриншотами. High/med расхождений нет. Добавлено 13 fidelity-assertions (активная вкладка/aria, реверс стрелки, «⏰ HH:MM», прочерки, прогресс/цвета формы). Low-замечания зафиксированы (derive «—», один поиск не подключён — брифом допущено).
+- **Файлы:** `web/src/pages/lk/tasks/TasksView.test.ts`, `web/src/components/lk/LkTaskFormDialog.test.ts`
+- **Критерии приёмки:**
+  - [x] Сверка таблицы и формы с вёрсткой поэлементно
+  - [x] new-логика формы (без пустых списков) проверена
+  - [x] Тесты зелёные (404), vue-tsc чист
 - **Создана:** 2026-07-10
 - **Завершена:** 2026-07-10
 
