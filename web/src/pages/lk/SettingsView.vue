@@ -134,25 +134,25 @@ function handleNotificationsToggle(event: Event): void {
 }
 
 .settings__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1f2622;
 }
 
 .settings__section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.settings__section:last-child {
-  border-bottom: none;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .settings__section-title {
+  margin: 0 0 0.9rem;
   font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
+  font-weight: 700;
+  color: #1f2622;
 }
 
 .settings__fieldset {
@@ -161,18 +161,22 @@ function handleNotificationsToggle(event: Event): void {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .settings__radio-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   cursor: pointer;
+  color: #1f2622;
 }
 
 .settings__radio {
   cursor: pointer;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #17897a;
 }
 
 .settings__toggle-row {
@@ -184,6 +188,7 @@ function handleNotificationsToggle(event: Event): void {
 
 .settings__toggle-label {
   flex: 1;
+  color: #1f2622;
 }
 
 .settings__toggle {
@@ -191,6 +196,7 @@ function handleNotificationsToggle(event: Event): void {
   width: 1.25rem;
   height: 1.25rem;
   flex-shrink: 0;
+  accent-color: #17897a;
 }
 
 .settings__toggle:disabled {
@@ -199,25 +205,30 @@ function handleNotificationsToggle(event: Event): void {
 }
 
 .settings__hint {
-  margin-top: 0.5rem;
+  margin: 0.6rem 0 0;
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: #8a938f;
 }
 
 .settings__status {
-  margin-top: 0.5rem;
+  margin: 0.6rem 0 0;
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: #6b716e;
 }
 
 .settings__error {
-  margin-top: 0.5rem;
+  margin: 0.6rem 0 0;
   font-size: 0.875rem;
-  color: var(--color-error);
+  color: #cf5b4a;
 }
 
 .settings__account-link {
-  color: var(--color-primary);
+  color: #17897a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.settings__account-link:hover {
   text-decoration: underline;
 }
 
