@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-10 (веб-ЛК: плоская таблица «Задачи и списки» + переработка формы + бэкенд is_completed — MBE-12, WEB-25, UITEST-9)
+> Последнее обновление: 2026-07-14 (авторизация: редизайн WEB-26; ИБ-аудит SEC-1, security-заголовки OPS-7, срок жизни токенов MBE-13)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,21 +9,21 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
-| MBE     | 12           | mobile-backend-developer  |
+| MBE     | 13           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 25           | web-developer             |
+| WEB     | 26           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
-| SEC     | 0            | security-auditor          |
-| OPS     | 6            | devops-engineer           |
-| DOC     | 16           | technical-writer          |
+| SEC     | 1            | security-auditor          |
+| OPS     | 7            | devops-engineer           |
+| DOC     | 17           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 94 |
+| Completed | 98 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1910,4 +1910,70 @@
   - [x] Тесты зелёные (404), vue-tsc чист
 - **Создана:** 2026-07-10
 - **Завершена:** 2026-07-10
+
+---
+
+## Feature: Авторизация — редизайн + ИБ хранения паролей
+
+### SEC-1: Аудит хранения паролей и учётных данных (жалоба «пароли в незащищённом виде»)
+- **Исполнитель:** security-auditor
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** OPS-7, MBE-13
+- **Стандарты:** OWASP
+- **Описание:** По жалобе антивирусов/сканеров. Вердикт: пароли в открытом виде НЕ хранятся — bcrypt-12 (каст `hashed`), `$hidden`, не логируются, не в ресурсах, reset через Password broker, generic-ответы (нет user enumeration). Реальные триггеры сканеров: H1 отсутствие security-заголовков на login-странице; H2 Bearer-токен в localStorage; M1 CORS `*`; M2 бессрочные Sanctum-токены; M3 слабая парольная политика; M4 http-downgrade в редиректах (нет доверия X-Forwarded-Proto). Рантайм проверен: фактически production/debug=false (контейнерные env переопределяют вводящий в заблуждение .env), info-disclosure нет. Решения пользователя: токен оставить в localStorage; из мер — только срок жизни токенов (M2). Заголовки (H1) внедрены как быстрая победа.
+- **Файлы:** отчёт (read-only)
+- **Критерии приёмки:**
+  - [x] Подтверждено корректное хеширование паролей (bcrypt), отсутствие утечки/логирования
+  - [x] Определены реальные триггеры сканеров + приоритизированные рекомендации
+- **Создана:** 2026-07-14
+- **Завершена:** 2026-07-14
+
+### OPS-7: Security-заголовки nginx для веб-приложения (SEC H1)
+- **Исполнитель:** devops-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** SEC-1
+- **Блокирует:** —
+- **Стандарты:** —
+- **Описание:** Добавлены security-заголовки в `deploy/reminders-web.nginx.conf` (SPA/login): `Strict-Transport-Security` (без includeSubDomains — домен общий), `Content-Security-Policy` (строгий self-only, style-src 'unsafe-inline' для Vue), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` + `server_tokens off`. Закрывают основную массу претензий сканеров о «незащищённой login-странице». Нюанс деплоя: `nginx.conf` — bind-mount отдельного файла, атомарная запись даёт новый inode → потребовался рестарт контейнера, чтобы подхватить. Проверено `curl` к проду: заголовки отдаются.
+- **Файлы:** `deploy/reminders-web.nginx.conf`
+- **Критерии приёмки:**
+  - [x] Заголовки отдаются на `https://jemsoft.ru/napominalki/` (проверено curl)
+  - [x] Страница и ассеты грузятся (HTTP 200)
+- **Создана:** 2026-07-14
+- **Завершена:** 2026-07-14
+
+### MBE-13: Срок жизни Sanctum-токенов (SEC M2)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** SEC-1
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`
+- **Описание:** `config/sanctum.php` `expiration` переведён с хардкод `null` на `env('SANCTUM_EXPIRATION', 43200)`; в прод-`.env` задан `SANCTUM_EXPIRATION=43200` (30 дней) — украденный токен перестаёт быть вечным. Проверено: рантайм `config('sanctum.expiration')=43200`; auth Pest (64) зелёные.
+- **Файлы:** `project/config/sanctum.php`, `project/.env` (gitignored)
+- **Критерии приёмки:**
+  - [x] expiration env-driven, значение активно в рантайме
+  - [x] Auth-тесты зелёные (64)
+- **Создана:** 2026-07-14
+- **Завершена:** 2026-07-14
+
+### WEB-26: Редизайн страниц авторизации в стиле бренда
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Вход/Регистрация/Восстановление/Сброс пароля приведены к стилю бренда «Напоминалки»: сплит-карточка (`AuthCard` — зелёная брендовая панель с колоколом + «Напоминалки» на широких, карточка на узких), стилизованные поля, первичная teal-кнопка, показ пароля по «глазу» на всех парольных полях (`AuthPasswordField`, добавлен и в регистрацию/сброс). Вся логика/валидация/обработка ошибок (422/401/403)/запоминание email/редиректы сохранены; тесты не менялись.
+- **Файлы:** `web/src/components/auth/{AuthCard,AuthPasswordField}.vue`, `web/src/pages/auth/{LoginView,RegisterView,ForgotPasswordView,ResetPasswordView}.vue`
+- **Критерии приёмки:**
+  - [x] 4 страницы в стиле бренда (карточка/бренд/поля/кнопка)
+  - [x] Показ пароля по «глазу» на всех парольных полях
+  - [x] Логика/валидация/ошибки/запоминание email сохранены
+  - [x] vue-tsc OK, Vitest зелёный (404)
+- **Создана:** 2026-07-14
+- **Завершена:** 2026-07-14
 
