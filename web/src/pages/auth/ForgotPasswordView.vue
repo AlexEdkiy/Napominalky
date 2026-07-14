@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { isAxiosError } from 'axios'
 
+import AuthCard from '@/components/auth/AuthCard.vue'
 import { authApi } from '@/api/authApi'
 import type { ForgotPasswordPayload } from '@/types/auth'
 
@@ -33,56 +34,38 @@ async function handleSubmit(): Promise<void> {
 </script>
 
 <template>
-  <main class="auth">
-    <h1>Забыли пароль?</h1>
-
-    <div v-if="successMessage" role="status" class="success">
+  <AuthCard title="Восстановление пароля">
+    <div v-if="successMessage" role="status" class="auth-status">
       {{ successMessage }}
     </div>
 
-    <form v-else novalidate @submit.prevent="handleSubmit">
-      <p v-if="networkError" role="alert" class="error">{{ networkError }}</p>
+    <template v-else>
+      <p class="auth-hint">Укажите email — мы отправим ссылку для сброса пароля.</p>
 
-      <div class="field">
-        <label for="email">Email</label>
-        <input
-          id="email"
-          v-model="email"
-          type="email"
-          autocomplete="email"
-          required
-        />
-      </div>
+      <form class="auth-form" novalidate @submit.prevent="handleSubmit">
+        <p v-if="networkError" role="alert" class="auth-alert">{{ networkError }}</p>
 
-      <button type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Отправка…' : 'Получить ссылку' }}
-      </button>
-    </form>
+        <div class="auth-field">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            autocomplete="email"
+            required
+          />
+        </div>
 
-    <p>
-      <RouterLink :to="{ name: 'login' }">Вернуться ко входу</RouterLink>
-    </p>
-  </main>
+        <button type="submit" class="auth-submit" :disabled="isSubmitting">
+          {{ isSubmitting ? 'Отправка…' : 'Получить ссылку' }}
+        </button>
+      </form>
+    </template>
+
+    <template #footer>
+      <p>
+        <RouterLink class="auth-link" :to="{ name: 'login' }">Вернуться ко входу</RouterLink>
+      </p>
+    </template>
+  </AuthCard>
 </template>
-
-<style scoped>
-.auth {
-  max-width: 360px;
-  margin: 0 auto;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1rem;
-}
-
-.error {
-  color: #c0392b;
-}
-
-.success {
-  color: #27ae60;
-  margin-bottom: 1rem;
-}
-</style>
