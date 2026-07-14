@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { isAxiosError } from 'axios'
 
+import AuthCard from '@/components/auth/AuthCard.vue'
+import AuthPasswordField from '@/components/auth/AuthPasswordField.vue'
 import { authApi } from '@/api/authApi'
 import type { ValidationErrorResponse } from '@/types/api'
 
@@ -92,30 +94,32 @@ function handleError(error: unknown): void {
 </script>
 
 <template>
-  <main class="auth">
-    <h1>Сброс пароля</h1>
-
-    <div v-if="!hasValidParams" role="alert" class="error">
+  <AuthCard title="Новый пароль">
+    <div v-if="!hasValidParams" role="alert" class="auth-alert">
       <p>Ссылка для сброса пароля недействительна или устарела.</p>
       <p>
-        <RouterLink :to="{ name: 'forgot-password' }">Запросить новую ссылку</RouterLink>
+        <RouterLink class="auth-link" :to="{ name: 'forgot-password' }">
+          Запросить новую ссылку
+        </RouterLink>
       </p>
     </div>
 
-    <div v-else-if="successMessage" role="status" class="success">
+    <div v-else-if="successMessage" role="status" class="auth-status">
       <p>{{ successMessage }}</p>
       <p>Сейчас вы будете перенаправлены на страницу входа…</p>
     </div>
 
-    <form v-else novalidate @submit.prevent="handleSubmit">
-      <p v-if="tokenError" role="alert" class="error">
+    <form v-else class="auth-form" novalidate @submit.prevent="handleSubmit">
+      <p v-if="tokenError" role="alert" class="auth-alert">
         {{ tokenError }}
-        <RouterLink :to="{ name: 'forgot-password' }">Запросить новую ссылку</RouterLink>
+        <RouterLink class="auth-link" :to="{ name: 'forgot-password' }">
+          Запросить новую ссылку
+        </RouterLink>
       </p>
 
-      <p v-if="generalError" role="alert" class="error">{{ generalError }}</p>
+      <p v-if="generalError" role="alert" class="auth-alert">{{ generalError }}</p>
 
-      <div class="field">
+      <div class="auth-field">
         <label for="email">Email</label>
         <input
           id="email"
@@ -126,60 +130,32 @@ function handleError(error: unknown): void {
         />
       </div>
 
-      <div class="field">
-        <label for="password">Новый пароль</label>
-        <input
-          id="password"
-          v-model="password"
-          type="password"
-          autocomplete="new-password"
-          required
-        />
-        <span v-if="fieldErrors['password']" class="error">{{ fieldErrors['password']?.[0] }}</span>
-      </div>
+      <AuthPasswordField
+        id="password"
+        v-model="password"
+        label="Новый пароль"
+        autocomplete="new-password"
+        :error="fieldErrors['password']?.[0] ?? null"
+      />
 
-      <div class="field">
-        <label for="password_confirmation">Повторите пароль</label>
-        <input
-          id="password_confirmation"
-          v-model="passwordConfirmation"
-          type="password"
-          autocomplete="new-password"
-          required
-        />
-      </div>
+      <AuthPasswordField
+        id="password_confirmation"
+        v-model="passwordConfirmation"
+        label="Повторите пароль"
+        autocomplete="new-password"
+      />
 
-      <p v-if="clientError" class="error">{{ clientError }}</p>
+      <p v-if="clientError" class="auth-error">{{ clientError }}</p>
 
-      <button type="submit" :disabled="isSubmitting || !isFormValid">
+      <button type="submit" class="auth-submit" :disabled="isSubmitting || !isFormValid">
         {{ isSubmitting ? 'Сохранение…' : 'Установить новый пароль' }}
       </button>
     </form>
 
-    <p v-if="hasValidParams && !successMessage">
-      <RouterLink :to="{ name: 'login' }">Вернуться ко входу</RouterLink>
-    </p>
-  </main>
+    <template #footer>
+      <p v-if="hasValidParams && !successMessage">
+        <RouterLink class="auth-link" :to="{ name: 'login' }">Вернуться ко входу</RouterLink>
+      </p>
+    </template>
+  </AuthCard>
 </template>
-
-<style scoped>
-.auth {
-  max-width: 360px;
-  margin: 0 auto;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1rem;
-}
-
-.error {
-  color: #c0392b;
-}
-
-.success {
-  color: #27ae60;
-  margin-bottom: 1rem;
-}
-</style>

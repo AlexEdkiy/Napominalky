@@ -3,6 +3,8 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { isAxiosError } from 'axios'
 
+import AuthCard from '@/components/auth/AuthCard.vue'
+import AuthPasswordField from '@/components/auth/AuthPasswordField.vue'
 import { useAuthStore } from '@/stores/authStore'
 import type { ValidationErrorResponse } from '@/types/api'
 import type { RegisterPayload } from '@/types/auth'
@@ -44,72 +46,47 @@ function handleError(error: unknown): void {
 </script>
 
 <template>
-  <main class="auth">
-    <h1>Регистрация</h1>
+  <AuthCard title="Регистрация">
+    <form class="auth-form" novalidate @submit.prevent="handleSubmit">
+      <p v-if="generalError" role="alert" class="auth-alert">{{ generalError }}</p>
 
-    <form novalidate @submit.prevent="handleSubmit">
-      <p v-if="generalError" role="alert" class="error">{{ generalError }}</p>
-
-      <div class="field">
+      <div class="auth-field">
         <label for="name">Имя</label>
         <input id="name" v-model="form.name" type="text" autocomplete="name" required />
-        <span v-if="errors.name" class="error">{{ errors.name[0] }}</span>
+        <span v-if="errors.name" class="auth-field__error">{{ errors.name[0] }}</span>
       </div>
 
-      <div class="field">
+      <div class="auth-field">
         <label for="email">Email</label>
         <input id="email" v-model="form.email" type="email" autocomplete="email" required />
-        <span v-if="errors.email" class="error">{{ errors.email[0] }}</span>
+        <span v-if="errors.email" class="auth-field__error">{{ errors.email[0] }}</span>
       </div>
 
-      <div class="field">
-        <label for="password">Пароль</label>
-        <input
-          id="password"
-          v-model="form.password"
-          type="password"
-          autocomplete="new-password"
-          required
-        />
-        <span v-if="errors.password" class="error">{{ errors.password[0] }}</span>
-      </div>
+      <AuthPasswordField
+        id="password"
+        v-model="form.password"
+        label="Пароль"
+        autocomplete="new-password"
+        :error="errors.password?.[0] ?? null"
+      />
 
-      <div class="field">
-        <label for="password_confirmation">Повторите пароль</label>
-        <input
-          id="password_confirmation"
-          v-model="form.password_confirmation"
-          type="password"
-          autocomplete="new-password"
-          required
-        />
-      </div>
+      <AuthPasswordField
+        id="password_confirmation"
+        v-model="form.password_confirmation"
+        label="Повторите пароль"
+        autocomplete="new-password"
+      />
 
-      <button type="submit" :disabled="isSubmitting">
+      <button type="submit" class="auth-submit" :disabled="isSubmitting">
         {{ isSubmitting ? 'Регистрация…' : 'Зарегистрироваться' }}
       </button>
     </form>
 
-    <p>
-      Уже есть аккаунт?
-      <RouterLink :to="{ name: 'login' }">Войти</RouterLink>
-    </p>
-  </main>
+    <template #footer>
+      <p>
+        Уже есть аккаунт?
+        <RouterLink class="auth-link" :to="{ name: 'login' }">Войти</RouterLink>
+      </p>
+    </template>
+  </AuthCard>
 </template>
-
-<style scoped>
-.auth {
-  max-width: 360px;
-  margin: 0 auto;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1rem;
-}
-
-.error {
-  color: #c0392b;
-}
-</style>
