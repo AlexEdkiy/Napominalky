@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (CSP img-src +blob: — фикс загрузки аватара — OPS-8)
+> Последнее обновление: 2026-07-15 (фикс загрузки аватара — multipart-заголовок WEB-32)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 15           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 31           | web-developer             |
+| WEB     | 32           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 24           | technical-writer          |
+| DOC     | 25           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 106 |
+| Completed | 107 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2105,6 +2105,22 @@
 - **Критерии приёмки:**
   - [x] CSP разрешает blob: для img-src (публично)
   - [x] Загрузка/превью аватара работает
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-32: Фикс загрузки аватара — multipart Content-Type для FormData
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-31
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Загрузка аватара падала с 422 «The avatar field is required»: у `apiClient` глобальный дефолт `Content-Type: application/json`, который axios НЕ перезаписывает для FormData → multipart уходил с JSON-заголовком, сервер не распознавал файл. Фикс в axios-request-интерцепторе (`client.ts`): если `config.data instanceof FormData` — `config.headers.delete('Content-Type')`, чтобы браузер выставил `multipart/form-data; boundary`. Глобально для всех multipart-загрузок; тест `uploadAvatar` не затронут. Бэкенд был исправен (проверялся `curl -F`).
+- **Файлы:** `web/src/api/client.ts`
+- **Критерии приёмки:**
+  - [x] FormData-запросы уходят как multipart (без application/json)
+  - [x] Загрузка аватара сохраняется (не 422)
+  - [x] vue-tsc OK, Vitest зелёный (458)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
