@@ -24,6 +24,22 @@ it('returns the data/meta envelope structure', function (): void {
         ]);
 });
 
+it('serializes shopping list type and tags for the mobile client (sync pull)', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $list = ShoppingList::factory()->for($user)->create([
+        'type' => 'tasks',
+        'tags' => '["Работа","Mafin"]',
+    ]);
+
+    $this->getJson('/api/v1/sync/changes?since=0')
+        ->assertOk()
+        ->assertJsonPath('data.shopping_lists.0.uuid', $list->uuid)
+        ->assertJsonPath('data.shopping_lists.0.type', 'tasks')
+        ->assertJsonPath('data.shopping_lists.0.tags', '["Работа","Mafin"]');
+});
+
 it('returns all of the users records across the four entities when since=0', function (): void {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
