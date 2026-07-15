@@ -41,7 +41,13 @@ function toggleSearch(): void {
       </button>
 
       <RouterLink :to="{ name: 'lk-account' }" class="lk-mobile-header__avatar">
-        {{ userInitial }}
+        <img
+          v-if="auth.user?.avatar"
+          :src="auth.user.avatar"
+          alt=""
+          class="lk-mobile-header__avatar-photo"
+        />
+        <template v-else>{{ userInitial }}</template>
       </RouterLink>
     </div>
 
@@ -113,6 +119,14 @@ function toggleSearch(): void {
   justify-content: center;
   font-weight: 700;
   text-decoration: none;
+  overflow: hidden;
+}
+
+.lk-mobile-header__avatar-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .lk-mobile-header__breadcrumbs {

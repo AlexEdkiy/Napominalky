@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Добавляет аватар пользователя:
+     * - avatar_path — nullable string, относительный путь к файлу
+     *   на приватном диске `local` (например, avatars/{uuid}.jpg).
+     *
+     * Путь наружу не отдаётся (в $hidden модели); клиенту аватар
+     * возвращается как data-URI в UserResource.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->string('avatar_path')->nullable()->after('sync_enabled');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn('avatar_path');
+        });
+    }
+};

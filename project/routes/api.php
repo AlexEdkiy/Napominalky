@@ -9,12 +9,15 @@ use App\Http\Controllers\Admin\UserRolesController;
 use App\Http\Controllers\Admin\UserSetStatusController;
 use App\Http\Controllers\Admin\UserShowController;
 use App\Http\Controllers\Admin\UsersIndexController;
+use App\Http\Controllers\Auth\DeleteAvatarController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\MeController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\UpdateProfileController;
+use App\Http\Controllers\Auth\UploadAvatarController;
 use App\Http\Controllers\Devices\DestroyController as DeviceDestroyController;
 use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Notes\ArchiveController as NoteArchiveController;
@@ -101,6 +104,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::prefix('auth')->name('auth.')->group(function (): void {
             Route::delete('logout', LogoutController::class)->name('logout');
             Route::get('me', MeController::class)->name('me');
+            // PATCH /api/v1/auth/me — обновление профиля (только name)
+            Route::patch('me', UpdateProfileController::class)->name('me.update');
+            // POST /api/v1/auth/me/avatar — загрузка аватара (multipart, ≤512 КБ)
+            Route::post('me/avatar', UploadAvatarController::class)->name('me.avatar.store');
+            // DELETE /api/v1/auth/me/avatar — удаление аватара
+            Route::delete('me/avatar', DeleteAvatarController::class)->name('me.avatar.destroy');
         });
 
         // Account deletion (FR-42)

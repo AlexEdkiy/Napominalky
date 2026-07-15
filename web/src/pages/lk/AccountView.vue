@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { isAxiosError } from 'axios'
 import { useRouter } from 'vue-router'
 
 import { authApi } from '@/api/authApi'
 import { useAuthStore } from '@/stores/authStore'
+import type { ValidationErrorResponse } from '@/types/api'
+import { resizeImageToBlob } from '@/utils/image'
 import { getUserDisplayName, getUserInitial } from '@/utils/user'
 
 const router = useRouter()
@@ -12,8 +15,21 @@ const auth = useAuthStore()
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
+// Аватар
+const fileInput = ref<HTMLInputElement | null>(null)
+const avatarPreview = ref<string | null>(null)
+const isAvatarBusy = ref(false)
+const avatarError = ref<string | null>(null)
+
+// Редактирование имени
+const isEditingName = ref(false)
+const nameDraft = ref('')
+const nameError = ref<string | null>(null)
+const isSavingName = ref(false)
+
 const userInitial = computed(() => getUserInitial(auth.user))
 const userName = computed(() => getUserDisplayName(auth.user))
+const avatarSrc = computed(() => avatarPreview.value ?? auth.user?.avatar ?? null)
 
 onMounted(async () => {
   if (auth.user !== null) return
@@ -26,6 +42,97 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
+
+onUnmounted(() => setPreview(null))
+
+/** Превью — object URL ужатого фото; старый URL освобождаем при замене. */
+function setPreview(url: string | null): void {
+  if (avatarPreview.value !== null) {
+    URL.revokeObjectURL(avatarPreview.value)
+  }
+  avatarPreview.value = url
+}
+
+function openFilePicker(): void {
+  fileInput.value?.click()
+}
+
+async function handleFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  avatarError.value = null
+  isAvatarBusy.value = true
+  try {
+    const blob = await resizeImageToBlob(file)
+    setPreview(URL.createObjectURL(blob))
+    await auth.uploadAvatar(blob)
+  } catch (err) {
+    avatarError.value = extractAvatarError(err)
+  } finally {
+    setPreview(null)
+    isAvatarBusy.value = false
+  }
+}
+
+function extractAvatarError(err: unknown): string {
+  if (isAxiosError<ValidationErrorResponse>(err) && err.response?.status === 422) {
+    return err.response.data.errors.avatar?.[0] ?? 'Сервер отклонил изображение.'
+  }
+  if (err instanceof Error && !isAxiosError(err)) {
+    return err.message
+  }
+  return 'Не удалось загрузить фото. Попробуйте позже.'
+}
+
+async function handleDeleteAvatar(): Promise<void> {
+  avatarError.value = null
+  isAvatarBusy.value = true
+  try {
+    await auth.deleteAvatar()
+  } catch {
+    avatarError.value = 'Не удалось удалить фото. Попробуйте позже.'
+  } finally {
+    isAvatarBusy.value = false
+  }
+}
+
+function startEditName(): void {
+  nameDraft.value = auth.user?.name ?? ''
+  nameError.value = null
+  isEditingName.value = true
+}
+
+function cancelEditName(): void {
+  isEditingName.value = false
+  nameError.value = null
+}
+
+async function saveName(): Promise<void> {
+  const name = nameDraft.value.trim()
+  if (name === '') {
+    nameError.value = 'Введите имя.'
+    return
+  }
+  isSavingName.value = true
+  nameError.value = null
+  try {
+    await auth.updateProfile(name)
+    isEditingName.value = false
+  } catch (err) {
+    nameError.value = extractNameError(err)
+  } finally {
+    isSavingName.value = false
+  }
+}
+
+function extractNameError(err: unknown): string {
+  if (isAxiosError<ValidationErrorResponse>(err) && err.response?.status === 422) {
+    return err.response.data.errors.name?.[0] ?? 'Сервер отклонил имя.'
+  }
+  return 'Не удалось сохранить имя. Попробуйте позже.'
+}
 
 async function handleLogout(): Promise<void> {
   await auth.logout()
@@ -59,17 +166,88 @@ async function handleDeleteAccount(): Promise<void> {
 
     <section v-else-if="auth.user" class="account__card" aria-label="Профиль">
       <header class="account__head">
-        <span class="account__avatar" aria-hidden="true">{{ userInitial }}</span>
+        <img
+          v-if="avatarSrc"
+          :src="avatarSrc"
+          alt="Фото профиля"
+          class="account__avatar account__avatar--photo"
+        />
+        <span v-else class="account__avatar" aria-hidden="true">{{ userInitial }}</span>
         <div class="account__identity">
           <span class="account__name">{{ userName }}</span>
           <span class="account__email">{{ auth.user.email }}</span>
         </div>
       </header>
 
+      <div class="account__photo-actions">
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          class="account__file"
+          aria-label="Выбрать фото профиля"
+          @change="handleFileChange"
+        />
+        <button
+          type="button"
+          class="account__button account__button--small"
+          :disabled="isAvatarBusy"
+          @click="openFilePicker"
+        >
+          {{ isAvatarBusy ? 'Загрузка…' : 'Изменить фото' }}
+        </button>
+        <button
+          v-if="auth.user.avatar"
+          type="button"
+          class="account__button account__button--small account__button--danger"
+          :disabled="isAvatarBusy"
+          @click="handleDeleteAvatar"
+        >
+          Удалить фото
+        </button>
+      </div>
+      <p v-if="avatarError" role="alert" class="account__field-error">{{ avatarError }}</p>
+
       <dl class="account__rows">
-        <div class="account__row">
+        <div class="account__row account__row--name">
           <dt>Имя</dt>
-          <dd>{{ auth.user.name ?? '—' }}</dd>
+          <dd v-if="!isEditingName" class="account__name-view">
+            <span>{{ auth.user.name ?? '—' }}</span>
+            <button
+              type="button"
+              class="account__button account__button--small"
+              @click="startEditName"
+            >
+              Редактировать
+            </button>
+          </dd>
+          <dd v-else class="account__name-edit">
+            <form class="account__name-form" @submit.prevent="saveName">
+              <input
+                v-model="nameDraft"
+                type="text"
+                class="account__input"
+                aria-label="Имя"
+                maxlength="255"
+              />
+              <button
+                type="submit"
+                class="account__button account__button--small account__button--primary"
+                :disabled="isSavingName"
+              >
+                {{ isSavingName ? 'Сохранение…' : 'Сохранить' }}
+              </button>
+              <button
+                type="button"
+                class="account__button account__button--small"
+                :disabled="isSavingName"
+                @click="cancelEditName"
+              >
+                Отмена
+              </button>
+            </form>
+            <p v-if="nameError" role="alert" class="account__field-error">{{ nameError }}</p>
+          </dd>
         </div>
         <div class="account__row">
           <dt>Email</dt>
@@ -139,8 +317,6 @@ async function handleDeleteAccount(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding-bottom: 1.1rem;
-  border-bottom: 1px solid #eef1f0;
 }
 
 .account__avatar {
@@ -155,6 +331,10 @@ async function handleDeleteAccount(): Promise<void> {
   justify-content: center;
   font-size: 1.25rem;
   font-weight: 800;
+}
+
+.account__avatar--photo {
+  object-fit: cover;
 }
 
 .account__identity {
@@ -177,6 +357,18 @@ async function handleDeleteAccount(): Promise<void> {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.account__photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.85rem 0 1.1rem;
+  border-bottom: 1px solid #eef1f0;
+}
+
+.account__file {
+  display: none;
 }
 
 .account__rows {
@@ -208,6 +400,51 @@ async function handleDeleteAccount(): Promise<void> {
   font-weight: 600;
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+.account__row--name dd {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.account__name-view {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.account__name-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.account__input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #d6dcd9;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: #1f2622;
+}
+
+.account__input:focus-visible {
+  outline: 2px solid #17897a;
+  outline-offset: 1px;
+}
+
+.account__field-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #cf5b4a;
 }
 
 .account__badge {
@@ -249,6 +486,25 @@ async function handleDeleteAccount(): Promise<void> {
 
 .account__button:hover {
   background: #e3e8e6;
+}
+
+.account__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.account__button--small {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.83rem;
+}
+
+.account__button--primary {
+  background: #17897a;
+  color: #fff;
+}
+
+.account__button--primary:hover {
+  background: #0f6155;
 }
 
 .account__button--danger {

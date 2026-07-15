@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\User;
+use App\Services\AvatarService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,6 +23,8 @@ final class UserResource extends JsonResource
             'uuid' => $this->uuid,
             'name' => $this->name,
             'email' => $this->email,
+            // data:image/<mime>;base64,<...> либо null; сырой avatar_path не отдаётся
+            'avatar' => app(AvatarService::class)->toDataUri($this->avatar_path),
             'is_admin' => $this->is_admin,
             'is_super_admin' => $this->is_super_admin,
             'is_active' => $this->is_active,

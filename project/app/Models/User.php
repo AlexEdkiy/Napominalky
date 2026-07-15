@@ -50,6 +50,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     protected $hidden = [
         'password',
         'remember_token',
+        'avatar_path',
     ];
 
     protected static function booted(): void

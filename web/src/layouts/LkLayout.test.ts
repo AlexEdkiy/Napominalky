@@ -49,6 +49,7 @@ const user: User = {
   is_active: true,
   sync_enabled: true,
   created_at: '2026-01-01T00:00:00Z',
+  avatar: null,
 }
 
 function stubMatchMedia(matches: boolean) {
@@ -359,6 +360,44 @@ describe('LkLayout', () => {
     expect(wrapper.find('.lk-sidebar__sync-label').text()).toBe('Синхронизация с сервером')
     expect(wrapper.find('.lk-sidebar__user-name').text()).toBe(user.name)
     expect(wrapper.find('.lk-sidebar__user-email').text()).toBe(user.email)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the avatar photo in the sidebar user row when the user has one', async () => {
+    stubMatchMedia(true)
+    const avatar = 'data:image/jpeg;base64,abc123'
+    useAuthStore().setUser({ ...user, avatar })
+
+    const wrapper = await mountLayout()
+
+    const photo = wrapper.find('.lk-sidebar__avatar--photo')
+    expect(photo.exists()).toBe(true)
+    expect(photo.attributes('src')).toBe(avatar)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('falls back to the initial in the sidebar user row when there is no avatar', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+
+    expect(wrapper.find('.lk-sidebar__avatar--photo').exists()).toBe(false)
+    expect(wrapper.find('.lk-sidebar__avatar').text()).toBe('И')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the avatar photo in the mobile header when the user has one', async () => {
+    stubMatchMedia(false)
+    const avatar = 'data:image/jpeg;base64,abc123'
+    useAuthStore().setUser({ ...user, avatar })
+
+    const wrapper = await mountLayout()
+
+    const photo = wrapper.find('.lk-mobile-header__avatar-photo')
+    expect(photo.exists()).toBe(true)
+    expect(photo.attributes('src')).toBe(avatar)
 
     vi.unstubAllGlobals()
   })
