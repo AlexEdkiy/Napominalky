@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { useShoppingLists } from '@/composables/useShoppingLists'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { ShoppingList, ShoppingListType } from '@/types/shoppingList'
 import { isShoppingListCompleted } from '@/utils/shoppingList'
 
 /**
@@ -13,6 +13,9 @@ export const LK_TASKS_TABLE_PER_PAGE = 100
 
 /** Вкладка тулбара: Все / Активные / Выполненные (по флагу `is_completed`). */
 export type LkTasksTab = 'all' | 'active' | 'completed'
+
+/** Быстрый фильтр тулбара по типу списка: Все / Покупки (goods) / Задачи (tasks). */
+export type LkTasksTypeFilter = 'all' | ShoppingListType
 
 /** Сортируемые колонки таблицы. */
 export type LkTasksSortKey = 'title' | 'tags' | 'date' | 'reminder'
@@ -97,6 +100,11 @@ function matchesTab(list: ShoppingList, tab: LkTasksTab): boolean {
   return true
 }
 
+/** Второе измерение фильтра: тип списка. Комбинируется со статус-вкладкой по AND. */
+function matchesType(list: ShoppingList, filter: LkTasksTypeFilter): boolean {
+  return filter === 'all' || list.type === filter
+}
+
 /** Время для сортировки по производной дате; NaN — «нет значения». */
 function sortTime(iso: string | null | undefined): number {
   return iso === null || iso === undefined ? Number.NaN : new Date(iso).getTime()
@@ -113,6 +121,7 @@ export function useLkTasksTable() {
   const { lists, meta, isLoading, error, load, loadMore, update, remove } = useShoppingLists()
 
   const tab = ref<LkTasksTab>('all')
+  const typeFilter = ref<LkTasksTypeFilter>('all')
   const sortKey = ref<LkTasksSortKey | null>(null)
   const sortAsc = ref(true)
   const derivedDates = ref<Map<string, LkListDerivedDates>>(new Map())
@@ -161,7 +170,9 @@ export function useLkTasksTable() {
   }
 
   const visibleLists = computed<ShoppingList[]>(() => {
-    const filtered = lists.value.filter((list) => matchesTab(list, tab.value))
+    const filtered = lists.value.filter(
+      (list) => matchesTab(list, tab.value) && matchesType(list, typeFilter.value),
+    )
     return sortKey.value === null ? filtered : [...filtered].sort((a, b) => compare(a, b))
   })
 
@@ -227,6 +238,7 @@ export function useLkTasksTable() {
     error,
     hasMore,
     tab,
+    typeFilter,
     sortKey,
     sortAsc,
     derivedFor,

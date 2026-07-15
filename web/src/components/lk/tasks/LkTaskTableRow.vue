@@ -38,10 +38,13 @@ function pluralizeItems(count: number): string {
   return 'пунктов'
 }
 
+/** Слово для отмеченных пунктов по типу списка: покупки — «куплено», задачи — «сделано» (как в МП). */
+const checkedWord = computed<string>(() => (props.list.type === 'goods' ? 'куплено' : 'сделано'))
+
 const subtitle = computed<string>(
   () =>
     `${props.list.items_count} ${pluralizeItems(props.list.items_count)} · ` +
-    `${props.list.checked_items_count} куплено`,
+    `${props.list.checked_items_count} ${checkedWord.value}`,
 )
 
 const dateLabel = computed<string>(() => lkTableDateLabel(props.derived?.deadline ?? null, new Date()))
