@@ -63,6 +63,10 @@ final class SyncSerializer
         return [
             'uuid' => $list->uuid,
             'title' => $list->title,
+            'type' => $list->type,
+            // tags — непрозрачная JSON-строка (как в sync-whitelist SyncEntities);
+            // мобильный клиент уже принимает поля type/tags в ServerShoppingList.
+            'tags' => $list->tags,
             ...$this->timestamps($list),
         ];
     }
