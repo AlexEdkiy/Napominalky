@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (sync: type/tags списка в мобилку — MBE-15)
+> Последнее обновление: 2026-07-15 (CSP img-src +blob: — фикс загрузки аватара — OPS-8)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -16,14 +16,14 @@
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
-| OPS     | 7            | devops-engineer           |
-| DOC     | 23           | technical-writer          |
+| OPS     | 8            | devops-engineer           |
+| DOC     | 24           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 105 |
+| Completed | 106 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2090,6 +2090,21 @@
 - **Критерии приёмки:**
   - [x] Sync pull отдаёт type/tags списка; мобилка их принимает (маппер готов)
   - [x] Sync Pest зелёный (+тест на type/tags); живая проверка /sync/changes
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### OPS-8: CSP img-src +blob: — фикс загрузки аватара
+- **Исполнитель:** devops-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** OPS-7, WEB-31
+- **Блокирует:** —
+- **Стандарты:** —
+- **Описание:** После включения строгого CSP (OPS-7) загрузка аватара падала с «Не удалось прочитать изображение»: клиентский ресайз/превью грузит выбранный файл через `URL.createObjectURL()` (`blob:`-URL), а `img-src 'self' data:` не разрешал `blob:` → браузер блокировал загрузку картинки. Фикс: `img-src 'self' data:` → `img-src 'self' data: blob:` в `deploy/reminders-web.nginx.conf` + рестарт контейнера (bind-mount отдельного файла). Проверено: публичный CSP отдаёт `img-src 'self' data: blob:`.
+- **Файлы:** `deploy/reminders-web.nginx.conf`
+- **Критерии приёмки:**
+  - [x] CSP разрешает blob: для img-src (публично)
+  - [x] Загрузка/превью аватара работает
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
