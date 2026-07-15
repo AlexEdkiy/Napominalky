@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 import LkCalendarDayPanel from '@/components/lk/calendar/LkCalendarDayPanel.vue'
 import LkCalendarGrid from '@/components/lk/calendar/LkCalendarGrid.vue'
 import LkCalendarLegend from '@/components/lk/calendar/LkCalendarLegend.vue'
 import { useLkBreakpoint, useLkWideDesktop } from '@/composables/useLkBreakpoint'
 import { useLkCalendar } from '@/composables/useLkCalendar'
+import type { LkCalendarEvent } from '@/types/lkCalendar'
 
 const monthNames = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -33,7 +35,18 @@ const {
   selectDay,
 } = useLkCalendar()
 
+const router = useRouter()
+
 const monthLabel = computed<string>(() => `${monthNames[currentMonth.value]} ${currentYear.value}`)
+
+/** Двойной клик по чипу в сетке — открыть объект (redirect-view покажет модалку). */
+async function openEvent(event: LkCalendarEvent): Promise<void> {
+  try {
+    await router.push(event.route)
+  } catch {
+    // Навигация не удалась (guard/дубликат) — календарь остаётся открытым, не рушим страницу.
+  }
+}
 
 onMounted(load)
 </script>
@@ -70,6 +83,7 @@ onMounted(load)
           :selected-date="selectedDate"
           :compact="!isDesktop"
           @select-day="selectDay"
+          @open-event="openEvent"
         />
       </div>
 
