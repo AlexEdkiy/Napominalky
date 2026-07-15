@@ -6,6 +6,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 
 import AccountView from './AccountView.vue'
 import { authApi } from '@/api/authApi'
+import { settingsApi } from '@/api/settingsApi'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types/auth'
 import { resizeImageToBlob } from '@/utils/image'
@@ -20,6 +21,12 @@ vi.mock('@/api/authApi', () => ({
     uploadAvatar: vi.fn(),
     deleteAvatar: vi.fn(),
     deleteAccount: vi.fn(),
+  },
+}))
+
+vi.mock('@/api/settingsApi', () => ({
+  settingsApi: {
+    toggleSync: vi.fn(),
   },
 }))
 
@@ -100,70 +107,169 @@ describe('AccountView', () => {
     expect(wrapper.text()).toContain('Удалить фото')
   })
 
-  it('keeps email read-only (no email input anywhere)', async () => {
+  it('shows email as plain text in view mode (no email input)', async () => {
     const wrapper = await mountAccountView()
 
     expect(wrapper.find('input[type="email"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('ivan@example.com')
   })
 
-  describe('name editing', () => {
-    it('opens the edit form prefilled with the current name and saves via the API', async () => {
-      vi.mocked(authApi.updateProfile).mockResolvedValue({ ...user, name: 'Пётр' })
+  describe('profile editing (name + email)', () => {
+    async function openEditForm(wrapper: VueWrapper): Promise<void> {
+      await wrapper.find('.account__name-view button').trigger('click')
+    }
+
+    it('opens the form prefilled with the current name and email and saves both via the API', async () => {
+      vi.mocked(authApi.updateProfile).mockResolvedValue({
+        ...user,
+        name: 'Пётр',
+        email: 'petr@example.com',
+      })
       const wrapper = await mountAccountView()
 
-      await wrapper.find('.account__name-view button').trigger('click')
-      const input = wrapper.find('.account__input')
-      expect((input.element as HTMLInputElement).value).toBe('Иван')
+      await openEditForm(wrapper)
+      const nameInput = wrapper.find('input[type="text"]')
+      const emailInput = wrapper.find('input[type="email"]')
+      expect((nameInput.element as HTMLInputElement).value).toBe('Иван')
+      expect((emailInput.element as HTMLInputElement).value).toBe('ivan@example.com')
 
-      await input.setValue('Пётр')
-      await wrapper.find('.account__name-form').trigger('submit')
-      await vi.waitFor(() => expect(wrapper.find('.account__name-form').exists()).toBe(false))
+      await nameInput.setValue('Пётр')
+      await emailInput.setValue('petr@example.com')
+      await wrapper.find('.account__profile-form').trigger('submit')
+      await vi.waitFor(() => expect(wrapper.find('.account__profile-form').exists()).toBe(false))
 
-      expect(authApi.updateProfile).toHaveBeenCalledWith('Пётр')
+      expect(authApi.updateProfile).toHaveBeenCalledWith('Пётр', 'petr@example.com')
       expect(useAuthStore().user?.name).toBe('Пётр')
+      expect(useAuthStore().user?.email).toBe('petr@example.com')
       expect(wrapper.find('.account__name').text()).toBe('Пётр')
+      expect(wrapper.text()).toContain('petr@example.com')
     })
 
     it('rejects an empty name locally without calling the API', async () => {
       const wrapper = await mountAccountView()
 
-      await wrapper.find('.account__name-view button').trigger('click')
-      await wrapper.find('.account__input').setValue('   ')
-      await wrapper.find('.account__name-form').trigger('submit')
+      await openEditForm(wrapper)
+      await wrapper.find('input[type="text"]').setValue('   ')
+      await wrapper.find('.account__profile-form').trigger('submit')
 
       expect(wrapper.find('.account__field-error').text()).toBe('Введите имя.')
       expect(authApi.updateProfile).not.toHaveBeenCalled()
     })
 
-    it('shows the 422 message from errors.name under the field', async () => {
+    it('rejects an invalid email locally without calling the API', async () => {
+      const wrapper = await mountAccountView()
+
+      await openEditForm(wrapper)
+      await wrapper.find('input[type="email"]').setValue('not-an-email')
+      await wrapper.find('.account__profile-form').trigger('submit')
+
+      expect(wrapper.find('.account__field-error').text()).toBe('Введите корректный e-mail.')
+      expect(authApi.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it('shows the 422 message from errors.name under the name field', async () => {
       vi.mocked(authApi.updateProfile).mockRejectedValue(
         make422({ name: ['Имя слишком длинное.'] }),
       )
       const wrapper = await mountAccountView()
 
-      await wrapper.find('.account__name-view button').trigger('click')
-      await wrapper.find('.account__input').setValue('Пётр')
-      await wrapper.find('.account__name-form').trigger('submit')
+      await openEditForm(wrapper)
+      await wrapper.find('input[type="text"]').setValue('Пётр')
+      await wrapper.find('.account__profile-form').trigger('submit')
       await vi.waitFor(() =>
         expect(wrapper.find('.account__field-error').exists()).toBe(true),
       )
 
       expect(wrapper.find('.account__field-error').text()).toBe('Имя слишком длинное.')
-      expect(wrapper.find('.account__name-form').exists()).toBe(true)
+      expect(wrapper.find('.account__profile-form').exists()).toBe(true)
+    })
+
+    it('shows the 422 message from errors.email (e.g. taken) under the email field', async () => {
+      vi.mocked(authApi.updateProfile).mockRejectedValue(
+        make422({ email: ['Такой e-mail уже занят.'] }),
+      )
+      const wrapper = await mountAccountView()
+
+      await openEditForm(wrapper)
+      await wrapper.find('input[type="email"]').setValue('taken@example.com')
+      await wrapper.find('.account__profile-form').trigger('submit')
+      await vi.waitFor(() =>
+        expect(wrapper.find('.account__field-error').exists()).toBe(true),
+      )
+
+      expect(wrapper.find('.account__field-error').text()).toBe('Такой e-mail уже занят.')
+      expect(wrapper.find('.account__profile-form').exists()).toBe(true)
+      expect(useAuthStore().user?.email).toBe('ivan@example.com')
     })
 
     it('cancel restores the read-only view without saving', async () => {
       const wrapper = await mountAccountView()
 
-      await wrapper.find('.account__name-view button').trigger('click')
-      await wrapper.find('.account__input').setValue('Другой')
-      const buttons = wrapper.findAll('.account__name-form button')
+      await openEditForm(wrapper)
+      await wrapper.find('input[type="text"]').setValue('Другой')
+      await wrapper.find('input[type="email"]').setValue('other@example.com')
+      const buttons = wrapper.findAll('.account__form-actions button')
       await buttons[1]!.trigger('click')
 
-      expect(wrapper.find('.account__name-form').exists()).toBe(false)
+      expect(wrapper.find('.account__profile-form').exists()).toBe(false)
       expect(authApi.updateProfile).not.toHaveBeenCalled()
       expect(wrapper.find('.account__name').text()).toBe('Иван')
+      expect(wrapper.text()).toContain('ivan@example.com')
+    })
+  })
+
+  describe('sync toggle', () => {
+    it('turns sync off via the API and updates the store and the badge', async () => {
+      vi.mocked(settingsApi.toggleSync).mockResolvedValue({ ...user, sync_enabled: false })
+      const wrapper = await mountAccountView()
+      const toggle = wrapper.find('#account-sync-toggle')
+      expect((toggle.element as HTMLInputElement).checked).toBe(true)
+      expect(wrapper.find('.account__badge').text()).toBe('включена')
+
+      await toggle.setValue(false)
+      await vi.waitFor(() =>
+        expect(wrapper.find('.account__badge').text()).toBe('выключена'),
+      )
+
+      expect(settingsApi.toggleSync).toHaveBeenCalledWith(false)
+      expect(useAuthStore().user?.sync_enabled).toBe(false)
+      expect((toggle.element as HTMLInputElement).checked).toBe(false)
+    })
+
+    it('disables the toggle while the request is in flight', async () => {
+      let resolveToggle: ((value: User) => void) | undefined
+      vi.mocked(settingsApi.toggleSync).mockReturnValue(
+        new Promise((resolve) => {
+          resolveToggle = resolve
+        }),
+      )
+      const wrapper = await mountAccountView()
+      const toggle = wrapper.find('#account-sync-toggle')
+
+      await toggle.setValue(false)
+      await vi.waitFor(() =>
+        expect(toggle.attributes('disabled')).toBeDefined(),
+      )
+
+      resolveToggle?.({ ...user, sync_enabled: false })
+      await vi.waitFor(() => expect(toggle.attributes('disabled')).toBeUndefined())
+    })
+
+    it('shows the error and rolls the checkbox back when the request fails', async () => {
+      vi.mocked(settingsApi.toggleSync).mockRejectedValue(
+        new Error('Не удалось изменить настройку синхронизации'),
+      )
+      const wrapper = await mountAccountView()
+      const toggle = wrapper.find('#account-sync-toggle')
+
+      await toggle.setValue(false)
+      await vi.waitFor(() =>
+        expect(wrapper.find('.account__sync-error').exists()).toBe(true),
+      )
+
+      expect(useAuthStore().user?.sync_enabled).toBe(true)
+      expect((toggle.element as HTMLInputElement).checked).toBe(true)
+      expect(wrapper.find('.account__badge').text()).toBe('включена')
     })
   })
 

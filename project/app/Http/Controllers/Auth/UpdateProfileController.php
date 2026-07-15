@@ -13,7 +13,8 @@ use App\Http\Resources\UserResource;
 /**
  * PATCH /api/v1/auth/me — обновление профиля текущего пользователя.
  *
- * Принимает только name (email не редактируется). Accept: application/json.
+ * Принимает name и email (уникальность email — кроме самого пользователя).
+ * Accept: application/json.
  */
 final class UpdateProfileController extends Controller
 {
@@ -25,7 +26,10 @@ final class UpdateProfileController extends Controller
     {
         $user = ($this->updateProfile)(
             $request->user(),
-            new ProfileData(name: $request->validated('name')),
+            new ProfileData(
+                name: $request->validated('name'),
+                email: $request->validated('email'),
+            ),
         );
 
         return new UserResource($user);

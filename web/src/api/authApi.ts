@@ -29,9 +29,9 @@ export const authApi = {
     return data.data
   },
 
-  /** Обновление профиля (только имя; email не редактируется). */
-  updateProfile: async (name: string): Promise<User> => {
-    const { data } = await apiClient.patch<ApiResponse<User>>('/auth/me', { name })
+  /** Обновление профиля: PATCH /auth/me требует оба поля — имя и e-mail. */
+  updateProfile: async (name: string, email: string): Promise<User> => {
+    const { data } = await apiClient.patch<ApiResponse<User>>('/auth/me', { name, email })
     return data.data
   },
 

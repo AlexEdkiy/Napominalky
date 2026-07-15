@@ -29,14 +29,14 @@ function profileTestUpload(string $base64, string $name, string $mime): Uploaded
 }
 
 // ---------------------------------------------------------------------------
-// PATCH /api/v1/auth/me — обновление имени
+// PATCH /api/v1/auth/me — обновление имени и email
 // ---------------------------------------------------------------------------
 
 it('updates the user name via PATCH /auth/me', function (): void {
-    $user = User::factory()->create(['name' => 'Old Name']);
+    $user = User::factory()->create(['name' => 'Old Name', 'email' => 'keep@example.com']);
     Sanctum::actingAs($user);
 
-    $this->patchJson('/api/v1/auth/me', ['name' => 'New Name'])
+    $this->patchJson('/api/v1/auth/me', ['name' => 'New Name', 'email' => 'keep@example.com'])
         ->assertOk()
         ->assertJsonPath('data.name', 'New Name')
         ->assertJsonPath('data.uuid', $user->uuid);
@@ -44,35 +44,78 @@ it('updates the user name via PATCH /auth/me', function (): void {
     expect($user->refresh()->name)->toBe('New Name');
 });
 
-it('ignores an email field on profile update', function (): void {
-    $user = User::factory()->create(['email' => 'keep@example.com']);
+it('updates the user email via PATCH /auth/me', function (): void {
+    $user = User::factory()->create(['email' => 'old@example.com']);
     Sanctum::actingAs($user);
 
-    $this->patchJson('/api/v1/auth/me', ['name' => 'Renamed', 'email' => 'evil@example.com'])
+    $this->patchJson('/api/v1/auth/me', ['name' => $user->name, 'email' => 'new@example.com'])
         ->assertOk()
-        ->assertJsonPath('data.email', 'keep@example.com');
+        ->assertJsonPath('data.email', 'new@example.com');
 
-    expect($user->refresh()->email)->toBe('keep@example.com');
+    $user->refresh();
+    expect($user->email)->toBe('new@example.com')
+        ->and($user->email_verified_at)->toBeNull();
+});
+
+it('accepts the current email of the user (unique ignores self)', function (): void {
+    $user = User::factory()->create(['email' => 'same@example.com']);
+    Sanctum::actingAs($user);
+
+    $this->patchJson('/api/v1/auth/me', ['name' => 'Renamed', 'email' => 'same@example.com'])
+        ->assertOk()
+        ->assertJsonPath('data.email', 'same@example.com');
+
+    $user->refresh();
+    expect($user->email)->toBe('same@example.com')
+        ->and($user->email_verified_at)->not->toBeNull();
+});
+
+it('rejects an email already taken by another user with 422', function (): void {
+    User::factory()->create(['email' => 'taken@example.com']);
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->patchJson('/api/v1/auth/me', ['name' => 'Name', 'email' => 'taken@example.com'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['email']);
+});
+
+it('rejects an invalid email with 422', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->patchJson('/api/v1/auth/me', ['name' => 'Name', 'email' => 'not-an-email'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['email']);
+});
+
+it('rejects a missing email with 422', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->patchJson('/api/v1/auth/me', ['name' => 'Name'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['email']);
 });
 
 it('rejects an empty name with 422', function (): void {
-    Sanctum::actingAs(User::factory()->create());
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 
-    $this->patchJson('/api/v1/auth/me', ['name' => ''])
+    $this->patchJson('/api/v1/auth/me', ['name' => '', 'email' => $user->email])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['name']);
 });
 
 it('rejects a name longer than 255 characters with 422', function (): void {
-    Sanctum::actingAs(User::factory()->create());
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
 
-    $this->patchJson('/api/v1/auth/me', ['name' => str_repeat('a', 256)])
+    $this->patchJson('/api/v1/auth/me', ['name' => str_repeat('a', 256), 'email' => $user->email])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['name']);
 });
 
 it('rejects profile update without a token with 401', function (): void {
-    $this->patchJson('/api/v1/auth/me', ['name' => 'X'])->assertUnauthorized();
+    $this->patchJson('/api/v1/auth/me', ['name' => 'X', 'email' => 'x@example.com'])
+        ->assertUnauthorized();
 });
 
 // ---------------------------------------------------------------------------

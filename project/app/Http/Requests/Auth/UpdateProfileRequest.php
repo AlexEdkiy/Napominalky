@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdateProfileRequest extends FormRequest
 {
@@ -18,7 +19,8 @@ final class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * Только name: смена email требует ре-верификации и не поддерживается.
+     * name + email: email уникален среди users, кроме текущего пользователя
+     * (можно повторно отправить свой же адрес без ошибки).
      *
      * @return array<string, mixed>
      */
@@ -26,6 +28,12 @@ final class UpdateProfileRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'min:1', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->user()->id),
+            ],
         ];
     }
 }

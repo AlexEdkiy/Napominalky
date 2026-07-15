@@ -66,15 +66,20 @@ describe('authStore', () => {
     expect(auth.isSuperAdmin).toBe(true)
   })
 
-  it('updateProfile stores the user returned by the API (sidebar sees the new name)', async () => {
+  it('updateProfile sends name+email and stores the returned user (sidebar sees changes)', async () => {
     const auth = useAuthStore()
     auth.setUser(user)
-    vi.mocked(authApi.updateProfile).mockResolvedValue({ ...user, name: 'Пётр' })
+    vi.mocked(authApi.updateProfile).mockResolvedValue({
+      ...user,
+      name: 'Пётр',
+      email: 'petr@example.com',
+    })
 
-    await auth.updateProfile('Пётр')
+    await auth.updateProfile('Пётр', 'petr@example.com')
 
-    expect(authApi.updateProfile).toHaveBeenCalledWith('Пётр')
+    expect(authApi.updateProfile).toHaveBeenCalledWith('Пётр', 'petr@example.com')
     expect(auth.user?.name).toBe('Пётр')
+    expect(auth.user?.email).toBe('petr@example.com')
   })
 
   it('uploadAvatar stores the user with the fresh data-URI avatar', async () => {
