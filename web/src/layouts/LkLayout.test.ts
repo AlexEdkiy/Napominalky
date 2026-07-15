@@ -8,6 +8,7 @@ import { notesApi } from '@/api/notesApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { syncApi } from '@/api/syncApi'
 import { resetLkFormsForTests } from '@/composables/useLkForms'
+import { resetSyncMeterForTests, useSyncMeter } from '@/composables/useSyncMeter'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types/auth'
 
@@ -88,6 +89,7 @@ describe('LkLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetLkFormsForTests()
+    resetSyncMeterForTests()
     setActivePinia(createPinia())
     const auth = useAuthStore()
     auth.setUser(user)
@@ -400,6 +402,45 @@ describe('LkLayout', () => {
 
     expect(syncApi.fetchChanges).toHaveBeenCalledWith(0)
 
+    vi.unstubAllGlobals()
+  })
+
+  it('re-runs the sync when the tab becomes visible again (auto refresh on focus)', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-sidebar__sync').classes()).not.toContain('lk-sidebar__sync--syncing'),
+    )
+
+    // Снимаем троттлинг «раз в 30 сек» — как будто последняя синхронизация
+    // была давно (тест не должен зависеть от реального времени).
+    useSyncMeter().lastSyncedAt.value = null
+    vi.mocked(syncApi.fetchChanges).mockClear()
+
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(syncApi.fetchChanges).toHaveBeenCalledWith(0)
+
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('throttles the focus auto refresh when the last sync was moments ago', async () => {
+    stubMatchMedia(true)
+    const wrapper = await mountLayout()
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-sidebar__sync').classes()).not.toContain('lk-sidebar__sync--syncing'),
+    )
+
+    // Синхронизация при монтировании только что прошла (lastSyncedAt свежий) —
+    // немедленный повторный «visible» не должен дёргать API.
+    vi.mocked(syncApi.fetchChanges).mockClear()
+
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(syncApi.fetchChanges).not.toHaveBeenCalled()
+
+    wrapper.unmount()
     vi.unstubAllGlobals()
   })
 
