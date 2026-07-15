@@ -116,7 +116,13 @@ function handleCreateClick(event: MouseEvent): void {
     </button>
 
     <RouterLink :to="{ name: 'lk-account' }" class="lk-sidebar__user">
-      <span class="lk-sidebar__avatar">{{ userInitial }}</span>
+      <img
+        v-if="auth.user?.avatar"
+        :src="auth.user.avatar"
+        alt=""
+        class="lk-sidebar__avatar lk-sidebar__avatar--photo"
+      />
+      <span v-else class="lk-sidebar__avatar">{{ userInitial }}</span>
       <span v-if="!collapsed" class="lk-sidebar__user-info">
         <span class="lk-sidebar__user-name">{{ userLabel }}</span>
         <span class="lk-sidebar__user-email">{{ auth.user?.email }}</span>
@@ -344,6 +350,10 @@ function handleCreateClick(event: MouseEvent): void {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+}
+
+.lk-sidebar__avatar--photo {
+  object-fit: cover;
 }
 
 .lk-sidebar__user-info {

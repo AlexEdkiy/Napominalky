@@ -30,6 +30,7 @@ const user: User = {
   is_active: true,
   sync_enabled: true,
   created_at: '2026-07-01T00:00:00Z',
+  avatar: null,
 }
 
 function createTestRouter() {

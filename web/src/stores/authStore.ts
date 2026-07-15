@@ -46,6 +46,18 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await authApi.getMe()
   }
 
+  async function updateProfile(name: string): Promise<void> {
+    user.value = await authApi.updateProfile(name)
+  }
+
+  async function uploadAvatar(file: Blob): Promise<void> {
+    user.value = await authApi.uploadAvatar(file)
+  }
+
+  async function deleteAvatar(): Promise<void> {
+    user.value = await authApi.deleteAvatar()
+  }
+
   async function logout(): Promise<void> {
     if (token.value !== null) {
       try {
@@ -69,6 +81,9 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     fetchMe,
+    updateProfile,
+    uploadAvatar,
+    deleteAvatar,
     logout,
   }
 })

@@ -11,6 +11,8 @@ export interface User {
   is_active: boolean
   sync_enabled: boolean
   created_at: string
+  /** Аватар как data-URI картинки (data:image/...;base64,...) или null, если не загружен. */
+  avatar: string | null
 }
 
 /**

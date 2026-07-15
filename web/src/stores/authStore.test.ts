@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { useAuthStore } from './authStore'
+import { authApi } from '@/api/authApi'
 import type { User } from '@/types/auth'
 
 const user: User = {
@@ -13,6 +14,7 @@ const user: User = {
   is_active: true,
   sync_enabled: true,
   created_at: '2026-01-01T00:00:00Z',
+  avatar: null,
 }
 
 describe('authStore', () => {
@@ -64,6 +66,40 @@ describe('authStore', () => {
     expect(auth.isSuperAdmin).toBe(true)
   })
 
+  it('updateProfile stores the user returned by the API (sidebar sees the new name)', async () => {
+    const auth = useAuthStore()
+    auth.setUser(user)
+    vi.mocked(authApi.updateProfile).mockResolvedValue({ ...user, name: 'Пётр' })
+
+    await auth.updateProfile('Пётр')
+
+    expect(authApi.updateProfile).toHaveBeenCalledWith('Пётр')
+    expect(auth.user?.name).toBe('Пётр')
+  })
+
+  it('uploadAvatar stores the user with the fresh data-URI avatar', async () => {
+    const auth = useAuthStore()
+    auth.setUser(user)
+    const avatar = 'data:image/jpeg;base64,abc'
+    vi.mocked(authApi.uploadAvatar).mockResolvedValue({ ...user, avatar })
+    const blob = new Blob(['x'], { type: 'image/jpeg' })
+
+    await auth.uploadAvatar(blob)
+
+    expect(authApi.uploadAvatar).toHaveBeenCalledWith(blob)
+    expect(auth.user?.avatar).toBe(avatar)
+  })
+
+  it('deleteAvatar stores the user with avatar=null', async () => {
+    const auth = useAuthStore()
+    auth.setUser({ ...user, avatar: 'data:image/jpeg;base64,abc' })
+    vi.mocked(authApi.deleteAvatar).mockResolvedValue({ ...user, avatar: null })
+
+    await auth.deleteAvatar()
+
+    expect(auth.user?.avatar).toBeNull()
+  })
+
   it('logout clears local state without calling API when no token', async () => {
     const auth = useAuthStore()
     auth.setUser(user)
@@ -79,6 +115,9 @@ vi.mock('@/api/authApi', () => ({
     getMe: vi.fn(),
     login: vi.fn(),
     register: vi.fn(),
+    updateProfile: vi.fn(),
+    uploadAvatar: vi.fn(),
+    deleteAvatar: vi.fn(),
     deleteAccount: vi.fn(),
   },
 }))

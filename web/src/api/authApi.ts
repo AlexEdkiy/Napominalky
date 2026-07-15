@@ -29,6 +29,29 @@ export const authApi = {
     return data.data
   },
 
+  /** Обновление профиля (только имя; email не редактируется). */
+  updateProfile: async (name: string): Promise<User> => {
+    const { data } = await apiClient.patch<ApiResponse<User>>('/auth/me', { name })
+    return data.data
+  },
+
+  /**
+   * Загрузка аватара (multipart, поле `avatar`).
+   * Файл должен быть ужат на клиенте (см. utils/image.ts) — серверный лимит 512 КБ.
+   * Content-Type multipart/form-data с boundary axios выставит автоматически.
+   */
+  uploadAvatar: async (file: Blob): Promise<User> => {
+    const formData = new FormData()
+    formData.append('avatar', file, 'avatar.jpg')
+    const { data } = await apiClient.post<ApiResponse<User>>('/auth/me/avatar', formData)
+    return data.data
+  },
+
+  deleteAvatar: async (): Promise<User> => {
+    const { data } = await apiClient.delete<ApiResponse<User>>('/auth/me/avatar')
+    return data.data
+  },
+
   deleteAccount: async (): Promise<void> => {
     await apiClient.delete('/account')
   },
