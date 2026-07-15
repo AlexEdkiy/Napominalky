@@ -113,6 +113,41 @@ describe('useLkTasksTable', () => {
     expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-2'])
   })
 
+  it('filters by the type quick filter and combines it with the status tab (AND)', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods', is_completed: false }),
+        makeList({ uuid: 'l-2', title: 'Ремонт', type: 'tasks', is_completed: false }),
+        makeList({ uuid: 'l-3', title: 'Аптека', type: 'goods', is_completed: true }),
+      ]),
+    )
+
+    const table = useLkTasksTable()
+    await table.reload()
+
+    expect(table.typeFilter.value).toBe('all')
+    expect(table.visibleLists.value).toHaveLength(3)
+
+    table.typeFilter.value = 'goods'
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-1', 'l-3'])
+
+    table.typeFilter.value = 'tasks'
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-2'])
+
+    // AND-комбинация со статус-вкладкой: активные покупки / выполненные покупки.
+    table.typeFilter.value = 'goods'
+    table.tab.value = 'active'
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-1'])
+
+    table.tab.value = 'completed'
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-3'])
+
+    // Сортировка применяется поверх отфильтрованного набора.
+    table.tab.value = 'all'
+    table.toggleSort('title')
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-3', 'l-1'])
+  })
+
   it('sorts by title and reverses on a second toggle', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginated([makeList({ uuid: 'l-1', title: 'Продукты' }), makeList({ uuid: 'l-2', title: 'Аптека' })]),

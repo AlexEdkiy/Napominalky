@@ -57,6 +57,13 @@ const {
 } = useShoppingListItems(() => currentList.value?.uuid ?? '')
 
 const isEdit = computed<boolean>(() => currentList.value !== null)
+/**
+ * Тип списка фиксируется при создании: если модалка открыта по существующему
+ * списку (edit-режим), тумблер «Купить/Сделать» скрыт, а `form.type`
+ * инициализирован фактическим типом списка (см. `resetForm`) — `updateList`
+ * отправляет его без изменений, акценты красятся по нему же.
+ */
+const isTypeLocked = computed<boolean>(() => taskFormList.value !== null)
 const title = computed<string>(() => form.title.trim() || 'Новая задача / покупка')
 const accent = computed(() => shoppingListAccent(form.type))
 const itemPlaceholder = computed<string>(() =>
@@ -282,20 +289,22 @@ async function confirmDelete(): Promise<void> {
         />
         <span v-if="errors.title" class="lk-form-dialog__error">{{ errors.title[0] }}</span>
 
-        <span class="lk-form-dialog__label">Тип</span>
-        <div class="lk-form-dialog__types">
-          <button
-            v-for="option in typeOptions"
-            :key="option.value"
-            type="button"
-            class="lk-form-dialog__type"
-            :class="{ [`lk-form-dialog__type--active-${option.value}`]: form.type === option.value }"
-            @click="form.type = option.value"
-          >
-            <LkIcon :name="option.icon" :size="17" />
-            {{ option.label }}
-          </button>
-        </div>
+        <template v-if="!isTypeLocked">
+          <span class="lk-form-dialog__label">Тип</span>
+          <div class="lk-form-dialog__types">
+            <button
+              v-for="option in typeOptions"
+              :key="option.value"
+              type="button"
+              class="lk-form-dialog__type"
+              :class="{ [`lk-form-dialog__type--active-${option.value}`]: form.type === option.value }"
+              @click="form.type = option.value"
+            >
+              <LkIcon :name="option.icon" :size="17" />
+              {{ option.label }}
+            </button>
+          </div>
+        </template>
 
         <span class="lk-form-dialog__label">Пункты</span>
         <div class="lk-form-dialog__item-form">

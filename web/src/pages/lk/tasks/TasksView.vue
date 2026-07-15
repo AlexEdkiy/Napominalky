@@ -7,13 +7,20 @@ import LkTasksRightRail from '@/components/lk/tasks/LkTasksRightRail.vue'
 import { useLkForms } from '@/composables/useLkForms'
 import { useLkTasksTable } from '@/composables/useLkTasksTable'
 import { useLkWideDesktop } from '@/composables/useLkBreakpoint'
-import type { LkTasksSortKey, LkTasksTab } from '@/composables/useLkTasksTable'
+import type { LkTasksSortKey, LkTasksTab, LkTasksTypeFilter } from '@/composables/useLkTasksTable'
 import type { ShoppingList } from '@/types/shoppingList'
 
 const TABS: { value: LkTasksTab; label: string }[] = [
   { value: 'all', label: 'Все' },
   { value: 'active', label: 'Активные' },
   { value: 'completed', label: 'Выполненные' },
+]
+
+/** Второе измерение фильтра тулбара — тип списка; комбинируется со статус-вкладками по AND. */
+const TYPE_FILTERS: { value: LkTasksTypeFilter; label: string }[] = [
+  { value: 'all', label: 'Все' },
+  { value: 'goods', label: 'Покупки' },
+  { value: 'tasks', label: 'Задачи' },
 ]
 
 const COLUMNS: { key: LkTasksSortKey; label: string }[] = [
@@ -32,6 +39,7 @@ const {
   error,
   hasMore,
   tab,
+  typeFilter,
   sortKey,
   sortAsc,
   derivedFor,
@@ -62,19 +70,35 @@ onMounted(() => reload())
     <div class="tasks-view__layout">
       <div class="tasks-view__main">
         <div class="tasks-view__toolbar">
-          <div class="tasks-view__tabs" role="tablist" aria-label="Фильтр задач">
-            <button
-              v-for="tabOption in TABS"
-              :key="tabOption.value"
-              type="button"
-              role="tab"
-              class="tasks-view__tab"
-              :class="{ 'tasks-view__tab--active': tab === tabOption.value }"
-              :aria-selected="tab === tabOption.value"
-              @click="tab = tabOption.value"
-            >
-              {{ tabOption.label }}
-            </button>
+          <div class="tasks-view__filters">
+            <div class="tasks-view__tabs" role="tablist" aria-label="Фильтр задач">
+              <button
+                v-for="tabOption in TABS"
+                :key="tabOption.value"
+                type="button"
+                role="tab"
+                class="tasks-view__tab"
+                :class="{ 'tasks-view__tab--active': tab === tabOption.value }"
+                :aria-selected="tab === tabOption.value"
+                @click="tab = tabOption.value"
+              >
+                {{ tabOption.label }}
+              </button>
+            </div>
+
+            <div class="tasks-view__tabs" role="group" aria-label="Фильтр по типу">
+              <button
+                v-for="typeOption in TYPE_FILTERS"
+                :key="typeOption.value"
+                type="button"
+                class="tasks-view__type-tab"
+                :class="{ 'tasks-view__type-tab--active': typeFilter === typeOption.value }"
+                :aria-pressed="typeFilter === typeOption.value"
+                @click="typeFilter = typeOption.value"
+              >
+                {{ typeOption.label }}
+              </button>
+            </div>
           </div>
 
           <button type="button" class="tasks-view__create-btn" @click="openTaskForm()">
@@ -175,6 +199,14 @@ onMounted(() => reload())
   margin-bottom: 1rem;
 }
 
+.tasks-view__filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
 .tasks-view__tabs {
   display: flex;
   gap: 6px;
@@ -184,7 +216,8 @@ onMounted(() => reload())
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
-.tasks-view__tab {
+.tasks-view__tab,
+.tasks-view__type-tab {
   height: 34px;
   padding: 0 14px;
   border: none;
@@ -196,7 +229,8 @@ onMounted(() => reload())
   cursor: pointer;
 }
 
-.tasks-view__tab--active {
+.tasks-view__tab--active,
+.tasks-view__type-tab--active {
   background: #1f2622;
   color: #fff;
 }
@@ -339,11 +373,17 @@ onMounted(() => reload())
     align-items: stretch;
   }
 
+  .tasks-view__filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .tasks-view__tabs {
     justify-content: stretch;
   }
 
-  .tasks-view__tab {
+  .tasks-view__tab,
+  .tasks-view__type-tab {
     flex: 1;
   }
 }

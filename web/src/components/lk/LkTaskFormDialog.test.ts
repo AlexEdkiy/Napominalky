@@ -119,6 +119,47 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('hides the type toggle in the edit mode (тип фиксируется при создании)', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.lk-form-dialog__types').exists()).toBe(false)
+    expect(wrapper.findAll('.lk-form-dialog__type')).toHaveLength(0)
+    // Секция «Тип» скрыта целиком — вместе с заголовком.
+    expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual([
+      'Название',
+      'Пункты',
+      'Теги',
+    ])
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps the existing type on edit save and colors accents by the actual list type', async () => {
+    const tasksList: ShoppingList = { ...list, uuid: 'l-2', title: 'Дела', type: 'tasks', tags: [] }
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...tasksList, title: 'Дела недели' })
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(tasksList)
+    await wrapper.vm.$nextTick()
+
+    // Акценты edit-режима — по фактическому типу списка: tasks → amber.
+    expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(201, 138, 43)')
+    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Например, Помыть окна')
+
+    await wrapper.find('#task-form-title').setValue('Дела недели')
+    await wrapper.find('form').trigger('submit')
+
+    // `type` не затирается: updateList отправляет существующий тип без изменений.
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-2', {
+        title: 'Дела недели',
+        type: 'tasks',
+        tags: [],
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it('creates the list on the FIRST «Добавить пункт» in the new mode and continues in edit mode', async () => {
     vi.mocked(shoppingListsApi.createList).mockResolvedValue({ ...list, uuid: 'l-9', title: 'Дача', tags: [] })
     vi.mocked(shoppingListsApi.addItem).mockResolvedValue(makeItem({ uuid: 'i-9', name: 'Семена' }))

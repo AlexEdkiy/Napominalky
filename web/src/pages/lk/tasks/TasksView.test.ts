@@ -149,8 +149,8 @@ describe('TasksView', () => {
     stubMatchMedia(true)
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginatedLists([
-        makeList({ uuid: 'l-1', title: 'Продукты', items_count: 4, checked_items_count: 2 }),
-        makeList({ uuid: 'l-2', title: 'Аптека' }),
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods', items_count: 4, checked_items_count: 2 }),
+        makeList({ uuid: 'l-2', title: 'Дела', type: 'tasks', items_count: 3, checked_items_count: 1 }),
       ]),
     )
 
@@ -165,7 +165,9 @@ describe('TasksView', () => {
     ])
     expect(wrapper.findAll('.lk-task-row')).toHaveLength(2)
     expect(wrapper.text()).toContain('Продукты')
+    // Подпись пунктов — по типу списка (как в МП): goods — «куплено», tasks — «сделано».
     expect(wrapper.text()).toContain('4 пункта · 2 куплено')
+    expect(wrapper.text()).toContain('3 пункта · 1 сделано')
     // Тексты кнопок тулбара и нижней строки — как в макете.
     expect(wrapper.find('.tasks-view__create-btn').text()).toContain('Новая задача')
     expect(wrapper.find('.tasks-view__add').text()).toContain('Добавить задачу')
@@ -233,6 +235,46 @@ describe('TasksView', () => {
     await tabs[2]?.trigger('click')
     expect(wrapper.text()).toContain('Аптека')
     expect(wrapper.text()).not.toContain('Продукты')
+  })
+
+  it('filters rows by the Покупки/Задачи type segment and combines it with the status tabs (AND)', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods', is_completed: false }),
+        makeList({ uuid: 'l-2', title: 'Ремонт', type: 'tasks', is_completed: false }),
+        makeList({ uuid: 'l-3', title: 'Аптека', type: 'goods', is_completed: true }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const typeTabs = wrapper.findAll('.tasks-view__type-tab')
+    expect(typeTabs.map((tab) => tab.text())).toEqual(['Все', 'Покупки', 'Задачи'])
+    // По умолчанию активен сегмент «Все» — видны все три списка.
+    expect(typeTabs[0]?.classes()).toContain('tasks-view__type-tab--active')
+    expect(typeTabs[0]?.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.findAll('.lk-task-row')).toHaveLength(3)
+
+    await typeTabs[1]?.trigger('click')
+    expect(typeTabs[1]?.classes()).toContain('tasks-view__type-tab--active')
+    expect(typeTabs[0]?.classes()).not.toContain('tasks-view__type-tab--active')
+    expect(wrapper.text()).toContain('Продукты')
+    expect(wrapper.text()).toContain('Аптека')
+    expect(wrapper.text()).not.toContain('Ремонт')
+
+    await typeTabs[2]?.trigger('click')
+    expect(wrapper.text()).toContain('Ремонт')
+    expect(wrapper.text()).not.toContain('Продукты')
+    expect(wrapper.text()).not.toContain('Аптека')
+
+    // AND-комбинация со статус-вкладками: «Активные» + «Покупки» — только активные goods.
+    await typeTabs[1]?.trigger('click')
+    await wrapper.findAll('.tasks-view__tab')[1]?.trigger('click')
+    expect(wrapper.text()).toContain('Продукты')
+    expect(wrapper.text()).not.toContain('Аптека')
+    expect(wrapper.text()).not.toContain('Ремонт')
   })
 
   it('marks a completed row with the completed modifier (strike-through styling)', async () => {
