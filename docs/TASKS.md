@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-14 (веб-ЛК: редизайн страниц Аккаунт/Настройки/Синхронизация — WEB-27)
+> Последнее обновление: 2026-07-15 (веб-ЛК: фикс фантомного напоминания, ссылка «Открыть все» на Обзоре, массовое удаление напоминаний — WEB-28)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 13           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 27           | web-developer             |
+| WEB     | 28           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 7            | devops-engineer           |
-| DOC     | 18           | technical-writer          |
+| DOC     | 19           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 99 |
+| Completed | 100 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -1992,4 +1992,21 @@
   - [x] vue-tsc OK, Vitest зелёный (404)
 - **Создана:** 2026-07-14
 - **Завершена:** 2026-07-14
+
+### WEB-28: Фикс фантомного напоминания в таблице + ссылка «Открыть все» на Обзоре + массовое удаление напоминаний
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-25
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) Баг: в таблице «Задачи и списки» показывалось фантомное напоминание/дата — `nearestIso` при отсутствии будущих значений откатывалась на прошедшие, поэтому просроченное `reminder_at` пункта (напр. 07-03) отображалось как активное. Убран откат на прошлое (`return bestFuture?.iso ?? null`); прошедшие → «—», реальный дедлайн сегодня/в будущем остаётся. (2) На «Обзоре» в блок «Ближайшие напоминания» добавлена ссылка «Открыть все →» на `lk-reminders`. (3) На странице всех напоминаний (`RemindersView`) добавлены чекбоксы выбора + «Выделить все» (с indeterminate) + «Удалить выделенные» (подтверждение через `LkConfirmDialog`, параллельное удаление, обработка частичных ошибок); select-чекбокс не открывает форму.
+- **Файлы:** `web/src/composables/useLkTasksTable.ts`, `web/src/pages/lk/DashboardView.vue`, `web/src/pages/lk/reminders/RemindersView.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`
+- **Критерии приёмки:**
+  - [x] Просроченные дедлайны/напоминания пунктов не показываются (derive без отката на прошлое)
+  - [x] «Обзор» — ссылка «Открыть все» на список напоминаний
+  - [x] RemindersView — выделить все (indeterminate) + удалить выделенные с подтверждением
+  - [x] vue-tsc OK, Vitest зелёный (412)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
 
