@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (фикс загрузки аватара — multipart-заголовок WEB-32)
+> Последнее обновление: 2026-07-15 (аккаунт: смена email + рабочий sync-переключатель — MBE-16, WEB-33)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,21 +9,21 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
-| MBE     | 15           | mobile-backend-developer  |
+| MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 32           | web-developer             |
+| WEB     | 33           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 25           | technical-writer          |
+| DOC     | 26           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 107 |
+| Completed | 109 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2121,6 +2121,38 @@
   - [x] FormData-запросы уходят как multipart (без application/json)
   - [x] Загрузка аватара сохраняется (не 422)
   - [x] vue-tsc OK, Vitest зелёный (458)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### MBE-16: Смена email в профиле (PATCH /auth/me)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MBE-14
+- **Блокирует:** WEB-33
+- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Описание:** `PATCH /auth/me` теперь принимает `email` (required|email|max:255|unique:users кроме себя) наряду с `name`. `UpdateProfileRequest`/`ProfileData`/`UpdateProfileController`/`UpdateProfileAction` обновлены; при фактической смене email сбрасывается `email_verified_at` (verification-флоу в проекте нет). Контракт изменился: `email` стал обязателен в PATCH /auth/me (веб обновлён — WEB-33; мобилка этот эндпоинт не вызывает — он добавлен в MBE-14). Pest: смена email → 200 + verified_at сброшен, свой email → 200, чужой/невалидный/пустой → 422. Профиль-тесты 19, весь Auth 59 зелёные. **Security (принято по требованию):** смена email без подтверждения текущим паролем/ре-верификации — при желании усилить позже.
+- **Файлы:** `project/app/Http/Requests/Auth/UpdateProfileRequest.php`, `project/app/Data/ProfileData.php`, `project/app/Http/Controllers/Auth/UpdateProfileController.php`, `project/app/Actions/User/UpdateProfileAction.php`, `project/tests/Feature/Auth/ProfileTest.php`
+- **Критерии приёмки:**
+  - [x] PATCH /auth/me меняет email с валидацией unique(кроме себя)
+  - [x] email_verified_at сбрасывается при смене
+  - [x] Pest зелёный (Auth 59); живой smoke (name+email→200, только name→422)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-33: Аккаунт — редактирование email + рабочий переключатель синхронизации
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MBE-16, WEB-31
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** На `AccountView` режим «Редактировать» теперь правит имя И e-mail (оба предзаполнены; `updateProfile(name,email)` шлёт оба — новый контракт; клиентская валидация + 422 `errors.name`/`errors.email` под полями). Поле «Синхронизация» из read-only-бейджа стало рабочим переключателем (checkbox `role=switch`, teal), подключённым к готовому `useSettings().toggleSync` (`PATCH /settings/sync`) — обновляет `authStore.user.sync_enabled`, индикатор загрузки, откат состояния при ошибке. `authApi.updateProfile`/`authStore.updateProfile` — сигнатура `(name, email)`.
+- **Файлы:** `web/src/pages/lk/AccountView.vue`, `web/src/api/authApi.ts`, `web/src/stores/authStore.ts`
+- **Критерии приёмки:**
+  - [x] Редактирование имени и email (оба сохраняются, 422 под полями)
+  - [x] Рабочий sync-переключатель (загрузка/ошибка/откат)
+  - [x] vue-tsc OK, Vitest зелёный (463)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
