@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (веб-ЛК: открытие объекта из календаря двойным кликом — WEB-29)
+> Последнее обновление: 2026-07-15 (веб-ЛК: синхронизация/фокус перезагружают данные разделов — WEB-30)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 13           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 29           | web-developer             |
+| WEB     | 30           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 7            | devops-engineer           |
-| DOC     | 20           | technical-writer          |
+| DOC     | 21           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 101 |
+| Completed | 102 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2022,6 +2022,22 @@
 - **Критерии приёмки:**
   - [x] Двойной клик по событию в сетке открывает объект; одиночный клик выбирает день
   - [x] vue-tsc OK, Vitest зелёный (418)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-30: Синхронизация/возврат фокуса перезагружают данные разделов
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-19, WEB-25
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Диагностика жалобы «разный набор списков в МП и вебе»: сервер/REST отдают данные корректно (список «Тестовая» есть, мобилка показывает верно), но веб-раздел перечитывался только при монтировании/F5, а метр «Синхронизация» (`runSync`) делал лишь `fetchChanges(0)` и данные разделов не обновлял → изменения из мобилки не появлялись. Фикс: `useSyncMeter.runSync` после успешного `fetchChanges` бампит `tasksVersion/notesVersion/remindersVersion` (через `notifyTaskSaved/notifyNoteSaved/notifyReminderSaved`) → открытый раздел перечитывает REST. Плюс новый `useLkAutoRefresh` (в LkLayout): при возврате фокуса на вкладку (`visibilitychange='visible'`, троттлинг 30с) вызывает `runSync` → веб подхватывает изменения без F5. Это UX-фикс, не рассинхрон на сервере.
+- **Файлы:** `web/src/composables/useSyncMeter.ts`, `web/src/composables/useLkAutoRefresh.ts`, `web/src/layouts/LkLayout.vue`
+- **Критерии приёмки:**
+  - [x] Клик по «Синхронизация» перезагружает данные открытого раздела (бамп версий)
+  - [x] Возврат фокуса на вкладку авто-обновляет данные (троттлинг, снятие слушателя)
+  - [x] vue-tsc OK, Vitest зелёный (428)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
