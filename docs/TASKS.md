@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (аккаунт: смена email + рабочий sync-переключатель — MBE-16, WEB-33)
+> Последнее обновление: 2026-07-15 (задачи: подпись куплено/сделано по типу, фильтр Покупки/Задачи, тумблер типа только при создании — WEB-34)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 33           | web-developer             |
+| WEB     | 34           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 26           | technical-writer          |
+| DOC     | 27           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 109 |
+| Completed | 110 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2153,6 +2153,23 @@
   - [x] Редактирование имени и email (оба сохраняются, 422 под полями)
   - [x] Рабочий sync-переключатель (загрузка/ошибка/откат)
   - [x] vue-tsc OK, Vitest зелёный (463)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-34: Задачи — разделение по типу (куплено/сделано, фильтр Покупки/Задачи, тумблер только при создании)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** Раздел «Задачи и списки» приведён к логике мобильного приложения по типу списка (`goods`=покупки / `tasks`=задачи). (1) Подпись строки таблицы стала типозависимой: покупки → «N пунктов · M **куплено**», задачи → «N пунктов · M **сделано**» (`checkedWord` в `LkTaskTableRow`). (2) В тулбар таблицы добавлен второй сегмент-фильтр по типу — **Все / Покупки / Задачи** (`typeFilter` в `useLkTasksTable`, `role=group`), комбинируется по AND со статус-вкладками (Все/Активные/Выполненные); сортировка/поиск/пагинация не затронуты. (3) Тумблер типа «Купить/Сделать» в `LkTaskFormDialog` показывается только при СОЗДАНИИ; в режиме редактирования (`isTypeLocked = taskFormList !== null`) скрыт, при сохранении исходный `type` не затирается. Акценты edit (teal/amber) — по фактическому типу списка.
+- **Файлы:** `web/src/components/lk/tasks/LkTaskTableRow.vue`, `web/src/composables/useLkTasksTable.ts`, `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/LkTaskFormDialog.vue` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Подпись «куплено» для goods / «сделано» для tasks
+  - [x] Фильтр по типу (Покупки/Задачи) + комбинация со статусом
+  - [x] Тумблер типа только в new, скрыт в edit, edit не меняет type
+  - [x] vue-tsc OK, Vitest зелёный (467)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
