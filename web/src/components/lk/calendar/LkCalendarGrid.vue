@@ -22,6 +22,8 @@ const props = withDefaults(defineProps<Props>(), { compact: false })
 
 const emit = defineEmits<{
   selectDay: [date: Date]
+  /** Двойной клик по чипу события — открыть объект (переход по `event.route`). */
+  openEvent: [event: LkCalendarEvent]
 }>()
 
 const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const
@@ -90,12 +92,20 @@ function eventStyle(event: LkCalendarEvent): { background: string; color: string
         <span class="lk-calendar-grid__day-number">{{ day.dayOfMonth }}</span>
 
         <span class="lk-calendar-grid__events">
+          <!--
+            Одиночный клик по чипу всплывает к ячейке и выбирает день (selectDay);
+            двойной клик открывает объект и гасится (`.stop`), чтобы не шуметь
+            лишним selectDay на уровне ячейки.
+          -->
           <span
             v-for="event in visibleEvents(day)"
             :key="event.id"
             class="lk-calendar-grid__event"
             :class="{ 'lk-calendar-grid__event--dot': compact }"
             :style="eventStyle(event)"
+            :title="`${event.title} — открыть двойным кликом`"
+            :aria-label="event.title"
+            @dblclick.stop="emit('openEvent', event)"
           >
             <span v-if="!compact" class="lk-calendar-grid__event-title">{{ event.title }}</span>
           </span>
@@ -191,6 +201,7 @@ function eventStyle(event: LkCalendarEvent): { background: string; color: string
   padding: 0.05rem 0.35rem;
   font-size: 0.68rem;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .lk-calendar-grid__event-title {

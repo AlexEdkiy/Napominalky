@@ -206,6 +206,41 @@ describe('CalendarView', () => {
     expect(wrapper.text()).toContain('14:00')
   })
 
+  it('opens the event route on chip double-click in the month grid', async () => {
+    stubMatchMedia(true)
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 15, 14, 0).toISOString())]),
+    )
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+
+    const { wrapper, router } = await mountCalendarView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const cells = wrapper.findAll('.lk-calendar-grid__cell')
+    const day15 = cells.find((cell) => cell.text().startsWith('15'))
+    await day15?.find('.lk-calendar-grid__event').trigger('dblclick')
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/lk/reminders/r-1'))
+  })
+
+  it('single click on a chip still selects the day without navigating away', async () => {
+    stubMatchMedia(true)
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-1', new Date(2026, 6, 15, 14, 0).toISOString())]),
+    )
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+
+    const { wrapper, router } = await mountCalendarView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const cells = wrapper.findAll('.lk-calendar-grid__cell')
+    const day15 = cells.find((cell) => cell.text().startsWith('15'))
+    await day15?.find('.lk-calendar-grid__event').trigger('click')
+
+    expect(router.currentRoute.value.name).toBe('lk-calendar')
+    expect(wrapper.text()).toContain('Напоминание r-1')
+    expect(wrapper.text()).toContain('14:00')
+  })
+
   it('positions the day panel as a right rail only from the wide-desktop breakpoint (>=1280px)', async () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
