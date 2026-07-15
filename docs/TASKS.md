@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (веб-ЛК: фикс фантомного напоминания, ссылка «Открыть все» на Обзоре, массовое удаление напоминаний — WEB-28)
+> Последнее обновление: 2026-07-15 (веб-ЛК: открытие объекта из календаря двойным кликом — WEB-29)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 13           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 28           | web-developer             |
+| WEB     | 29           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 7            | devops-engineer           |
-| DOC     | 19           | technical-writer          |
+| DOC     | 20           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 100 |
+| Completed | 101 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2007,6 +2007,21 @@
   - [x] «Обзор» — ссылка «Открыть все» на список напоминаний
   - [x] RemindersView — выделить все (indeterminate) + удалить выделенные с подтверждением
   - [x] vue-tsc OK, Vitest зелёный (412)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-29: Открытие объекта из календаря двойным кликом
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-15
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** В сетке месяца чипы событий были некликабельны (нельзя открыть объект из календаря). Добавлен двойной клик по чипу события (`LkCalendarGrid`, `@dblclick.stop` → emit `openEvent`) → `CalendarView` делает `router.push(event.route)` → открывается форма-модалка объекта (напоминание/список) через redirect-view. Одиночный клик по-прежнему выбирает день; панель дня (одиночный клик по строке) не менялась. Compact-режим (точки) тоже открывает по двойному тапу.
+- **Файлы:** `web/src/components/lk/calendar/LkCalendarGrid.vue`, `web/src/pages/lk/calendar/CalendarView.vue`
+- **Критерии приёмки:**
+  - [x] Двойной клик по событию в сетке открывает объект; одиночный клик выбирает день
+  - [x] vue-tsc OK, Vitest зелёный (418)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
