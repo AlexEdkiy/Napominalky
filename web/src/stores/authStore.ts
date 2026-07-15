@@ -46,8 +46,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await authApi.getMe()
   }
 
-  async function updateProfile(name: string): Promise<void> {
-    user.value = await authApi.updateProfile(name)
+  async function updateProfile(name: string, email: string): Promise<void> {
+    user.value = await authApi.updateProfile(name, email)
   }
 
   async function uploadAvatar(file: Blob): Promise<void> {

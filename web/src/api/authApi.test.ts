@@ -30,20 +30,23 @@ describe('authApi.updateProfile', () => {
     vi.clearAllMocks()
   })
 
-  it('patches /auth/me with the name and returns the updated user', async () => {
-    const updated = { ...user, name: 'Пётр' }
+  it('patches /auth/me with both name and email and returns the updated user', async () => {
+    const updated = { ...user, name: 'Пётр', email: 'petr@example.com' }
     vi.mocked(apiClient.patch).mockResolvedValue({ data: { data: updated } })
 
-    const result = await authApi.updateProfile('Пётр')
+    const result = await authApi.updateProfile('Пётр', 'petr@example.com')
 
-    expect(apiClient.patch).toHaveBeenCalledWith('/auth/me', { name: 'Пётр' })
+    expect(apiClient.patch).toHaveBeenCalledWith('/auth/me', {
+      name: 'Пётр',
+      email: 'petr@example.com',
+    })
     expect(result).toEqual(updated)
   })
 
   it('propagates a 422 validation error', async () => {
     vi.mocked(apiClient.patch).mockRejectedValue(new Error('422'))
 
-    await expect(authApi.updateProfile('')).rejects.toThrow('422')
+    await expect(authApi.updateProfile('', 'taken@example.com')).rejects.toThrow('422')
   })
 })
 

@@ -4,13 +4,17 @@ import { isAxiosError } from 'axios'
 import { useRouter } from 'vue-router'
 
 import { authApi } from '@/api/authApi'
+import { useSettings } from '@/composables/useSettings'
 import { useAuthStore } from '@/stores/authStore'
 import type { ValidationErrorResponse } from '@/types/api'
 import { resizeImageToBlob } from '@/utils/image'
 import { getUserDisplayName, getUserInitial } from '@/utils/user'
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const router = useRouter()
 const auth = useAuthStore()
+const { isSyncLoading, syncError, toggleSync } = useSettings()
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -21,11 +25,14 @@ const avatarPreview = ref<string | null>(null)
 const isAvatarBusy = ref(false)
 const avatarError = ref<string | null>(null)
 
-// Редактирование имени
-const isEditingName = ref(false)
+// Редактирование профиля (имя + e-mail)
+const isEditing = ref(false)
 const nameDraft = ref('')
+const emailDraft = ref('')
 const nameError = ref<string | null>(null)
-const isSavingName = ref(false)
+const emailError = ref<string | null>(null)
+const formError = ref<string | null>(null)
+const isSaving = ref(false)
 
 const userInitial = computed(() => getUserInitial(auth.user))
 const userName = computed(() => getUserDisplayName(auth.user))
@@ -98,40 +105,72 @@ async function handleDeleteAvatar(): Promise<void> {
   }
 }
 
-function startEditName(): void {
+function startEdit(): void {
   nameDraft.value = auth.user?.name ?? ''
-  nameError.value = null
-  isEditingName.value = true
+  emailDraft.value = auth.user?.email ?? ''
+  resetProfileErrors()
+  isEditing.value = true
 }
 
-function cancelEditName(): void {
-  isEditingName.value = false
-  nameError.value = null
+function cancelEdit(): void {
+  isEditing.value = false
+  resetProfileErrors()
 }
 
-async function saveName(): Promise<void> {
+function resetProfileErrors(): void {
+  nameError.value = null
+  emailError.value = null
+  formError.value = null
+}
+
+/** Клиентская валидация черновиков; ошибки пишет под соответствующие поля. */
+function validateDrafts(name: string, email: string): boolean {
+  nameError.value = name === '' ? 'Введите имя.' : null
+  if (email === '') {
+    emailError.value = 'Введите e-mail.'
+  } else {
+    emailError.value = EMAIL_PATTERN.test(email) ? null : 'Введите корректный e-mail.'
+  }
+  return nameError.value === null && emailError.value === null
+}
+
+async function saveProfile(): Promise<void> {
   const name = nameDraft.value.trim()
-  if (name === '') {
-    nameError.value = 'Введите имя.'
+  const email = emailDraft.value.trim()
+  resetProfileErrors()
+  if (!validateDrafts(name, email)) return
+  isSaving.value = true
+  try {
+    await auth.updateProfile(name, email)
+    isEditing.value = false
+  } catch (err) {
+    applyProfileError(err)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+/** 422 раскладывает по полям (errors.name / errors.email), прочее — общая ошибка формы. */
+function applyProfileError(err: unknown): void {
+  if (isAxiosError<ValidationErrorResponse>(err) && err.response?.status === 422) {
+    const errors = err.response.data.errors
+    nameError.value = errors.name?.[0] ?? null
+    emailError.value = errors.email?.[0] ?? null
+    if (nameError.value === null && emailError.value === null) {
+      formError.value = 'Сервер отклонил данные профиля.'
+    }
     return
   }
-  isSavingName.value = true
-  nameError.value = null
-  try {
-    await auth.updateProfile(name)
-    isEditingName.value = false
-  } catch (err) {
-    nameError.value = extractNameError(err)
-  } finally {
-    isSavingName.value = false
-  }
+  formError.value = 'Не удалось сохранить профиль. Попробуйте позже.'
 }
 
-function extractNameError(err: unknown): string {
-  if (isAxiosError<ValidationErrorResponse>(err) && err.response?.status === 422) {
-    return err.response.data.errors.name?.[0] ?? 'Сервер отклонил имя.'
+/** Переключение синхронизации; при ошибке возвращает чекбокс к значению из стора. */
+async function handleSyncToggle(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  await toggleSync(input.checked)
+  if (syncError.value !== null) {
+    input.checked = auth.user?.sync_enabled ?? false
   }
-  return 'Не удалось сохранить имя. Попробуйте позже.'
 }
 
 async function handleLogout(): Promise<void> {
@@ -209,59 +248,94 @@ async function handleDeleteAccount(): Promise<void> {
       <p v-if="avatarError" role="alert" class="account__field-error">{{ avatarError }}</p>
 
       <dl class="account__rows">
-        <div class="account__row account__row--name">
-          <dt>Имя</dt>
-          <dd v-if="!isEditingName" class="account__name-view">
-            <span>{{ auth.user.name ?? '—' }}</span>
-            <button
-              type="button"
-              class="account__button account__button--small"
-              @click="startEditName"
-            >
-              Редактировать
-            </button>
-          </dd>
-          <dd v-else class="account__name-edit">
-            <form class="account__name-form" @submit.prevent="saveName">
-              <input
-                v-model="nameDraft"
-                type="text"
-                class="account__input"
-                aria-label="Имя"
-                maxlength="255"
-              />
-              <button
-                type="submit"
-                class="account__button account__button--small account__button--primary"
-                :disabled="isSavingName"
-              >
-                {{ isSavingName ? 'Сохранение…' : 'Сохранить' }}
-              </button>
+        <template v-if="!isEditing">
+          <div class="account__row account__row--name">
+            <dt>Имя</dt>
+            <dd class="account__name-view">
+              <span>{{ auth.user.name ?? '—' }}</span>
               <button
                 type="button"
                 class="account__button account__button--small"
-                :disabled="isSavingName"
-                @click="cancelEditName"
+                @click="startEdit"
               >
-                Отмена
+                Редактировать
               </button>
+            </dd>
+          </div>
+          <div class="account__row">
+            <dt>Email</dt>
+            <dd>{{ auth.user.email }}</dd>
+          </div>
+        </template>
+        <div v-else class="account__row account__row--name">
+          <dd class="account__name-edit">
+            <form class="account__profile-form" @submit.prevent="saveProfile">
+              <label class="account__field">
+                <span class="account__field-label">Имя</span>
+                <input
+                  v-model="nameDraft"
+                  type="text"
+                  class="account__input"
+                  aria-label="Имя"
+                  maxlength="255"
+                />
+              </label>
+              <p v-if="nameError" role="alert" class="account__field-error">{{ nameError }}</p>
+              <label class="account__field">
+                <span class="account__field-label">E-mail</span>
+                <input
+                  v-model="emailDraft"
+                  type="email"
+                  class="account__input"
+                  aria-label="E-mail"
+                  maxlength="255"
+                />
+              </label>
+              <p v-if="emailError" role="alert" class="account__field-error">{{ emailError }}</p>
+              <p v-if="formError" role="alert" class="account__field-error">{{ formError }}</p>
+              <div class="account__form-actions">
+                <button
+                  type="submit"
+                  class="account__button account__button--small account__button--primary"
+                  :disabled="isSaving"
+                >
+                  {{ isSaving ? 'Сохранение…' : 'Сохранить' }}
+                </button>
+                <button
+                  type="button"
+                  class="account__button account__button--small"
+                  :disabled="isSaving"
+                  @click="cancelEdit"
+                >
+                  Отмена
+                </button>
+              </div>
             </form>
-            <p v-if="nameError" role="alert" class="account__field-error">{{ nameError }}</p>
           </dd>
         </div>
         <div class="account__row">
-          <dt>Email</dt>
-          <dd>{{ auth.user.email }}</dd>
-        </div>
-        <div class="account__row">
-          <dt>Синхронизация</dt>
-          <dd>
+          <dt>
+            <label for="account-sync-toggle">Синхронизация</label>
+          </dt>
+          <dd class="account__sync">
             <span
               class="account__badge"
               :class="auth.user.sync_enabled ? 'account__badge--on' : 'account__badge--off'"
             >
               {{ auth.user.sync_enabled ? 'включена' : 'выключена' }}
             </span>
+            <input
+              id="account-sync-toggle"
+              type="checkbox"
+              role="switch"
+              class="account__toggle"
+              :checked="auth.user.sync_enabled"
+              :disabled="isSyncLoading"
+              @change="handleSyncToggle"
+            />
+            <p v-if="syncError" role="alert" class="account__field-error account__sync-error">
+              {{ syncError }}
+            </p>
           </dd>
         </div>
       </dl>
@@ -416,12 +490,61 @@ async function handleDeleteAccount(): Promise<void> {
   gap: 0.6rem;
 }
 
-.account__name-form {
+.account__name-edit {
+  width: 100%;
+}
+
+.account__profile-form {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+}
+
+.account__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.account__field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8a938f;
+  text-align: left;
+}
+
+.account__form-actions {
+  display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  width: 100%;
+}
+
+.account__sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.account__toggle {
+  cursor: pointer;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  accent-color: #17897a;
+}
+
+.account__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.account__sync-error {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .account__input {
