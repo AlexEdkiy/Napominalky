@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
+import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkReminderCard from '@/components/lk/reminders/LkReminderCard.vue'
 import { useLkForms } from '@/composables/useLkForms'
@@ -21,13 +22,58 @@ const { reminders, isLoading, error, load, complete, snooze, remove } = useRemin
 
 const status = ref<ReminderStatusFilter>('pending')
 
+// Множественный выбор для массового удаления (отдельно от «выполнить»).
+const selectedUuids = ref<Set<string>>(new Set())
+const isBulkDeleteOpen = ref(false)
+const bulkError = ref<string | null>(null)
+
+const selectedCount = computed<number>(() => selectedUuids.value.size)
+const allSelected = computed<boolean>(
+  () => reminders.value.length > 0 && reminders.value.every((item) => selectedUuids.value.has(item.uuid)),
+)
+const isIndeterminate = computed<boolean>(() => selectedCount.value > 0 && !allSelected.value)
+
 async function refresh(): Promise<void> {
   await load({ status: status.value, sort: 'remind_at', order: 'asc', per_page: REMINDERS_PER_PAGE })
+  // После перезагрузки в выборе остаются только видимые напоминания.
+  selectedUuids.value = new Set(
+    [...selectedUuids.value].filter((uuid) => reminders.value.some((item) => item.uuid === uuid)),
+  )
 }
 
 function changeStatus(next: ReminderStatusFilter): void {
   status.value = next
   void refresh()
+}
+
+function toggleSelect(uuid: string): void {
+  const next = new Set(selectedUuids.value)
+  if (!next.delete(uuid)) {
+    next.add(uuid)
+  }
+  selectedUuids.value = next
+}
+
+function toggleSelectAll(): void {
+  selectedUuids.value = allSelected.value
+    ? new Set()
+    : new Set(reminders.value.map((item) => item.uuid))
+}
+
+/**
+ * Массовое удаление выбранных: параллельные DELETE, частичные ошибки не рушат
+ * UI — неудалённые остаются в списке (и в выборе после прореживания в refresh).
+ */
+async function confirmBulkDelete(): Promise<void> {
+  isBulkDeleteOpen.value = false
+  bulkError.value = null
+  const uuids = [...selectedUuids.value]
+  const results = await Promise.all(uuids.map(async (uuid) => ({ uuid, ok: await remove(uuid) })))
+  const failedCount = results.filter((result) => !result.ok).length
+  await refresh()
+  if (failedCount > 0) {
+    bulkError.value = `Не удалось удалить напоминаний: ${failedCount}. Они остались в списке.`
+  }
 }
 
 function handleCreate(): void {
@@ -95,17 +141,58 @@ onMounted(refresh)
       </p>
     </template>
 
-    <div v-else class="reminders-view__list">
-      <LkReminderCard
-        v-for="reminder in reminders"
-        :key="reminder.uuid"
-        :reminder="reminder"
-        @open="handleOpen"
-        @complete="handleComplete"
-        @snooze="handleSnooze"
-        @remove="handleRemove"
-      />
-    </div>
+    <template v-else>
+      <div class="reminders-view__selection-bar">
+        <label class="reminders-view__select-all">
+          <input
+            type="checkbox"
+            class="reminders-view__select-all-input"
+            :checked="allSelected"
+            :indeterminate="isIndeterminate"
+            aria-label="Выделить все напоминания"
+            @change="toggleSelectAll"
+          />
+          Выделить все
+        </label>
+        <span class="reminders-view__selected-count" aria-live="polite">Выбрано: {{ selectedCount }}</span>
+        <button
+          type="button"
+          class="reminders-view__bulk-delete"
+          :disabled="selectedCount === 0"
+          @click="isBulkDeleteOpen = true"
+        >
+          Удалить выделенные
+        </button>
+      </div>
+
+      <p v-if="bulkError" class="reminders-view__state reminders-view__state--error" role="alert">
+        {{ bulkError }}
+      </p>
+
+      <div class="reminders-view__list">
+        <LkReminderCard
+          v-for="reminder in reminders"
+          :key="reminder.uuid"
+          :reminder="reminder"
+          selectable
+          :selected="selectedUuids.has(reminder.uuid)"
+          @open="handleOpen"
+          @complete="handleComplete"
+          @snooze="handleSnooze"
+          @remove="handleRemove"
+          @toggle-select="toggleSelect"
+        />
+      </div>
+    </template>
+
+    <LkConfirmDialog
+      v-if="isBulkDeleteOpen"
+      :title="`Удалить выбранные напоминания (${selectedCount})?`"
+      confirm-label="Да"
+      cancel-label="Отмена"
+      @confirm="confirmBulkDelete"
+      @cancel="isBulkDeleteOpen = false"
+    />
   </section>
 </template>
 
@@ -194,6 +281,63 @@ onMounted(refresh)
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+}
+
+.reminders-view__selection-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.55rem 0.9rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.reminders-view__select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #1f2622;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reminders-view__select-all-input {
+  width: 16px;
+  height: 16px;
+  accent-color: #17897a;
+  cursor: pointer;
+}
+
+.reminders-view__selected-count {
+  color: #6b716e;
+  font-size: 0.85rem;
+}
+
+.reminders-view__bulk-delete {
+  margin-left: auto;
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: #cf5b4a;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reminders-view__bulk-delete:hover:not(:disabled) {
+  background: #bd4e3e;
+}
+
+.reminders-view__bulk-delete:disabled {
+  background: #eef1f0;
+  color: #8a938f;
+  cursor: not-allowed;
 }
 
 .reminders-view__list {

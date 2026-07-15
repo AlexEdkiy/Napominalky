@@ -219,6 +219,108 @@ describe('RemindersView', () => {
     vi.useRealTimers()
   })
 
+  it('selects a single reminder via the select checkbox without opening the form', async () => {
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginatedReminders([makeReminder({ uuid: 'r-1' }), makeReminder({ uuid: 'r-2' })]),
+    )
+
+    const { wrapper } = await mountView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-reminder-card__select-input').setValue(true)
+
+    expect(wrapper.text()).toContain('Выбрано: 1')
+    const forms = useLkForms()
+    expect(forms.isReminderFormOpen.value).toBe(false)
+
+    const selectAll = wrapper.find<HTMLInputElement>('.reminders-view__select-all-input')
+    expect(selectAll.element.indeterminate).toBe(true)
+    expect(selectAll.element.checked).toBe(false)
+  })
+
+  it('selects and deselects all reminders through the "Выделить все" checkbox', async () => {
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginatedReminders([makeReminder({ uuid: 'r-1' }), makeReminder({ uuid: 'r-2' })]),
+    )
+
+    const { wrapper } = await mountView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const selectAll = wrapper.find<HTMLInputElement>('.reminders-view__select-all-input')
+    await selectAll.setValue(true)
+
+    expect(wrapper.text()).toContain('Выбрано: 2')
+    expect(selectAll.element.indeterminate).toBe(false)
+    const cardChecks = wrapper.findAll<HTMLInputElement>('.lk-reminder-card__select-input')
+    expect(cardChecks.every((check) => check.element.checked)).toBe(true)
+
+    await selectAll.setValue(false)
+    expect(wrapper.text()).toContain('Выбрано: 0')
+    expect(wrapper.find<HTMLButtonElement>('.reminders-view__bulk-delete').element.disabled).toBe(true)
+  })
+
+  it('deletes all selected reminders after confirming, then resets the selection', async () => {
+    vi.mocked(remindersApi.fetchReminders)
+      .mockResolvedValueOnce(paginatedReminders([makeReminder({ uuid: 'r-1' }), makeReminder({ uuid: 'r-2' })]))
+      .mockResolvedValue(paginatedReminders([]))
+    vi.mocked(remindersApi.deleteReminder).mockResolvedValue(undefined)
+
+    const { wrapper } = await mountView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.reminders-view__select-all-input').setValue(true)
+    await wrapper.find('.reminders-view__bulk-delete').trigger('click')
+
+    expect(wrapper.text()).toContain('Удалить выбранные напоминания (2)?')
+    expect(remindersApi.deleteReminder).not.toHaveBeenCalled()
+
+    await wrapper.find('.lk-confirm-dialog__confirm').trigger('click')
+
+    await vi.waitFor(() => expect(remindersApi.deleteReminder).toHaveBeenCalledTimes(2))
+    expect(remindersApi.deleteReminder).toHaveBeenCalledWith('r-1')
+    expect(remindersApi.deleteReminder).toHaveBeenCalledWith('r-2')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Напоминаний пока нет'))
+  })
+
+  it('does not delete anything when the bulk-delete confirmation is cancelled', async () => {
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginatedReminders([makeReminder({ uuid: 'r-1' })]),
+    )
+
+    const { wrapper } = await mountView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-reminder-card__select-input').setValue(true)
+    await wrapper.find('.reminders-view__bulk-delete').trigger('click')
+    await wrapper.find('.lk-confirm-dialog__cancel').trigger('click')
+
+    expect(remindersApi.deleteReminder).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Выбрано: 1')
+  })
+
+  it('keeps the failed reminders listed and selected on a partial bulk-delete failure', async () => {
+    const failing = makeReminder({ uuid: 'r-2', title: 'Неудаляемое' })
+    vi.mocked(remindersApi.fetchReminders)
+      .mockResolvedValueOnce(paginatedReminders([makeReminder({ uuid: 'r-1' }), failing]))
+      .mockResolvedValue(paginatedReminders([failing]))
+    vi.mocked(remindersApi.deleteReminder).mockImplementation(async (uuid: string) => {
+      if (uuid === 'r-2') {
+        throw new Error('server error')
+      }
+    })
+
+    const { wrapper } = await mountView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.reminders-view__select-all-input').setValue(true)
+    await wrapper.find('.reminders-view__bulk-delete').trigger('click')
+    await wrapper.find('.lk-confirm-dialog__confirm').trigger('click')
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Не удалось удалить напоминаний: 1'))
+    expect(wrapper.text()).toContain('Неудаляемое')
+    expect(wrapper.text()).toContain('Выбрано: 1')
+  })
+
   it('completes a reminder', async () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
       paginatedReminders([makeReminder({ uuid: 'r-1' })]),

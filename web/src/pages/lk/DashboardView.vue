@@ -104,6 +104,9 @@ function openReminder(uuid: string): void {
             <h2 id="dashboard-upcoming-heading" class="dashboard__panel-title">
               Ближайшие напоминания
             </h2>
+            <RouterLink :to="{ name: 'lk-reminders' }" class="dashboard__panel-link">
+              Открыть все →
+            </RouterLink>
           </header>
 
           <p v-if="upcomingReminders.length === 0" class="dashboard__empty">
