@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (веб-ЛК: синхронизация/фокус перезагружают данные разделов — WEB-30)
+> Последнее обновление: 2026-07-15 (аккаунт: редактирование имени + аватар — MBE-14, WEB-31)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,21 +9,21 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
-| MBE     | 13           | mobile-backend-developer  |
+| MBE     | 14           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 30           | web-developer             |
+| WEB     | 31           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 7            | devops-engineer           |
-| DOC     | 21           | technical-writer          |
+| DOC     | 22           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 102 |
+| Completed | 104 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2038,6 +2038,43 @@
   - [x] Клик по «Синхронизация» перезагружает данные открытого раздела (бамп версий)
   - [x] Возврат фокуса на вкладку авто-обновляет данные (троттлинг, снятие слушателя)
   - [x] vue-tsc OK, Vitest зелёный (428)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+---
+
+## Feature: Аккаунт — редактирование профиля + аватар
+
+### MBE-14: Профиль — PATCH /auth/me (имя) + аватар (загрузка/удаление, data-URI)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** WEB-31
+- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Описание:** Эндпоинты профиля: `PATCH /auth/me` (обновление name; email не принимается), `POST /auth/me/avatar` (multipart, image mimes jpeg/png/webp ≤512КБ, хранение на приватном диске `local` `avatars/{uuid}.ext`, замена прежнего файла), `DELETE /auth/me/avatar` (идемпотентно). Миграция `users.avatar_path` (обе БД). `UserResource.avatar` = data-URI (`data:image/…;base64,…`) или null; сырой `avatar_path` в `$hidden`. Решение data-URI выбрано из-за схемы деплоя (serve только /api, нет storage:link) — CSP `img-src 'self' data:` уже разрешает. `AvatarService` (store/delete/toDataUri); DeleteAccount чистит файл аватара. GD в контейнере нет → серверный ресайз невозможен (ресайз на клиенте). Живой smoke на проде: upload→data-URI→delete→чисто.
+- **Файлы:** `project/database/migrations/2026_07_15_100000_add_avatar_path_to_users_table.php`, `project/app/Http/Controllers/Auth/{UpdateProfile,UploadAvatar,DeleteAvatar}Controller.php`, `project/app/Http/Requests/Auth/{UpdateProfile,UploadAvatar}Request.php`, `project/app/Services/AvatarService.php`, `project/app/Actions/User/{UpdateProfile,UploadAvatar,DeleteAvatar}Action.php`, `project/app/Data/ProfileData.php`, `project/app/Http/Resources/UserResource.php`, `project/app/Models/User.php`, `project/routes/api.php`, `project/tests/Feature/Auth/ProfileTest.php`
+- **Критерии приёмки:**
+  - [x] PATCH имя, POST/DELETE аватар, миграция в обе БД
+  - [x] UserResource отдаёт avatar как data-URI/null, avatar_path скрыт
+  - [x] Pest зелёный (300); живой smoke round-trip
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-31: Аккаунт — редактирование имени + загрузка/удаление фото + аватар в сайдбаре
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MBE-14, WEB-27
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** На `AccountView`: режим редактирования имени (PATCH /auth/me, валидация/422), загрузка фото (скрытый file-input → клиентский ресайз `resizeImageToBlob` canvas→256px JPEG ≤512КБ → превью → POST) и удаление фото (DELETE); email только просмотр. `authApi` (updateProfile/uploadAvatar(FormData)/deleteAvatar), `User.avatar: string|null`, authStore пишет ответ в user. Аватар (data-URI) показывается вместо инициала в `LkSidebar` и `LkMobileHeader`. CSP не менялся (data-URI разрешён). Клиентский ресайз обязателен (сервер без GD).
+- **Файлы:** `web/src/pages/lk/AccountView.vue`, `web/src/utils/image.ts`, `web/src/api/authApi.ts`, `web/src/stores/authStore.ts`, `web/src/types/auth.ts`, `web/src/components/lk/{LkSidebar,LkMobileHeader}.vue`
+- **Критерии приёмки:**
+  - [x] Редактирование имени (сохранение/валидация/422)
+  - [x] Загрузка фото (клиентский ресайз, превью) + удаление
+  - [x] Аватар в сайдбаре/мобильной шапке вместо инициала
+  - [x] vue-tsc OK, Vitest зелёный (458)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
