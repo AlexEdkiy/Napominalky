@@ -19,6 +19,13 @@ apiClient.interceptors.request.use((config) => {
   if (token !== null) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  // Multipart-загрузки (FormData, напр. аватар): снимаем дефолтный
+  // application/json, чтобы браузер сам выставил Content-Type:
+  // multipart/form-data с boundary. Иначе сервер не распознаёт файл
+  // (валидация «The avatar field is required»).
+  if (config.data instanceof FormData) {
+    config.headers.delete('Content-Type')
+  }
   return config
 })
 
