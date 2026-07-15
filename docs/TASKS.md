@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (аккаунт: редактирование имени + аватар — MBE-14, WEB-31)
+> Последнее обновление: 2026-07-15 (sync: type/tags списка в мобилку — MBE-15)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,7 +9,7 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
-| MBE     | 14           | mobile-backend-developer  |
+| MBE     | 15           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
 | WEB     | 31           | web-developer             |
 | TEST    | 15           | test-engineer             |
@@ -17,13 +17,13 @@
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 7            | devops-engineer           |
-| DOC     | 22           | technical-writer          |
+| DOC     | 23           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 104 |
+| Completed | 105 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2075,6 +2075,21 @@
   - [x] Загрузка фото (клиентский ресайз, превью) + удаление
   - [x] Аватар в сайдбаре/мобильной шапке вместо инициала
   - [x] vue-tsc OK, Vitest зелёный (458)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### MBE-15: Синхронизация type/tags списка в мобилку (pull-сериализатор)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/07-api.md`
+- **Описание:** `SyncSerializer::shoppingList()` отдавал только `uuid/title/timestamps` — `type`/`tags` списка не уходили в мобилку (тип/теги, заданные в вебе, в МП не появлялись). Добавлены `type` и `tags` (raw JSON-строка, как в sync-whitelist `SyncEntities`). Мобильная сторона уже готова — `ServerShoppingList` содержит `type`/`tags`, `shoppingListMapper` их мапит в локальную БД, поэтому изменений в мобильном приложении и пересборки APK НЕ требуется. Проверено: Sync Pest 59 зелёных + новый тест на type/tags в pull; живой `/sync/changes` отдаёт списки с type/tags. Нюанс: существующие неизменённые списки back-fill'ят type/tags на мобилке при следующем изменении (server_revision bump) или полном ре-sync — incremental sync отдаёт только изменённые записи.
+- **Файлы:** `project/app/Services/Sync/SyncSerializer.php`, `project/tests/Feature/Sync/ChangesEndpointTest.php`
+- **Критерии приёмки:**
+  - [x] Sync pull отдаёт type/tags списка; мобилка их принимает (маппер готов)
+  - [x] Sync Pest зелёный (+тест на type/tags); живая проверка /sync/changes
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
