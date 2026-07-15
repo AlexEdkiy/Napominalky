@@ -7,15 +7,23 @@ import { formatDateTime } from '@/utils/datetime'
 
 interface Props {
   reminder: Reminder
+  /** Показывать чекбокс множественного выбора (не «выполнить»). */
+  selectable?: boolean
+  /** Карточка выбрана (управляется родителем). */
+  selected?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  selectable: false,
+  selected: false,
+})
 
 const emit = defineEmits<{
   open: [uuid: string]
   complete: [uuid: string]
   snooze: [uuid: string, option: SnoozeOption]
   remove: [uuid: string]
+  toggleSelect: [uuid: string]
 }>()
 
 const recurrenceLabels: Record<Reminder['recurrence'], string> = {
@@ -41,6 +49,16 @@ function stop(event: Event, action: () => void): void {
     :class="{ 'lk-reminder-card--done': reminder.is_completed }"
     @click="emit('open', reminder.uuid)"
   >
+    <label v-if="selectable" class="lk-reminder-card__select" @click.stop>
+      <input
+        type="checkbox"
+        class="lk-reminder-card__select-input"
+        :checked="selected"
+        :aria-label="`Выбрать: ${reminder.title}`"
+        @change="emit('toggleSelect', reminder.uuid)"
+      />
+    </label>
+
     <span class="lk-reminder-card__icon"><LkIcon name="bell" :size="18" /></span>
 
     <div class="lk-reminder-card__body">
@@ -125,6 +143,21 @@ function stop(event: Event, action: () => void): void {
 
 .lk-reminder-card--done {
   opacity: 0.65;
+}
+
+.lk-reminder-card__select {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.65rem;
+  cursor: pointer;
+}
+
+.lk-reminder-card__select-input {
+  width: 16px;
+  height: 16px;
+  accent-color: #17897a;
+  cursor: pointer;
 }
 
 .lk-reminder-card__icon {

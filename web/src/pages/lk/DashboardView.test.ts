@@ -139,6 +139,22 @@ describe('DashboardView', () => {
     expect(wrapper.findAll('.lk-stat-card')[3]?.classes()).toContain('lk-stat-card--gradient')
   })
 
+  it('renders the "Открыть все" link to lk-reminders in the upcoming reminders panel', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const links = wrapper.findAll('.dashboard__panel-link')
+    const openAll = links.find((link) => link.text().includes('Открыть все'))
+    expect(openAll).toBeDefined()
+    expect(openAll?.attributes('href')).toBe('/lk/reminders')
+    // Пустое состояние панели при этом сохраняется.
+    expect(wrapper.text()).toContain('Предстоящих напоминаний нет')
+  })
+
   it('shows empty states when there are no tasks or reminders today', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))

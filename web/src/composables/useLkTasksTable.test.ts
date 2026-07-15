@@ -53,8 +53,12 @@ describe('nearestIso', () => {
     expect(nearestIso(['2026-03-20', '2026-03-10', '2026-03-15'], NOW)).toBe('2026-03-10')
   })
 
-  it('falls back to the most recent past value when everything is overdue', () => {
-    expect(nearestIso(['2026-03-01', '2026-03-05'], NOW)).toBe('2026-03-05')
+  it('returns null when everything is overdue (no fallback to past values)', () => {
+    expect(nearestIso(['2026-03-01', '2026-03-05'], NOW)).toBeNull()
+  })
+
+  it('skips past values and still picks the earliest upcoming one', () => {
+    expect(nearestIso(['2026-03-01', '2026-03-15', '2026-03-12'], NOW)).toBe('2026-03-12')
   })
 
   it('ignores null and invalid values; returns null when nothing is left', () => {
@@ -181,6 +185,21 @@ describe('useLkTasksTable', () => {
 
     table.toggleSort('reminder')
     expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-1', 'l-2', 'l-3'])
+  })
+
+  it('derives null (columns show «—») when all item dates are in the past', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([makeList({ uuid: 'l-1' })]))
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({ uuid: 'i-1', deadline: '2026-03-02', reminder_at: '2026-03-03T09:00:00' }),
+    ])
+
+    const table = useLkTasksTable()
+    await table.reload()
+    await vi.waitFor(() => expect(table.derivedFor('l-1')).toBeDefined())
+
+    expect(table.derivedFor('l-1')).toEqual({ deadline: null, reminderAt: null })
+    expect(lkTableDateLabel(table.derivedFor('l-1')?.deadline ?? null, NOW)).toBe('')
+    expect(lkTableTimeLabel(table.derivedFor('l-1')?.reminderAt ?? null)).toBe('')
   })
 
   it('keeps rendering when the background items fetch fails (derived stays undefined)', async () => {

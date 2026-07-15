@@ -31,31 +31,26 @@ export interface LkListDerivedDates {
 }
 
 /**
- * «Ближайшее» значение среди дат: минимальное из будущих (включая сегодня);
- * если будущих нет — максимальное из прошедших (самое близкое к «сейчас»,
- * т.е. последний просроченный дедлайн/сработавшее напоминание).
+ * «Ближайшее» значение среди дат: минимальное из будущих (включая сегодня).
+ * Прошедшие значения (просроченные дедлайны, уже сработавшие напоминания)
+ * игнорируются — если будущих нет, возвращается `null`.
  */
 export function nearestIso(values: (string | null)[], now: Date): string | null {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   let bestFuture: { time: number; iso: string } | null = null
-  let bestPast: { time: number; iso: string } | null = null
   for (const iso of values) {
     if (iso === null) {
       continue
     }
     const time = new Date(iso).getTime()
-    if (Number.isNaN(time)) {
+    if (Number.isNaN(time) || time < startOfToday) {
       continue
     }
-    if (time >= startOfToday) {
-      if (bestFuture === null || time < bestFuture.time) {
-        bestFuture = { time, iso }
-      }
-    } else if (bestPast === null || time > bestPast.time) {
-      bestPast = { time, iso }
+    if (bestFuture === null || time < bestFuture.time) {
+      bestFuture = { time, iso }
     }
   }
-  return bestFuture?.iso ?? bestPast?.iso ?? null
+  return bestFuture?.iso ?? null
 }
 
 /** Метка колонки ДАТА: «Сегодня» / «Завтра» / «15 июля»; пустая строка для null. */
