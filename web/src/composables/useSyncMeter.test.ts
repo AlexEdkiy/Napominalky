@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useSyncMeter } from './useSyncMeter'
+import { resetSyncMeterForTests, useSyncMeter } from './useSyncMeter'
 import { syncApi } from '@/api/syncApi'
+import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 
 const emptyChangesResponse = {
   data: { notes: [], shopping_lists: [], shopping_list_items: [], reminders: [] },
@@ -11,6 +12,8 @@ const emptyChangesResponse = {
 describe('useSyncMeter', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetSyncMeterForTests()
+    resetLkFormsForTests()
   })
 
   it('sets isSyncing while the request is in flight and records lastSyncedAt on success', async () => {
@@ -59,6 +62,56 @@ describe('useSyncMeter', () => {
     await Promise.all([first, second])
 
     expect(syncApi.fetchChanges).toHaveBeenCalledTimes(1)
+  })
+
+  it('bumps the tasks/notes/reminders versions after a successful sync so open sections reload', async () => {
+    vi.mocked(syncApi.fetchChanges).mockResolvedValue(emptyChangesResponse)
+    const { runSync } = useSyncMeter()
+    const { tasksVersion, notesVersion, remindersVersion } = useLkForms()
+
+    await runSync()
+
+    expect(tasksVersion.value).toBe(1)
+    expect(notesVersion.value).toBe(1)
+    expect(remindersVersion.value).toBe(1)
+
+    await runSync()
+
+    expect(tasksVersion.value).toBe(2)
+    expect(notesVersion.value).toBe(2)
+    expect(remindersVersion.value).toBe(2)
+  })
+
+  it('does not bump the section versions when the sync request fails', async () => {
+    vi.mocked(syncApi.fetchChanges).mockRejectedValue(new Error('network down'))
+    const { runSync } = useSyncMeter()
+    const { tasksVersion, notesVersion, remindersVersion } = useLkForms()
+
+    await runSync()
+
+    expect(tasksVersion.value).toBe(0)
+    expect(notesVersion.value).toBe(0)
+    expect(remindersVersion.value).toBe(0)
+  })
+
+  it('bumps each section version only once for concurrent runSync calls (overlap guard)', async () => {
+    let resolveChanges: (() => void) | undefined
+    vi.mocked(syncApi.fetchChanges).mockReturnValue(
+      new Promise((resolve) => {
+        resolveChanges = () => resolve(emptyChangesResponse)
+      }),
+    )
+    const { runSync } = useSyncMeter()
+    const { tasksVersion, notesVersion, remindersVersion } = useLkForms()
+
+    const first = runSync()
+    const second = runSync()
+    resolveChanges?.()
+    await Promise.all([first, second])
+
+    expect(tasksVersion.value).toBe(1)
+    expect(notesVersion.value).toBe(1)
+    expect(remindersVersion.value).toBe(1)
   })
 
   it('shares state across every consumer (module-level singleton)', async () => {

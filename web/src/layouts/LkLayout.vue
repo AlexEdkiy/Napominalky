@@ -10,6 +10,7 @@ import LkReminderFormDialog from '@/components/lk/LkReminderFormDialog.vue'
 import LkSidebar from '@/components/lk/LkSidebar.vue'
 import LkTaskFormDialog from '@/components/lk/LkTaskFormDialog.vue'
 import LkTopbar from '@/components/lk/LkTopbar.vue'
+import { useLkAutoRefresh } from '@/composables/useLkAutoRefresh'
 import { provideLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
@@ -25,6 +26,11 @@ const { isDesktop } = useLkBreakpoint()
 const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
 const { runSync } = useSyncMeter()
 const { openTaskForm, openNoteForm, openReminderForm, tasksVersion, notesVersion } = useLkForms()
+
+// Авто-синхронизация при возврате фокуса на вкладку (visibilitychange →
+// 'visible', с троттлингом): открытый раздел подхватит изменения из мобилки
+// без F5. См. `useLkAutoRefresh.ts`.
+useLkAutoRefresh()
 
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)
