@@ -90,8 +90,8 @@ function openTask(list: ShoppingList): void {
         <section class="dashboard__panel" aria-labelledby="dashboard-today-heading">
           <header class="dashboard__panel-header">
             <h2 id="dashboard-today-heading" class="dashboard__panel-title">Задачи на сегодня</h2>
-            <RouterLink :to="{ name: 'lk-tasks' }" class="dashboard__panel-link">
-              Все задачи →
+            <RouterLink :to="{ name: 'lk-reminders' }" class="dashboard__panel-link">
+              Все напоминания →
             </RouterLink>
           </header>
 

@@ -141,7 +141,15 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('40%')
     expect(wrapper.text()).toContain('Напоминание r-1')
     expect(wrapper.text()).toContain('Напоминание r-2')
-    expect(wrapper.text()).toContain('Все задачи')
+
+    // Панель «Задачи на сегодня» показывает напоминания — её ссылка ведёт в
+    // раздел «Напоминания» (дубль «Все задачи» устранён: на задачи ведёт
+    // только ссылка панели «Задачи», см. LkOverviewTasksPanel).
+    const todayLink = wrapper
+      .findAll('.dashboard__panel-link')
+      .find((link) => link.text().includes('Все напоминания'))
+    expect(todayLink).toBeDefined()
+    expect(todayLink?.attributes('href')).toBe('/lk/reminders')
 
     // Порядок по макету: 4 стат-карточки в фиксированном порядке, затем
     // «Задачи на сегодня» перед «Ближайшие напоминания».
