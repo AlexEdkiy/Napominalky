@@ -112,6 +112,20 @@ onMounted(() => reload())
 
         <div v-else class="tasks-view__card">
           <table class="tasks-view__table">
+            <!--
+              Фиксированная раскладка (table-layout: fixed + colgroup): ширины
+              колонок не зависят от контента, поэтому фоновая подгрузка
+              производных дат («—» → «17 августа», «⏰ 14:00») не вызывает
+              горизонтальный сдвиг (layout shift). ЗАДАЧА — гибкая (остаток),
+              ТЕГИ/ДАТА/НАПОМИНАНИЕ — фиксированные, см. .tasks-view__col--*.
+            -->
+            <colgroup>
+              <col
+                v-for="column in COLUMNS"
+                :key="column.key"
+                :class="`tasks-view__col--${column.key}`"
+              />
+            </colgroup>
             <thead>
               <tr>
                 <th v-for="column in COLUMNS" :key="column.key" class="tasks-view__th" scope="col">
@@ -276,6 +290,22 @@ onMounted(() => reload())
   width: 100%;
   border-collapse: collapse;
   min-width: 640px;
+  /* Ширины колонок задаёт colgroup, а не контент — фоновая подгрузка
+     дат/напоминаний не меняет геометрию таблицы (нет layout shift). */
+  table-layout: fixed;
+}
+
+/* Колонка ЗАДАЧА без ширины — занимает остаток; заголовок внутри ellipsis'ится. */
+.tasks-view__col--tags {
+  width: 180px;
+}
+
+.tasks-view__col--date {
+  width: 130px;
+}
+
+.tasks-view__col--reminder {
+  width: 150px;
 }
 
 .tasks-view__th {

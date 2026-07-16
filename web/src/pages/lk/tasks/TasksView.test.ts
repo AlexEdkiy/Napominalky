@@ -208,6 +208,57 @@ describe('TasksView', () => {
     vi.useRealTimers()
   })
 
+  it('fixes the column layout with a colgroup so background date loading cannot shift columns', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({})]))
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    // colgroup задаёт ширины колонок (вместе с table-layout: fixed) — подмена
+    // «—» на значения дат не пересчитывает раскладку и не двигает соседей.
+    const cols = wrapper.findAll('.tasks-view__table colgroup col')
+    expect(cols).toHaveLength(4)
+    expect(cols.map((col) => col.classes()[0])).toEqual([
+      'tasks-view__col--title',
+      'tasks-view__col--tags',
+      'tasks-view__col--date',
+      'tasks-view__col--reminder',
+    ])
+  })
+
+  it('swaps the «—» placeholder for the derived value inside the same cell (no reflow)', async () => {
+    stubMatchMedia(true)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-03-10T12:00:00'))
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({ uuid: 'l-1' })]))
+    let resolveItems: ((items: ShoppingListItem[]) => void) | undefined
+    vi.mocked(shoppingListsApi.fetchItems).mockReturnValue(
+      new Promise((resolve) => {
+        resolveItems = resolve
+      }),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row').exists()).toBe(true))
+
+    // Пока пункты не подгружены — плейсхолдеры «—» в колонках ДАТА и НАПОМИНАНИЕ.
+    const cellsBefore = wrapper.find('.lk-task-row').findAll('td')
+    expect(cellsBefore[2]?.find('.lk-task-row__empty').exists()).toBe(true)
+    expect(cellsBefore[3]?.find('.lk-task-row__empty').exists()).toBe(true)
+
+    resolveItems?.([makeItem({ deadline: '2026-03-12', reminder_at: '2026-03-12T14:00:00' })])
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row__date').exists()).toBe(true))
+
+    // Значения появляются в тех же ячейках (3-я и 4-я), заменяя плейсхолдер.
+    const cellsAfter = wrapper.find('.lk-task-row').findAll('td')
+    expect(cellsAfter[2]?.find('.lk-task-row__date').exists()).toBe(true)
+    expect(cellsAfter[2]?.find('.lk-task-row__empty').exists()).toBe(false)
+    expect(cellsAfter[3]?.find('.lk-task-row__reminder').exists()).toBe(true)
+    expect(cellsAfter[3]?.find('.lk-task-row__empty').exists()).toBe(false)
+    vi.useRealTimers()
+  })
+
   it('filters rows by the Все/Активные/Выполненные tabs using is_completed', async () => {
     stubMatchMedia(true)
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(

@@ -89,7 +89,7 @@ function handleToggle(): void {
       <span v-else class="lk-task-row__empty">—</span>
     </td>
 
-    <td class="lk-task-row__cell">
+    <td class="lk-task-row__cell lk-task-row__cell--date">
       <span
         v-if="dateLabel !== ''"
         class="lk-task-row__date"
@@ -100,7 +100,7 @@ function handleToggle(): void {
       <span v-else class="lk-task-row__empty">—</span>
     </td>
 
-    <td class="lk-task-row__cell">
+    <td class="lk-task-row__cell lk-task-row__cell--reminder">
       <span v-if="timeLabel !== ''" class="lk-task-row__reminder">⏰ {{ timeLabel }}</span>
       <span v-else class="lk-task-row__empty">—</span>
     </td>
@@ -120,6 +120,19 @@ function handleToggle(): void {
 .lk-task-row__cell {
   padding: 13px 16px;
   vertical-align: middle;
+}
+
+/* Ширины колонок фиксированы (table-layout: fixed в TasksView): в узких
+   колонках длинный контент усекается, не расширяя колонку и не сдвигая соседей. */
+.lk-task-row__cell--tags {
+  overflow: hidden;
+}
+
+.lk-task-row__cell--date,
+.lk-task-row__cell--reminder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lk-task-row__task {
@@ -192,7 +205,14 @@ function handleToggle(): void {
   white-space: nowrap;
 }
 
+/* Метрики «—» совпадают с метриками значений (__date/__reminder, 13.5px):
+   подмена плейсхолдера значением не меняет высоту строки. Значение «⏰ HH:MM»
+   появляется целиком (иконка + время) внутри фиксированной колонки —
+   резервировать место под ⏰ отдельно не нужно, соседей она не сдвигает. */
 .lk-task-row__empty {
+  font-size: 13.5px;
+  font-weight: 600;
   color: #b3bab6;
+  white-space: nowrap;
 }
 </style>
