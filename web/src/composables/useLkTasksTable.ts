@@ -56,25 +56,48 @@ export function nearestIso(values: (string | null)[], now: Date): string | null 
   return bestFuture?.iso ?? null
 }
 
+/** Начало суток в ms — для сравнения дат без учёта времени. */
+function startOfDayTime(value: Date): number {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+}
+
+/** Разница в целых днях между `iso` и `now` (0 — сегодня, 1 — завтра); null — нет даты/мусор. */
+function dayDiff(iso: string | null, now: Date): number | null {
+  if (iso === null) {
+    return null
+  }
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+  return Math.round((startOfDayTime(date) - startOfDayTime(now)) / (24 * 60 * 60 * 1000))
+}
+
+/**
+ * Дата приходится на «сегодня»? Единое правило и для метки «Сегодня» в
+ * таблице задач (`lkTableDateLabel`), и для быстрого фильтра «Сделать
+ * сегодня» панели «Задачи» на Обзоре (`LkOverviewTasksPanel`).
+ */
+export function isLkDateToday(iso: string | null, now: Date): boolean {
+  return dayDiff(iso, now) === 0
+}
+
 /** Метка колонки ДАТА: «Сегодня» / «Завтра» / «15 июля»; пустая строка для null. */
 export function lkTableDateLabel(iso: string | null, now: Date): string {
   if (iso === null) {
     return ''
   }
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) {
+  const diffDays = dayDiff(iso, now)
+  if (diffDays === null) {
     return ''
   }
-  const startOfDay = (value: Date): number =>
-    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
-  const diffDays = Math.round((startOfDay(date) - startOfDay(now)) / (24 * 60 * 60 * 1000))
   if (diffDays === 0) {
     return 'Сегодня'
   }
   if (diffDays === 1) {
     return 'Завтра'
   }
-  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
 }
 
 /** Метка колонки НАПОМИНАНИЕ: локальное время «HH:MM»; пустая строка для null. */
@@ -108,6 +131,48 @@ function matchesType(list: ShoppingList, filter: LkTasksTypeFilter): boolean {
 /** Время для сортировки по производной дате; NaN — «нет значения». */
 function sortTime(iso: string | null | undefined): number {
   return iso === null || iso === undefined ? Number.NaN : new Date(iso).getTime()
+}
+
+/** Производные даты одного списка из его пунктов; null — ошибка загрузки пунктов. */
+async function deriveListDates(
+  list: ShoppingList,
+  now: Date,
+): Promise<[string, LkListDerivedDates] | null> {
+  try {
+    const items = await shoppingListsApi.fetchItems(list.uuid)
+    return [
+      list.uuid,
+      {
+        deadline: nearestIso(items.map((item) => item.deadline), now),
+        reminderAt: nearestIso(items.map((item) => item.reminder_at), now),
+      },
+    ]
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Подгружает пункты списков параллельно и вычисляет ближайшие
+ * `deadline`/`reminder_at` на список — общий механизм производных дат для
+ * таблицы «Задачи и списки» и панели «Задачи» Обзора (`useLkDashboard`).
+ * Уже известные записи (`known`) не перезапрашиваются; ошибки отдельных
+ * списков игнорируются — их записи просто не появятся в результате.
+ */
+export async function fetchListsDerivedDates(
+  lists: ShoppingList[],
+  known: ReadonlyMap<string, LkListDerivedDates>,
+): Promise<Map<string, LkListDerivedDates>> {
+  const now = new Date()
+  const targets = lists.filter((list) => !known.has(list.uuid))
+  const entries = await Promise.all(targets.map((list) => deriveListDates(list, now)))
+  const next = new Map(known)
+  for (const entry of entries) {
+    if (entry !== null) {
+      next.set(entry[0], entry[1])
+    }
+  }
+  return next
 }
 
 /**
@@ -181,37 +246,12 @@ export function useLkTasksTable() {
   )
 
   /**
-   * Ленивая подгрузка пунктов всех списков параллельно (как в `useLkCalendar`)
-   * и вычисление ближайших `deadline`/`reminder_at` на список. Ошибки
-   * игнорируются: колонки Дата/Напоминание — второстепенный источник, при
-   * сбое строка просто показывает «—».
+   * Ленивая подгрузка производных дат пунктов (см. `fetchListsDerivedDates`)
+   * — фоном, не блокирует рендер строк. Ошибки игнорируются: колонки
+   * Дата/Напоминание — второстепенный источник, при сбое строка показывает «—».
    */
   async function loadDerivedDates(): Promise<void> {
-    const now = new Date()
-    const targets = lists.value.filter((list) => !derivedDates.value.has(list.uuid))
-    const entries = await Promise.all(
-      targets.map(async (list): Promise<[string, LkListDerivedDates] | null> => {
-        try {
-          const items = await shoppingListsApi.fetchItems(list.uuid)
-          return [
-            list.uuid,
-            {
-              deadline: nearestIso(items.map((item) => item.deadline), now),
-              reminderAt: nearestIso(items.map((item) => item.reminder_at), now),
-            },
-          ]
-        } catch {
-          return null
-        }
-      }),
-    )
-    const next = new Map(derivedDates.value)
-    for (const entry of entries) {
-      if (entry !== null) {
-        next.set(entry[0], entry[1])
-      }
-    }
-    derivedDates.value = next
+    derivedDates.value = await fetchListsDerivedDates(lists.value, derivedDates.value)
   }
 
   /** Полная перезагрузка таблицы: списки — блокирующе, производные даты — фоном. */

@@ -9,7 +9,7 @@ import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { Reminder } from '@/types/reminder'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 
 const TODAY = new Date(2026, 6, 6, 9, 0)
 
@@ -39,6 +39,26 @@ function makeShoppingList(uuid: string, overrides: Partial<ShoppingList> = {}): 
     items_count: 3,
     checked_items_count: 1,
     is_completed: false,
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+function makeItem(uuid: string, overrides: Partial<ShoppingListItem> = {}): ShoppingListItem {
+  return {
+    uuid,
+    name: 'Молоко',
+    category: 'products',
+    category_label: 'Продукты',
+    is_checked: false,
+    position: 0,
+    quantity: null,
+    deadline: null,
+    reminder_at: null,
+    link: null,
+    comment: null,
+    tags: [],
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
     ...overrides,
@@ -84,6 +104,7 @@ describe('DashboardView', () => {
     resetLkFormsForTests()
     vi.useFakeTimers()
     vi.setSystemTime(TODAY)
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -107,20 +128,10 @@ describe('DashboardView', () => {
     resolveLists?.()
   })
 
-  it('renders the 4 stat numbers and both reminder lists from the API', async () => {
+  it('renders the 4 stat numbers and the upcoming reminders from the API', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginated([
-        {
-          uuid: 'l-1',
-          title: 'Продукты',
-          type: 'goods',
-          tags: [],
-          is_completed: false,
-          items_count: 5,
-          checked_items_count: 2,
-          created_at: '',
-          updated_at: '',
-        },
+        makeShoppingList('l-1', { title: 'Продукты', items_count: 5, checked_items_count: 2 }),
       ]),
     )
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
@@ -139,28 +150,42 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Заметок')
     expect(wrapper.text()).toContain('Выполнено за неделю')
     expect(wrapper.text()).toContain('40%')
-    expect(wrapper.text()).toContain('Напоминание r-1')
+    // Сегодняшнее r-1 учитывается только в счётчике «Напоминаний сегодня»;
+    // в панели «Ближайшие напоминания» — только предстоящее r-2.
+    expect(wrapper.text()).not.toContain('Напоминание r-1')
     expect(wrapper.text()).toContain('Напоминание r-2')
 
-    // Панель «Задачи на сегодня» показывает напоминания — её ссылка ведёт в
-    // раздел «Напоминания» (дубль «Все задачи» устранён: на задачи ведёт
-    // только ссылка панели «Задачи», см. LkOverviewTasksPanel).
-    const todayLink = wrapper
-      .findAll('.dashboard__panel-link')
-      .find((link) => link.text().includes('Все напоминания'))
-    expect(todayLink).toBeDefined()
-    expect(todayLink?.attributes('href')).toBe('/lk/reminders')
-
-    // Порядок по макету: 4 стат-карточки в фиксированном порядке, затем
-    // «Задачи на сегодня» перед «Ближайшие напоминания».
+    // Порядок по макету: 4 стат-карточки в фиксированном порядке.
     const statLabels = wrapper.findAll('.lk-stat-card__label').map((label) => label.text())
     expect(statLabels).toEqual(['Активных задач', 'Напоминаний сегодня', 'Заметок', 'Выполнено за неделю'])
 
-    const panelTitles = wrapper.findAll('.dashboard__panel-title').map((title) => title.text())
-    expect(panelTitles).toEqual(['Задачи на сегодня', 'Ближайшие напоминания'])
-
     // 4-я карточка («Выполнено за неделю») — градиентная teal, по макету.
     expect(wrapper.findAll('.lk-stat-card')[3]?.classes()).toContain('lk-stat-card--gradient')
+  })
+
+  it('renders two columns under the stats: «Задачи» | «Ближайшие напоминания», without «Задачи на сегодня»', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([makeShoppingList('l-1', { title: 'Продукты' })]),
+    )
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginated([makeReminder('r-2', new Date(2026, 6, 8, 10, 0).toISOString())]),
+    )
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { wrapper } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const columns = wrapper.find('.dashboard__columns')
+    expect(columns.exists()).toBe(true)
+    // Левая колонка — панель «Задачи», правая — «Ближайшие напоминания».
+    expect(columns.find('.lk-overview-tasks').exists()).toBe(true)
+    const panelTitles = columns.findAll('.dashboard__panel-title').map((title) => title.text())
+    expect(panelTitles).toEqual(['Ближайшие напоминания'])
+
+    // Блок «Задачи на сегодня» (напоминания с чекбоксом) удалён полностью.
+    expect(wrapper.text()).not.toContain('Задачи на сегодня')
+    expect(wrapper.text()).not.toContain('Все напоминания')
+    expect(wrapper.find('.lk-reminder-item__checkbox').exists()).toBe(false)
   })
 
   it('renders the "Открыть все" link to lk-reminders in the upcoming reminders panel', async () => {
@@ -179,7 +204,7 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Предстоящих напоминаний нет')
   })
 
-  it('shows empty states when there are no tasks or reminders today', async () => {
+  it('shows empty states when there are no tasks or upcoming reminders', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
@@ -187,7 +212,7 @@ describe('DashboardView', () => {
     const { wrapper } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
-    expect(wrapper.text()).toContain('Нет задач на сегодня')
+    expect(wrapper.text()).toContain('Пока нет задач')
     expect(wrapper.text()).toContain('Предстоящих напоминаний нет')
   })
 
@@ -200,86 +225,13 @@ describe('DashboardView', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('network down'))
   })
 
-  it('opens a confirmation popup on checkbox click, without completing or navigating yet', async () => {
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-
-    const { wrapper, router } = await mountDashboard()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
-
-    expect(wrapper.text()).toContain('Подтвердите выполнение задачи')
-    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
-    expect(router.currentRoute.value.name).toBe('lk-dashboard')
-  })
-
-  it('does not complete the reminder when the confirmation popup is cancelled', async () => {
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-
-    const { wrapper } = await mountDashboard()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
-    await wrapper.find('.lk-confirm-dialog__cancel').trigger('click')
-
-    expect(wrapper.text()).not.toContain('Подтвердите выполнение задачи')
-    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
-    expect(wrapper.text()).not.toContain('Нет задач на сегодня')
-  })
-
-  it('marks a reminder as complete only after confirming with "Да" in the popup', async () => {
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-    vi.mocked(remindersApi.completeReminder).mockResolvedValue(
-      makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString()),
-    )
-
-    const { wrapper } = await mountDashboard()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.lk-reminder-item__checkbox').trigger('click')
-    await wrapper.find('.lk-confirm-dialog__confirm').trigger('click')
-
-    await vi.waitFor(() => expect(remindersApi.completeReminder).toHaveBeenCalledWith('r-1'))
-    expect(wrapper.text()).not.toContain('Подтвердите выполнение задачи')
-    expect(wrapper.text()).toContain('Нет задач на сегодня')
-  })
-
-  it('opens the reminder form modal (not a route navigation) when clicking a "today" row body', async () => {
-    const reminder = makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([reminder]))
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-
-    const { wrapper, router } = await mountDashboard()
-    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
-
-    await wrapper.find('.lk-reminder-item__body').trigger('click')
-
-    const forms = useLkForms()
-    expect(forms.isReminderFormOpen.value).toBe(true)
-    expect(forms.reminderFormReminder.value).toEqual(reminder)
-    expect(router.currentRoute.value.name).toBe('lk-dashboard')
-  })
-
   it('opens the reminder form modal when clicking an "upcoming" row body', async () => {
     const reminder = makeReminder('r-2', new Date(2026, 6, 8, 10, 0).toISOString())
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([reminder]))
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
 
-    const { wrapper } = await mountDashboard()
+    const { wrapper, router } = await mountDashboard()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
     await wrapper.find('.lk-reminder-item__body').trigger('click')
@@ -287,6 +239,7 @@ describe('DashboardView', () => {
     const forms = useLkForms()
     expect(forms.isReminderFormOpen.value).toBe(true)
     expect(forms.reminderFormReminder.value).toEqual(reminder)
+    expect(router.currentRoute.value.name).toBe('lk-dashboard')
   })
 
   it('reloads the overview after a save through the reminder form modal (remindersVersion bump)', async () => {
@@ -344,6 +297,35 @@ describe('DashboardView', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-tasks'))
   })
 
+  it('filters the tasks panel to today-only via the «Сделать сегодня» chip (derived item deadlines)', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([
+        makeShoppingList('l-1', { title: 'Сегодняшние дела' }),
+        makeShoppingList('l-2', { title: 'Дела на послезавтра' }),
+      ]),
+    )
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+    vi.mocked(shoppingListsApi.fetchItems).mockImplementation(async (uuid) => {
+      if (uuid === 'l-1') {
+        return [makeItem('i-1', { deadline: '2026-07-06' })]
+      }
+      return [makeItem('i-2', { deadline: '2026-07-08' })]
+    })
+
+    const { wrapper } = await mountDashboard()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+    await vi.waitFor(() => expect(shoppingListsApi.fetchItems).toHaveBeenCalledTimes(2))
+
+    expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(2)
+
+    await wrapper.find('.lk-overview-tasks__filter').trigger('click')
+
+    const rows = wrapper.findAll('.lk-overview-tasks__item')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.text()).toContain('Сегодняшние дела')
+  })
+
   it('opens the task form modal (not a route navigation) when clicking a tasks panel row', async () => {
     const taskList = makeShoppingList('l-1', { title: 'Продукты' })
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([taskList]))
@@ -395,13 +377,13 @@ describe('DashboardView', () => {
 vi.mock('@/api/shoppingListsApi', () => ({
   shoppingListsApi: {
     fetchLists: vi.fn(),
+    fetchItems: vi.fn(),
   },
 }))
 
 vi.mock('@/api/remindersApi', () => ({
   remindersApi: {
     fetchReminders: vi.fn(),
-    completeReminder: vi.fn(),
   },
 }))
 
