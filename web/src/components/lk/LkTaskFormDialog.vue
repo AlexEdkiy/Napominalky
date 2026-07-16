@@ -274,124 +274,126 @@ async function confirmDelete(): Promise<void> {
         </button>
       </header>
 
-      <form novalidate @submit.prevent="handleSubmit">
-        <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
+      <form novalidate class="lk-form-dialog__form" @submit.prevent="handleSubmit">
+        <div class="lk-form-dialog__body">
+          <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
 
-        <label class="lk-form-dialog__label" for="task-form-title">Название</label>
-        <input
-          id="task-form-title"
-          v-model="form.title"
-          type="text"
-          class="lk-form-dialog__input"
-          placeholder="Что нужно сделать или купить?"
-          required
-          autofocus
-        />
-        <span v-if="errors.title" class="lk-form-dialog__error">{{ errors.title[0] }}</span>
+          <label class="lk-form-dialog__label" for="task-form-title">Название</label>
+          <input
+            id="task-form-title"
+            v-model="form.title"
+            type="text"
+            class="lk-form-dialog__input"
+            placeholder="Что нужно сделать или купить?"
+            required
+            autofocus
+          />
+          <span v-if="errors.title" class="lk-form-dialog__error">{{ errors.title[0] }}</span>
 
-        <template v-if="!isTypeLocked">
-          <span class="lk-form-dialog__label">Тип</span>
-          <div class="lk-form-dialog__types">
+          <template v-if="!isTypeLocked">
+            <span class="lk-form-dialog__label">Тип</span>
+            <div class="lk-form-dialog__types">
+              <button
+                v-for="option in typeOptions"
+                :key="option.value"
+                type="button"
+                class="lk-form-dialog__type"
+                :class="{ [`lk-form-dialog__type--active-${option.value}`]: form.type === option.value }"
+                @click="form.type = option.value"
+              >
+                <LkIcon :name="option.icon" :size="17" />
+                {{ option.label }}
+              </button>
+            </div>
+          </template>
+
+          <span class="lk-form-dialog__label">Пункты</span>
+          <div class="lk-form-dialog__item-form">
+            <input
+              v-model="newItemName"
+              type="text"
+              class="lk-form-dialog__input lk-form-dialog__item-input"
+              :placeholder="itemPlaceholder"
+              aria-label="Название нового пункта"
+              @keydown.enter.prevent="handleAddItem"
+            />
             <button
-              v-for="option in typeOptions"
-              :key="option.value"
               type="button"
-              class="lk-form-dialog__type"
-              :class="{ [`lk-form-dialog__type--active-${option.value}`]: form.type === option.value }"
-              @click="form.type = option.value"
+              class="lk-form-dialog__item-add"
+              :style="{ background: accent.color }"
+              @click="handleAddItem"
             >
-              <LkIcon :name="option.icon" :size="17" />
-              {{ option.label }}
+              Добавить
             </button>
           </div>
-        </template>
 
-        <span class="lk-form-dialog__label">Пункты</span>
-        <div class="lk-form-dialog__item-form">
-          <input
-            v-model="newItemName"
-            type="text"
-            class="lk-form-dialog__input lk-form-dialog__item-input"
-            :placeholder="itemPlaceholder"
-            aria-label="Название нового пункта"
-            @keydown.enter.prevent="handleAddItem"
-          />
-          <button
-            type="button"
-            class="lk-form-dialog__item-add"
-            :style="{ background: accent.color }"
-            @click="handleAddItem"
-          >
-            Добавить
-          </button>
-        </div>
-
-        <p v-if="isItemsLoading" class="lk-form-dialog__items-state" aria-live="polite">Загрузка…</p>
-        <p v-else-if="items.length === 0" class="lk-form-dialog__items-state">В списке пока нет пунктов.</p>
-        <ul v-else class="lk-form-dialog__items">
-          <li
-            v-for="item in items"
-            :key="item.uuid"
-            class="lk-form-dialog__item"
-            :class="{ 'lk-form-dialog__item--checked': item.is_checked }"
-          >
-            <label class="lk-form-dialog__item-label">
-              <input
-                type="checkbox"
-                class="lk-form-dialog__item-checkbox"
-                :style="{ accentColor: accent.color }"
-                :checked="item.is_checked"
-                @change="handleCheckItem(item.uuid, $event)"
-              />
-              <span class="lk-form-dialog__item-name">{{ item.name }}</span>
-            </label>
-            <button
-              type="button"
-              class="lk-form-dialog__item-remove"
-              :aria-label="`Удалить ${item.name}`"
-              @click="handleRemoveItem(item.uuid)"
+          <p v-if="isItemsLoading" class="lk-form-dialog__items-state" aria-live="polite">Загрузка…</p>
+          <p v-else-if="items.length === 0" class="lk-form-dialog__items-state">В списке пока нет пунктов.</p>
+          <ul v-else class="lk-form-dialog__items">
+            <li
+              v-for="item in items"
+              :key="item.uuid"
+              class="lk-form-dialog__item"
+              :class="{ 'lk-form-dialog__item--checked': item.is_checked }"
             >
-              &times;
+              <label class="lk-form-dialog__item-label">
+                <input
+                  type="checkbox"
+                  class="lk-form-dialog__item-checkbox"
+                  :style="{ accentColor: accent.color }"
+                  :checked="item.is_checked"
+                  @change="handleCheckItem(item.uuid, $event)"
+                />
+                <span class="lk-form-dialog__item-name">{{ item.name }}</span>
+              </label>
+              <button
+                type="button"
+                class="lk-form-dialog__item-remove"
+                :aria-label="`Удалить ${item.name}`"
+                @click="handleRemoveItem(item.uuid)"
+              >
+                &times;
+              </button>
+            </li>
+          </ul>
+
+          <span class="lk-form-dialog__label">Теги</span>
+          <div class="lk-form-dialog__tags">
+            <button
+              v-for="tag in [...TAG_PRESETS, ...customTags]"
+              :key="tag"
+              type="button"
+              class="lk-form-dialog__tag"
+              :class="{ 'lk-form-dialog__tag--active': tags.includes(tag) }"
+              :style="
+                tags.includes(tag)
+                  ? { background: colorForTag(tag).fg, color: '#fff' }
+                  : { background: colorForTag(tag).bg, color: colorForTag(tag).fg }
+              "
+              @click="toggleTag(tag)"
+            >
+              {{ tag }}
             </button>
-          </li>
-        </ul>
 
-        <span class="lk-form-dialog__label">Теги</span>
-        <div class="lk-form-dialog__tags">
-          <button
-            v-for="tag in [...TAG_PRESETS, ...customTags]"
-            :key="tag"
-            type="button"
-            class="lk-form-dialog__tag"
-            :class="{ 'lk-form-dialog__tag--active': tags.includes(tag) }"
-            :style="
-              tags.includes(tag)
-                ? { background: colorForTag(tag).fg, color: '#fff' }
-                : { background: colorForTag(tag).bg, color: colorForTag(tag).fg }
-            "
-            @click="toggleTag(tag)"
-          >
-            {{ tag }}
-          </button>
-
-          <input
-            v-if="isAddingCustomTag"
-            v-model="customTagName"
-            type="text"
-            class="lk-form-dialog__tag-input"
-            placeholder="Свой тег"
-            aria-label="Название своего тега"
-            @keydown.enter.prevent="addCustomTag"
-            @blur="addCustomTag"
-          />
-          <button
-            v-else
-            type="button"
-            class="lk-form-dialog__tag lk-form-dialog__tag-add"
-            @click="isAddingCustomTag = true"
-          >
-            + Свой тег
-          </button>
+            <input
+              v-if="isAddingCustomTag"
+              v-model="customTagName"
+              type="text"
+              class="lk-form-dialog__tag-input"
+              placeholder="Свой тег"
+              aria-label="Название своего тега"
+              @keydown.enter.prevent="addCustomTag"
+              @blur="addCustomTag"
+            />
+            <button
+              v-else
+              type="button"
+              class="lk-form-dialog__tag lk-form-dialog__tag-add"
+              @click="isAddingCustomTag = true"
+            >
+              + Свой тег
+            </button>
+          </div>
         </div>
 
         <footer class="lk-form-dialog__footer">
@@ -438,20 +440,27 @@ async function confirmDelete(): Promise<void> {
   padding: 0;
 }
 
+/*
+ * Панель — flex-колонка с overflow:hidden: скроллится только середина
+ * (`__body`), шапка и футер зафиксированы. Горизонтальные паддинги вынесены
+ * с панели на шапку/тело/футер, чтобы скроллбар тела не обрезался
+ * скруглённым углом панели и не налезал на контент.
+ */
 .lk-form-dialog__panel {
   background: #fff;
   width: 100%;
   max-height: 86%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: 22px 22px 0 0;
-  padding: 24px 20px;
+  padding: 24px 0;
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
 }
 
 .lk-form-dialog__panel--desktop {
   max-width: 580px;
   border-radius: 22px;
-  padding: 24px 28px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   margin: auto;
 }
@@ -460,11 +469,52 @@ async function confirmDelete(): Promise<void> {
   align-items: center;
 }
 
+.lk-form-dialog__form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Скролл-область: вертикально между фиксированными шапкой и футером, поэтому
+   скроллбар не пересекается со скруглёнными углами; тонкий скроллбар живёт
+   внутри правого паддинга и не наезжает на поля/кнопки. */
+.lk-form-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #cfd6d3 transparent;
+}
+
+.lk-form-dialog__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lk-form-dialog__body::-webkit-scrollbar-thumb {
+  background: #cfd6d3;
+  border-radius: 4px;
+}
+
+.lk-form-dialog__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .lk-form-dialog__header {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
+  padding: 0 20px;
   margin-bottom: 4px;
+}
+
+.lk-form-dialog__panel--desktop .lk-form-dialog__header,
+.lk-form-dialog__panel--desktop .lk-form-dialog__body,
+.lk-form-dialog__panel--desktop .lk-form-dialog__footer {
+  padding-left: 28px;
+  padding-right: 28px;
 }
 
 .lk-form-dialog__title {
@@ -687,6 +737,8 @@ async function confirmDelete(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
+  padding: 0 20px;
   margin-top: 24px;
 }
 

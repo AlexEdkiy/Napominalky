@@ -4,15 +4,18 @@ import { RouterLink } from 'vue-router'
 
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkOverviewReminderItem from '@/components/lk/LkOverviewReminderItem.vue'
+import LkOverviewTasksPanel from '@/components/lk/LkOverviewTasksPanel.vue'
 import LkStatCard from '@/components/lk/LkStatCard.vue'
 import { useLkDashboard } from '@/composables/useLkDashboard'
 import { useLkForms } from '@/composables/useLkForms'
+import type { ShoppingList } from '@/types/shoppingList'
 
-const { openReminderForm, remindersVersion } = useLkForms()
+const { openReminderForm, openTaskForm, remindersVersion, tasksVersion } = useLkForms()
 const {
   isLoading,
   error,
   stats,
+  taskLists,
   todaysReminders,
   upcomingReminders,
   pendingCompleteUuid,
@@ -22,9 +25,11 @@ const {
   cancelComplete,
 } = useLkDashboard()
 
-// Модалка «Напоминание» рендерится в `LkLayout` — перезагружаем сводку после
-// успешного сохранения/удаления через неё (см. `notifyReminderSaved`).
+// Модалки «Напоминание» и «Задача/список» рендерятся в `LkLayout` —
+// перезагружаем сводку после успешного сохранения/удаления через них
+// (см. `notifyReminderSaved` / `notifyTaskSaved`).
 watch(remindersVersion, () => void load())
+watch(tasksVersion, () => void load())
 
 onMounted(load)
 
@@ -33,6 +38,10 @@ function openReminder(uuid: string): void {
     (candidate) => candidate.uuid === uuid,
   )
   openReminderForm(reminder)
+}
+
+function openTask(list: ShoppingList): void {
+  openTaskForm(list)
 }
 </script>
 
@@ -74,6 +83,8 @@ function openReminder(uuid: string): void {
           label="Выполнено за неделю"
         />
       </div>
+
+      <LkOverviewTasksPanel class="dashboard__tasks" :lists="taskLists" @open="openTask" />
 
       <div class="dashboard__panels">
         <section class="dashboard__panel" aria-labelledby="dashboard-today-heading">
@@ -161,6 +172,10 @@ function openReminder(uuid: string): void {
   .dashboard__stats {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.dashboard__tasks {
+  margin-top: 1.25rem;
 }
 
 .dashboard__panels {
