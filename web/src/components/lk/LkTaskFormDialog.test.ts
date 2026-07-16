@@ -439,6 +439,26 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('scrolls only the body: header and footer stay outside the scroll container', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    // Скроллится середина (название/пункты/теги) — всё внутри `__body`.
+    const body = wrapper.find('.lk-form-dialog__body')
+    expect(body.exists()).toBe(true)
+    expect(body.find('#task-form-title').exists()).toBe(true)
+    expect(body.find('.lk-form-dialog__item-form').exists()).toBe(true)
+    expect(body.find('.lk-form-dialog__tags').exists()).toBe(true)
+
+    // Шапка (заголовок + M/N + крестик) и футер (кнопки) зафиксированы —
+    // ВНЕ скролл-контейнера, поэтому всегда видимы и не режутся скроллбаром.
+    expect(body.find('.lk-form-dialog__header').exists()).toBe(false)
+    expect(body.find('.lk-form-dialog__footer').exists()).toBe(false)
+    expect(wrapper.find('.lk-form-dialog__form .lk-form-dialog__footer').exists()).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
   it('renders as a bottom sheet on mobile and a centered modal on desktop', async () => {
     stubMatchMedia(false)
     const mobile = mount(LkTaskFormDialog)

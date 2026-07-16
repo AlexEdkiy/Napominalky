@@ -86,6 +86,20 @@ describe('useLkDashboard', () => {
     })
   })
 
+  it('exposes active (not completed) task lists for the overview «Задачи» panel', async () => {
+    const completed: ShoppingList = { ...makeList(2, 2, 'l-2'), is_completed: true }
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([makeList(5, 2, 'l-1'), completed, makeList(1, 0, 'l-3')]),
+    )
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+
+    const { taskLists, load } = useLkDashboard()
+    await load()
+
+    expect(taskLists.value.map((list) => list.uuid)).toEqual(['l-1', 'l-3'])
+  })
+
   it('records an error message on failure', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockRejectedValue(new Error('network down'))
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))

@@ -4,6 +4,8 @@ import { notesApi } from '@/api/notesApi'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import type { Reminder } from '@/types/reminder'
+import type { ShoppingList } from '@/types/shoppingList'
+import { isShoppingListCompleted } from '@/utils/shoppingList'
 import { ymd } from '@/utils/calendar'
 
 /** Сколько предстоящих (не сегодняшних) напоминаний показывать в «Обзоре». */
@@ -40,6 +42,12 @@ export function useLkDashboard() {
   const isLoading = ref(true)
   const error = ref<string | null>(null)
   const stats = ref<LkOverviewStats>(emptyStats())
+  /**
+   * Активные (не выполненные) списки задач/покупок для панели «Задачи»
+   * Обзора — тот же источник данных, что и раздел «Задачи и списки»
+   * (GET /shopping-lists), без дополнительного запроса.
+   */
+  const taskLists = ref<ShoppingList[]>([])
   const todaysReminders = ref<Reminder[]>([])
   const upcomingReminders = ref<Reminder[]>([])
   /** UUID напоминания, ожидающего подтверждения выполнения (попап «Да/Отмена»). */
@@ -82,6 +90,7 @@ export function useLkDashboard() {
       )
       const { today, upcoming } = splitByToday(remindersResponse.data)
 
+      taskLists.value = listsResponse.data.filter((list) => !isShoppingListCompleted(list))
       todaysReminders.value = today
       upcomingReminders.value = upcoming
       stats.value = {
@@ -130,6 +139,7 @@ export function useLkDashboard() {
     isLoading,
     error,
     stats,
+    taskLists,
     todaysReminders,
     upcomingReminders,
     pendingCompleteUuid,
