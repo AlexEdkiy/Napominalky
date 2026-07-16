@@ -5,7 +5,7 @@ import { notesApi } from '@/api/notesApi'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import type { Reminder } from '@/types/reminder'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 
 const TODAY = new Date(2026, 6, 6, 9, 0) // 2026-07-06 09:00 local
 
@@ -40,6 +40,26 @@ function makeList(itemsCount: number, checkedCount: number, uuid: string): Shopp
   }
 }
 
+function makeItem(uuid: string, overrides: Partial<ShoppingListItem> = {}): ShoppingListItem {
+  return {
+    uuid,
+    name: 'Молоко',
+    category: 'products',
+    category_label: 'Продукты',
+    is_checked: false,
+    position: 0,
+    quantity: null,
+    deadline: null,
+    reminder_at: null,
+    link: null,
+    comment: null,
+    tags: [],
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
 const paginated = <T>(data: T[], total?: number) => ({
   data,
   meta: { current_page: 1, last_page: 1, per_page: 50, total: total ?? data.length },
@@ -51,13 +71,14 @@ describe('useLkDashboard', () => {
     vi.clearAllMocks()
     vi.useFakeTimers()
     vi.setSystemTime(TODAY)
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('splits reminders into today vs upcoming and aggregates stats', async () => {
+  it('counts today reminders in stats and keeps only upcoming ones for the panel', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginated([makeList(5, 2, 'l-1'), makeList(3, 3, 'l-2')]),
     )
@@ -70,14 +91,13 @@ describe('useLkDashboard', () => {
     )
     vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 4))
 
-    const { isLoading, error, stats, todaysReminders, upcomingReminders, load } = useLkDashboard()
+    const { isLoading, error, stats, upcomingReminders, load } = useLkDashboard()
     await load()
 
     expect(isLoading.value).toBe(false)
     expect(error.value).toBeNull()
-    expect(todaysReminders.value).toHaveLength(1)
-    expect(todaysReminders.value[0]?.uuid).toBe('r-1')
-    expect(upcomingReminders.value).toHaveLength(2)
+    // Сегодняшнее r-1 учитывается только в счётчике, панели «на сегодня» нет.
+    expect(upcomingReminders.value.map((reminder) => reminder.uuid)).toEqual(['r-2', 'r-3'])
     expect(stats.value).toEqual({
       activeTasksCount: 3,
       remindersTodayCount: 1,
@@ -100,6 +120,45 @@ describe('useLkDashboard', () => {
     expect(taskLists.value.map((list) => list.uuid)).toEqual(['l-1', 'l-3'])
   })
 
+  it('loads derived item deadlines for active lists in the background (filter «Сделать сегодня»)', async () => {
+    const completed: ShoppingList = { ...makeList(2, 2, 'l-3'), is_completed: true }
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([makeList(5, 2, 'l-1'), makeList(3, 1, 'l-2'), completed]),
+    )
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+    vi.mocked(shoppingListsApi.fetchItems).mockImplementation(async (uuid) => {
+      if (uuid === 'l-1') {
+        return [makeItem('i-1', { deadline: '2026-07-06' })]
+      }
+      return [makeItem('i-2', { deadline: '2026-07-08' })]
+    })
+
+    const { taskListDates, load } = useLkDashboard()
+    await load()
+    await vi.waitFor(() => expect(taskListDates.value.size).toBe(2))
+
+    expect(taskListDates.value.get('l-1')).toEqual({ deadline: '2026-07-06', reminderAt: null })
+    expect(taskListDates.value.get('l-2')).toEqual({ deadline: '2026-07-08', reminderAt: null })
+    // Пункты запрашиваются только для активных списков панели «Задачи».
+    expect(shoppingListsApi.fetchItems).not.toHaveBeenCalledWith('l-3')
+  })
+
+  it('keeps the overview working when the background items fetch fails', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([makeList(5, 2, 'l-1')]))
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+    vi.mocked(shoppingListsApi.fetchItems).mockRejectedValue(new Error('network down'))
+
+    const { error, taskLists, taskListDates, load } = useLkDashboard()
+    await load()
+    await vi.waitFor(() => expect(shoppingListsApi.fetchItems).toHaveBeenCalled())
+
+    expect(error.value).toBeNull()
+    expect(taskLists.value).toHaveLength(1)
+    expect(taskListDates.value.size).toBe(0)
+  })
+
   it('records an error message on failure', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockRejectedValue(new Error('network down'))
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
@@ -111,87 +170,18 @@ describe('useLkDashboard', () => {
     expect(error.value).toBe('network down')
     expect(isLoading.value).toBe(false)
   })
-
-  it('completeTodayReminder removes the reminder and updates the today count', async () => {
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-    vi.mocked(remindersApi.completeReminder).mockResolvedValue(
-      makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString()),
-    )
-
-    const { stats, todaysReminders, load, completeTodayReminder } = useLkDashboard()
-    await load()
-    expect(todaysReminders.value).toHaveLength(1)
-
-    await completeTodayReminder('r-1')
-
-    expect(todaysReminders.value).toHaveLength(0)
-    expect(stats.value.remindersTodayCount).toBe(0)
-  })
-
-  it('requestComplete stores the pending uuid without completing it yet', async () => {
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-
-    const { pendingCompleteUuid, todaysReminders, load, requestComplete } = useLkDashboard()
-    await load()
-
-    requestComplete('r-1')
-
-    expect(pendingCompleteUuid.value).toBe('r-1')
-    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
-    expect(todaysReminders.value).toHaveLength(1)
-  })
-
-  it('cancelComplete clears the pending uuid without completing anything', async () => {
-    const { pendingCompleteUuid, requestComplete, cancelComplete } = useLkDashboard()
-
-    requestComplete('r-1')
-    cancelComplete()
-
-    expect(pendingCompleteUuid.value).toBeNull()
-    expect(remindersApi.completeReminder).not.toHaveBeenCalled()
-  })
-
-  it('confirmComplete completes the pending reminder and clears the pending uuid', async () => {
-    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([]))
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
-      paginated([makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString())]),
-    )
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
-    vi.mocked(remindersApi.completeReminder).mockResolvedValue(
-      makeReminder('r-1', new Date(2026, 6, 6, 21, 0).toISOString()),
-    )
-
-    const { pendingCompleteUuid, todaysReminders, load, requestComplete, confirmComplete } =
-      useLkDashboard()
-    await load()
-
-    requestComplete('r-1')
-    await confirmComplete()
-
-    expect(remindersApi.completeReminder).toHaveBeenCalledWith('r-1')
-    expect(pendingCompleteUuid.value).toBeNull()
-    expect(todaysReminders.value).toHaveLength(0)
-  })
 })
 
 vi.mock('@/api/shoppingListsApi', () => ({
   shoppingListsApi: {
     fetchLists: vi.fn(),
+    fetchItems: vi.fn(),
   },
 }))
 
 vi.mock('@/api/remindersApi', () => ({
   remindersApi: {
     fetchReminders: vi.fn(),
-    completeReminder: vi.fn(),
   },
 }))
 

@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (главная: адаптивный список задач + «Все задачи»; фикс скролла в модалке задачи — WEB-35)
+> Последнее обновление: 2026-07-15 (главная: две колонки Задачи | Ближайшие напоминания; убран блок «Задачи на сегодня»; фильтр «Сделать сегодня» — WEB-36)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 35           | web-developer             |
+| WEB     | 36           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 28           | technical-writer          |
+| DOC     | 29           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 111 |
+| Completed | 112 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2187,6 +2187,23 @@
   - [x] Дубль ссылок разведён (старая панель → «Все напоминания» → lk-reminders)
   - [x] Скролл модалки задачи не обрезан, шапка/футер фиксированы
   - [x] vue-tsc OK, Vitest зелёный (488)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-36: Главная — две колонки (Задачи | Ближайшие напоминания); убран блок «Задачи на сегодня»; фильтр «Сделать сегодня»
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** WEB-35
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) Под стат-карточками Главной — двухколоночная раскладка `grid-template-columns: minmax(0,2fr) minmax(0,1fr)`: слева широкая панель «Задачи» (~2/3), справа узкая «Ближайшие напоминания» (~1/3); при ≤900px складываются в одну колонку (сначала Задачи). (2) Блок «Задачи на сегодня» (Reminder'ы на сегодня, ссылка «Все напоминания →», `LkConfirmDialog`) полностью удалён; из `useLkDashboard` убраны `todaysReminders`/`pendingCompleteUuid`/`completeTodayReminder`/`requestComplete`/`confirmComplete`/`cancelComplete` (счётчик `remindersTodayCount` сохранён через `splitByToday`). (3) В панель «Задачи» добавлен чип-тумблер «Сделать сегодня» — показывает только задачи с датой = сегодня. Правило «Сегодня» — новая `isLkDateToday(iso, now)` в `useLkTasksTable` (общий `dayDiff` с `lkTableDateLabel`, метка «Сегодня» гарантированно совпадает с колонкой раздела задач); производные даты пунктов грузятся фоном через переиспользованную `fetchListsDerivedDates`. Пустое состояние «На сегодня задач нет.»; лимит видимых строк и «Все задачи → lk-tasks» — по отфильтрованному набору.
+- **Файлы:** `web/src/pages/lk/DashboardView.vue`, `web/src/components/lk/LkOverviewTasksPanel.vue`, `web/src/composables/useLkDashboard.ts`, `web/src/composables/useLkTasksTable.ts` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Две колонки: Задачи (2/3) | Ближайшие напоминания (1/3), адаптив ≤900px
+  - [x] Блок «Задачи на сегодня» удалён
+  - [x] Фильтр «Сделать сегодня» (вкл/выкл/пустое состояние), правило «Сегодня» едино с разделом задач
+  - [x] vue-tsc OK, Vitest зелёный (489)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 

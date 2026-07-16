@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { lkTableDateLabel, lkTableTimeLabel, nearestIso, useLkTasksTable } from './useLkTasksTable'
+import {
+  isLkDateToday,
+  lkTableDateLabel,
+  lkTableTimeLabel,
+  nearestIso,
+  useLkTasksTable,
+} from './useLkTasksTable'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
 
@@ -78,6 +84,15 @@ describe('lkTableDateLabel / lkTableTimeLabel', () => {
   it('formats the reminder time as HH:MM', () => {
     expect(lkTableTimeLabel('2026-03-10T09:05:00')).toBe('09:05')
     expect(lkTableTimeLabel(null)).toBe('')
+  })
+
+  it('isLkDateToday matches exactly the dates labelled «Сегодня» (shared filter rule)', () => {
+    expect(isLkDateToday('2026-03-10', NOW)).toBe(true)
+    expect(isLkDateToday('2026-03-10T23:30:00', NOW)).toBe(true)
+    expect(isLkDateToday('2026-03-11', NOW)).toBe(false)
+    expect(isLkDateToday('2026-03-09', NOW)).toBe(false)
+    expect(isLkDateToday(null, NOW)).toBe(false)
+    expect(isLkDateToday('мусор', NOW)).toBe(false)
   })
 })
 

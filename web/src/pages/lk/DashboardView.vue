@@ -2,7 +2,6 @@
 import { onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkOverviewReminderItem from '@/components/lk/LkOverviewReminderItem.vue'
 import LkOverviewTasksPanel from '@/components/lk/LkOverviewTasksPanel.vue'
 import LkStatCard from '@/components/lk/LkStatCard.vue'
@@ -11,19 +10,8 @@ import { useLkForms } from '@/composables/useLkForms'
 import type { ShoppingList } from '@/types/shoppingList'
 
 const { openReminderForm, openTaskForm, remindersVersion, tasksVersion } = useLkForms()
-const {
-  isLoading,
-  error,
-  stats,
-  taskLists,
-  todaysReminders,
-  upcomingReminders,
-  pendingCompleteUuid,
-  load,
-  requestComplete,
-  confirmComplete,
-  cancelComplete,
-} = useLkDashboard()
+const { isLoading, error, stats, taskLists, taskListDates, upcomingReminders, load } =
+  useLkDashboard()
 
 // Модалки «Напоминание» и «Задача/список» рендерятся в `LkLayout` —
 // перезагружаем сводку после успешного сохранения/удаления через них
@@ -34,9 +22,7 @@ watch(tasksVersion, () => void load())
 onMounted(load)
 
 function openReminder(uuid: string): void {
-  const reminder = [...todaysReminders.value, ...upcomingReminders.value].find(
-    (candidate) => candidate.uuid === uuid,
-  )
+  const reminder = upcomingReminders.value.find((candidate) => candidate.uuid === uuid)
   openReminderForm(reminder)
 }
 
@@ -84,31 +70,14 @@ function openTask(list: ShoppingList): void {
         />
       </div>
 
-      <LkOverviewTasksPanel class="dashboard__tasks" :lists="taskLists" @open="openTask" />
-
-      <div class="dashboard__panels">
-        <section class="dashboard__panel" aria-labelledby="dashboard-today-heading">
-          <header class="dashboard__panel-header">
-            <h2 id="dashboard-today-heading" class="dashboard__panel-title">Задачи на сегодня</h2>
-            <RouterLink :to="{ name: 'lk-reminders' }" class="dashboard__panel-link">
-              Все напоминания →
-            </RouterLink>
-          </header>
-
-          <p v-if="todaysReminders.length === 0" class="dashboard__empty">
-            Нет задач на сегодня.
-          </p>
-          <ul v-else class="dashboard__list">
-            <LkOverviewReminderItem
-              v-for="reminder in todaysReminders"
-              :key="reminder.uuid"
-              :reminder="reminder"
-              variant="today"
-              @complete="requestComplete"
-              @open="openReminder"
-            />
-          </ul>
-        </section>
+      <!-- Две колонки: «Задачи» (основная, ~2/3) | «Ближайшие напоминания» (~1/3). -->
+      <div class="dashboard__columns">
+        <LkOverviewTasksPanel
+          class="dashboard__tasks"
+          :lists="taskLists"
+          :derived-dates="taskListDates"
+          @open="openTask"
+        />
 
         <section class="dashboard__panel" aria-labelledby="dashboard-upcoming-heading">
           <header class="dashboard__panel-header">
@@ -135,15 +104,6 @@ function openTask(list: ShoppingList): void {
         </section>
       </div>
     </template>
-
-    <LkConfirmDialog
-      v-if="pendingCompleteUuid !== null"
-      title="Подтвердите выполнение задачи"
-      confirm-label="Да"
-      cancel-label="Отмена"
-      @confirm="confirmComplete"
-      @cancel="cancelComplete"
-    />
   </section>
 </template>
 
@@ -174,20 +134,22 @@ function openTask(list: ShoppingList): void {
   }
 }
 
-.dashboard__tasks {
-  margin-top: 1.25rem;
-}
-
-.dashboard__panels {
+/*
+ * Две колонки под стат-карточками: «Задачи» — основная (~2/3 ширины),
+ * «Ближайшие напоминания» — правая (~1/3). На узких экранах складываются
+ * в одну колонку (сначала Задачи), без горизонтального переполнения.
+ */
+.dashboard__columns {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 1rem;
+  align-items: start;
   margin-top: 1.25rem;
 }
 
 @media (max-width: 900px) {
-  .dashboard__panels {
-    grid-template-columns: 1fr;
+  .dashboard__columns {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

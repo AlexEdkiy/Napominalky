@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { notesApi } from '@/api/notesApi'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { fetchListsDerivedDates } from '@/composables/useLkTasksTable'
+import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
 import type { Reminder } from '@/types/reminder'
 import type { ShoppingList } from '@/types/shoppingList'
 import { isShoppingListCompleted } from '@/utils/shoppingList'
@@ -35,8 +37,9 @@ function emptyStats(): LkOverviewStats {
 
 /**
  * Инкапсулирует данные раздела «Обзор» (`DashboardView`): агрегаты по
- * спискам/напоминаниям/заметкам, напоминания на сегодня («Задачи на
- * сегодня» — отмечаются выполненными) и ближайшие предстоящие напоминания.
+ * спискам/напоминаниям/заметкам, активные списки задач для панели «Задачи»
+ * (с производными датами пунктов для фильтра «Сделать сегодня») и ближайшие
+ * предстоящие напоминания.
  */
 export function useLkDashboard() {
   const isLoading = ref(true)
@@ -48,11 +51,19 @@ export function useLkDashboard() {
    * (GET /shopping-lists), без дополнительного запроса.
    */
   const taskLists = ref<ShoppingList[]>([])
-  const todaysReminders = ref<Reminder[]>([])
+  /**
+   * Производные даты пунктов активных списков (ближайшие deadline/reminder_at)
+   * — тем же механизмом, что и таблица «Задачи и списки»
+   * (`fetchListsDerivedDates`); нужны фильтру «Сделать сегодня» панели
+   * «Задачи». Загружаются фоном и не блокируют рендер Обзора.
+   */
+  const taskListDates = ref<Map<string, LkListDerivedDates>>(new Map())
   const upcomingReminders = ref<Reminder[]>([])
-  /** UUID напоминания, ожидающего подтверждения выполнения (попап «Да/Отмена»). */
-  const pendingCompleteUuid = ref<string | null>(null)
 
+  /**
+   * Делит pending-напоминания на сегодняшние (идут в счётчик «Напоминаний
+   * сегодня») и предстоящие (панель «Ближайшие напоминания», с лимитом).
+   */
   function splitByToday(reminders: Reminder[]): { today: Reminder[]; upcoming: Reminder[] } {
     const todayKey = ymd(new Date())
     const today: Reminder[] = []
@@ -66,6 +77,11 @@ export function useLkDashboard() {
       }
     }
     return { today, upcoming: upcoming.slice(0, UPCOMING_REMINDERS_LIMIT) }
+  }
+
+  /** Фоновая подгрузка производных дат пунктов активных списков; сбои не ломают Обзор. */
+  async function loadTaskListDates(): Promise<void> {
+    taskListDates.value = await fetchListsDerivedDates(taskLists.value, new Map())
   }
 
   async function load(): Promise<void> {
@@ -91,7 +107,6 @@ export function useLkDashboard() {
       const { today, upcoming } = splitByToday(remindersResponse.data)
 
       taskLists.value = listsResponse.data.filter((list) => !isShoppingListCompleted(list))
-      todaysReminders.value = today
       upcomingReminders.value = upcoming
       stats.value = {
         activeTasksCount: totalItems - checkedItems,
@@ -99,6 +114,7 @@ export function useLkDashboard() {
         notesCount: notesResponse.meta.total,
         completedWeekPercent: totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0,
       }
+      void loadTaskListDates()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить данные обзора'
     } finally {
@@ -106,47 +122,13 @@ export function useLkDashboard() {
     }
   }
 
-  async function completeTodayReminder(uuid: string): Promise<void> {
-    try {
-      await remindersApi.completeReminder(uuid)
-      todaysReminders.value = todaysReminders.value.filter((reminder) => reminder.uuid !== uuid)
-      stats.value.remindersTodayCount = todaysReminders.value.length
-    } catch {
-      // Оставляем элемент в списке — пользователь может повторить попытку.
-    }
-  }
-
-  /** Открывает попап подтверждения выполнения для напоминания с данным uuid. */
-  function requestComplete(uuid: string): void {
-    pendingCompleteUuid.value = uuid
-  }
-
-  /** Подтверждение из попапа («Да») — фактически завершает напоминание. */
-  async function confirmComplete(): Promise<void> {
-    const uuid = pendingCompleteUuid.value
-    pendingCompleteUuid.value = null
-    if (uuid !== null) {
-      await completeTodayReminder(uuid)
-    }
-  }
-
-  /** Отмена из попапа («Отмена»/Esc/клик вне) — закрывает его без изменений. */
-  function cancelComplete(): void {
-    pendingCompleteUuid.value = null
-  }
-
   return {
     isLoading,
     error,
     stats,
     taskLists,
-    todaysReminders,
+    taskListDates,
     upcomingReminders,
-    pendingCompleteUuid,
     load,
-    completeTodayReminder,
-    requestComplete,
-    confirmComplete,
-    cancelComplete,
   }
 }
