@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (задачи: подпись куплено/сделано по типу, фильтр Покупки/Задачи, тумблер типа только при создании — WEB-34)
+> Последнее обновление: 2026-07-15 (главная: адаптивный список задач + «Все задачи»; фикс скролла в модалке задачи — WEB-35)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 34           | web-developer             |
+| WEB     | 35           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 27           | technical-writer          |
+| DOC     | 28           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 110 |
+| Completed | 111 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2170,6 +2170,23 @@
   - [x] Фильтр по типу (Покупки/Задачи) + комбинация со статусом
   - [x] Тумблер типа только в new, скрыт в edit, edit не меняет type
   - [x] vue-tsc OK, Vitest зелёный (467)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-35: Главная — адаптивный список задач + «Все задачи»; фикс скролла в модалке задачи
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) На Главной ЛК добавлена панель «Задачи» (`LkOverviewTasksPanel`) на данных `taskLists` из `useLkDashboard` (тот же `shoppingListsApi.fetchLists`, что питает раздел `lk-tasks`, без доп. запроса; активные `!is_completed`). Число видимых строк рассчитывается по высоте экрана — `useLkVisibleCount` (`window.innerHeight − rect.top − reservedBottom` ÷ 48px, clamp [3..8], дебаунс 150 мс на resize + ResizeObserver; мобилка — фикс. 4 строки). Ссылка «Все задачи →» (`lk-tasks`) показывается только при переполнении. Клик по строке открывает модалку задачи. (2) Устранён дубль ссылок: у старой панели «Задачи на сегодня» (Reminder'ы) ссылка стала «Все напоминания →» (`lk-reminders`). (3) Починен скролл модалки задачи `LkTaskFormDialog`: панель — flex-колонка `overflow:hidden`, скроллится только тело (`.lk-form-dialog__body`, тонкий стилизованный скроллбар внутри правого паддинга между фиксированными шапкой и футером) — скроллбар больше не режется скруглённым углом и не наезжает на контент/кнопки.
+- **Файлы:** `web/src/components/lk/LkOverviewTasksPanel.vue` (new), `web/src/composables/useLkVisibleCount.ts` (new), `web/src/pages/lk/DashboardView.vue`, `web/src/components/lk/LkTaskFormDialog.vue` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Главная: видимое число задач по высоте экрана, «Все задачи» только при переполнении → lk-tasks
+  - [x] Дубль ссылок разведён (старая панель → «Все напоминания» → lk-reminders)
+  - [x] Скролл модалки задачи не обрезан, шапка/футер фиксированы
+  - [x] vue-tsc OK, Vitest зелёный (488)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 
