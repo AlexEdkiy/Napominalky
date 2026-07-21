@@ -96,19 +96,37 @@ export interface UpdateShoppingListPayload {
 
 /**
  * Полезная нагрузка добавления позиции (POST /shopping-lists/{uuid}/items).
+ * Поля зеркалят `StoreItemRequest` бэкенда; `tags` — массив на клиенте,
+ * сериализуется в JSON-строку в `api/shoppingListsApi.ts` (симметрично
+ * `parseTags` при чтении).
  */
 export interface CreateShoppingListItemPayload {
   name: string
   category?: ShoppingCategory
   uuid?: string
+  quantity?: number
+  deadline?: string | null
+  reminder_at?: string | null
+  link?: string | null
+  comment?: string | null
+  tags?: string[]
 }
 
 /**
  * Полезная нагрузка частичного обновления позиции
- * (PUT /shopping-lists/{uuid}/items/{itemUuid}).
+ * (PUT /shopping-lists/{uuid}/items/{itemUuid}) — зеркало
+ * `UpdateItemRequest` бэкенда. `quantity` НЕ nullable (правило `min:1`);
+ * `deadline`/`reminder_at`/`link`/`comment` очищаются явным `null`,
+ * теги — пустым массивом (`tags: []` → JSON `"[]"`).
  */
 export interface UpdateShoppingListItemPayload {
   name?: string
   category?: ShoppingCategory
   position?: number
+  quantity?: number
+  deadline?: string | null
+  reminder_at?: string | null
+  link?: string | null
+  comment?: string | null
+  tags?: string[]
 }

@@ -110,7 +110,7 @@ describe('LkLayout', () => {
     })
   })
 
-  it('renders the desktop sidebar with all 4 navigation sections', async () => {
+  it('renders the desktop sidebar with all 5 navigation sections', async () => {
     stubMatchMedia(true)
     const wrapper = await mountLayout()
 
@@ -118,9 +118,21 @@ describe('LkLayout', () => {
     expect(wrapper.find('.lk-bottom-nav').exists()).toBe(false)
     expect(wrapper.text()).toContain('Обзор')
     expect(wrapper.text()).toContain('Задачи и списки')
+    expect(wrapper.text()).toContain('Напоминания')
     expect(wrapper.text()).toContain('Календарь')
     expect(wrapper.text()).toContain('Заметки')
 
+    vi.unstubAllGlobals()
+  })
+
+  it('marks ONLY «Напоминания» active on the reminders list and form deep-link routes', async () => {
+    stubMatchMedia(true)
+    for (const routeName of ['lk-reminders', 'lk-reminder-create']) {
+      const wrapper = await mountLayout(routeName)
+      const activeLinks = wrapper.findAll('.lk-sidebar__link--active')
+      expect(activeLinks).toHaveLength(1)
+      expect(activeLinks[0]?.text()).toContain('Напоминания')
+    }
     vi.unstubAllGlobals()
   })
 
@@ -182,6 +194,7 @@ describe('LkLayout', () => {
 
     const casesByRoute: Array<[string, string]> = [
       ['lk-tasks', 'Задачи и списки'],
+      ['lk-reminders', 'Напоминания'],
       ['lk-calendar', 'Календарь'],
       ['lk-notes', 'Заметки'],
     ]

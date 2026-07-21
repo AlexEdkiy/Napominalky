@@ -65,6 +65,58 @@ describe('shoppingListsApi', () => {
     expect(result.is_completed).toBe(true)
   })
 
+  it('serializes item attributes (в т.ч. tags) when updating an item', async () => {
+    const wireItem = {
+      uuid: 'i-1',
+      name: 'Молоко',
+      category: 'products',
+      category_label: 'Продукты',
+      is_checked: false,
+      position: 0,
+      quantity: 2,
+      deadline: '2026-07-20',
+      reminder_at: '2026-07-20T09:00:00Z',
+      link: 'https://example.com',
+      comment: 'Безлактозное',
+      tags: '["Дом"]',
+      created_at: '2026-07-01T00:00:00Z',
+      updated_at: '2026-07-01T00:00:00Z',
+    }
+    vi.mocked(apiClient.put).mockResolvedValue({ data: { data: wireItem } })
+
+    const result = await shoppingListsApi.updateItem('l-1', 'i-1', {
+      quantity: 2,
+      deadline: '2026-07-20',
+      reminder_at: '2026-07-20T09:00:00Z',
+      link: 'https://example.com',
+      comment: 'Безлактозное',
+      tags: ['Дом'],
+    })
+
+    expect(apiClient.put).toHaveBeenCalledWith('/shopping-lists/l-1/items/i-1', {
+      quantity: 2,
+      deadline: '2026-07-20',
+      reminder_at: '2026-07-20T09:00:00Z',
+      link: 'https://example.com',
+      comment: 'Безлактозное',
+      tags: '["Дом"]',
+    })
+    expect(result.tags).toEqual(['Дом'])
+  })
+
+  it('clears an item attribute with explicit null and tags with an empty array', async () => {
+    vi.mocked(apiClient.put).mockResolvedValue({
+      data: { data: { ...wireList, uuid: 'i-1', deadline: null, tags: '[]' } },
+    })
+
+    await shoppingListsApi.updateItem('l-1', 'i-1', { deadline: null, tags: [] })
+
+    expect(apiClient.put).toHaveBeenCalledWith('/shopping-lists/l-1/items/i-1', {
+      deadline: null,
+      tags: '[]',
+    })
+  })
+
   it('normalizes the opaque tags JSON string back into a string array on fetch', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
       data: {

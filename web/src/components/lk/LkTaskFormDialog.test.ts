@@ -221,6 +221,134 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('expands ONLY one item row at a time (chevron, aria-expanded)', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({ uuid: 'i-1', name: 'Молоко' }),
+      makeItem({ uuid: 'i-2', name: 'Хлеб' }),
+    ])
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(2))
+
+    const chevrons = wrapper.findAll('.lk-item-row__chevron')
+    await chevrons[0]?.trigger('click')
+    expect(wrapper.findAll('[aria-expanded="true"]')).toHaveLength(1)
+    expect(wrapper.find('.lk-item-attrs').exists()).toBe(true)
+
+    // Раскрытие второго пункта сворачивает первый.
+    await chevrons[1]?.trigger('click')
+    const expanded = wrapper.findAll('.lk-item-row__chevron--expanded')
+    expect(expanded).toHaveLength(1)
+    expect(expanded[0]?.attributes('aria-label')).toContain('Хлеб')
+
+    // Повторный клик сворачивает панель совсем.
+    await chevrons[1]?.trigger('click')
+    expect(wrapper.find('.lk-item-attrs').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('adds a deadline through the expanded panel and PUTs it to the item update API', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1' })])
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', deadline: '2027-03-05' }))
+    const { wrapper } = await mountDialog()
+    const forms = useLkForms()
+    forms.openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('.lk-item-row__chevron').trigger('click')
+    await wrapper.find('[aria-label="Добавить: Дедлайн"]').trigger('click')
+    await wrapper.find('input[type="date"]').setValue('2027-03-05')
+    await wrapper.find('.lk-item-attrs__editor-apply').trigger('click')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { deadline: '2027-03-05' }),
+    )
+    // Токен дедлайна появился на месте чипса (состояние заменено ответом сервера).
+    await vi.waitFor(() => expect(wrapper.find('.lk-item-attrs__token').exists()).toBe(true))
+
+    // Изменение атрибутов — «изменение пунктов»: таблица перезагрузится при закрытии.
+    await wrapper.find('.lk-form-dialog__close').trigger('click')
+    expect(forms.tasksVersion.value).toBe(1)
+    vi.unstubAllGlobals()
+  })
+
+  it('removes an attribute from its token and clears it through the update API', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({ uuid: 'i-1', comment: 'привезти' }),
+    ])
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', comment: null }))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('.lk-item-row__chevron').trigger('click')
+    expect(wrapper.text()).toContain('Есть заметка')
+    await wrapper.find('[aria-label="Удалить комментарий"]').trigger('click')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { comment: null }),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('steps the item quantity for goods lists through the update API (минимум 1)', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', quantity: 2 })])
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', quantity: 3 }))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('.lk-item-row__chevron').trigger('click')
+    await wrapper.find('[aria-label="Увеличить количество"]').trigger('click')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { quantity: 3 }),
+    )
+    // Значение степпера обновилось из ответа сервера.
+    await vi.waitFor(() => expect(wrapper.find('.lk-item-attrs__quantity-value').text()).toBe('3'))
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the compact meta line of the collapsed row (×qty, тег, индикаторы)', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({
+        uuid: 'i-1',
+        quantity: 3,
+        tags: ['Дом'],
+        reminder_at: '2027-03-05T10:00:00Z',
+        link: 'https://ozon.ru',
+      }),
+    ])
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.find('.lk-item-row__meta').exists()).toBe(true))
+
+    expect(wrapper.find('.lk-item-row__meta-chip').text()).toBe('×3')
+    expect(wrapper.find('.lk-item-row__meta .lk-tag-pill').text()).toBe('Дом')
+    expect(wrapper.findAll('.lk-item-row__indicators svg')).toHaveLength(2)
+    vi.unstubAllGlobals()
+  })
+
+  it('shows an error under the items when the attribute update fails', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', quantity: 2 })])
+    vi.mocked(shoppingListsApi.updateItem).mockRejectedValue(new Error('Сеть недоступна'))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('.lk-item-row__chevron').trigger('click')
+    await wrapper.find('[aria-label="Увеличить количество"]').trigger('click')
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Сеть недоступна'))
+    vi.unstubAllGlobals()
+  })
+
   it('bumps tasksVersion on close (крестик) after item-only changes so the table reloads', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
     vi.mocked(shoppingListsApi.checkItem).mockResolvedValue(makeItem({ uuid: 'i-1', is_checked: true }))
@@ -483,6 +611,7 @@ vi.mock('@/api/shoppingListsApi', () => ({
     deleteList: vi.fn(),
     fetchItems: vi.fn(),
     addItem: vi.fn(),
+    updateItem: vi.fn(),
     deleteItem: vi.fn(),
     checkItem: vi.fn(),
   },
