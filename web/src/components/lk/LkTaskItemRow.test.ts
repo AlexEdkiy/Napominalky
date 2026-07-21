@@ -87,14 +87,15 @@ describe('LkTaskItemRow — свёрнутый вид', () => {
     expect(wrapper.find('.lk-item-row__meta-chip').exists()).toBe(true)
   })
 
-  it('emits check / remove / toggleExpand from the row controls', async () => {
+  it('emits check / toggleExpand from the row controls, without a remove button in the row', async () => {
     const wrapper = mountRow()
 
     await wrapper.find('.lk-form-dialog__item-checkbox').setValue(true)
     expect(wrapper.emitted('check')).toEqual([[true]])
 
-    await wrapper.find('.lk-form-dialog__item-remove').trigger('click')
-    expect(wrapper.emitted('remove')).toHaveLength(1)
+    // Удаление переехало в раскрытую область — в свёрнутой строке его нет.
+    expect(wrapper.find('.lk-form-dialog__item-remove').exists()).toBe(false)
+    expect(wrapper.find('.lk-item-attrs__remove').exists()).toBe(false)
 
     const chevron = wrapper.find('.lk-item-row__chevron')
     expect(chevron.attributes('aria-expanded')).toBe('false')
@@ -116,6 +117,15 @@ describe('LkTaskItemRow — раскрытая панель атрибутов',
       'Тег',
     ])
     expect(wrapper.findAll('.lk-item-attrs__token')).toHaveLength(0)
+  })
+
+  it('emits remove from the «Удалить строку» button in the expanded area', async () => {
+    const wrapper = mountRow({ expanded: true })
+    const remove = wrapper.find('.lk-item-attrs__remove')
+    expect(remove.text()).toBe('Удалить строку')
+
+    await remove.trigger('click')
+    expect(wrapper.emitted('remove')).toHaveLength(1)
   })
 
   it('renders tokens for set attributes and keeps only unset attributes as chips', () => {

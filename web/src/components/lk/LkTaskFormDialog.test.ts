@@ -216,7 +216,11 @@ describe('LkTaskFormDialog', () => {
     await wrapper.find('.lk-form-dialog__item-checkbox').setValue(true)
     await vi.waitFor(() => expect(shoppingListsApi.checkItem).toHaveBeenCalledWith('l-1', 'i-1', true))
 
-    await wrapper.find('.lk-form-dialog__item-remove').trigger('click')
+    // Удаление живёт в раскрытой области пункта («Удалить строку»), а не
+    // «крестиком» в самой строке.
+    expect(wrapper.find('.lk-item-attrs__remove').exists()).toBe(false)
+    await wrapper.find('.lk-item-row__chevron').trigger('click')
+    await wrapper.find('.lk-item-attrs__remove').trigger('click')
     await vi.waitFor(() => expect(shoppingListsApi.deleteItem).toHaveBeenCalledWith('l-1', 'i-1'))
     vi.unstubAllGlobals()
   })
@@ -379,8 +383,7 @@ describe('LkTaskFormDialog', () => {
       'Дом',
       'Личное',
       'Важное',
-      'Звонки',
-      'Счета',
+      'Работа',
       'Здоровье',
       '+ Свой тег',
     ])

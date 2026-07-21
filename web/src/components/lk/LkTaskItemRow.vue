@@ -110,14 +110,6 @@ function handleCheck(event: Event): void {
       >
         <LkIcon name="chevron-down" :size="16" />
       </button>
-      <button
-        type="button"
-        class="lk-form-dialog__item-remove"
-        :aria-label="`Удалить ${item.name}`"
-        @click="emit('remove')"
-      >
-        &times;
-      </button>
     </div>
 
     <LkItemAttributes
@@ -129,6 +121,7 @@ function handleCheck(event: Event): void {
       :accent-soft="accentSoft"
       :tag-suggestions="tagSuggestions"
       @update="emit('update', $event)"
+      @remove="emit('remove')"
     />
   </li>
 </template>
@@ -234,21 +227,4 @@ function handleCheck(event: Event): void {
   transform: rotate(180deg);
 }
 
-.lk-form-dialog__item-remove {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: none;
-  background: #eef1f0;
-  color: #6b716e;
-  font-size: 17px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.lk-form-dialog__item-remove:hover {
-  background: #f6dfda;
-  color: #cf5b4a;
-}
 </style>

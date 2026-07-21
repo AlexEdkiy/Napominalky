@@ -29,6 +29,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   update: [patch: UpdateShoppingListItemPayload]
+  remove: []
 }>()
 
 /**
@@ -309,6 +310,14 @@ function changeQuantity(delta: number): void {
         </button>
       </div>
     </div>
+
+    <!--
+      Удаление пункта живёт в раскрытой области (а не «крестиком» в строке):
+      строка остаётся чистой, а деструктивное действие требует раскрытия.
+    -->
+    <button type="button" class="lk-item-attrs__remove" @click="emit('remove')">
+      Удалить строку
+    </button>
   </div>
 </template>
 
@@ -538,5 +547,22 @@ function changeQuantity(delta: number): void {
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+}
+
+.lk-item-attrs__remove {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #cf5b4a;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.lk-item-attrs__remove:hover {
+  text-decoration: underline;
 }
 </style>
