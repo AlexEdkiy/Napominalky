@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (меню: пункт «Напоминания»; атрибуты пунктов задачи — раскрытие строки — WEB-38)
+> Последнее обновление: 2026-07-21 (пункты задачи: «Удалить строку» в раскрытой области; пресеты тегов — Работа вместо Звонки/Счета — WEB-39)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 38           | web-developer             |
+| WEB     | 39           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 31           | technical-writer          |
+| DOC     | 32           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 114 |
+| Completed | 115 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2241,4 +2241,20 @@
   - [x] vue-tsc OK, Vitest зелёный (539)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
+
+### WEB-39: Пункты задачи — «Удалить строку» в раскрытой области; пресеты тегов (Работа вместо Звонки/Счета)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-38
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) Кнопка-«крестик» удаления пункта убрана из строки — удаление переехало в раскрывающуюся область атрибутов красной текстовой кнопкой «Удалить строку» (`LkItemAttributes` эмитит `remove`, `LkTaskItemRow` пробрасывает наверх; осиротевший стиль `.lk-form-dialog__item-remove` удалён). Строка стала чище, деструктивное действие требует раскрытия. (2) `TAG_PRESETS` в `LkTaskFormDialog`: убраны «Звонки» и «Счета», добавлена «Работа». Цвета «Звонки»/«Счета» сохранены в `NAMED_TAG_COLORS` — теги могли остаться в данных пользователя; «Работа» получила lilac-тон палитры.
+- **Файлы:** `web/src/components/lk/LkItemAttributes.vue`, `web/src/components/lk/LkTaskItemRow.vue`, `web/src/components/lk/LkTaskFormDialog.vue`, `web/src/constants/lkTagColors.ts` (+ тесты)
+- **Критерии приёмки:**
+  - [x] В свёрнутой строке кнопки удаления нет; в раскрытой — «Удалить строку», удаляет через API
+  - [x] Пресеты тегов: Покупки, Дом, Личное, Важное, Работа, Здоровье
+  - [x] vue-tsc OK, Vitest зелёный (540)
+- **Создана:** 2026-07-21
+- **Завершена:** 2026-07-21
 
