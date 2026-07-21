@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-15 (задачи: устранён layout shift при фоновой подгрузке дат — фиксированная раскладка колонок — WEB-37)
+> Последнее обновление: 2026-07-15 (меню: пункт «Напоминания»; атрибуты пунктов задачи — раскрытие строки — WEB-38)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 37           | web-developer             |
+| WEB     | 38           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 30           | technical-writer          |
+| DOC     | 31           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 113 |
+| Completed | 114 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2221,6 +2221,24 @@
   - [x] Фиксированные ширины колонок (colgroup + table-layout:fixed), ellipsis
   - [x] Сортировка/адаптив/горизонтальный скролл сохранены
   - [x] vue-tsc OK, Vitest зелёный (491)
+- **Создана:** 2026-07-15
+- **Завершена:** 2026-07-15
+
+### WEB-38: Меню — отдельный пункт «Напоминания»; атрибуты пунктов задачи (раскрытие строки, как в МП)
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-34, WEB-35
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) В `LK_NAV_ITEMS` добавлен пункт «Напоминания» (`lk-reminders`, related — create/edit, иконка `bell`) после «Задачи и списки»; reminder-маршруты убраны из `relatedNames` у `lk-tasks` (нет двойной подсветки); добавлены `LK_SECTION_META` для reminder-маршрутов (раньше топбар показывал дефолт). `LkBottomNav`: деление вокруг центральной «+» — `Math.ceil(len/2)` (3+«+»+2), подпись «Напомин.», `min-width:0`+ellipsis против переполнения. (2) Реализована работа с доп. атрибутами ПУНКТА списка по образцу МП: `web/src/utils/itemAttributes.ts` (чистые утилиты — `ItemAttribute`, `ATTRIBUTE_ORDER/LABELS/ICONS`, `isAttributeSet`, форматтеры токенов с инъекцией `now`), `LkTaskItemRow.vue` (строка: чекбокс, название, компактная мета-строка — чип ×N для goods, теги, чип дедлайна для tasks, иконки-индикаторы напоминания/комментария/ссылки; chevron `aria-expanded`), `LkItemAttributes.vue` (панель: степпер «Количество» для goods, токены заданных атрибутов с «×» + чипсы незаданных). Вместо шторки МП — инлайн-редактор в панели (date / datetime-local / url с валидацией / textarea / тег-редактор с предложениями). Сохранение — `PUT items/{uuid}` через `useShoppingListItems.update`, состояние заменяется ответом сервера; ошибки — `role="alert"`. Поля сверены с `Store/UpdateItemRequest`: `quantity` (min:1, не nullable), `deadline`, `reminder_at`, `link`, `comment` (nullable), `tags` (JSON-строка). Бэкенд НЕ менялся.
+- **Файлы:** `web/src/constants/lkNav.ts`, `web/src/components/lk/LkBottomNav.vue`, `web/src/utils/itemAttributes.ts` (new), `web/src/components/lk/LkTaskItemRow.vue` (new), `web/src/components/lk/LkItemAttributes.vue` (new), `web/src/components/lk/LkTaskFormDialog.vue`, `web/src/api/shoppingListsApi.ts`, `web/src/types/{shoppingList,lkIcon}.ts`, `web/src/components/lk/LkIcon.vue` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Пункт «Напоминания» в меню, активен ровно один пункт на reminder-маршрутах
+  - [x] 5 пунктов без переполнения в нижней навигации и сайдбаре
+  - [x] Раскрытие строки пункта: токены/чипсы атрибутов, степпер количества (goods)
+  - [x] Добавление/изменение/удаление атрибута уходит на сервер, ошибки видимы
+  - [x] vue-tsc OK, Vitest зелёный (539)
 - **Создана:** 2026-07-15
 - **Завершена:** 2026-07-15
 

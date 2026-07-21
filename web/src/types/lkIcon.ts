@@ -23,3 +23,5 @@ export type LkIconName =
   | 'eye'
   | 'eye-off'
   | 'cart'
+  | 'tag'
+  | 'chevron-down'

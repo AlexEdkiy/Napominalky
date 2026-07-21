@@ -99,7 +99,7 @@ export const shoppingListsApi = {
   ): Promise<ShoppingListItem> => {
     const { data } = await apiClient.post<ApiResponse<ShoppingListItemWire>>(
       `/shopping-lists/${listUuid}/items`,
-      payload,
+      serializeTagsPayload(payload),
     )
     return normalizeItem(data.data)
   },
@@ -111,7 +111,7 @@ export const shoppingListsApi = {
   ): Promise<ShoppingListItem> => {
     const { data } = await apiClient.put<ApiResponse<ShoppingListItemWire>>(
       `/shopping-lists/${listUuid}/items/${itemUuid}`,
-      payload,
+      serializeTagsPayload(payload),
     )
     return normalizeItem(data.data)
   },

@@ -28,11 +28,18 @@ export const LK_NAV_ITEMS: LkNavItem[] = [
   },
   {
     routeName: 'lk-tasks',
-    relatedNames: ['lk-lists', 'lk-list-detail', 'lk-reminders', 'lk-reminder-create', 'lk-reminder-edit'],
+    relatedNames: ['lk-lists', 'lk-list-detail'],
     label: 'Задачи и списки',
     mobileLabel: 'Задачи',
     icon: 'list',
     badgeKey: 'activeTasks',
+  },
+  {
+    routeName: 'lk-reminders',
+    relatedNames: ['lk-reminder-create', 'lk-reminder-edit'],
+    label: 'Напоминания',
+    mobileLabel: 'Напомин.',
+    icon: 'bell',
   },
   {
     routeName: 'lk-calendar',
@@ -71,6 +78,18 @@ export const LK_SECTION_META: Record<string, LkSectionMeta> = {
   'lk-list-detail': {
     title: 'Задачи и списки',
     subtitle: 'Таблица дел с тегами, датами и напоминаниями',
+  },
+  'lk-reminders': {
+    title: 'Напоминания',
+    subtitle: 'Все напоминания с датой и временем',
+  },
+  'lk-reminder-create': {
+    title: 'Напоминания',
+    subtitle: 'Все напоминания с датой и временем',
+  },
+  'lk-reminder-edit': {
+    title: 'Напоминания',
+    subtitle: 'Все напоминания с датой и временем',
   },
   'lk-calendar': { title: 'Календарь', subtitle: 'Все задачи и напоминания на месяц' },
   'lk-notes': { title: 'Заметки', subtitle: 'Быстрые записи в виде стикеров' },

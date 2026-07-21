@@ -4,13 +4,18 @@ import { isAxiosError } from 'axios'
 
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
+import LkTaskItemRow from '@/components/lk/LkTaskItemRow.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { colorForTag } from '@/constants/lkTagColors'
 import type { ValidationErrorResponse } from '@/types/api'
-import type { ShoppingList, ShoppingListType } from '@/types/shoppingList'
+import type {
+  ShoppingList,
+  ShoppingListType,
+  UpdateShoppingListItemPayload,
+} from '@/types/shoppingList'
 import { shoppingListAccent } from '@/utils/shoppingList'
 
 /** Пресеты тегов задачи/списка (палитра `lkTagColors`, см. `web-lk-tasks-table.md`). */
@@ -44,14 +49,18 @@ const isDeleting = ref(false)
 const isConfirmingDelete = ref(false)
 /** Были ли изменения пунктов — чтобы перезагрузить таблицу при закрытии крестиком/Esc. */
 const hasItemChanges = ref(false)
+/** uuid раскрытого пункта (панель атрибутов); одновременно раскрыт ровно один. */
+const expandedItemUuid = ref<string | null>(null)
 
 const {
   items,
   isLoading: isItemsLoading,
+  error: itemsError,
   totalCount,
   checkedCount,
   load: loadItems,
   add: addItem,
+  update: updateItem,
   remove: removeItem,
   check: checkItem,
 } = useShoppingListItems(() => currentList.value?.uuid ?? '')
@@ -73,6 +82,11 @@ const itemPlaceholder = computed<string>(() =>
 const customTags = computed<string[]>(() =>
   tags.value.filter((tag) => !(TAG_PRESETS as readonly string[]).includes(tag)),
 )
+/** Предложения тегов для редактора атрибутов пункта: пресеты + теги списка + теги пунктов. */
+const itemTagSuggestions = computed<string[]>(() => {
+  const fromItems = items.value.flatMap((item) => item.tags)
+  return [...new Set([...TAG_PRESETS, ...tags.value, ...fromItems])]
+})
 
 function resetForm(): void {
   const list = taskFormList.value
@@ -88,6 +102,7 @@ function resetForm(): void {
   generalError.value = null
   isConfirmingDelete.value = false
   hasItemChanges.value = false
+  expandedItemUuid.value = null
   if (list !== null) {
     void loadItems()
   }
@@ -171,8 +186,7 @@ async function handleAddItem(): Promise<void> {
   }
 }
 
-async function handleCheckItem(uuid: string, event: Event): Promise<void> {
-  const isChecked = (event.target as HTMLInputElement).checked
+async function handleCheckItem(uuid: string, isChecked: boolean): Promise<void> {
   await checkItem(uuid, isChecked)
   hasItemChanges.value = true
 }
@@ -180,6 +194,23 @@ async function handleCheckItem(uuid: string, event: Event): Promise<void> {
 async function handleRemoveItem(uuid: string): Promise<void> {
   await removeItem(uuid)
   hasItemChanges.value = true
+}
+
+/** Раскрыть/свернуть панель атрибутов пункта (одновременно раскрыт один). */
+function toggleItemExpand(uuid: string): void {
+  expandedItemUuid.value = expandedItemUuid.value === uuid ? null : uuid
+}
+
+/**
+ * Изменение атрибутов пункта (дедлайн/напоминание/ссылка/комментарий/теги/
+ * количество): PUT items/{uuid}; состояние заменяется ответом сервера
+ * (`replaceItem` в composable), ошибка — в `itemsError` под списком.
+ */
+async function handleUpdateItem(uuid: string, patch: UpdateShoppingListItemPayload): Promise<void> {
+  const updated = await updateItem(uuid, patch)
+  if (updated !== null) {
+    hasItemChanges.value = true
+  }
 }
 
 function handleClose(): void {
@@ -330,32 +361,22 @@ async function confirmDelete(): Promise<void> {
           <p v-if="isItemsLoading" class="lk-form-dialog__items-state" aria-live="polite">Загрузка…</p>
           <p v-else-if="items.length === 0" class="lk-form-dialog__items-state">В списке пока нет пунктов.</p>
           <ul v-else class="lk-form-dialog__items">
-            <li
+            <LkTaskItemRow
               v-for="item in items"
               :key="item.uuid"
-              class="lk-form-dialog__item"
-              :class="{ 'lk-form-dialog__item--checked': item.is_checked }"
-            >
-              <label class="lk-form-dialog__item-label">
-                <input
-                  type="checkbox"
-                  class="lk-form-dialog__item-checkbox"
-                  :style="{ accentColor: accent.color }"
-                  :checked="item.is_checked"
-                  @change="handleCheckItem(item.uuid, $event)"
-                />
-                <span class="lk-form-dialog__item-name">{{ item.name }}</span>
-              </label>
-              <button
-                type="button"
-                class="lk-form-dialog__item-remove"
-                :aria-label="`Удалить ${item.name}`"
-                @click="handleRemoveItem(item.uuid)"
-              >
-                &times;
-              </button>
-            </li>
+              :item="item"
+              :list-type="form.type"
+              :accent-color="accent.color"
+              :accent-soft="accent.soft"
+              :expanded="expandedItemUuid === item.uuid"
+              :tag-suggestions="itemTagSuggestions"
+              @check="handleCheckItem(item.uuid, $event)"
+              @remove="handleRemoveItem(item.uuid)"
+              @toggle-expand="toggleItemExpand(item.uuid)"
+              @update="handleUpdateItem(item.uuid, $event)"
+            />
           </ul>
+          <p v-if="itemsError" role="alert" class="lk-form-dialog__error">{{ itemsError }}</p>
 
           <span class="lk-form-dialog__label">Теги</span>
           <div class="lk-form-dialog__tags">
@@ -635,68 +656,11 @@ async function confirmDelete(): Promise<void> {
   color: #8a938f;
 }
 
+/* Стили строки пункта (чекбокс/имя/мета/chevron/удалить) — в `LkTaskItemRow.vue`. */
 .lk-form-dialog__items {
   list-style: none;
   margin: 8px 0 0;
   padding: 0;
-}
-
-.lk-form-dialog__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 2px;
-  border-bottom: 1px solid #eef1f0;
-}
-
-.lk-form-dialog__item:last-child {
-  border-bottom: none;
-}
-
-.lk-form-dialog__item-label {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.lk-form-dialog__item-checkbox {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-}
-
-.lk-form-dialog__item-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #1f2622;
-  font-weight: 600;
-}
-
-.lk-form-dialog__item--checked .lk-form-dialog__item-name {
-  text-decoration: line-through;
-  color: #9aa39f;
-}
-
-.lk-form-dialog__item-remove {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: none;
-  background: #eef1f0;
-  color: #6b716e;
-  font-size: 17px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.lk-form-dialog__item-remove:hover {
-  background: #f6dfda;
-  color: #cf5b4a;
 }
 
 .lk-form-dialog__tags {

@@ -10,8 +10,11 @@ const emit = defineEmits<{
 
 const route = useRoute()
 
-const leftItems = LK_NAV_ITEMS.slice(0, 2)
-const rightItems = LK_NAV_ITEMS.slice(2)
+// 5 пунктов вокруг центральной «+»: слева на один больше (3 + [+] + 2) —
+// нечётное число делится с перевесом влево, как в мобильных таб-барах.
+const splitIndex = Math.ceil(LK_NAV_ITEMS.length / 2)
+const leftItems = LK_NAV_ITEMS.slice(0, splitIndex)
+const rightItems = LK_NAV_ITEMS.slice(splitIndex)
 </script>
 
 <template>
@@ -54,15 +57,19 @@ const rightItems = LK_NAV_ITEMS.slice(2)
   border-top: 1px solid #e5e7eb;
 }
 
+/* 5 пунктов: `min-width: 0` + ellipsis на подписи — длинные подписи
+   («Календарь», «Напомин.») не переполняют узкие экраны и не налезают
+   друг на друга; горизонтальный паддинг ужат под 5 слотов. */
 .lk-bottom-nav__link {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.15rem;
   text-decoration: none;
   color: #8a938f;
   flex: 1;
+  min-width: 0;
 }
 
 .lk-bottom-nav__link--active {
@@ -70,7 +77,11 @@ const rightItems = LK_NAV_ITEMS.slice(2)
 }
 
 .lk-bottom-nav__label {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lk-bottom-nav__create {
