@@ -19,7 +19,7 @@ import type {
 import { shoppingListAccent } from '@/utils/shoppingList'
 
 /** Пресеты тегов задачи/списка (палитра `lkTagColors`, см. `web-lk-tasks-table.md`). */
-const TAG_PRESETS = ['Покупки', 'Дом', 'Личное', 'Важное', 'Звонки', 'Счета', 'Здоровье'] as const
+const TAG_PRESETS = ['Покупки', 'Дом', 'Личное', 'Важное', 'Работа', 'Здоровье'] as const
 
 const typeOptions: { value: ShoppingListType; label: string; icon: 'cart' | 'check' }[] = [
   { value: 'goods', label: 'Купить', icon: 'cart' },
