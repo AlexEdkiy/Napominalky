@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkItemAttributes from '@/components/lk/LkItemAttributes.vue'
@@ -9,13 +9,18 @@ import type {
   ShoppingListType,
   UpdateShoppingListItemPayload,
 } from '@/types/shoppingList'
-import { attributeValuesFromItem, formatDeadlineToken } from '@/utils/itemAttributes'
+import {
+  attributeValuesFromItem,
+  formatDeadlineToken,
+  type ItemAttribute,
+} from '@/utils/itemAttributes'
 
 /**
  * Строка пункта в модалке «Задача/покупка»: чекбокс + название + компактная
- * мета-строка (как в МП: чип количества/теги/дедлайн + индикаторы) + chevron,
- * раскрывающий панель атрибутов (`LkItemAttributes`). Классы верхнего ряда
- * (`lk-form-dialog__item*`) сохранены от прежней инлайн-разметки диалога.
+ * мета-строка (как в МП: чип количества/теги/дедлайн + индикаторы) + кнопка
+ * «Комментарий» + chevron, раскрывающий панель атрибутов (`LkItemAttributes`).
+ * Классы верхнего ряда (`lk-form-dialog__item*`) сохранены от прежней
+ * инлайн-разметки диалога.
  */
 interface Props {
   item: ShoppingListItem
@@ -50,12 +55,30 @@ const hasMetaLine = computed<boolean>(
     showDeadlineChip.value ||
     props.item.tags.length > 0 ||
     hasReminder.value ||
-    hasComment.value ||
     hasLink.value,
 )
 
+/**
+ * Сигнал авто-открытия редактора атрибута в раскрытой панели: кнопка
+ * «Комментарий» в строке ставит `'comment'`, панель открывает редактор
+ * и эмитит `autoOpened` — сигнал сбрасывается, чтобы повторный клик
+ * срабатывал снова.
+ */
+const autoOpenAttribute = ref<ItemAttribute | null>(null)
+
 function handleCheck(event: Event): void {
   emit('check', (event.target as HTMLInputElement).checked)
+}
+
+function handleCommentClick(): void {
+  autoOpenAttribute.value = 'comment'
+  if (!props.expanded) {
+    emit('toggleExpand')
+  }
+}
+
+function handleAutoOpened(): void {
+  autoOpenAttribute.value = null
 }
 </script>
 
@@ -92,14 +115,23 @@ function handleCheck(event: Event): void {
               <LkIcon name="calendar" :size="11" />
               {{ formatDeadlineToken(item.deadline) }}
             </span>
-            <span v-if="hasReminder || hasComment || hasLink" class="lk-item-row__indicators">
+            <span v-if="hasReminder || hasLink" class="lk-item-row__indicators">
               <LkIcon v-if="hasReminder" name="bell" :size="12" />
-              <LkIcon v-if="hasComment" name="comment" :size="12" />
               <LkIcon v-if="hasLink" name="link" :size="12" />
             </span>
           </span>
         </span>
       </label>
+      <button
+        type="button"
+        class="lk-item-row__comment-btn"
+        :class="{ 'lk-item-row__comment-btn--active': hasComment }"
+        :style="hasComment ? { background: accentSoft, color: accentColor } : undefined"
+        :aria-label="`Комментарий: ${item.name}`"
+        @click.stop="handleCommentClick"
+      >
+        <LkIcon name="comment" :size="16" />
+      </button>
       <button
         type="button"
         class="lk-item-row__chevron"
@@ -120,8 +152,10 @@ function handleCheck(event: Event): void {
       :accent-color="accentColor"
       :accent-soft="accentSoft"
       :tag-suggestions="tagSuggestions"
+      :auto-open-attribute="autoOpenAttribute"
       @update="emit('update', $event)"
       @remove="emit('remove')"
+      @auto-opened="handleAutoOpened"
     />
   </li>
 </template>
@@ -204,6 +238,9 @@ function handleCheck(event: Event): void {
   color: #9aa39f;
 }
 
+/* Кнопка «Комментарий» — визуально как chevron; активная (комментарий задан)
+   красится инлайн в accentSoft/accentColor и служит индикатором наличия. */
+.lk-item-row__comment-btn,
 .lk-item-row__chevron {
   flex-shrink: 0;
   width: 28px;
@@ -216,9 +253,13 @@ function handleCheck(event: Event): void {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.lk-item-row__chevron {
   transition: transform 0.15s ease;
 }
 
+.lk-item-row__comment-btn:hover:not(.lk-item-row__comment-btn--active),
 .lk-item-row__chevron:hover {
   background: #eef1f0;
 }

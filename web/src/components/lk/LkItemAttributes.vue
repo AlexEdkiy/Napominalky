@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
@@ -23,13 +23,16 @@ interface Props {
   accentColor: string
   accentSoft: string
   tagSuggestions: string[]
+  /** Сигнал авто-открытия редактора (кнопка «Комментарий» в строке пункта). */
+  autoOpenAttribute?: ItemAttribute | null
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { autoOpenAttribute: null })
 
 const emit = defineEmits<{
   update: [patch: UpdateShoppingListItemPayload]
   remove: []
+  autoOpened: []
 }>()
 
 /**
@@ -42,11 +45,20 @@ const draftTags = ref<string[]>([])
 const tagInput = ref('')
 const linkError = ref<string | null>(null)
 
+/**
+ * «Комментарий» не показывается в ряду чипсов/токенов — его редактор
+ * открывается кнопкой в основной строке пункта (сигнал `autoOpenAttribute`);
+ * `ATTRIBUTE_ORDER` в утилитах при этом не меняется.
+ */
+const CHIP_ATTRIBUTES: readonly ItemAttribute[] = ATTRIBUTE_ORDER.filter(
+  (attribute) => attribute !== 'comment',
+)
+
 const setAttributes = computed<ItemAttribute[]>(() =>
-  ATTRIBUTE_ORDER.filter((attribute) => isAttributeSet(attribute, props.values)),
+  CHIP_ATTRIBUTES.filter((attribute) => isAttributeSet(attribute, props.values)),
 )
 const availableAttributes = computed<ItemAttribute[]>(() =>
-  ATTRIBUTE_ORDER.filter((attribute) => !isAttributeSet(attribute, props.values)),
+  CHIP_ATTRIBUTES.filter((attribute) => !isAttributeSet(attribute, props.values)),
 )
 const availableSuggestions = computed<string[]>(() =>
   props.tagSuggestions.filter((tag) => !draftTags.value.includes(tag)),
@@ -79,6 +91,22 @@ function closeEditor(): void {
   activeEditor.value = null
   linkError.value = null
 }
+
+/**
+ * Авто-открытие редактора по сигналу из строки (при монтировании панели
+ * и при повторных кликах на уже раскрытой строке); `autoOpened` возвращает
+ * сигнал в null, чтобы следующий клик сработал снова.
+ */
+watch(
+  () => props.autoOpenAttribute,
+  (attribute) => {
+    if (attribute !== null) {
+      openEditor(attribute)
+      emit('autoOpened')
+    }
+  },
+  { immediate: true },
+)
 
 function removeAttribute(attribute: ItemAttribute): void {
   if (activeEditor.value === attribute) {
@@ -157,27 +185,37 @@ function changeQuantity(delta: number): void {
 
 <template>
   <div class="lk-item-attrs">
-    <div v-if="listType === 'goods'" class="lk-item-attrs__quantity">
-      <span class="lk-item-attrs__quantity-label">Количество</span>
-      <button
-        type="button"
-        class="lk-item-attrs__step"
-        aria-label="Уменьшить количество"
-        :disabled="quantity <= 1"
-        :style="{ color: accentColor }"
-        @click="changeQuantity(-1)"
-      >
-        −
-      </button>
-      <span class="lk-item-attrs__quantity-value">{{ quantity }}</span>
-      <button
-        type="button"
-        class="lk-item-attrs__step"
-        aria-label="Увеличить количество"
-        :style="{ color: accentColor }"
-        @click="changeQuantity(1)"
-      >
-        +
+    <!--
+      Верхний тулбар: степпер количества (goods) слева, компактная «Удалить
+      строку» справа — деструктивное действие живёт в раскрытой области,
+      не занимая отдельной широкой строки внизу.
+    -->
+    <div class="lk-item-attrs__toolbar">
+      <div v-if="listType === 'goods'" class="lk-item-attrs__quantity">
+        <span class="lk-item-attrs__quantity-label">Количество</span>
+        <button
+          type="button"
+          class="lk-item-attrs__step"
+          aria-label="Уменьшить количество"
+          :disabled="quantity <= 1"
+          :style="{ color: accentColor }"
+          @click="changeQuantity(-1)"
+        >
+          −
+        </button>
+        <span class="lk-item-attrs__quantity-value">{{ quantity }}</span>
+        <button
+          type="button"
+          class="lk-item-attrs__step"
+          aria-label="Увеличить количество"
+          :style="{ color: accentColor }"
+          @click="changeQuantity(1)"
+        >
+          +
+        </button>
+      </div>
+      <button type="button" class="lk-item-attrs__remove" @click="emit('remove')">
+        Удалить строку
       </button>
     </div>
 
@@ -311,13 +349,6 @@ function changeQuantity(delta: number): void {
       </div>
     </div>
 
-    <!--
-      Удаление пункта живёт в раскрытой области (а не «крестиком» в строке):
-      строка остаётся чистой, а деструктивное действие требует раскрытия.
-    -->
-    <button type="button" class="lk-item-attrs__remove" @click="emit('remove')">
-      Удалить строку
-    </button>
   </div>
 </template>
 
@@ -327,6 +358,12 @@ function changeQuantity(delta: number): void {
   flex-direction: column;
   gap: 10px;
   padding: 10px 2px 12px 32px;
+}
+
+.lk-item-attrs__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .lk-item-attrs__quantity {
@@ -550,8 +587,8 @@ function changeQuantity(delta: number): void {
 }
 
 .lk-item-attrs__remove {
-  align-self: flex-start;
-  margin-top: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
   padding: 0;
   border: none;
   background: none;
