@@ -71,8 +71,15 @@ describe('LkTaskItemRow — свёрнутый вид', () => {
     expect(meta.exists()).toBe(true)
     expect(meta.find('.lk-item-row__meta-chip').text()).toBe('×3')
     expect(meta.find('.lk-tag-pill').text()).toBe('Дом')
-    // Индикаторы напоминания/комментария/ссылки — 3 ненавязчивые иконки.
-    expect(meta.find('.lk-item-row__indicators').findAll('svg')).toHaveLength(3)
+    // Индикаторы напоминания/ссылки — 2 иконки; comment в мете БОЛЬШЕ нет:
+    // его роль у кнопки «Комментарий» в строке.
+    expect(meta.find('.lk-item-row__indicators').findAll('svg')).toHaveLength(2)
+  })
+
+  it('does NOT render a comment indicator in the meta line (роль у кнопки в строке)', () => {
+    // Только комментарий — мета-строка вовсе не рендерится.
+    const wrapper = mountRow({ item: { comment: 'заметка' } })
+    expect(wrapper.find('.lk-item-row__meta').exists()).toBe(false)
   })
 
   it('hides the ×quantity chip for quantity 1 and for tasks lists', () => {
@@ -104,38 +111,100 @@ describe('LkTaskItemRow — свёрнутый вид', () => {
   })
 })
 
+describe('LkTaskItemRow — кнопка «Комментарий» в основной строке', () => {
+  it('renders the comment icon button next to the chevron (chevron последний)', () => {
+    const wrapper = mountRow()
+    const button = wrapper.find('[aria-label="Комментарий: Молоко"]')
+    expect(button.exists()).toBe(true)
+    expect(button.classes()).toContain('lk-item-row__comment-btn')
+    expect(button.classes()).not.toContain('lk-item-row__comment-btn--active')
+    // Порядок в строке: [кнопка Комментарий][chevron].
+    const buttons = wrapper.findAll('.lk-item-row__top button')
+    expect(buttons.at(-2)?.classes()).toContain('lk-item-row__comment-btn')
+    expect(buttons.at(-1)?.classes()).toContain('lk-item-row__chevron')
+  })
+
+  it('marks the button active (индикатор наличия) when the item has a comment', () => {
+    const wrapper = mountRow({ item: { comment: 'заметка' } })
+    expect(wrapper.find('.lk-item-row__comment-btn').classes()).toContain(
+      'lk-item-row__comment-btn--active',
+    )
+  })
+
+  it('click on a collapsed row emits toggleExpand and auto-opens the comment editor', async () => {
+    const wrapper = mountRow()
+    await wrapper.find('.lk-item-row__comment-btn').trigger('click')
+    expect(wrapper.emitted('toggleExpand')).toHaveLength(1)
+    // Клик по кнопке не трогает чекбокс.
+    expect(wrapper.emitted('check')).toBeUndefined()
+
+    // Родитель раскрывает строку — панель монтируется и сразу открывает редактор.
+    await wrapper.setProps({ expanded: true })
+    expect(wrapper.find('textarea[aria-label="Текст комментария"]').exists()).toBe(true)
+  })
+
+  it('click on an expanded row opens the editor without collapsing; сигнал сбрасывается', async () => {
+    const wrapper = mountRow({ expanded: true, item: { comment: 'старый' } })
+    await wrapper.find('.lk-item-row__comment-btn').trigger('click')
+    expect(wrapper.emitted('toggleExpand')).toBeUndefined()
+    const textarea = wrapper.find('textarea[aria-label="Текст комментария"]')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('старый')
+
+    // Сигнал сброшен (@autoOpened): после «Отмена» повторный клик открывает снова.
+    await wrapper.find('.lk-item-attrs__editor-cancel').trigger('click')
+    expect(wrapper.find('.lk-item-attrs__editor').exists()).toBe(false)
+    await wrapper.find('.lk-item-row__comment-btn').trigger('click')
+    expect(wrapper.find('textarea[aria-label="Текст комментария"]').exists()).toBe(true)
+  })
+})
+
 describe('LkTaskItemRow — раскрытая панель атрибутов', () => {
-  it('marks the chevron expanded and renders 5 «добавить атрибут» chips for an empty item', () => {
+  it('marks the chevron expanded and renders 4 «добавить атрибут» chips WITHOUT «Комментарий»', () => {
     const wrapper = mountRow({ expanded: true })
     expect(wrapper.find('.lk-item-row__chevron').attributes('aria-expanded')).toBe('true')
     const chips = wrapper.findAll('.lk-item-attrs__chip')
+    // «Комментарий» вынесен в кнопку основной строки — в чипсах его нет.
     expect(chips.map((chip) => chip.text())).toEqual([
       'Дедлайн',
       'Напоминание',
       'Ссылка',
-      'Комментарий',
       'Тег',
     ])
     expect(wrapper.findAll('.lk-item-attrs__token')).toHaveLength(0)
   })
 
-  it('emits remove from the «Удалить строку» button in the expanded area', async () => {
+  it('emits remove from the compact «Удалить строку» in the TOP toolbar of the expanded area', async () => {
     const wrapper = mountRow({ expanded: true })
-    const remove = wrapper.find('.lk-item-attrs__remove')
+    // «Удалить строку» — в верхнем тулбаре (первый ребёнок панели), справа
+    // от степпера количества (goods), а не отдельной строкой внизу.
+    const panel = wrapper.find('.lk-item-attrs')
+    expect(panel.element.children[0]?.classList.contains('lk-item-attrs__toolbar')).toBe(true)
+    const toolbar = panel.find('.lk-item-attrs__toolbar')
+    expect(toolbar.find('.lk-item-attrs__quantity').exists()).toBe(true)
+    const remove = toolbar.find('.lk-item-attrs__remove')
     expect(remove.text()).toBe('Удалить строку')
 
     await remove.trigger('click')
     expect(wrapper.emitted('remove')).toHaveLength(1)
   })
 
-  it('renders tokens for set attributes and keeps only unset attributes as chips', () => {
+  it('keeps «Удалить строку» in the top toolbar for tasks lists (без степпера)', async () => {
+    const wrapper = mountRow({ expanded: true, listType: 'tasks' })
+    const toolbar = wrapper.find('.lk-item-attrs__toolbar')
+    expect(toolbar.find('.lk-item-attrs__quantity').exists()).toBe(false)
+    await toolbar.find('.lk-item-attrs__remove').trigger('click')
+    expect(wrapper.emitted('remove')).toHaveLength(1)
+  })
+
+  it('renders tokens for set attributes (кроме comment) and keeps unset attributes as chips', () => {
     const wrapper = mountRow({
       expanded: true,
       item: { deadline: '2027-03-05', comment: 'привезти', tags: ['Дом'] },
     })
+    // Токенов 2 (дедлайн + тег): comment не показывается токеном.
     const tokens = wrapper.findAll('.lk-item-attrs__token')
-    expect(tokens).toHaveLength(3)
-    expect(wrapper.text()).toContain('Есть заметка')
+    expect(tokens).toHaveLength(2)
+    expect(wrapper.text()).not.toContain('Есть заметка')
     expect(wrapper.findAll('.lk-item-attrs__chip').map((chip) => chip.text())).toEqual([
       'Напоминание',
       'Ссылка',
@@ -191,10 +260,10 @@ describe('LkTaskItemRow — раскрытая панель атрибутов',
     expect(lastEmittedUpdate(wrapper)).toEqual({ link: 'ozon.ru/product/1' })
   })
 
-  it('edits the comment through the textarea editor', async () => {
+  it('edits the comment through the textarea editor opened by the row button', async () => {
     const wrapper = mountRow({ expanded: true, item: { comment: 'старый' } })
-    // Клик по токену открывает редактор с предзаполненным значением.
-    await wrapper.find('.lk-item-attrs__token-open').trigger('click')
+    // Редактор комментария открывается кнопкой в строке (не токеном/чипсом).
+    await wrapper.find('.lk-item-row__comment-btn').trigger('click')
     const textarea = wrapper.find('textarea')
     expect((textarea.element as HTMLTextAreaElement).value).toBe('старый')
 

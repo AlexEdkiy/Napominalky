@@ -280,20 +280,49 @@ describe('LkTaskFormDialog', () => {
 
   it('removes an attribute from its token and clears it through the update API', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
-      makeItem({ uuid: 'i-1', comment: 'привезти' }),
+      makeItem({ uuid: 'i-1', reminder_at: '2027-03-05T10:00:00Z' }),
     ])
-    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', comment: null }))
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', reminder_at: null }))
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm(list)
     await wrapper.vm.$nextTick()
     await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
 
     await wrapper.find('.lk-item-row__chevron').trigger('click')
-    expect(wrapper.text()).toContain('Есть заметка')
-    await wrapper.find('[aria-label="Удалить комментарий"]').trigger('click')
+    expect(wrapper.find('.lk-item-attrs__token').exists()).toBe(true)
+    await wrapper.find('[aria-label="Удалить напоминание"]').trigger('click')
 
     await vi.waitFor(() =>
-      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { comment: null }),
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { reminder_at: null }),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('opens the comment editor from the row button (раскрытие + авто-открытие) and PUTs the comment', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1' })])
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', comment: 'привезти' }))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    // «Комментарий» больше не в чипсах раскрытой панели — только кнопка в строке.
+    await wrapper.find('.lk-item-row__comment-btn').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[aria-label="Добавить: Комментарий"]').exists()).toBe(false)
+    const textarea = wrapper.find('textarea[aria-label="Текст комментария"]')
+    expect(textarea.exists()).toBe(true)
+
+    await textarea.setValue('привезти')
+    await wrapper.find('.lk-item-attrs__editor-apply').trigger('click')
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { comment: 'привезти' }),
+    )
+    // Заданный комментарий подсвечивает кнопку в строке (индикатор наличия).
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-item-row__comment-btn').classes()).toContain(
+        'lk-item-row__comment-btn--active',
+      ),
     )
     vi.unstubAllGlobals()
   })
