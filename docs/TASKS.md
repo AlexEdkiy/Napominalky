@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-21 (пункты задачи: «Удалить строку» в раскрытой области; пресеты тегов — Работа вместо Звонки/Счета — WEB-39)
+> Последнее обновление: 2026-07-24 (пункты задачи: кнопка «Комментарий» в основной строке; «Удалить строку» компактно вверх — WEB-40)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
 | MOB     | 52           | mobile-developer          |
-| WEB     | 39           | web-developer             |
+| WEB     | 40           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 9            | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 8            | devops-engineer           |
-| DOC     | 32           | technical-writer          |
+| DOC     | 33           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 115 |
+| Completed | 116 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2257,4 +2257,21 @@
   - [x] vue-tsc OK, Vitest зелёный (540)
 - **Создана:** 2026-07-21
 - **Завершена:** 2026-07-21
+
+### WEB-40: Пункты задачи — кнопка «Комментарий» в основной строке; «Удалить строку» компактно вверх
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-39
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Описание:** (1) Доступ к комментарию пункта вынесен из чипсов раскрытой области в основную строку: в `LkTaskItemRow` рядом с chevron (левее) — кнопка-иконка `comment`, `@click.stop`. Клик раскрывает строку (emit `toggleExpand`, если свёрнута) и авто-открывает редактор комментария через сигнал `autoOpenAttribute` (проп в `LkItemAttributes`, `watch immediate` → `openEditor('comment')`, эмит `autoOpened` сбрасывает сигнал — повторный клик срабатывает). Когда комментарий задан — кнопка активна (accent-заливка), служит индикатором; отдельный индикатор `comment` убран из свёрнутой мета-строки (bell/link остались). «Комментарий» отфильтрован из чипсов/токенов панели (`CHIP_ATTRIBUTES = ATTRIBUTE_ORDER без comment`); утилиты `itemAttributes.ts` не тронуты. (2) «Удалить строку» перенесена из низа панели в верхний тулбар `.lk-item-attrs__toolbar` (первый ребёнок): для goods — в одну строку со степпером количества справа (`margin-left:auto`), для tasks — компактной строкой сверху справа; вертикаль не занимает лишнего. Поведение `remove`→API не менялось.
+- **Файлы:** `web/src/components/lk/LkTaskItemRow.vue`, `web/src/components/lk/LkItemAttributes.vue` (+ тесты LkTaskItemRow/LkTaskFormDialog)
+- **Критерии приёмки:**
+  - [x] Кнопка «Комментарий» в строке; клик раскрывает и открывает редактор комментария (сигнал сбрасывается)
+  - [x] «Комментарий» отсутствует в чипсах; заданный комментарий делает кнопку активной; индикатора comment в мете нет
+  - [x] «Удалить строку» компактна и в верхнем тулбаре (goods+tasks), эмитит remove
+  - [x] vue-tsc OK, Vitest зелёный (547)
+- **Создана:** 2026-07-24
+- **Завершена:** 2026-07-24
 
