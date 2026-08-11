@@ -6,6 +6,20 @@ import BaseButton from '@/components/common/BaseButton'
 import ReminderForm, { type ReminderFormValues } from '@/components/reminders/ReminderForm'
 import SnoozeSheet from '@/components/reminders/SnoozeSheet'
 import { useReminder, useReminders } from '@/hooks/useReminders'
+import { exportReminderToCalendar } from '@/services/systemCalendar'
+
+/** Экспортирует сохранённое напоминание в календарь и показывает результат. */
+const exportAfterSave = async (values: ReminderFormValues): Promise<void> => {
+  const eventId = await exportReminderToCalendar({
+    title: values.title,
+    notes: values.notes.length > 0 ? values.notes : null,
+    remind_at: values.remindAt,
+  })
+  Alert.alert(
+    eventId ? 'Добавлено в календарь' : 'Не удалось',
+    eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
+  )
+}
 
 export default function ReminderDetailScreen() {
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
@@ -15,15 +29,22 @@ export default function ReminderDetailScreen() {
   const [snoozeVisible, setSnoozeVisible] = useState(false)
 
   const handleSubmit = (values: ReminderFormValues): void => {
-    updateReminder.mutate({
-      uuid: reminderUuid,
-      patch: {
-        title: values.title,
-        remindAt: values.remindAt,
-        notes: values.notes.length > 0 ? values.notes : null,
-        recurrence: values.recurrence,
+    updateReminder.mutate(
+      {
+        uuid: reminderUuid,
+        patch: {
+          title: values.title,
+          remindAt: values.remindAt,
+          notes: values.notes.length > 0 ? values.notes : null,
+          recurrence: values.recurrence,
+        },
       },
-    })
+      {
+        onSuccess: () => {
+          if (values.exportToCalendar) void exportAfterSave(values)
+        },
+      },
+    )
   }
 
   const confirmDelete = (): void => {
@@ -57,6 +78,7 @@ export default function ReminderDetailScreen() {
           notes: reminder.notes ?? '',
           remindAt: reminder.remindAt,
           recurrence: reminder.recurrence,
+          exportToCalendar: false,
         }}
         submitLabel="Сохранить"
         isSaving={updateReminder.isPending}
