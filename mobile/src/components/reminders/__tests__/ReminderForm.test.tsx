@@ -2,10 +2,29 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import React from 'react'
+import { Alert } from 'react-native'
 import { act, fireEvent, render } from '@testing-library/react-native'
 
 import ReminderForm from '@/components/reminders/ReminderForm'
 import { lightColors } from '@/theme/colors'
+
+interface GuardOptions {
+  data: { action: { type: string } }
+}
+
+const mockDispatch = jest.fn()
+const mockGuard: { prevent: boolean; cb: ((options: GuardOptions) => void) | null } = {
+  prevent: false,
+  cb: null,
+}
+
+jest.mock('@react-navigation/core', () => ({
+  useNavigation: () => ({ dispatch: mockDispatch }),
+  usePreventRemove: (prevent: boolean, cb: (options: GuardOptions) => void) => {
+    mockGuard.prevent = prevent
+    mockGuard.cb = cb
+  },
+}))
 
 jest.mock('@expo/vector-icons', () => {
   const { View, Text } = require('react-native')
@@ -30,8 +49,15 @@ const setNow = (date: Date): void => {
   jest.setSystemTime(date)
 }
 
+beforeEach(() => {
+  mockDispatch.mockClear()
+  mockGuard.prevent = false
+  mockGuard.cb = null
+})
+
 afterEach(() => {
   jest.useRealTimers()
+  jest.restoreAllMocks()
 })
 
 describe('ReminderForm — секции и шапка', () => {
@@ -43,7 +69,13 @@ describe('ReminderForm — секции и шапка', () => {
   it('рендерит заголовок существующего напоминания в шапке при редактировании', async () => {
     const { getByText } = await render(
       <ReminderForm
-        initialValues={{ title: 'Полить цветы', notes: '', remindAt: BASE.toISOString(), recurrence: 'none' }}
+        initialValues={{
+          title: 'Полить цветы',
+          notes: '',
+          remindAt: BASE.toISOString(),
+          recurrence: 'none',
+          exportToCalendar: false,
+        }}
         onSubmit={jest.fn()}
       />,
     )
@@ -53,7 +85,13 @@ describe('ReminderForm — секции и шапка', () => {
   it('заголовок «Напоминание», если у существующего напоминания пустой title', async () => {
     const { getByText } = await render(
       <ReminderForm
-        initialValues={{ title: '', notes: '', remindAt: BASE.toISOString(), recurrence: 'none' }}
+        initialValues={{
+          title: '',
+          notes: '',
+          remindAt: BASE.toISOString(),
+          recurrence: 'none',
+          exportToCalendar: false,
+        }}
         onSubmit={jest.fn()}
       />,
     )
@@ -199,7 +237,13 @@ describe('ReminderForm — submit/валидация', () => {
   it('для редактирования кнопка подписана «Сохранить»', async () => {
     const { getByLabelText } = await render(
       <ReminderForm
-        initialValues={{ title: 'Свет', notes: '', remindAt: BASE.toISOString(), recurrence: 'none' }}
+        initialValues={{
+          title: 'Свет',
+          notes: '',
+          remindAt: BASE.toISOString(),
+          recurrence: 'none',
+          exportToCalendar: false,
+        }}
         submitLabel="Сохранить"
         onSubmit={jest.fn()}
       />,
@@ -230,7 +274,13 @@ describe('ReminderForm — footer', () => {
   it('рендерит переданный footer (дополнительные действия экрана редактирования)', async () => {
     const { getByText } = await render(
       <ReminderForm
-        initialValues={{ title: 'Свет', notes: '', remindAt: BASE.toISOString(), recurrence: 'none' }}
+        initialValues={{
+          title: 'Свет',
+          notes: '',
+          remindAt: BASE.toISOString(),
+          recurrence: 'none',
+          exportToCalendar: false,
+        }}
         onSubmit={jest.fn()}
         footer={<></>}
       />,
@@ -290,20 +340,201 @@ describe('ReminderForm — кнопка «Создать»', () => {
   })
 })
 
-describe('ReminderForm — сетка повтора (макет)', () => {
-  it('активная ячейка использует фон colors.accent, неактивная — colors.surface', async () => {
-    const { getByLabelText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+describe('ReminderForm — «Повтор»: радиокнопки в одну строку (макет)', () => {
+  it('контейнер — radiogroup в один ряд (flexDirection row), внутри ровно 4 радио', async () => {
+    const { getByTestId, getAllByRole } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    const row = getByTestId('recurrence-row')
+    expect(row.props.accessibilityRole).toBe('radiogroup')
+    const rowStyle = [row.props.style].flat()
+    expect(rowStyle).toContainEqual(expect.objectContaining({ flexDirection: 'row' }))
+    expect(rowStyle).not.toContainEqual(expect.objectContaining({ flexWrap: 'wrap' }))
+    expect(getAllByRole('radio')).toHaveLength(4)
+  })
+
+  it('точка радио (акцентный кружок) есть только у выбранного варианта', async () => {
+    const { getByLabelText, getByTestId, queryByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    expect(getByTestId('radio-dot-none')).toBeTruthy()
+    expect(queryByTestId('radio-dot-daily')).toBeNull()
+
     await act(async () => {
       fireEvent.press(getByLabelText('Ежедневно'))
     })
-    const activeStyle = [getByLabelText('Ежедневно').props.style].flat()
-    const inactiveStyle = [getByLabelText('Без повтора').props.style].flat()
-    expect(activeStyle).toContainEqual(
-      expect.objectContaining({ backgroundColor: lightColors.accent }),
+    expect(getByTestId('radio-dot-daily')).toBeTruthy()
+    expect(queryByTestId('radio-dot-none')).toBeNull()
+
+    const dotStyle = [getByTestId('radio-dot-daily').props.style].flat()
+    expect(dotStyle).toContainEqual({ backgroundColor: lightColors.accent })
+  })
+
+  it('выбор варианта попадает в submit (recurrence обновляется)', async () => {
+    setNow(BASE)
+    const onSubmit = jest.fn()
+    const { getByLabelText } = await render(<ReminderForm onSubmit={onSubmit} />)
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заголовок напоминания'), 'Проверка')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Вечером'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Ежемесячно'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Создать'))
+    })
+    expect(onSubmit.mock.calls[0]?.[0].recurrence).toBe('monthly')
+  })
+})
+
+describe('ReminderForm — чекбокс «Добавить в календарь»', () => {
+  const fillValidForm = async (
+    getByLabelText: Awaited<ReturnType<typeof render>>['getByLabelText'],
+  ): Promise<void> => {
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заголовок напоминания'), 'Стирка')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Вечером'))
+    })
+  }
+
+  it('по умолчанию выключен и submit несёт exportToCalendar: false', async () => {
+    setNow(BASE)
+    const onSubmit = jest.fn()
+    const { getByLabelText } = await render(<ReminderForm onSubmit={onSubmit} />)
+    expect(getByLabelText('Добавить в календарь').props.accessibilityState?.checked).toBe(false)
+
+    await fillValidForm(getByLabelText)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Создать'))
+    })
+    expect(onSubmit.mock.calls[0]?.[0].exportToCalendar).toBe(false)
+  })
+
+  it('после включения чекбокса submit несёт exportToCalendar: true, экспорт при этом не выполняется', async () => {
+    setNow(BASE)
+    const onSubmit = jest.fn()
+    const { getByLabelText } = await render(<ReminderForm onSubmit={onSubmit} />)
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить в календарь'))
+    })
+    expect(getByLabelText('Добавить в календарь').props.accessibilityState?.checked).toBe(true)
+
+    await fillValidForm(getByLabelText)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Создать'))
+    })
+    expect(onSubmit.mock.calls[0]?.[0].exportToCalendar).toBe(true)
+  })
+
+  it('форма не импортирует exportReminderToCalendar — экспорт делают экраны после сохранения', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../ReminderForm.tsx'), 'utf-8')
+    expect(source).not.toMatch(/exportReminderToCalendar/)
+    expect(source).not.toMatch(/systemCalendar/)
+  })
+})
+
+describe('ReminderForm — диалог «Сохранить изменения?» при уходе', () => {
+  it('без изменений уход не блокируется (preventRemove = false)', async () => {
+    await render(<ReminderForm onSubmit={jest.fn()} />)
+    expect(mockGuard.prevent).toBe(false)
+  })
+
+  it('при изменениях уход блокируется и показывается Alert «Сохранить изменения?»', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const { getByLabelText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заголовок напоминания'), 'Стирка')
+    })
+    expect(mockGuard.prevent).toBe(true)
+
+    await act(async () => {
+      mockGuard.cb?.({ data: { action: { type: 'GO_BACK' } } })
+    })
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Сохранить изменения?',
+      expect.any(String),
+      expect.any(Array),
     )
-    expect(inactiveStyle).toContainEqual(
-      expect.objectContaining({ backgroundColor: lightColors.surface }),
-    )
+  })
+
+  it('«Не сохранять» продолжает уход (dispatch исходного action), onSubmit не вызывается', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const onSubmit = jest.fn()
+    const { getByLabelText } = await render(<ReminderForm onSubmit={onSubmit} />)
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заголовок напоминания'), 'Стирка')
+    })
+    const action = { type: 'GO_BACK' }
+    await act(async () => {
+      mockGuard.cb?.({ data: { action } })
+    })
+
+    const buttons = alertSpy.mock.calls[0]?.[2] ?? []
+    const discard = buttons.find((b) => b.text === 'Не сохранять')
+    await act(async () => {
+      discard?.onPress?.()
+    })
+    expect(mockDispatch).toHaveBeenCalledWith(action)
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('«Сохранить» при валидных данных вызывает onSubmit и продолжает уход', async () => {
+    setNow(BASE)
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const onSubmit = jest.fn()
+    const { getByLabelText } = await render(<ReminderForm onSubmit={onSubmit} />)
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заголовок напоминания'), 'Стирка')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Вечером'))
+    })
+
+    const action = { type: 'GO_BACK' }
+    await act(async () => {
+      mockGuard.cb?.({ data: { action } })
+    })
+    const buttons = alertSpy.mock.calls[0]?.[2] ?? []
+    const save = buttons.find((b) => b.text === 'Сохранить')
+    expect(save).toBeTruthy()
+    await act(async () => {
+      save?.onPress?.()
+    })
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(mockDispatch).toHaveBeenCalledWith(action)
+  })
+
+  it('при невалидных данных кнопки «Сохранить» нет — только «Не сохранять» и «Отмена»', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const { getByLabelText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    // Только заметка — заголовок и дата пустые, сохранить нельзя.
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заметка к напоминанию'), 'Детали')
+    })
+    await act(async () => {
+      mockGuard.cb?.({ data: { action: { type: 'GO_BACK' } } })
+    })
+    const buttons = alertSpy.mock.calls[0]?.[2] ?? []
+    expect(buttons.map((b) => b.text)).toEqual(['Отмена', 'Не сохранять'])
+  })
+
+  it('после успешного submit dirty сбрасывается — уход больше не блокируется', async () => {
+    setNow(BASE)
+    const { getByLabelText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    await act(async () => {
+      fireEvent.changeText(getByLabelText('Заголовок напоминания'), 'Стирка')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Вечером'))
+    })
+    expect(mockGuard.prevent).toBe(true)
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Создать'))
+    })
+    expect(mockGuard.prevent).toBe(false)
   })
 })
 
