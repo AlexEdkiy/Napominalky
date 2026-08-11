@@ -1,0 +1,67 @@
+# .easignore — что НЕ загружать в архив EAS Build.
+# ВАЖНО: при наличии .easignore EAS использует ЕГО ВМЕСТО .gitignore,
+# поэтому здесь продублировано содержимое корневого .gitignore.
+#
+# Дополнительно исключены сиблинг-директории монорепо (project/ Laravel,
+# web/ Vue, docs/) — мобильная сборка (mobile/, самодостаточный package-lock)
+# их не использует. Это также убирает ошибку EACCES при обходе
+# project/storage/app/private/avatars (runtime-данные под root).
+
+# === Не нужно для мобильной сборки (монорепо) ===
+/project/
+/web/
+/docs/
+/.git/
+/deploy/
+
+# === Секреты / окружение ===
+.env
+.env.*
+!.env.example
+*.pem
+project/docker/certs/*.key
+project/docker/certs/*.crt
+
+# === PHP / Laravel (project/) ===
+project/vendor/
+project/node_modules/
+project/public/build/
+project/public/hot
+project/public/storage
+project/storage/*.key
+project/storage/framework/cache/data/*
+project/storage/framework/sessions/*
+project/storage/framework/views/*
+project/storage/logs/*
+project/bootstrap/cache/*.php
+project/.phpunit.result.cache
+project/.phpunit.cache/
+!project/storage/framework/cache/data/.gitignore
+
+# === Node / JS (mobile/, web/) ===
+node_modules/
+mobile/node_modules/
+web/node_modules/
+web/dist/
+web/coverage/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/ios/
+mobile/android/
+*.tsbuildinfo
+
+# === Drizzle / SQLite артефакты (mobile) ===
+mobile/*.db
+mobile/*.sqlite
+
+# === Логи / временное ===
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# === ОС / IDE ===
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
