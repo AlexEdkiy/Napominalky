@@ -14,3 +14,7 @@ const pluralForm = (count: number, one: string, few: string, many: string): stri
 /** «N событие» / «N события» / «N событий» — заголовок списка дня в календаре. */
 export const pluralizeEvents = (count: number): string =>
   `${count} ${pluralForm(count, 'событие', 'события', 'событий')}`
+
+/** «N день» / «N дня» / «N дней» — например, для «просрочено на N дней». */
+export const pluralizeDays = (count: number): string =>
+  `${count} ${pluralForm(count, 'день', 'дня', 'дней')}`

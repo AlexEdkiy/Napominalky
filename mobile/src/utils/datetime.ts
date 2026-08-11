@@ -76,6 +76,15 @@ const MONTH_NAMES = [
   'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
 ] as const
 
+/** «7 авг 2026, 10:00» — чип даты-времени в списке напоминаний (всегда с годом). */
+export const formatReminderChip = (iso: string): string => {
+  const date = new Date(iso)
+  if (!Number.isFinite(date.getTime())) return iso
+  const month = MONTH_NAMES[date.getMonth()] ?? ''
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${date.getDate()} ${month} ${date.getFullYear()}, ${time}`
+}
+
 /**
  * Форматирует дедлайн пункта задачи в краткий вид «до DD мес»
  * (например «до 5 июл»). Принимает строку YYYY-MM-DD или ISO 8601.

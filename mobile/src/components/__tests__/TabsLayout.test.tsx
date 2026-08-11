@@ -70,10 +70,31 @@ describe('TabsLayout', () => {
     expect(screenNames).toContain('notes-list')
   })
 
-  it('порядок видимых вкладок: index, lists, create-placeholder, calendar, notes-list', async () => {
+  it('вкладка «Напоминания» (reminders-tab) присутствует, отдельной вкладки calendar нет', async () => {
+    await render(<TabsLayout />)
+    expect(screenNames).toContain('reminders-tab')
+    expect(screenNames).not.toContain('calendar')
+    expect(screenOptions['reminders-tab']?.['title']).toBe('Напоминания')
+  })
+
+  it('иконка вкладки «Напоминания» — будильник (alarm / alarm-outline)', async () => {
+    await render(<TabsLayout />)
+    const tabBarIcon = screenOptions['reminders-tab']?.['tabBarIcon'] as (props: {
+      focused: boolean
+      color: string
+      size: number
+    }) => React.ReactElement
+    expect(typeof tabBarIcon).toBe('function')
+    const focusedRender = await render(tabBarIcon({ focused: true, color: '#000', size: 24 }))
+    expect(focusedRender.getByTestId('icon-alarm')).toBeTruthy()
+    const blurredRender = await render(tabBarIcon({ focused: false, color: '#000', size: 24 }))
+    expect(blurredRender.getByTestId('icon-alarm-outline')).toBeTruthy()
+  })
+
+  it('порядок видимых вкладок: index, lists, create-placeholder, reminders-tab, notes-list', async () => {
     await render(<TabsLayout />)
     const visible = screenNames.filter((n) => screenOptions[n]?.['href'] !== null)
-    const expectedOrder = ['index', 'lists', 'create-placeholder', 'calendar', 'notes-list']
+    const expectedOrder = ['index', 'lists', 'create-placeholder', 'reminders-tab', 'notes-list']
     expectedOrder.forEach((name) => {
       expect(visible).toContain(name)
     })

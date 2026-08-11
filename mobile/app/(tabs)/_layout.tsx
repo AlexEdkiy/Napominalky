@@ -82,11 +82,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="calendar"
+        name="reminders-tab"
         options={{
-          title: 'Календарь',
+          title: 'Напоминания',
           tabBarIcon: ({ focused, color, size }) => (
-            <TabIcon name="calendar" focused={focused} color={color} size={size} />
+            <TabIcon name="alarm" focused={focused} color={color} size={size} />
           ),
         }}
       />
