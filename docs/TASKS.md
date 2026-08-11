@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-24 (EAS Build: .easignore для монорепо — OPS-9)
+> Последнее обновление: 2026-07-24 (моб. таб «Напоминания» вместо «Календарь»: сегмент/группировка/просрочка, календарь по ссылке — MOB-54, UITEST-10)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
-| MOB     | 53           | mobile-developer          |
+| MOB     | 54           | mobile-developer          |
 | WEB     | 40           | web-developer             |
 | TEST    | 15           | test-engineer             |
-| UITEST  | 9            | ux-ui-test-engineer       |
+| UITEST  | 10           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 35           | technical-writer          |
+| DOC     | 36           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 118 |
+| Completed | 119 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2306,6 +2306,26 @@
 - **Критерии приёмки:**
   - [x] `eas build` проходит этап упаковки без EACCES
   - [x] Архив не содержит project/web/docs (сборка mobile самодостаточна)
+- **Создана:** 2026-07-24
+- **Завершена:** 2026-07-24
+
+### MOB-54: Таб «Напоминания» (будильник) вместо «Календарь» — сегмент/группировка/просрочка; календарь по ссылке
+- **Исполнитель:** mobile-developer (+ UITEST-10 сверка макета)
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Описание:** Раздел «Календарь» переработан в «Напоминания» по дизайн-макету. (1) Таб-бар: вкладка `calendar` → `reminders-tab` (title «Напоминания», иконка `alarm`/`alarm-outline`), порядок сохранён. (2) Новый экран `app/(tabs)/reminders-tab/index.tsx`: `DarkHeader` «Напоминания» (поиск, аватар→профиль), карточка-ссылка «Открыть календарь ›», сегмент `ReminderSegmentedFilter` «Просроченные N / Запланированные M» (красный бейдж у просроченных), `SectionList`. Данные — единый `useReminders({status:'pending'})` + `splitByOverdue(now)` (консистентные счётчики). Карточка `ReminderListItem`: круг с будильником, заголовок, чип «7 авг 2026, 10:00», красная «просрочено на N дней» (склонение), кнопка-галочка→`completeReminder`, тап→`/reminders/{uuid}`; бейджа источника нет (решение пользователя — у напоминаний нет тегов/категории). Запланированные сгруппированы Сегодня/Завтра/На этой неделе/Позже (`reminderGrouping.ts`, чистая, инъекция `now`). (3) Календарь (прежний вид) перемещён `git mv` в `app/(tabs)/reminders-tab/calendar.tsx` — вложенный Stack во вкладке: открывается по ссылке, таб-бар виден, вкладка «Напоминания» активна. Удалены мёртвые `app/reminders/index.tsx` + `ReminderCard.tsx`. `CreateButton` ROUTE_MAP дополнен новыми путями. UITEST-10: сверка с макетом — исправлены лейбл секции «Просроченные», a11y-роль сегмента `tab`, фон счётчика-бейджа неактивной пилюли (контраст).
+- **Файлы:** `mobile/app/(tabs)/_layout.tsx`, `mobile/app/(tabs)/reminders-tab/{_layout,index,calendar}.tsx`, `mobile/src/components/reminders/{ReminderSegmentedFilter,ReminderListItem}.tsx`, `mobile/src/utils/{reminderGrouping,pluralize,datetime}.ts`, `mobile/src/components/tabs/CreateButton.tsx` (+ тесты; удалены reminders/index.tsx, ReminderCard.tsx)
+- **Критерии приёмки:**
+  - [x] Таб «Напоминания» с иконкой будильника; «Календарь» не отдельная вкладка
+  - [x] Сегмент Просроченные/Запланированные со счётчиками; красный бейдж просрочки
+  - [x] Просроченные: дата+время + «просрочено на N дней»; чекбокс выполняет; тап открывает напоминание
+  - [x] Запланированные сгруппированы Сегодня/Завтра/На этой неделе/Позже
+  - [x] Календарь по ссылке, таб-бар виден и вкладка активна
+  - [x] tsc OK, Jest зелёный (871)
+- **Известные шероховатости:** «просрочено сегодня» при просрочке <24ч (расчёт по полным суткам, не календарным дням) — не противоречит макету, при желании уточнить у дизайна.
 - **Создана:** 2026-07-24
 - **Завершена:** 2026-07-24
 

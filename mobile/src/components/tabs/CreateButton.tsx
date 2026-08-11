@@ -11,7 +11,8 @@ const ROUTE_MAP: Record<string, CreateRoute> = {
   '/': '/create',
   '/lists': '/lists/new',
   '/notes-list': '/notes/new',
-  '/calendar': '/reminders/new',
+  '/reminders-tab': '/reminders/new',
+  '/reminders-tab/calendar': '/reminders/new',
 }
 
 export const resolveCreateRoute = (pathname: string): CreateRoute =>

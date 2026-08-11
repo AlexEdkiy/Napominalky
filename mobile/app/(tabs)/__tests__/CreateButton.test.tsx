@@ -50,12 +50,17 @@ describe('resolveCreateRoute', () => {
     expect(resolveCreateRoute('/notes-list')).toBe('/notes/new')
   })
 
-  it('«/calendar» → «/reminders/new»', () => {
-    expect(resolveCreateRoute('/calendar')).toBe('/reminders/new')
+  it('«/reminders-tab» (список напоминаний) → «/reminders/new»', () => {
+    expect(resolveCreateRoute('/reminders-tab')).toBe('/reminders/new')
+  })
+
+  it('«/reminders-tab/calendar» (календарь) → «/reminders/new»', () => {
+    expect(resolveCreateRoute('/reminders-tab/calendar')).toBe('/reminders/new')
   })
 
   it('неизвестный путь → «/create»', () => {
     expect(resolveCreateRoute('/unknown')).toBe('/create')
+    expect(resolveCreateRoute('/calendar')).toBe('/create')
     expect(resolveCreateRoute('')).toBe('/create')
   })
 })
@@ -84,8 +89,15 @@ describe('CreateButton — нажатие вызывает push с нужным 
     expect(mockPush).toHaveBeenCalledWith('/notes/new')
   })
 
-  it('на «/calendar» — push «/reminders/new»', async () => {
-    mockPathname = '/calendar'
+  it('на «/reminders-tab» — push «/reminders/new»', async () => {
+    mockPathname = '/reminders-tab'
+    const { getByLabelText } = await render(<CreateButton />)
+    fireEvent.press(getByLabelText('Создать'))
+    expect(mockPush).toHaveBeenCalledWith('/reminders/new')
+  })
+
+  it('на «/reminders-tab/calendar» — push «/reminders/new»', async () => {
+    mockPathname = '/reminders-tab/calendar'
     const { getByLabelText } = await render(<CreateButton />)
     fireEvent.press(getByLabelText('Создать'))
     expect(mockPush).toHaveBeenCalledWith('/reminders/new')

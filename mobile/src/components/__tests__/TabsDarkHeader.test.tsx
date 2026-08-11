@@ -164,7 +164,7 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native'
 
 import HomeScreen from '../../../app/(tabs)/index'
 import ListsScreen from '../../../app/(tabs)/lists'
-import CalendarScreen from '../../../app/(tabs)/calendar'
+import CalendarScreen from '../../../app/(tabs)/reminders-tab/calendar'
 import ProfileScreen from '../../../app/(tabs)/profile'
 import NotesListScreen from '../../../app/(tabs)/notes-list'
 
