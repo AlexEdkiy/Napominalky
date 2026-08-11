@@ -91,7 +91,7 @@ afterEach(() => {
 
 describe('RemindersScreen — группировка «Запланированные»', () => {
   it('группирует по секциям Сегодня/Завтра/На этой неделе/Позже', async () => {
-    const { getByLabelText, getByText, queryByText } = await render(<RemindersScreen />)
+    const { getAllByTestId, getByLabelText, getByText, queryByText } = await render(<RemindersScreen />)
     fireEvent.press(getByLabelText('Запланированные'))
     // Доигрываем порции ячеек VirtualizedList (каждая планирует следующую).
     for (let i = 0; i < 5; i += 1) {
@@ -103,6 +103,9 @@ describe('RemindersScreen — группировка «Запланирован�
     expect(getByText('Завтра')).toBeTruthy()
     expect(getByText('На этой неделе')).toBeTruthy()
     expect(getByText('Позже')).toBeTruthy()
+    // Порядок секций строго как на макете
+    expect(getAllByTestId('reminders-section-title').map((t) => t.props.children))
+      .toEqual(['Сегодня', 'Завтра', 'На этой неделе', 'Позже'])
     expect(getByText('Позвонить врачу')).toBeTruthy()
     expect(getByText('Забрать посылку')).toBeTruthy()
     expect(getByText('Сдать отчёт')).toBeTruthy()

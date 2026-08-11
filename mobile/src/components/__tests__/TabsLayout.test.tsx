@@ -94,11 +94,7 @@ describe('TabsLayout', () => {
   it('порядок видимых вкладок: index, lists, create-placeholder, reminders-tab, notes-list', async () => {
     await render(<TabsLayout />)
     const visible = screenNames.filter((n) => screenOptions[n]?.['href'] !== null)
-    const expectedOrder = ['index', 'lists', 'create-placeholder', 'reminders-tab', 'notes-list']
-    expectedOrder.forEach((name) => {
-      expect(visible).toContain(name)
-    })
-    // notes-list должен быть последним видимым
-    expect(visible[visible.length - 1]).toBe('notes-list')
+    // Строгий порядок как на макете: Главная, Задачи, «+», Напоминания, Заметки
+    expect(visible).toEqual(['index', 'lists', 'create-placeholder', 'reminders-tab', 'notes-list'])
   })
 })

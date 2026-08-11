@@ -156,6 +156,13 @@ describe('RemindersScreen — сегмент «Просроченные»', () =
     expect(queryByText('Позвонить врачу')).toBeNull()
   })
 
+  it('над карточками — секционный лейбл «ПРОСРОЧЕННЫЕ» (uppercase по макету)', async () => {
+    const { getByTestId } = await render(<RemindersScreen />)
+    const sectionTitle = getByTestId('reminders-section-title')
+    expect(sectionTitle.props.children).toBe('Просроченные')
+    expect(sectionTitle).toHaveStyle({ textTransform: 'uppercase' })
+  })
+
   it('чекбокс «выполнить» вызывает completeReminder.mutate(uuid)', async () => {
     const { getByLabelText } = await render(<RemindersScreen />)
     fireEvent.press(getByLabelText('Выполнить: Оплатить счёт'))

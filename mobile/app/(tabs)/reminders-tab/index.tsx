@@ -47,8 +47,10 @@ export default function RemindersScreen(): React.JSX.Element {
 
   const now = new Date()
   const { overdue, planned } = splitByOverdue(filterByTitle(reminders, search), now)
+  // По макету над карточками просроченных есть секционный лейбл «ПРОСРОЧЕННЫЕ»
+  // (uppercase даёт typography.sectionLabel).
   const sections: ListSection[] = segment === 'overdue'
-    ? (overdue.length > 0 ? [{ title: '', data: overdue }] : [])
+    ? (overdue.length > 0 ? [{ title: 'Просроченные', data: overdue }] : [])
     : groupPlanned(planned, now)
   const empty = EMPTY_TEXT[segment]
 
@@ -115,7 +117,10 @@ export default function RemindersScreen(): React.JSX.Element {
           )}
           renderSectionHeader={({ section }) => (
             section.title.length > 0 ? (
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              <Text
+                testID="reminders-section-title"
+                style={[styles.sectionTitle, { color: colors.textSecondary }]}
+              >
                 {section.title}
               </Text>
             ) : null

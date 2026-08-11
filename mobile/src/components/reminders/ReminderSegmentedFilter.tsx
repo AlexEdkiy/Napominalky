@@ -31,7 +31,7 @@ const SegmentButton: React.FC<SegmentButtonProps> = ({
 
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
@@ -46,7 +46,7 @@ const SegmentButton: React.FC<SegmentButtonProps> = ({
       >
         {label}
       </Text>
-      <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+      <View testID={`segment-badge-${label}`} style={[styles.badge, { backgroundColor: badgeBg }]}>
         <Text style={[styles.badgeText, { color: badgeColor }]}>{count}</Text>
       </View>
     </Pressable>
