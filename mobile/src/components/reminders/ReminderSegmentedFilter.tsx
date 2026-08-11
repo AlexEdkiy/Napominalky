@@ -26,7 +26,12 @@ const SegmentButton: React.FC<SegmentButtonProps> = ({
   label, count, selected, danger, onPress,
 }) => {
   const { colors } = useTheme()
-  const badgeBg = danger && count > 0 ? colors.danger : colors.appBg
+  // Фон бейджа контрастирует с фоном пилюли: активная пилюля — surface(белый),
+  // значит бейдж серый (appBg); неактивная пилюля сливается с контейнером
+  // сегмента (appBg), значит бейдж белый (surface). Иначе счётчик неактивной
+  // пилюли выглядел бы голым текстом. Красный danger-бейдж виден на любом фоне.
+  const neutralBadgeBg = selected ? colors.appBg : colors.surface
+  const badgeBg = danger && count > 0 ? colors.danger : neutralBadgeBg
   const badgeColor = danger && count > 0 ? '#FFFFFF' : colors.textSecondary
 
   return (
