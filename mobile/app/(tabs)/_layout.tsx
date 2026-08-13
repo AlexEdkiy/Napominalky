@@ -84,7 +84,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="reminders-tab"
         options={{
-          title: 'Напоминания',
+          // Короткая подпись: «Напоминания» не помещается в таб-бар.
+          title: 'Напомнить',
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon name="alarm" focused={focused} color={color} size={size} />
           ),

@@ -30,7 +30,8 @@ export default function CalendarScreen(): React.JSX.Element {
   const [{ year, month }, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [search, setSearch] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
+  // По дизайну месяц открывается свёрнутым (одна неделя), разворот — ручкой.
+  const [collapsed, setCollapsed] = useState(true)
 
   const { byDay } = useCalendar(year, month)
 
@@ -55,6 +56,7 @@ export default function CalendarScreen(): React.JSX.Element {
       <StatusBar style="light" />
       <DarkHeader
         title="Календарь"
+        onBack={() => router.back()}
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
         searchValue={search}

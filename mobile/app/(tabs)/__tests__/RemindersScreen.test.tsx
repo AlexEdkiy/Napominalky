@@ -43,10 +43,12 @@ jest.mock('@/hooks/useReminders', () => ({
 }))
 
 import React from 'react'
+import { Alert, type AlertButton } from 'react-native'
 import { act, render, fireEvent } from '@testing-library/react-native'
 import { router } from 'expo-router'
 
 import RemindersScreen from '../reminders-tab/index'
+import { lightColors } from '@/theme/colors'
 
 type PressableElement = Parameters<typeof fireEvent.press>[0]
 
@@ -129,10 +131,17 @@ describe('RemindersScreen — шапка и навигация', () => {
     expect(mockPush).toHaveBeenCalledWith('/(tabs)/profile')
   })
 
-  it('«Открыть календарь» ведёт на экран календаря внутри вкладки', async () => {
+  it('кнопка календаря в ШАПКЕ ведёт на экран календаря внутри вкладки', async () => {
     const { getByLabelText } = await render(<RemindersScreen />)
     fireEvent.press(getByLabelText('Открыть календарь'))
     expect(mockPush).toHaveBeenCalledWith('/reminders-tab/calendar')
+  })
+
+  it('плашки «Открыть календарь» в теле экрана больше нет (только иконка в шапке)', async () => {
+    const { queryByText, getByTestId } = await render(<RemindersScreen />)
+    // Текстовой карточки-ссылки нет — переход только иконкой в DarkHeader.
+    expect(queryByText('Открыть календарь')).toBeNull()
+    expect(getByTestId('icon-calendar')).toBeTruthy()
   })
 })
 
@@ -163,10 +172,49 @@ describe('RemindersScreen — сегмент «Просроченные»', () =
     expect(sectionTitle).toHaveStyle({ textTransform: 'uppercase' })
   })
 
-  it('чекбокс «выполнить» вызывает completeReminder.mutate(uuid)', async () => {
+  it('просроченная карточка — danger-тон (dangerSoftBg у иконки и чипа)', async () => {
+    const { getByTestId } = await render(<RemindersScreen />)
+    expect(getByTestId('reminder-icon-wrap'))
+      .toHaveStyle({ backgroundColor: lightColors.dangerSoftBg })
+    expect(getByTestId('reminder-date-chip'))
+      .toHaveStyle({ backgroundColor: lightColors.dangerSoftBg })
+  })
+
+  it('галочка показывает Alert «Закрыть напоминание?», мутация НЕ вызвана до подтверждения', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert')
     const { getByLabelText } = await render(<RemindersScreen />)
     fireEvent.press(getByLabelText('Выполнить: Оплатить счёт'))
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Закрыть напоминание?',
+      undefined,
+      expect.any(Array),
+    )
+    expect(mockCompleteMutate).not.toHaveBeenCalled()
+    const buttons = alertSpy.mock.calls[0]?.[2] as AlertButton[]
+    expect(buttons.map((b) => b.text)).toEqual(['Отмена', 'Закрыть'])
+    alertSpy.mockRestore()
+  })
+
+  it('по кнопке «Закрыть» в Alert вызывается completeReminder.mutate(uuid)', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const { getByLabelText } = await render(<RemindersScreen />)
+    fireEvent.press(getByLabelText('Выполнить: Оплатить счёт'))
+    const buttons = alertSpy.mock.calls[0]?.[2] as AlertButton[]
+    buttons.find((b) => b.text === 'Закрыть')?.onPress?.()
     expect(mockCompleteMutate).toHaveBeenCalledWith('r-overdue')
+    alertSpy.mockRestore()
+  })
+
+  it('кнопка «Отмена» в Alert не вызывает мутацию', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const { getByLabelText } = await render(<RemindersScreen />)
+    fireEvent.press(getByLabelText('Выполнить: Оплатить счёт'))
+    const buttons = alertSpy.mock.calls[0]?.[2] as AlertButton[]
+    const cancel = buttons.find((b) => b.text === 'Отмена')
+    expect(cancel?.style).toBe('cancel')
+    cancel?.onPress?.()
+    expect(mockCompleteMutate).not.toHaveBeenCalled()
+    alertSpy.mockRestore()
   })
 
   it('тап по карточке открывает /reminders/{uuid}', async () => {
