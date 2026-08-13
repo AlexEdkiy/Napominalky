@@ -70,11 +70,15 @@ describe('TabsLayout', () => {
     expect(screenNames).toContain('notes-list')
   })
 
-  it('вкладка «Напоминания» (reminders-tab) присутствует, отдельной вкладки calendar нет', async () => {
+  it('вкладка reminders-tab присутствует, отдельной вкладки calendar нет', async () => {
     await render(<TabsLayout />)
     expect(screenNames).toContain('reminders-tab')
     expect(screenNames).not.toContain('calendar')
-    expect(screenOptions['reminders-tab']?.['title']).toBe('Напоминания')
+  })
+
+  it('подпись вкладки — короткая «Напомнить» (полная «Напоминания» обрезалась)', async () => {
+    await render(<TabsLayout />)
+    expect(screenOptions['reminders-tab']?.['title']).toBe('Напомнить')
   })
 
   it('иконка вкладки «Напоминания» — будильник (alarm / alarm-outline)', async () => {

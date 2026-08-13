@@ -50,6 +50,7 @@ import React from 'react'
 import { act, render, fireEvent } from '@testing-library/react-native'
 
 import RemindersScreen from '../reminders-tab/index'
+import { lightColors } from '@/theme/colors'
 
 // Фиксированный «сейчас»: понедельник 10 августа 2026, 12:00 локального времени.
 const NOW = new Date(2026, 7, 10, 12, 0, 0, 0)
@@ -90,7 +91,7 @@ afterEach(() => {
 })
 
 describe('RemindersScreen — группировка «Запланированные»', () => {
-  it('группирует по секциям Сегодня/Завтра/На этой неделе/Позже', async () => {
+  it('группирует по секциям и красит карточки в amber-тон', async () => {
     const { getAllByTestId, getByLabelText, getByText, queryByText } = await render(<RemindersScreen />)
     fireEvent.press(getByLabelText('Запланированные'))
     // Доигрываем порции ячеек VirtualizedList (каждая планирует следующую).
@@ -113,5 +114,12 @@ describe('RemindersScreen — группировка «Запланирован�
     // Просроченное и подпись просрочки не показываются
     expect(queryByText('Оплатить счёт')).toBeNull()
     expect(queryByText(/просрочено/)).toBeNull()
+    // Запланированные — в жёлтом (amber) тоне, как задачи/напоминания на главной
+    getAllByTestId('reminder-icon-wrap').forEach((wrap) => {
+      expect(wrap).toHaveStyle({ backgroundColor: lightColors.amberBg })
+    })
+    getAllByTestId('reminder-date-chip').forEach((chip) => {
+      expect(chip).toHaveStyle({ backgroundColor: lightColors.amberBg })
+    })
   })
 })

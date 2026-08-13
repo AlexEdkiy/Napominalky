@@ -1,12 +1,11 @@
-import { useState } from 'react'
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 
 import BaseButton from '@/components/common/BaseButton'
 import ReminderForm, { type ReminderFormValues } from '@/components/reminders/ReminderForm'
-import SnoozeSheet from '@/components/reminders/SnoozeSheet'
 import { useReminder, useReminders } from '@/hooks/useReminders'
 import { exportReminderToCalendar } from '@/services/systemCalendar'
+import { confirmCloseReminder } from '@/utils/confirmCloseReminder'
 
 /** Экспортирует сохранённое напоминание в календарь и показывает результат. */
 const exportAfterSave = async (values: ReminderFormValues): Promise<void> => {
@@ -25,8 +24,7 @@ export default function ReminderDetailScreen() {
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
   const reminderUuid = uuid ?? ''
   const { data: reminder, isLoading } = useReminder(reminderUuid)
-  const { updateReminder, deleteReminder, completeReminder, snoozeReminder } = useReminders()
-  const [snoozeVisible, setSnoozeVisible] = useState(false)
+  const { updateReminder, deleteReminder, completeReminder } = useReminders()
 
   const handleSubmit = (values: ReminderFormValues): void => {
     updateReminder.mutate(
@@ -70,44 +68,36 @@ export default function ReminderDetailScreen() {
     )
   }
 
+  const handleComplete = (): void => {
+    confirmCloseReminder(() => completeReminder.mutate(reminderUuid))
+  }
+
   return (
-    <>
-      <ReminderForm
-        initialValues={{
-          title: reminder.title,
-          notes: reminder.notes ?? '',
-          remindAt: reminder.remindAt,
-          recurrence: reminder.recurrence,
-          exportToCalendar: false,
-        }}
-        submitLabel="Сохранить"
-        isSaving={updateReminder.isPending}
-        onSubmit={handleSubmit}
-        onDelete={confirmDelete}
-        onBack={() => router.back()}
-        footer={
+    <ReminderForm
+      initialValues={{
+        title: reminder.title,
+        notes: reminder.notes ?? '',
+        remindAt: reminder.remindAt,
+        recurrence: reminder.recurrence,
+        exportToCalendar: false,
+      }}
+      submitLabel="Сохранить"
+      isSaving={updateReminder.isPending}
+      onSubmit={handleSubmit}
+      onDelete={confirmDelete}
+      onBack={() => router.back()}
+      footer={
+        !reminder.isCompleted ? (
           <View style={styles.extra}>
-            {!reminder.isCompleted ? (
-              <BaseButton
-                label="Выполнить"
-                onPress={() => completeReminder.mutate(reminderUuid)}
-                loading={completeReminder.isPending}
-              />
-            ) : null}
             <BaseButton
-              label="Отложить"
-              variant="secondary"
-              onPress={() => setSnoozeVisible(true)}
+              label="Выполнить"
+              onPress={handleComplete}
+              loading={completeReminder.isPending}
             />
           </View>
-        }
-      />
-      <SnoozeSheet
-        visible={snoozeVisible}
-        onClose={() => setSnoozeVisible(false)}
-        onSnooze={(iso) => snoozeReminder.mutate({ uuid: reminderUuid, snoozedUntil: iso })}
-      />
-    </>
+        ) : null
+      }
+    />
   )
 }
 

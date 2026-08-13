@@ -1,10 +1,11 @@
 /**
  * UI-fidelity тесты карточки напоминания по макету:
- * - иконка будильника в мягком круге (коралловый фон у просроченного,
- *   акцентный — у запланированного);
+ * - тон карточки: просроченные — danger (danger-soft фон), запланированные —
+ *   amber (amberBg), консистентно с карточками задач/напоминаний на главной;
  * - заголовок и чип «дата, время» в формате «7 авг 2026, 10:00»;
  * - красная подпись «просрочено на N дней» ТОЛЬКО у просроченных;
- * - круглая кнопка-галочка справа вызывает onComplete, тап по карточке — onPress;
+ * - кнопка-галочка — скруглённый КВАДРАТ (radius 9), вызывает onComplete,
+ *   тап по карточке — onPress;
  * - НЕТ лишних элементов: бейджа «источник/из какого списка» на карточке
  *   быть не должно (решение пользователя), даже если sourceType/sourceUuid заданы.
  */
@@ -76,6 +77,38 @@ describe('ReminderListItem — состав карточки по макету',
     expect(queryByText(/просрочено/)).toBeNull()
   })
 
+  it('запланированный вариант: amber-тон — иконка и чип даты на amberBg', async () => {
+    const { getByTestId, getByText } = await renderItem(null)
+    expect(getByTestId('reminder-icon-wrap'))
+      .toHaveStyle({ backgroundColor: lightColors.amberBg })
+    expect(getByTestId('reminder-date-chip'))
+      .toHaveStyle({ backgroundColor: lightColors.amberBg })
+    expect(getByText('7 авг 2026, 10:00')).toHaveStyle({ color: lightColors.amber })
+  })
+
+  it('просроченный вариант: danger-тон — иконка и чип даты на dangerSoftBg', async () => {
+    const { getByTestId, getByText } = await renderItem('просрочено на 3 дня')
+    expect(getByTestId('reminder-icon-wrap'))
+      .toHaveStyle({ backgroundColor: lightColors.dangerSoftBg })
+    expect(getByTestId('reminder-date-chip'))
+      .toHaveStyle({ backgroundColor: lightColors.dangerSoftBg })
+    expect(getByText('7 авг 2026, 10:00')).toHaveStyle({ color: lightColors.danger })
+  })
+
+  it('явный tone="planned" перекрывает вывод из overdueText', async () => {
+    const { getByTestId } = await render(
+      <ReminderListItem
+        reminder={reminder()}
+        overdueText={null}
+        tone="overdue"
+        onPress={jest.fn()}
+        onComplete={jest.fn()}
+      />,
+    )
+    expect(getByTestId('reminder-icon-wrap'))
+      .toHaveStyle({ backgroundColor: lightColors.dangerSoftBg })
+  })
+
   it('НЕТ бейджа источника, даже когда sourceType/sourceUuid заданы', async () => {
     const { queryAllByText } = await renderItem(null, {
       sourceType: 'list',
@@ -93,7 +126,7 @@ describe('ReminderListItem — состав карточки по макету',
 })
 
 describe('ReminderListItem — действия', () => {
-  it('круглая кнопка-галочка вызывает onComplete(uuid) и не открывает карточку', async () => {
+  it('кнопка-галочка вызывает onComplete(uuid) и не открывает карточку', async () => {
     const onPress = jest.fn()
     const onComplete = jest.fn()
     const { getByLabelText, getByTestId } = await renderItem(null, {}, onPress, onComplete)
@@ -101,6 +134,15 @@ describe('ReminderListItem — действия', () => {
     fireEvent.press(getByLabelText('Выполнить: Оплатить счёт'))
     expect(onComplete).toHaveBeenCalledWith('r-1')
     expect(onPress).not.toHaveBeenCalled()
+  })
+
+  it('кнопка-галочка — скруглённый квадрат (radius 9 при стороне 30), не круг', async () => {
+    const { getByTestId } = await renderItem()
+    expect(getByTestId('reminder-check-btn')).toHaveStyle({
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+    })
   })
 
   it('тап по карточке вызывает onPress(uuid)', async () => {

@@ -7,6 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 interface DarkHeaderProps {
   title: string
   onAvatarPress?: () => void
+  /** Хлебная крошка «‹ Заголовок»: стрелка назад слева от title. */
+  onBack?: () => void
+  /** Кнопка-иконка календаря в шапке (рядом с поиском/аватаром). */
+  onCalendarPress?: () => void
   withSearch?: boolean
   collapsibleSearch?: boolean
   searchValue?: string
@@ -24,6 +28,8 @@ const SEARCH_ICON_OPEN_COLOR = '#17897a'
 const DarkHeader: React.FC<DarkHeaderProps> = ({
   title,
   onAvatarPress,
+  onBack,
+  onCalendarPress,
   withSearch = false,
   collapsibleSearch = false,
   searchValue = '',
@@ -46,7 +52,30 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
       style={[styles.gradient, { paddingTop: insets.top }]}
     >
       <View style={styles.titleRow}>
+        {onBack !== undefined && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Назад"
+            onPress={onBack}
+            hitSlop={8}
+            style={styles.backBtn}
+          >
+            <Ionicons name="chevron-back" size={26} color="#ffffff" />
+          </Pressable>
+        )}
+
         <Text style={styles.title} numberOfLines={1}>{title}</Text>
+
+        {onCalendarPress !== undefined && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Открыть календарь"
+            onPress={onCalendarPress}
+            style={styles.calendarBtn}
+          >
+            <Ionicons name="calendar" size={20} color="#ffffff" />
+          </Pressable>
+        )}
 
         {collapsibleSearch && (
           <Pressable
@@ -113,6 +142,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
     flex: 1,
+  },
+  backBtn: {
+    width: 32,
+    height: 38,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+  calendarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
   },
   searchToggleBtn: {
     width: 38,

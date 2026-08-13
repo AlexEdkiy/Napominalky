@@ -7,25 +7,32 @@ import { typography } from '@/theme/typography'
 import { formatReminderChip } from '@/utils/datetime'
 import type { Reminder } from '@/db/repositories/remindersRepo'
 
+/** Тон карточки: просроченные — danger, запланированные — amber (как задачи на главной). */
+export type ReminderTone = 'overdue' | 'planned'
+
 interface ReminderListItemProps {
   reminder: Reminder
   /** Красная подпись «просрочено на N дней»; null — не показывать. */
   overdueText?: string | null
+  /** Явный тон; по умолчанию выводится из наличия overdueText. */
+  tone?: ReminderTone
   onPress: (uuid: string) => void
   onComplete: (uuid: string) => void
 }
 
 /**
  * Строка списка напоминаний: иконка будильника в мягком круге, заголовок,
- * чип «дата, время», опциональная подпись просрочки и круглая кнопка
- * «выполнить» справа.
+ * чип «дата, время», опциональная подпись просрочки и скруглённо-квадратная
+ * кнопка «выполнить» справа. Тон (danger/amber) консистентен с главной.
  */
 const ReminderListItem: React.FC<ReminderListItemProps> = ({
-  reminder, overdueText = null, onPress, onComplete,
+  reminder, overdueText = null, tone, onPress, onComplete,
 }) => {
   const { colors } = useTheme()
   const title = reminder.title.trim().length > 0 ? reminder.title : 'Без названия'
-  const isOverdue = overdueText !== null
+  const isOverdue = (tone ?? (overdueText !== null ? 'overdue' : 'planned')) === 'overdue'
+  const toneColor = isOverdue ? colors.danger : colors.amber
+  const toneSoftBg = isOverdue ? colors.dangerSoftBg : colors.amberBg
 
   return (
     <Pressable
@@ -39,16 +46,10 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
       ]}
     >
       <View
-        style={[
-          styles.iconCircle,
-          { backgroundColor: isOverdue ? colors.coralSoftBg : colors.accentSoftBg },
-        ]}
+        testID="reminder-icon-wrap"
+        style={[styles.iconCircle, { backgroundColor: toneSoftBg }]}
       >
-        <Ionicons
-          name="alarm"
-          size={20}
-          color={isOverdue ? colors.danger : colors.accent}
-        />
+        <Ionicons name="alarm" size={20} color={toneColor} />
       </View>
 
       <View style={styles.content}>
@@ -56,8 +57,11 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
           {title}
         </Text>
         <View style={styles.metaRow}>
-          <View style={[styles.dateChip, { backgroundColor: colors.appBg }]}>
-            <Text style={[styles.dateChipText, { color: colors.textBody }]}>
+          <View
+            testID="reminder-date-chip"
+            style={[styles.dateChip, { backgroundColor: toneSoftBg }]}
+          >
+            <Text style={[styles.dateChipText, { color: toneColor }]}>
               {formatReminderChip(reminder.remindAt)}
             </Text>
           </View>
@@ -74,6 +78,7 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
         accessibilityLabel={`Выполнить: ${title}`}
         onPress={() => onComplete(reminder.uuid)}
         hitSlop={8}
+        testID="reminder-check-btn"
         style={({ pressed }) => [
           styles.checkBtn,
           { borderColor: colors.borderInput },
@@ -117,10 +122,11 @@ const styles = StyleSheet.create({
   },
   dateChipText: { ...typography.bodySm, fontWeight: '600' },
   overdueText: { ...typography.bodySm, fontWeight: '700' },
+  // Скруглённый квадрат — как чекбоксы в остальном приложении.
   checkBtn: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: 9,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',

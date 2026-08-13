@@ -73,6 +73,54 @@ describe('DarkHeader', () => {
     expect(getByText('Профиль')).toBeTruthy()
   })
 
+  describe('onBack — хлебная крошка «‹ Заголовок»', () => {
+    it('без onBack стрелки «Назад» нет', async () => {
+      const { queryByLabelText } = await render(<DarkHeader title="Календарь" />)
+      expect(queryByLabelText('Назад')).toBeNull()
+    })
+
+    it('с onBack слева от заголовка рендерится chevron-back', async () => {
+      const { getByLabelText, getByTestId } = await render(
+        <DarkHeader title="Календарь" onBack={jest.fn()} />,
+      )
+      expect(getByLabelText('Назад')).toBeTruthy()
+      expect(getByTestId('icon-chevron-back')).toBeTruthy()
+    })
+
+    it('нажатие на стрелку вызывает onBack', async () => {
+      const onBack = jest.fn()
+      const { getByLabelText } = await render(
+        <DarkHeader title="Календарь" onBack={onBack} />,
+      )
+      fireEvent.press(getByLabelText('Назад'))
+      expect(onBack).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('onCalendarPress — кнопка календаря в шапке', () => {
+    it('без onCalendarPress кнопки календаря нет', async () => {
+      const { queryByLabelText } = await render(<DarkHeader title="Напоминания" />)
+      expect(queryByLabelText('Открыть календарь')).toBeNull()
+    })
+
+    it('с onCalendarPress рендерится кнопка-иконка календаря', async () => {
+      const { getByLabelText, getByTestId } = await render(
+        <DarkHeader title="Напоминания" onCalendarPress={jest.fn()} />,
+      )
+      expect(getByLabelText('Открыть календарь')).toBeTruthy()
+      expect(getByTestId('icon-calendar')).toBeTruthy()
+    })
+
+    it('нажатие вызывает onCalendarPress', async () => {
+      const onCalendarPress = jest.fn()
+      const { getByLabelText } = await render(
+        <DarkHeader title="Напоминания" onCalendarPress={onCalendarPress} />,
+      )
+      fireEvent.press(getByLabelText('Открыть календарь'))
+      expect(onCalendarPress).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('collapsibleSearch', () => {
     it('показывает кнопку-лупу при collapsibleSearch=true', async () => {
       const { getByLabelText } = await render(

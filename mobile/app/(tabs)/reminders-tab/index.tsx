@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Platform,
-  Pressable,
   SectionList,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
 import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
@@ -20,6 +17,7 @@ import ReminderSegmentedFilter, {
 import { useReminders } from '@/hooks/useReminders'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
+import { confirmCloseReminder } from '@/utils/confirmCloseReminder'
 import { groupPlanned, overdueLabel, splitByOverdue } from '@/utils/reminderGrouping'
 import type { Reminder } from '@/db/repositories/remindersRepo'
 
@@ -59,7 +57,7 @@ export default function RemindersScreen(): React.JSX.Element {
   }
 
   const handleComplete = (uuid: string): void => {
-    completeReminder.mutate(uuid)
+    confirmCloseReminder(() => completeReminder.mutate(uuid))
   }
 
   return (
@@ -68,29 +66,11 @@ export default function RemindersScreen(): React.JSX.Element {
       <DarkHeader
         title="Напоминания"
         onAvatarPress={() => router.push('/(tabs)/profile')}
+        onCalendarPress={() => router.push('/reminders-tab/calendar')}
         collapsibleSearch
         searchValue={search}
         onSearchChange={setSearch}
       />
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Открыть календарь"
-        onPress={() => router.push('/reminders-tab/calendar')}
-        style={({ pressed }) => [
-          styles.calendarLink,
-          { backgroundColor: colors.surface },
-          pressed && styles.pressed,
-        ]}
-      >
-        <View style={[styles.calendarIcon, { backgroundColor: colors.accentSoftBg }]}>
-          <Ionicons name="calendar" size={18} color={colors.accent} />
-        </View>
-        <Text style={[styles.calendarLinkText, { color: colors.textPrimary }]}>
-          Открыть календарь
-        </Text>
-        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-      </Pressable>
 
       <View style={styles.filterWrap}>
         <ReminderSegmentedFilter
@@ -111,6 +91,7 @@ export default function RemindersScreen(): React.JSX.Element {
             <ReminderListItem
               reminder={item}
               overdueText={segment === 'overdue' ? overdueLabel(item.remindAt, now) : null}
+              tone={segment === 'overdue' ? 'overdue' : 'planned'}
               onPress={handleOpen}
               onComplete={handleComplete}
             />
@@ -148,30 +129,6 @@ export default function RemindersScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  pressed: { opacity: 0.85 },
-  calendarLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    shadowColor: '#101828',
-    shadowOpacity: 0.05,
-    shadowRadius: 26,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: Platform.OS === 'android' ? 3 : 0,
-  },
-  calendarIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarLinkText: { ...typography.bodyMd, fontWeight: '700', flex: 1 },
   filterWrap: { marginHorizontal: 16, marginTop: 12 },
   loader: { marginTop: 32 },
   listContent: { padding: 16, paddingBottom: 96, gap: 10 },

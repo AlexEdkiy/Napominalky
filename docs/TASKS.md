@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-07-24 (моб. таб «Напоминания» вместо «Календарь»: сегмент/группировка/просрочка, календарь по ссылке — MOB-54, UITEST-10)
+> Последнее обновление: 2026-08-12 (моб. правки Напоминания/Календарь/форма: таб «Напомнить», amber-тон, календарь в шапке/свёрнут, подтверждение «Закрыть», убрана «Отложить» — MOB-55)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
-| MOB     | 54           | mobile-developer          |
+| MOB     | 55           | mobile-developer          |
 | WEB     | 40           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 10           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 36           | technical-writer          |
+| DOC     | 37           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 119 |
+| Completed | 120 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2328,4 +2328,22 @@
 - **Известные шероховатости:** «просрочено сегодня» при просрочке <24ч (расчёт по полным суткам, не календарным дням) — не противоречит макету, при желании уточнить у дизайна.
 - **Создана:** 2026-07-24
 - **Завершена:** 2026-07-24
+
+### MOB-55: Напоминания/Календарь/форма — правки по дизайну (таб, amber-тон, календарь в шапке, подтверждение, без «Отложить»)
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MOB-54
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Описание:** Семь правок по замечаниям к экрану «Напоминания». (1) Подпись вкладки таб-бара «Напоминания»→«Напомнить» (обрезалась); заголовок экрана остался «Напоминания». (2) Карточки «Запланированные» — в amber-тоне (`colors.amber`/`amberBg`, общие с FeedCard/задачами главной): фон иконки будильника и чип даты; просроченные — danger-тон. Проп `tone: 'overdue'|'planned'` в `ReminderListItem`. (3) Переход «Открыть календарь» перенесён из плашки в теле в тёмно-зелёную шапку `DarkHeader` (новый проп `onCalendarPress` — кнопка-иконка). (4) Календарь открывается свёрнутым (`collapsed` default true) + хлебная крошка «‹ Календарь» (новый проп `DarkHeader.onBack` → `router.back()`). (5) Флаг выполнения — скруглённый квадрат (borderRadius 15→9) вместо круга. (6) Подтверждение «Закрыть напоминание?» (helper `confirmCloseReminder`, Alert Отмена/Закрыть) перед выполнением — и из списка (галочка), и с формы (кнопка «Выполнить»). (7) Убрана кнопка «Отложить» с формы `[uuid].tsx` + удалён `SnoozeSheet` (домен snooze в repo/hook/utils оставлен). Пропы `DarkHeader`: +`onBack`, +`onCalendarPress`.
+- **Файлы:** `mobile/app/(tabs)/_layout.tsx`, `mobile/app/(tabs)/reminders-tab/{index,calendar}.tsx`, `mobile/src/components/ui/DarkHeader.tsx`, `mobile/src/components/reminders/ReminderListItem.tsx`, `mobile/src/utils/confirmCloseReminder.ts` (new), `mobile/app/reminders/[uuid].tsx` (+ тесты; удалён `SnoozeSheet.tsx`)
+- **Критерии приёмки:**
+  - [x] Таб «Напомнить»; запланированные в amber-тоне, просроченные — danger
+  - [x] «Открыть календарь» в шапке; календарь свёрнут + «‹ Календарь»
+  - [x] Флаг — скруглённый квадрат; подтверждение «Закрыть напоминание?» (список + форма)
+  - [x] Кнопка «Отложить» убрана
+  - [x] tsc OK, Jest зелёный (895)
+- **Создана:** 2026-08-12
+- **Завершена:** 2026-08-12
 
