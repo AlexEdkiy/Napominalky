@@ -6,15 +6,20 @@ import { useReminders } from '@/hooks/useReminders'
 import { exportReminderToCalendar } from '@/services/systemCalendar'
 
 /**
- * Экспортирует созданное напоминание в календарь и уходит назад только после
- * закрытия алерта — чтобы пользователь увидел результат экспорта.
+ * Экспортирует созданное напоминание в календарь, при успехе передаёт eventId
+ * в onExported (сохранение в локальное calendar_event_id) и уходит назад
+ * только после закрытия алерта — чтобы пользователь увидел результат экспорта.
  */
-const exportThenGoBack = async (values: ReminderFormValues): Promise<void> => {
+const exportThenGoBack = async (
+  values: ReminderFormValues,
+  onExported: (eventId: string) => void,
+): Promise<void> => {
   const eventId = await exportReminderToCalendar({
     title: values.title,
     notes: values.notes.length > 0 ? values.notes : null,
     remind_at: values.remindAt,
   })
+  if (eventId !== null) onExported(eventId)
   Alert.alert(
     eventId ? 'Добавлено в календарь' : 'Не удалось',
     eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
@@ -23,11 +28,13 @@ const exportThenGoBack = async (values: ReminderFormValues): Promise<void> => {
 }
 
 export default function NewReminderScreen() {
-  const { createReminder } = useReminders()
+  const { createReminder, setCalendarEventId } = useReminders()
 
-  const handleCreated = (values: ReminderFormValues): void => {
+  const handleCreated = (values: ReminderFormValues, createdUuid: string): void => {
     if (values.exportToCalendar) {
-      void exportThenGoBack(values)
+      void exportThenGoBack(values, (eventId) =>
+        setCalendarEventId.mutate({ uuid: createdUuid, calendarEventId: eventId }),
+      )
       return
     }
     router.back()
@@ -41,7 +48,7 @@ export default function NewReminderScreen() {
         notes: values.notes.length > 0 ? values.notes : null,
         recurrence: values.recurrence,
       },
-      { onSuccess: () => handleCreated(values) },
+      { onSuccess: (created) => handleCreated(values, created.uuid) },
     )
   }
 

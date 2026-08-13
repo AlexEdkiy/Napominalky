@@ -7,13 +7,21 @@ import { useReminder, useReminders } from '@/hooks/useReminders'
 import { exportReminderToCalendar } from '@/services/systemCalendar'
 import { confirmCloseReminder } from '@/utils/confirmCloseReminder'
 
-/** Экспортирует сохранённое напоминание в календарь и показывает результат. */
-const exportAfterSave = async (values: ReminderFormValues): Promise<void> => {
+/**
+ * Экспортирует сохранённое напоминание в календарь, при успехе передаёт
+ * eventId в onExported (сохранение в локальное calendar_event_id) и
+ * показывает результат.
+ */
+const exportAfterSave = async (
+  values: ReminderFormValues,
+  onExported: (eventId: string) => void,
+): Promise<void> => {
   const eventId = await exportReminderToCalendar({
     title: values.title,
     notes: values.notes.length > 0 ? values.notes : null,
     remind_at: values.remindAt,
   })
+  if (eventId !== null) onExported(eventId)
   Alert.alert(
     eventId ? 'Добавлено в календарь' : 'Не удалось',
     eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
@@ -24,7 +32,7 @@ export default function ReminderDetailScreen() {
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
   const reminderUuid = uuid ?? ''
   const { data: reminder, isLoading } = useReminder(reminderUuid)
-  const { updateReminder, deleteReminder, completeReminder } = useReminders()
+  const { updateReminder, deleteReminder, completeReminder, setCalendarEventId } = useReminders()
 
   const handleSubmit = (values: ReminderFormValues): void => {
     updateReminder.mutate(
@@ -39,7 +47,11 @@ export default function ReminderDetailScreen() {
       },
       {
         onSuccess: () => {
-          if (values.exportToCalendar) void exportAfterSave(values)
+          // Уже экспортированное напоминание форма не помечает на экспорт.
+          if (!values.exportToCalendar) return
+          void exportAfterSave(values, (eventId) =>
+            setCalendarEventId.mutate({ uuid: reminderUuid, calendarEventId: eventId }),
+          )
         },
       },
     )
@@ -80,6 +92,7 @@ export default function ReminderDetailScreen() {
         remindAt: reminder.remindAt,
         recurrence: reminder.recurrence,
         exportToCalendar: false,
+        exportedToCalendar: reminder.calendarEventId != null,
       }}
       submitLabel="Сохранить"
       isSaving={updateReminder.isPending}

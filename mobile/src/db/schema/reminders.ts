@@ -9,6 +9,8 @@ import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
  * ISO-строка (индекс (user_id, remind_at) для выборки по диапазону:
  * календарь/уведомления). notification_id — ЛОКАЛЬНОЕ поле: id
  * запланированного локального уведомления, НЕ синхронизируется с backend.
+ * calendar_event_id — ЛОКАЛЬНОЕ, устройство-специфичное поле: id события,
+ * созданного экспортом в системный календарь, НЕ синхронизируется с backend.
  * server_revision приходит с сервера при pull, deleted_at — tombstone.
  */
 export const reminders = sqliteTable(
@@ -26,6 +28,7 @@ export const reminders = sqliteTable(
     sourceUuid: text('source_uuid'),
     sourceType: text('source_type'),
     notificationId: text('notification_id'),
+    calendarEventId: text('calendar_event_id'),
     serverRevision: integer('server_revision'),
     createdAt: text('created_at')
       .notNull()

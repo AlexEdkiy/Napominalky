@@ -14,6 +14,7 @@ import { useNavigation, usePreventRemove } from '@react-navigation/core'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import ExportCalendarRow from '@/components/reminders/ExportCalendarRow'
 import ReminderDateCard from '@/components/reminders/ReminderDateCard'
 import { isValidIso } from '@/utils/datetime'
 import { RECURRENCE_TYPES, type RecurrenceType } from '@/utils/recurrence'
@@ -26,6 +27,8 @@ export interface ReminderFormValues {
   remindAt: string
   recurrence: RecurrenceType
   exportToCalendar: boolean
+  /** Уже экспортировано в системный календарь (calendar_event_id != null). */
+  exportedToCalendar: boolean
 }
 
 interface ReminderFormProps {
@@ -52,6 +55,7 @@ const emptyValues: ReminderFormValues = {
   remindAt: '',
   recurrence: 'none',
   exportToCalendar: false,
+  exportedToCalendar: false,
 }
 
 /** Диалог при уходе с несохранёнными изменениями. */
@@ -89,6 +93,7 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
   const [recurrence, setRecurrence] = useState<RecurrenceType>(start.recurrence)
   const [exportToCalendar, setExportToCalendar] = useState(start.exportToCalendar)
   const [baseline, setBaseline] = useState(start)
+  const exportedToCalendar = start.exportedToCalendar
 
   const headerTitle = initialValues === undefined
     ? 'Новое напоминание'
@@ -106,8 +111,17 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
 
   const handleSubmit = (): void => {
     if (!canSubmit) return
-    setBaseline({ title, notes, remindAt, recurrence, exportToCalendar })
-    onSubmit({ title: title.trim(), notes: notes.trim(), remindAt, recurrence, exportToCalendar })
+    // Уже экспортированное напоминание повторно не экспортируем.
+    const wantsExport = exportedToCalendar ? false : exportToCalendar
+    setBaseline({ title, notes, remindAt, recurrence, exportToCalendar, exportedToCalendar })
+    onSubmit({
+      title: title.trim(),
+      notes: notes.trim(),
+      remindAt,
+      recurrence,
+      exportToCalendar: wantsExport,
+      exportedToCalendar,
+    })
   }
 
   usePreventRemove(isDirty, ({ data }) => {
@@ -156,7 +170,8 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
 
           <RecurrenceSection value={recurrence} onChange={setRecurrence} colors={colors} />
 
-          <ExportCalendarCheckbox
+          <ExportCalendarRow
+            exported={exportedToCalendar}
             checked={exportToCalendar}
             onToggle={() => setExportToCalendar((value) => !value)}
             colors={colors}
@@ -238,7 +253,10 @@ interface AboutSectionProps {
 const AboutSection: React.FC<AboutSectionProps> = ({ title, notes, onTitleChange, onNotesChange, colors }) => (
   <View style={styles.section}>
     <SectionHeading dotColor={colors.accent} title="О чём напомнить" colors={colors} testID="dot-about" />
-    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+    <View
+      testID="about-card"
+      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+    >
       <View style={styles.fieldBlock}>
         <FieldLabel text="ЗАГОЛОВОК" color={colors.textTertiary} />
         <TextInput
@@ -334,45 +352,6 @@ const RecurrenceOption: React.FC<RecurrenceOptionProps> = ({ type, active, onSel
   </Pressable>
 )
 
-interface ExportCalendarCheckboxProps {
-  checked: boolean
-  onToggle: () => void
-  colors: ColorPalette
-}
-
-const ExportCalendarCheckbox: React.FC<ExportCalendarCheckboxProps> = ({ checked, onToggle, colors }) => (
-  <Pressable
-    onPress={onToggle}
-    accessibilityRole="checkbox"
-    accessibilityState={{ checked }}
-    accessibilityLabel="Добавить в календарь"
-    style={({ pressed }) => [
-      styles.exportRow,
-      { backgroundColor: colors.surface, borderColor: colors.borderInput },
-      pressed && styles.pressed,
-    ]}
-  >
-    <View
-      testID="export-checkbox-box"
-      style={[
-        styles.checkboxBox,
-        checked
-          ? { backgroundColor: colors.accent, borderColor: colors.accent }
-          : { borderColor: colors.borderInput },
-      ]}
-    >
-      {checked ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
-    </View>
-    <View style={styles.exportTexts}>
-      <Text style={[typography.buttonLabel, { color: colors.textPrimary }]}>Добавить в календарь</Text>
-      <Text style={[styles.exportHint, { color: colors.textTertiary }]}>
-        Экспорт произойдёт после сохранения
-      </Text>
-    </View>
-    <Ionicons name="calendar-outline" size={20} color={colors.accent} />
-  </Pressable>
-)
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
@@ -402,19 +381,18 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   sectionTitle: { fontSize: 16, fontWeight: '700' },
+  // Метрики плашки = FeedCard главного экрана: тонкая рамка, radius 16,
+  // padding 13, без тени.
   card: {
+    borderWidth: 1,
     borderRadius: 16,
-    paddingHorizontal: 16,
-    shadowColor: '#101828',
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: Platform.OS === 'android' ? 2 : 0,
+    padding: 13,
+    overflow: 'hidden',
   },
-  fieldBlock: { paddingVertical: 12, gap: 4 },
+  fieldBlock: { gap: 4 },
   fieldLabel: { fontSize: 11, letterSpacing: 0.7 },
   titleInput: { fontSize: 17, fontWeight: '700', padding: 0 },
-  divider: { height: 1 },
+  divider: { height: 1, marginVertical: 12 },
   notesInput: { fontSize: 15, minHeight: 56, padding: 0 },
   recurrenceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
   recOption: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 4 },
@@ -443,25 +421,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   createBtnLabel: { color: '#FFFFFF' },
-  exportRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  checkboxBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exportTexts: { flex: 1, gap: 2 },
-  exportHint: { fontSize: 12 },
   deleteBtn: { alignItems: 'center', paddingVertical: 8 },
   pressed: { opacity: 0.7 },
 })

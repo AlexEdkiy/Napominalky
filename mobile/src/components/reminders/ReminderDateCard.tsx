@@ -69,7 +69,7 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
         onPress={handleOpen}
         accessibilityRole="button"
         accessibilityLabel="Выбрать дату и время"
-        style={[styles.card, { backgroundColor: colors.surface }]}
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
       >
         <IconSquare icon="alarm" iconColor={colors.amber} bgColor={colors.amberBg} size={44} radius={13} />
         <View style={styles.textBlock}>
@@ -119,17 +119,16 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
+  // Метрики плашки = FeedCard главного экрана: тонкая рамка, radius 16,
+  // padding 13, без тени.
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
+    borderWidth: 1,
     borderRadius: 16,
     padding: 13,
-    shadowColor: '#101828',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    overflow: 'hidden',
   },
   textBlock: { flex: 1, gap: 2 },
   title: { fontSize: 16, fontWeight: '700' },

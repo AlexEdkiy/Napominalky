@@ -75,6 +75,7 @@ describe('ReminderForm — секции и шапка', () => {
           remindAt: BASE.toISOString(),
           recurrence: 'none',
           exportToCalendar: false,
+          exportedToCalendar: false,
         }}
         onSubmit={jest.fn()}
       />,
@@ -91,6 +92,7 @@ describe('ReminderForm — секции и шапка', () => {
           remindAt: BASE.toISOString(),
           recurrence: 'none',
           exportToCalendar: false,
+          exportedToCalendar: false,
         }}
         onSubmit={jest.fn()}
       />,
@@ -243,6 +245,7 @@ describe('ReminderForm — submit/валидация', () => {
           remindAt: BASE.toISOString(),
           recurrence: 'none',
           exportToCalendar: false,
+          exportedToCalendar: false,
         }}
         submitLabel="Сохранить"
         onSubmit={jest.fn()}
@@ -280,6 +283,7 @@ describe('ReminderForm — footer', () => {
           remindAt: BASE.toISOString(),
           recurrence: 'none',
           exportToCalendar: false,
+          exportedToCalendar: false,
         }}
         onSubmit={jest.fn()}
         footer={<></>}
@@ -555,5 +559,88 @@ describe('ReminderForm — светлая шапка (без градиента)
   it('шапка использует системный фон (colors.screenBg) и тёмный текст (colors.textPrimary)', () => {
     expect(source).toMatch(/backgroundColor: colors\.screenBg/)
     expect(source).toMatch(/styles\.headerTitle, \{ color: colors\.textPrimary \}/)
+  })
+})
+
+describe('ReminderForm — карточки-плашки как FeedCard главного экрана (макет)', () => {
+  it('карточка «О чём напомнить»: рамка 1px borderSubtle, radius 16, padding 13, без тени', async () => {
+    const { getByTestId } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    const style = [getByTestId('about-card').props.style].flat()
+    expect(style).toContainEqual(
+      expect.objectContaining({ borderWidth: 1, borderRadius: 16, padding: 13 }),
+    )
+    expect(style).toContainEqual(
+      expect.objectContaining({ borderColor: lightColors.borderSubtle }),
+    )
+    const merged = Object.assign({}, ...style)
+    expect(merged.shadowOpacity).toBeUndefined()
+    expect(merged.elevation).toBeUndefined()
+  })
+
+  it('карточка «Дата и время»: рамка 1px borderSubtle, radius 16, padding 13, без тени', async () => {
+    const { getByLabelText } = await render(<ReminderForm onSubmit={jest.fn()} />)
+    const style = [getByLabelText('Выбрать дату и время').props.style].flat()
+    expect(style).toContainEqual(
+      expect.objectContaining({ borderWidth: 1, borderRadius: 16, padding: 13 }),
+    )
+    expect(style).toContainEqual(
+      expect.objectContaining({ borderColor: lightColors.borderSubtle }),
+    )
+    const merged = Object.assign({}, ...style)
+    expect(merged.shadowOpacity).toBeUndefined()
+    expect(merged.elevation).toBeUndefined()
+  })
+})
+
+describe('ReminderForm — статус «В календаре» вместо чекбокса', () => {
+  const exportedValues = {
+    title: 'Свет',
+    notes: '',
+    remindAt: BASE.toISOString(),
+    recurrence: 'none' as const,
+    exportToCalendar: false,
+    exportedToCalendar: true,
+  }
+
+  it('при exportedToCalendar показывает «В календаре» и НЕ показывает чекбокс', async () => {
+    const { getByText, getByTestId, queryByLabelText, queryByTestId } = await render(
+      <ReminderForm initialValues={exportedValues} onSubmit={jest.fn()} />,
+    )
+    expect(getByText('В календаре')).toBeTruthy()
+    expect(getByTestId('calendar-exported-badge')).toBeTruthy()
+    expect(queryByLabelText('Добавить в календарь')).toBeNull()
+    expect(queryByTestId('export-checkbox-box')).toBeNull()
+  })
+
+  it('бейдж некликабелен: на форме нет элемента с ролью checkbox', async () => {
+    const { queryAllByRole } = await render(
+      <ReminderForm initialValues={exportedValues} onSubmit={jest.fn()} />,
+    )
+    expect(queryAllByRole('checkbox')).toHaveLength(0)
+  })
+
+  it('submit экспортированного напоминания несёт exportToCalendar: false (без повторного экспорта)', async () => {
+    setNow(BASE)
+    const onSubmit = jest.fn()
+    const { getByLabelText } = await render(
+      <ReminderForm initialValues={exportedValues} submitLabel="Сохранить" onSubmit={onSubmit} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сохранить'))
+    })
+    const values = onSubmit.mock.calls[0]?.[0]
+    expect(values.exportToCalendar).toBe(false)
+    expect(values.exportedToCalendar).toBe(true)
+  })
+
+  it('при exportedToCalendar: false показывается чекбокс, бейджа нет', async () => {
+    const { getByLabelText, queryByTestId } = await render(
+      <ReminderForm
+        initialValues={{ ...exportedValues, exportedToCalendar: false }}
+        onSubmit={jest.fn()}
+      />,
+    )
+    expect(getByLabelText('Добавить в календарь')).toBeTruthy()
+    expect(queryByTestId('calendar-exported-badge')).toBeNull()
   })
 })

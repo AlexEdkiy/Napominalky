@@ -229,3 +229,13 @@ describe('createdAt фолбэк = updated_at при null created_at (серве
     expect(mappers.reminder.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
   })
 })
+
+describe('reminderMapper — локальные поля не попадают в sync', () => {
+  it('toRow не содержит notificationId/calendarEventId — pull не затирает локальные поля', () => {
+    const row = mappers.reminder.toRow(baseReminder)
+    expect(row).not.toHaveProperty('notificationId')
+    expect(row).not.toHaveProperty('notification_id')
+    expect(row).not.toHaveProperty('calendarEventId')
+    expect(row).not.toHaveProperty('calendar_event_id')
+  })
+})

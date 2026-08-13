@@ -57,6 +57,7 @@ const reminderRow = (over: Partial<Record<string, unknown>> = {}) => ({
   sourceUuid: null,
   sourceType: null,
   notificationId: null,
+  calendarEventId: null,
   serverRevision: null,
   createdAt: 't',
   updatedAt: 't',
@@ -183,6 +184,41 @@ describe('RemindersRepository.remindersBetween', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.isCompleted).toBe(false)
+  })
+})
+
+describe('RemindersRepository.setCalendarEventId', () => {
+  it('пишет calendar_event_id напрямую (без записи в outbox) и возвращает его', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new RemindersRepository(createFakeDb(inserts) as never)
+
+    const reminder = await repo.setCalendarEventId('u1', 'event-1')
+
+    expect(reminder?.calendarEventId).toBe('event-1')
+    // Локальное поле: запись в sync_outbox НЕ создаётся.
+    expect(inserts).toHaveLength(0)
+  })
+
+  it('round-trip: calendarEventId читается из строки в доменную модель', async () => {
+    const repo = new RemindersRepository(
+      createFakeDb([], [reminderRow({ calendarEventId: 'event-7' })]) as never,
+    )
+
+    const result = await repo.listReminders()
+
+    expect(result[0]?.calendarEventId).toBe('event-7')
+  })
+
+  it('createReminder создаёт напоминание с calendarEventId: null', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new RemindersRepository(createFakeDb(inserts) as never)
+
+    const reminder = await repo.createReminder({
+      title: 'Позвонить',
+      remindAt: '2026-06-04T10:00:00.000Z',
+    })
+
+    expect(reminder.calendarEventId).toBeNull()
   })
 })
 
