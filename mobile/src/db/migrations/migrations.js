@@ -10,6 +10,7 @@ import m0005 from './0005_lists_type_quantity_deadline.sql';
 import m0006 from './0006_lists_item_meta.sql';
 import m0007 from './0007_item_notification_id.sql';
 import m0008 from './0008_lists_tags.sql';
+import m0009 from './0009_reminder_calendar_event_id.sql';
 
   export default {
     journal,
@@ -22,6 +23,8 @@ m0004,
 m0005,
 m0006,
 m0007,
-m0008
+m0008,
+m0009
     }
   }
+  

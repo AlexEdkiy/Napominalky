@@ -23,6 +23,7 @@ const makeReminder = (overrides: Partial<Reminder> = {}): Reminder => ({
   sourceUuid: null,
   sourceType: null,
   notificationId: null,
+  calendarEventId: null,
   serverRevision: null,
   createdAt: '2026-07-01T00:00:00.000Z',
   updatedAt: '2026-07-01T00:00:00.000Z',

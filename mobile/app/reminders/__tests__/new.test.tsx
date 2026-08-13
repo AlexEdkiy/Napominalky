@@ -21,10 +21,12 @@ jest.mock('expo-router', () => ({
 }))
 
 const mockMutate = jest.fn()
+const mockSetCalendarEventId = jest.fn()
 
 jest.mock('@/hooks/useReminders', () => ({
   useReminders: () => ({
     createReminder: { mutate: mockMutate, isPending: false },
+    setCalendarEventId: { mutate: mockSetCalendarEventId, isPending: false },
   }),
 }))
 
@@ -40,6 +42,7 @@ interface MockFormValues {
   remindAt: string
   recurrence: string
   exportToCalendar: boolean
+  exportedToCalendar: boolean
 }
 
 const mockFormValues: MockFormValues = {
@@ -48,6 +51,7 @@ const mockFormValues: MockFormValues = {
   remindAt: '2026-07-03T10:00:00.000Z',
   recurrence: 'none',
   exportToCalendar: false,
+  exportedToCalendar: false,
 }
 
 jest.mock('@/components/reminders/ReminderForm', () => {
@@ -71,6 +75,7 @@ describe('NewReminderScreen — после создания', () => {
     mockReplace.mockClear()
     mockMutate.mockClear()
     mockExport.mockClear()
+    mockSetCalendarEventId.mockClear()
     mockFormValues.exportToCalendar = false
   })
 
@@ -169,5 +174,52 @@ describe('NewReminderScreen — после создания', () => {
       buttons.find((b) => b.text === 'OK')?.onPress?.()
     })
     expect(mockBack).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('NewReminderScreen — сохранение eventId в calendar_event_id', () => {
+  beforeEach(() => {
+    mockBack.mockClear()
+    mockMutate.mockClear()
+    mockExport.mockClear()
+    mockSetCalendarEventId.mockClear()
+    mockFormValues.exportToCalendar = true
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('после успешного экспорта сохраняет eventId для uuid созданного напоминания', async () => {
+    jest.spyOn(Alert, 'alert')
+    mockExport.mockResolvedValue('event-1')
+    mockMutate.mockImplementation((_data, opts) => {
+      opts?.onSuccess?.({ uuid: 'new-uuid-123' })
+    })
+
+    const { getByLabelText } = await render(<NewReminderScreen />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Создать'))
+    })
+
+    expect(mockSetCalendarEventId).toHaveBeenCalledWith({
+      uuid: 'new-uuid-123',
+      calendarEventId: 'event-1',
+    })
+  })
+
+  it('при неуспешном экспорте (null) calendar_event_id НЕ записывается', async () => {
+    jest.spyOn(Alert, 'alert')
+    mockExport.mockResolvedValue(null)
+    mockMutate.mockImplementation((_data, opts) => {
+      opts?.onSuccess?.({ uuid: 'new-uuid-123' })
+    })
+
+    const { getByLabelText } = await render(<NewReminderScreen />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Создать'))
+    })
+
+    expect(mockSetCalendarEventId).not.toHaveBeenCalled()
   })
 })

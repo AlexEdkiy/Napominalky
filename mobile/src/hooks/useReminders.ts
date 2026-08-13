@@ -23,6 +23,11 @@ interface SnoozeVariables {
   snoozedUntil: string
 }
 
+interface SetCalendarEventIdVariables {
+  uuid: string
+  calendarEventId: string | null
+}
+
 /** TanStack Query поверх локального remindersRepo (SQLite, local-first). */
 export function useReminders(options: UseRemindersOptions = {}) {
   const queryClient = useQueryClient()
@@ -64,6 +69,13 @@ export function useReminders(options: UseRemindersOptions = {}) {
     onSuccess: invalidate,
   })
 
+  // Локальный факт экспорта в системный календарь (не синхронизируется).
+  const setCalendarEventId = useMutation({
+    mutationFn: ({ uuid, calendarEventId }: SetCalendarEventIdVariables) =>
+      remindersRepo.setCalendarEventId(uuid, calendarEventId),
+    onSuccess: invalidate,
+  })
+
   return {
     reminders: query.data ?? [],
     isLoading: query.isLoading,
@@ -73,6 +85,7 @@ export function useReminders(options: UseRemindersOptions = {}) {
     deleteReminder,
     completeReminder,
     snoozeReminder,
+    setCalendarEventId,
   }
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE `reminders` ADD `calendar_event_id` text;

@@ -72,6 +72,8 @@ const shoppingListItemMapper: EntityMapper<ServerShoppingListItem> = {
   }),
 }
 
+// ЛОКАЛЬНЫЕ поля reminders (notification_id, calendar_event_id) намеренно
+// отсутствуют в toRow: pull не должен их затирать, они устройство-специфичны.
 const reminderMapper: EntityMapper<ServerReminder> = {
   table: reminders as unknown as SyncTable,
   toRow: (s) => ({

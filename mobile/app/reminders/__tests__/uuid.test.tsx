@@ -20,23 +20,28 @@ jest.mock('expo-router', () => ({
 
 const mockUpdate = jest.fn()
 const mockComplete = jest.fn()
+const mockSetCalendarEventId = jest.fn()
+
+const mockReminder: Record<string, unknown> = {
+  uuid: 'rem-1',
+  title: 'Свет',
+  notes: null,
+  remindAt: '2026-07-03T10:00:00.000Z',
+  recurrence: 'none',
+  isCompleted: false,
+  calendarEventId: null,
+}
 
 jest.mock('@/hooks/useReminders', () => ({
   useReminder: () => ({
-    data: {
-      uuid: 'rem-1',
-      title: 'Свет',
-      notes: null,
-      remindAt: '2026-07-03T10:00:00.000Z',
-      recurrence: 'none',
-      isCompleted: false,
-    },
+    data: mockReminder,
     isLoading: false,
   }),
   useReminders: () => ({
     updateReminder: { mutate: mockUpdate, isPending: false },
     deleteReminder: { mutate: jest.fn(), isPending: false },
     completeReminder: { mutate: mockComplete, isPending: false },
+    setCalendarEventId: { mutate: mockSetCalendarEventId, isPending: false },
   }),
 }))
 
@@ -64,6 +69,7 @@ interface MockFormValues {
   remindAt: string
   recurrence: string
   exportToCalendar: boolean
+  exportedToCalendar: boolean
 }
 
 const mockFormValues: MockFormValues = {
@@ -72,26 +78,35 @@ const mockFormValues: MockFormValues = {
   remindAt: '2026-07-03T10:00:00.000Z',
   recurrence: 'none',
   exportToCalendar: false,
+  exportedToCalendar: false,
 }
+
+/** Последние initialValues, переданные экраном в форму (для проверок). */
+const capturedInitialValues: { current: MockFormValues | null } = { current: null }
 
 jest.mock('@/components/reminders/ReminderForm', () => {
   const { Pressable, Text, View } = require('react-native')
   return {
     __esModule: true,
     default: ({
+      initialValues,
       onSubmit,
       footer,
     }: {
+      initialValues?: MockFormValues
       onSubmit: (values: MockFormValues) => void
       footer?: React.ReactNode
-    }) => (
-      <View>
-        <Pressable accessibilityLabel="Сохранить" onPress={() => onSubmit({ ...mockFormValues })}>
-          <Text>Сохранить</Text>
-        </Pressable>
-        {footer}
-      </View>
-    ),
+    }) => {
+      capturedInitialValues.current = initialValues ?? null
+      return (
+        <View>
+          <Pressable accessibilityLabel="Сохранить" onPress={() => onSubmit({ ...mockFormValues })}>
+            <Text>Сохранить</Text>
+          </Pressable>
+          {footer}
+        </View>
+      )
+    },
   }
 })
 
@@ -104,7 +119,9 @@ describe('ReminderDetailScreen — экспорт в календарь посл
     mockUpdate.mockClear()
     mockComplete.mockClear()
     mockExport.mockClear()
+    mockSetCalendarEventId.mockClear()
     mockFormValues.exportToCalendar = false
+    mockReminder.calendarEventId = null
   })
 
   afterEach(() => {
@@ -152,6 +169,78 @@ describe('ReminderDetailScreen — экспорт в календарь посл
     })
     expect(alertSpy).toHaveBeenCalledWith('Добавлено в календарь', 'Напоминание экспортировано.')
     expect(mockBack).not.toHaveBeenCalled()
+  })
+
+  it('после успешного экспорта сохраняет eventId в calendar_event_id напоминания', async () => {
+    jest.spyOn(Alert, 'alert')
+    mockFormValues.exportToCalendar = true
+    mockExport.mockResolvedValue('event-9')
+    mockUpdate.mockImplementation((_data, opts) => {
+      opts?.onSuccess?.({})
+    })
+
+    const { getByLabelText } = await render(<ReminderDetailScreen />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сохранить'))
+    })
+
+    expect(mockSetCalendarEventId).toHaveBeenCalledWith({
+      uuid: 'rem-1',
+      calendarEventId: 'event-9',
+    })
+  })
+
+  it('при неуспешном экспорте (null) calendar_event_id НЕ записывается', async () => {
+    jest.spyOn(Alert, 'alert')
+    mockFormValues.exportToCalendar = true
+    mockExport.mockResolvedValue(null)
+    mockUpdate.mockImplementation((_data, opts) => {
+      opts?.onSuccess?.({})
+    })
+
+    const { getByLabelText } = await render(<ReminderDetailScreen />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сохранить'))
+    })
+
+    expect(mockSetCalendarEventId).not.toHaveBeenCalled()
+  })
+})
+
+describe('ReminderDetailScreen — признак exportedToCalendar в initialValues формы', () => {
+  beforeEach(() => {
+    capturedInitialValues.current = null
+    mockReminder.calendarEventId = null
+  })
+
+  it('calendarEventId = null → exportedToCalendar: false', async () => {
+    await render(<ReminderDetailScreen />)
+    expect(capturedInitialValues.current?.exportedToCalendar).toBe(false)
+  })
+
+  it('calendarEventId задан → exportedToCalendar: true (форма покажет «В календаре»)', async () => {
+    mockReminder.calendarEventId = 'event-42'
+    await render(<ReminderDetailScreen />)
+    expect(capturedInitialValues.current?.exportedToCalendar).toBe(true)
+  })
+
+  it('уже экспортировано: submit c exportToCalendar: false не запускает повторный экспорт', async () => {
+    mockReminder.calendarEventId = 'event-42'
+    // Форма для экспортированного напоминания всегда шлёт exportToCalendar: false.
+    mockFormValues.exportToCalendar = false
+    mockExport.mockClear()
+    mockSetCalendarEventId.mockClear()
+    mockUpdate.mockImplementation((_data, opts) => {
+      opts?.onSuccess?.({})
+    })
+
+    const { getByLabelText } = await render(<ReminderDetailScreen />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сохранить'))
+    })
+
+    expect(mockExport).not.toHaveBeenCalled()
+    expect(mockSetCalendarEventId).not.toHaveBeenCalled()
   })
 })
 

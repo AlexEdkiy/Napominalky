@@ -25,6 +25,8 @@ export interface Reminder {
   sourceType: string | null
   /** Локальный id запланированного уведомления (не синхронизируется). */
   notificationId: string | null
+  /** Локальный id события системного календаря после экспорта (не синхронизируется). */
+  calendarEventId: string | null
   serverRevision: number | null
   createdAt: string
   updatedAt: string
@@ -85,6 +87,7 @@ const toReminder = (row: ReminderRow): Reminder => ({
   sourceUuid: row.sourceUuid,
   sourceType: row.sourceType,
   notificationId: row.notificationId,
+  calendarEventId: row.calendarEventId,
   serverRevision: row.serverRevision,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
@@ -117,6 +120,7 @@ export class RemindersRepository {
       sourceUuid: data.sourceUuid ?? null,
       sourceType: data.sourceType ?? null,
       isCompleted: 0,
+      calendarEventId: null,
     } as never)
     const reminder = toReminder(row as ReminderRow)
     const nid = await scheduleReminder(toSchedulable(reminder))
@@ -330,6 +334,23 @@ export class RemindersRepository {
     const [row] = await this.db
       .update(reminders)
       .set({ notificationId })
+      .where(eq(reminders.uuid, uuid))
+      .returning()
+    return row === undefined ? null : toReminder(row as ReminderRow)
+  }
+
+  /**
+   * Сохраняет id события системного календаря после экспорта. Поле
+   * calendar_event_id ЛОКАЛЬНОЕ (устройство-специфичное) и НЕ синхронизируется,
+   * поэтому пишем напрямую в таблицу, минуя outbox.
+   */
+  public async setCalendarEventId(
+    uuid: string,
+    calendarEventId: string | null,
+  ): Promise<Reminder | null> {
+    const [row] = await this.db
+      .update(reminders)
+      .set({ calendarEventId })
       .where(eq(reminders.uuid, uuid))
       .returning()
     return row === undefined ? null : toReminder(row as ReminderRow)
