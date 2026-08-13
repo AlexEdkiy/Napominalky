@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-12 (моб. правки Напоминания/Календарь/форма: таб «Напомнить», amber-тон, календарь в шапке/свёрнут, подтверждение «Закрыть», убрана «Отложить» — MOB-55)
+> Последнее обновление: 2026-08-12 (моб. форма напоминания: карточки как на главной; статус «В календаре» при экспорте — MOB-56)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 1            | architect                 |
 | DEV     | 19           | backend-developer         |
 | MBE     | 16           | mobile-backend-developer  |
-| MOB     | 55           | mobile-developer          |
+| MOB     | 56           | mobile-developer          |
 | WEB     | 40           | web-developer             |
 | TEST    | 15           | test-engineer             |
 | UITEST  | 10           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 37           | technical-writer          |
+| DOC     | 38           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 120 |
+| Completed | 121 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2344,6 +2344,23 @@
   - [x] Флаг — скруглённый квадрат; подтверждение «Закрыть напоминание?» (список + форма)
   - [x] Кнопка «Отложить» убрана
   - [x] tsc OK, Jest зелёный (895)
+- **Создана:** 2026-08-12
+- **Завершена:** 2026-08-12
+
+### MOB-56: Форма напоминания — карточки как на главной; статус «В календаре» при экспорте
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MOB-53, MOB-55
+- **Блокирует:** —
+- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Описание:** (1) Карточки-«плашки» формы напоминания приведены к виду карточек главного экрана (`FeedCard`): `styles.card` в `ReminderForm` и `ReminderDateCard` — тонкая рамка `borderWidth:1`/`borderColor:borderSubtle`, `padding:13`, `borderRadius:16`, тень убрана (было `paddingHorizontal:16` + shadow); вертикальный ритм перенесён на `divider.marginVertical`. (2) Если напоминание уже экспортировано в системный календарь — на форме вместо чекбокса «Добавить в календарь» статичный блок «В календаре». Реализовано хранение факта экспорта: локальное поле `calendar_event_id` (`text`, nullable) в схеме `reminders` + миграция `0009_reminder_calendar_event_id.sql` (journal/snapshot/migrations.js). Поле НЕ синхронизируется — пишется методом `RemindersRepository.setCalendarEventId()` мимо outbox (аналог `notificationId`), в pull-маппере отсутствует. `eventId` от `exportReminderToCalendar` сохраняется в напоминание после успешного экспорта в `new.tsx` (uuid из onSuccess) и `[uuid].tsx`. UI — новый `ExportCalendarRow.tsx`: `exported` (из `calendarEventId != null`) → некликабельный статус «В календаре», иначе чекбокс; повторный экспорт исключён (submit шлёт `exportToCalendar:false`, если уже в календаре).
+- **Файлы:** `mobile/src/components/reminders/{ReminderForm,ReminderDateCard,ExportCalendarRow}.tsx`, `mobile/src/db/schema/reminders.ts`, `mobile/src/db/migrations/0009_*` (+meta), `mobile/src/db/repositories/remindersRepo.ts`, `mobile/src/hooks/useReminders.ts`, `mobile/src/services/sync/mappers.ts`, `mobile/app/reminders/{new,[uuid]}.tsx` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Карточки формы по метрикам = FeedCard (рамка/padding 13/radius 16, без тени)
+  - [x] `calendar_event_id` (миграция), НЕ синкается; eventId сохраняется после экспорта
+  - [x] «В календаре» вместо чекбокса при экспортированном; без повторного экспорта
+  - [x] tsc OK, Jest зелёный (916)
 - **Создана:** 2026-08-12
 - **Завершена:** 2026-08-12
 
