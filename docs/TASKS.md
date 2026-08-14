@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-14 (фикс 422 при смене статуса задачи — partial PUT списка — MBE-18)
+> Последнее обновление: 2026-08-14 (статусы задач в МП + обмен: схема/миграция 0010, деривация, sync, UI-бейджи — MOB-57)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 2            | architect                 |
 | DEV     | 20           | backend-developer         |
 | MBE     | 18           | mobile-backend-developer  |
-| MOB     | 56           | mobile-developer          |
+| MOB     | 57           | mobile-developer          |
 | WEB     | 41           | web-developer             |
 | TEST    | 16           | test-engineer             |
 | UITEST  | 11           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 40           | technical-writer          |
+| DOC     | 41           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 123 |
+| Completed | 124 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2396,6 +2396,24 @@
 - **Критерии приёмки:**
   - [x] PUT списка только со status → 200, title не затёрт, статус закреплён
   - [x] «Авто»-сброс partial → 200; Pest зелёный
+- **Создана:** 2026-08-14
+- **Завершена:** 2026-08-14
+
+### MOB-57: Статусы задач и строк в мобильном приложении + обмен
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** FEAT-1 (backend+web)
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** Мобильная часть фичи статусов (п.3) — единая логика с бэком/вебом. Схема Drizzle: `shoppingLists` += `status`/`status_is_manual`/`is_completed` (мобилка списка is_completed не имела), `shoppingListItems` += `status`; миграция **0010_task_status** (sql+snapshot+journal+migrations.js). Enum-зеркало `constants/taskStatus.ts` (+`forChecked`, `isDone`, `normalizeTaskStatus`), чистая `utils/deriveListStatus.ts` (та же деривация: in_progress > все done > все postponed > new). Репозиторий: инвариант `status↔is_checked` (пункт) / `↔is_completed` (список) через forChecked; локальный пересчёт статуса задачи после add/check/update/delete пункта (только tasks, только если не закреплён); `setListStatus`/`setListStatusAuto` (закрепление/сброс), `setItemStatus` (+ управление локальным уведомлением: done→cancel, не-done→reschedule). Sync: `ServerShoppingList/Item` типы += поля, pull-mappers маппят их; push уходит через существующий outbox-snapshot (полный snake_case-снимок), пересчитанный статус задачи тоже. UI (только tasks): `StatusBadge` (Новая синий/В работе amber/Отложена purple/Выполнена accent), `StatusSheet` (4 статуса +«Авто» у задачи); бейдж задачи в `ListCard` и на экране деталей `app/lists/[uuid].tsx` (смена статуса задачи там), бейдж пункта в `ItemRow` (шторка без «Авто»); goods без статусов; зачёркивание tasks-пункта по `status==='done'`. Рефактор: `shoppingListsModels.ts` (вынос из repo >500 строк), `ListDetailHeader.tsx`.
+- **Файлы:** `mobile/src/db/schema/{shoppingLists,shoppingListItems}.ts`, `mobile/src/db/migrations/0010_task_status*`, `mobile/src/constants/taskStatus.ts`, `mobile/src/utils/deriveListStatus.ts`, `mobile/src/db/repositories/{shoppingListsRepo,shoppingListsModels}.ts`, `mobile/src/services/sync/mappers.ts`, `mobile/src/types/sync.ts`, `mobile/src/components/lists/{StatusBadge,StatusSheet,ListCard,ItemRow}.tsx`, `mobile/app/lists/[uuid].tsx`, `mobile/src/components/lists/ListDetailHeader.tsx`, хуки (+ тесты)
+- **Критерии приёмки:**
+  - [x] Схема+миграция 0010; статусы только для tasks, goods без статусов
+  - [x] Деривация + инвариант + закрепление ручного (та же логика, что backend/web)
+  - [x] Обмен: pull-mappers + push новых полей на сервер
+  - [x] UI-бейджи и смена статуса задачи (детали) / пункта (строка)
+  - [x] tsc OK, Jest зелёный (976)
 - **Создана:** 2026-08-14
 - **Завершена:** 2026-08-14
 
