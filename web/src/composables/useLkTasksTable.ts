@@ -2,7 +2,8 @@ import { computed, ref } from 'vue'
 
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { useShoppingLists } from '@/composables/useShoppingLists'
-import type { ShoppingList, ShoppingListType } from '@/types/shoppingList'
+import { LK_STATUS_ORDER } from '@/constants/lkStatusColors'
+import type { ShoppingList, ShoppingListType, TaskStatus } from '@/types/shoppingList'
 import { isShoppingListCompleted } from '@/utils/shoppingList'
 
 /**
@@ -18,7 +19,15 @@ export type LkTasksTab = 'all' | 'active' | 'completed'
 export type LkTasksTypeFilter = 'all' | ShoppingListType
 
 /** Сортируемые колонки таблицы. */
-export type LkTasksSortKey = 'title' | 'tags' | 'date' | 'reminder'
+export type LkTasksSortKey = 'title' | 'status' | 'tags' | 'date' | 'reminder'
+
+/**
+ * Ранг статуса для сортировки колонки СТАТУС (по `LK_STATUS_ORDER`).
+ * У goods статусов нет (колонка показывает «—») — `null`, всегда в конце.
+ */
+function statusRank(list: ShoppingList): number | null {
+  return list.type === 'tasks' ? LK_STATUS_ORDER.indexOf(list.status) : null
+}
 
 /**
  * Производные даты списка для колонок ДАТА / НАПОМИНАНИЕ.
@@ -217,6 +226,14 @@ export function useLkTasksTable() {
     if (key === 'title') {
       return a.title.localeCompare(b.title, 'ru') * direction
     }
+    if (key === 'status') {
+      const rankA = statusRank(a)
+      const rankB = statusRank(b)
+      if (rankA === null || rankB === null) {
+        return rankA === rankB ? 0 : rankA === null ? 1 : -1
+      }
+      return (rankA - rankB) * direction
+    }
     if (key === 'tags') {
       const tagA = a.tags[0] ?? null
       const tagB = b.tags[0] ?? null
@@ -271,6 +288,20 @@ export function useLkTasksTable() {
     await update(list.uuid, { is_completed: !list.is_completed })
   }
 
+  /**
+   * Смена статуса задачи из бейджа колонки СТАТУС (только tasks): выбор
+   * статуса — PUT `{ status }` (сервер закрепит его как ручной и сведёт
+   * `is_completed` для done); «Авто» — PUT `{ status_is_manual: false }`
+   * (сброс закрепления, сервер вернёт статус, выведенный из пунктов).
+   */
+  async function changeStatus(list: ShoppingList, value: TaskStatus | 'auto'): Promise<void> {
+    if (value === 'auto') {
+      await update(list.uuid, { status_is_manual: false })
+      return
+    }
+    await update(list.uuid, { status: value })
+  }
+
   return {
     lists,
     visibleLists,
@@ -286,6 +317,7 @@ export function useLkTasksTable() {
     reload,
     loadNextPage,
     toggleCompleted,
+    changeStatus,
     remove,
   }
 }

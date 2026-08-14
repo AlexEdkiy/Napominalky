@@ -13,6 +13,9 @@ const list: ShoppingList = {
   items_count: 0,
   checked_items_count: 0,
   is_completed: false,
+  status: 'new',
+  status_label: 'Новая',
+  status_is_manual: false,
   created_at: '2026-07-01T00:00:00Z',
   updated_at: '2026-07-01T00:00:00Z',
 }

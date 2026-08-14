@@ -14,6 +14,9 @@ const list: ShoppingList = {
   items_count: 2,
   checked_items_count: 1,
   is_completed: false,
+  status: 'new',
+  status_label: 'Новая',
+  status_is_manual: false,
   created_at: '2026-07-01T00:00:00Z',
   updated_at: '2026-07-01T00:00:00Z',
 }
@@ -25,6 +28,8 @@ function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
     category: 'products',
     category_label: 'Продукты',
     is_checked: false,
+    status: 'new',
+    status_label: 'Новая',
     position: 0,
     quantity: null,
     deadline: null,
@@ -132,6 +137,160 @@ describe('LkTaskFormDialog', () => {
       'Пункты',
       'Теги',
     ])
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the «Статус» block (4 чипа + Авто) only in the edit mode of a tasks list', async () => {
+    const tasksList: ShoppingList = {
+      ...list,
+      uuid: 'l-2',
+      type: 'tasks',
+      status: 'in_progress',
+      status_label: 'В работе',
+      status_is_manual: true,
+    }
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(tasksList)
+    await wrapper.vm.$nextTick()
+
+    // Блок над «Пунктами»: Название → Статус → Пункты → Теги.
+    expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual([
+      'Название',
+      'Статус',
+      'Пункты',
+      'Теги',
+    ])
+    const chips = wrapper.findAll('.lk-form-dialog__status')
+    expect(chips.map((chip) => chip.text())).toEqual([
+      'Новая',
+      'В работе',
+      'Отложена',
+      'Выполнена',
+      'Авто',
+    ])
+    // Текущий статус подсвечен; «Авто» неактивен (статус закреплён вручную).
+    expect(chips[1]?.attributes('aria-pressed')).toBe('true')
+    expect(chips[4]?.attributes('aria-pressed')).toBe('false')
+    vi.unstubAllGlobals()
+  })
+
+  it('hides the «Статус» block for goods lists and in the new mode', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    // goods-edit: статусов у покупок нет.
+    expect(wrapper.find('.lk-form-dialog__statuses').exists()).toBe(false)
+
+    resetLkFormsForTests()
+    useLkForms().openTaskForm()
+    await wrapper.vm.$nextTick()
+    // new-режим: списка ещё нет — статус ставить не на чем (даже для tasks).
+    expect(wrapper.find('.lk-form-dialog__statuses').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('PUTs the picked status immediately and re-highlights the chips from the server response', async () => {
+    const tasksList: ShoppingList = { ...list, uuid: 'l-2', type: 'tasks' }
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({
+      ...tasksList,
+      status: 'done',
+      status_label: 'Выполнена',
+      status_is_manual: true,
+      is_completed: true,
+    })
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(tasksList)
+    await wrapper.vm.$nextTick()
+    const itemFetchesBefore = vi.mocked(shoppingListsApi.fetchItems).mock.calls.length
+
+    await wrapper.findAll('.lk-form-dialog__status')[3]?.trigger('click')
+
+    // PUT сразу, без «Сохранить» — как атрибуты пунктов.
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-2', { status: 'done' }),
+    )
+    await vi.waitFor(() =>
+      expect(wrapper.findAll('.lk-form-dialog__status')[3]?.attributes('aria-pressed')).toBe('true'),
+    )
+    // Пункты перечитаны: сервер мог свести их статусы/is_checked.
+    await vi.waitFor(() =>
+      expect(vi.mocked(shoppingListsApi.fetchItems).mock.calls.length).toBeGreaterThan(itemFetchesBefore),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('resets the manual pin via «Авто» (PUT {status_is_manual:false})', async () => {
+    const tasksList: ShoppingList = {
+      ...list,
+      uuid: 'l-2',
+      type: 'tasks',
+      status: 'done',
+      status_label: 'Выполнена',
+      status_is_manual: true,
+    }
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({
+      ...tasksList,
+      status: 'new',
+      status_label: 'Новая',
+      status_is_manual: false,
+    })
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(tasksList)
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('.lk-form-dialog__status-auto').trigger('click')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-2', { status_is_manual: false }),
+    )
+    // «Авто» подсвечен после сброса закрепления.
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-form-dialog__status-auto').classes()).toContain(
+        'lk-form-dialog__status-auto--active',
+      ),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('shows item status badges in a tasks list, hides them for goods, and PUTs an item status pick', async () => {
+    const tasksList: ShoppingList = { ...list, uuid: 'l-2', type: 'tasks' }
+    const item = makeItem({ uuid: 'i-1', name: 'Плитка' })
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue({
+      ...item,
+      status: 'in_progress',
+      status_label: 'В работе',
+    })
+    vi.mocked(shoppingListsApi.fetchList).mockResolvedValue(tasksList)
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(tasksList)
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    // Бейдж статуса пункта — компактный, интерактивный, БЕЗ пункта «Авто».
+    const badge = wrapper.find('.lk-item-row__status .lk-status-badge__pill--interactive')
+    expect(badge.text()).toBe('Новая')
+    await badge.trigger('click')
+    expect(wrapper.find('.lk-status-badge__option--auto').exists()).toBe(false)
+
+    await wrapper.findAll('[role="menuitemradio"]')[1]?.trigger('click')
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-2', 'i-1', { status: 'in_progress' }),
+    )
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-item-row__status .lk-status-badge__pill--interactive').text()).toBe('В работе'),
+    )
+
+    // goods-список: у пунктов бейджей статуса нет. Тик между закрытием и
+    // повторным открытием — иначе watch(isTaskFormOpen) не увидит смену.
+    resetLkFormsForTests()
+    await wrapper.vm.$nextTick()
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-2', name: 'Молоко' })])
+    useLkForms().openTaskForm(list)
+    // Ждём перерисовку под goods-список (его пункт «Молоко» вместо «Плитка»).
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Молоко'),
+    )
+    expect(wrapper.find('.lk-item-row__status').exists()).toBe(false)
     vi.unstubAllGlobals()
   })
 
@@ -639,6 +798,7 @@ describe('LkTaskFormDialog', () => {
 vi.mock('@/api/shoppingListsApi', () => ({
   shoppingListsApi: {
     createList: vi.fn(),
+    fetchList: vi.fn(),
     updateList: vi.fn(),
     deleteList: vi.fn(),
     fetchItems: vi.fn(),

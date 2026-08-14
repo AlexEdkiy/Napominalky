@@ -11,6 +11,8 @@ function makeItem(overrides: Partial<ShoppingListItem> = {}): ShoppingListItem {
     category: 'products',
     category_label: 'Продукты',
     is_checked: false,
+    status: 'new',
+    status_label: 'Новая',
     position: 0,
     quantity: null,
     deadline: null,
@@ -108,6 +110,49 @@ describe('LkTaskItemRow — свёрнутый вид', () => {
     expect(chevron.attributes('aria-expanded')).toBe('false')
     await chevron.trigger('click')
     expect(wrapper.emitted('toggleExpand')).toHaveLength(1)
+  })
+})
+
+describe('LkTaskItemRow — статус пункта (только tasks)', () => {
+  it('renders a compact interactive status badge for tasks rows and none for goods', () => {
+    const tasks = mountRow({ listType: 'tasks', item: { status: 'in_progress', status_label: 'В работе' } })
+    expect(tasks.find('.lk-item-row__status .lk-status-badge__pill--interactive').text()).toBe('В работе')
+
+    const goods = mountRow({ listType: 'goods' })
+    expect(goods.find('.lk-status-badge').exists()).toBe(false)
+  })
+
+  it('opens a 4-status menu WITHOUT «Авто» (у пунктов автоматики нет) and emits update {status}', async () => {
+    const wrapper = mountRow({ listType: 'tasks', item: { status: 'new' } })
+    await wrapper.find('.lk-status-badge__pill--interactive').trigger('click')
+
+    expect(wrapper.findAll('[role="menuitemradio"]')).toHaveLength(4)
+    expect(wrapper.find('.lk-status-badge__option--auto').exists()).toBe(false)
+
+    await wrapper.findAll('[role="menuitemradio"]')[3]?.trigger('click')
+    expect(lastEmittedUpdate(wrapper)).toEqual({ status: 'done' })
+    // Смена статуса не эмитит check: is_checked сведёт сервер.
+    expect(wrapper.emitted('check')).toBeUndefined()
+  })
+
+  it('strikes a tasks row by status === done (не по is_checked) and checks its checkbox', () => {
+    const done = mountRow({
+      listType: 'tasks',
+      item: { status: 'done', status_label: 'Выполнена', is_checked: false },
+    })
+    expect(done.find('.lk-form-dialog__item').classes()).toContain('lk-form-dialog__item--checked')
+    expect((done.find('.lk-form-dialog__item-checkbox').element as HTMLInputElement).checked).toBe(true)
+
+    const active = mountRow({
+      listType: 'tasks',
+      item: { status: 'in_progress', status_label: 'В работе', is_checked: false },
+    })
+    expect(active.find('.lk-form-dialog__item').classes()).not.toContain('lk-form-dialog__item--checked')
+  })
+
+  it('keeps goods rows striking by is_checked as before', () => {
+    const wrapper = mountRow({ listType: 'goods', item: { is_checked: true } })
+    expect(wrapper.find('.lk-form-dialog__item').classes()).toContain('lk-form-dialog__item--checked')
   })
 })
 

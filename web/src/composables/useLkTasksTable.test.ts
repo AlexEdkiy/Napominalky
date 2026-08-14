@@ -19,6 +19,9 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
     items_count: 4,
     checked_items_count: 2,
     is_completed: false,
+    status: 'new',
+    status_label: 'Новая',
+    status_is_manual: false,
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
     ...overrides,
@@ -32,6 +35,8 @@ function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
     category: 'products',
     category_label: 'Продукты',
     is_checked: false,
+    status: 'new',
+    status_label: 'Новая',
     position: 0,
     quantity: null,
     deadline: null,
@@ -276,6 +281,63 @@ describe('useLkTasksTable', () => {
 
     expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { is_completed: true })
     expect(table.lists.value[0]?.is_completed).toBe(true)
+  })
+
+  it('sorts by status following LK_STATUS_ORDER, goods (без статусов) always at the end', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginated([
+        makeList({ uuid: 'l-1', type: 'goods', status: 'new' }),
+        makeList({ uuid: 'l-2', type: 'tasks', status: 'done', status_label: 'Выполнена' }),
+        makeList({ uuid: 'l-3', type: 'tasks', status: 'new' }),
+        makeList({ uuid: 'l-4', type: 'tasks', status: 'postponed', status_label: 'Отложена' }),
+        makeList({ uuid: 'l-5', type: 'tasks', status: 'in_progress', status_label: 'В работе' }),
+      ]),
+    )
+
+    const table = useLkTasksTable()
+    await table.reload()
+
+    table.toggleSort('status')
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual([
+      'l-3',
+      'l-5',
+      'l-4',
+      'l-2',
+      'l-1',
+    ])
+
+    // Реверс: порядок статусов обратный, goods по-прежнему в конце.
+    table.toggleSort('status')
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual([
+      'l-2',
+      'l-4',
+      'l-5',
+      'l-3',
+      'l-1',
+    ])
+  })
+
+  it('changeStatus sends PUT {status} for a manual pick and PUT {status_is_manual:false} for «Авто»', async () => {
+    const list = makeList({ uuid: 'l-1', type: 'tasks', status: 'new' })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([list]))
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({
+      ...list,
+      status: 'in_progress',
+      status_label: 'В работе',
+      status_is_manual: true,
+    })
+
+    const table = useLkTasksTable()
+    await table.reload()
+
+    await table.changeStatus(table.lists.value[0]!, 'in_progress')
+    expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { status: 'in_progress' })
+    // Локальное состояние заменяется ответом сервера (статус закреплён).
+    expect(table.lists.value[0]?.status).toBe('in_progress')
+    expect(table.lists.value[0]?.status_is_manual).toBe(true)
+
+    await table.changeStatus(table.lists.value[0]!, 'auto')
+    expect(shoppingListsApi.updateList).toHaveBeenLastCalledWith('l-1', { status_is_manual: false })
   })
 
   it('exposes hasMore and appends the next page via loadNextPage', async () => {

@@ -14,6 +14,9 @@ function makeList(itemsCount: number, checkedCount: number): ShoppingList {
     items_count: itemsCount,
     checked_items_count: checkedCount,
     is_completed: false,
+    status: 'new',
+    status_label: 'Новая',
+    status_is_manual: false,
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
   }
