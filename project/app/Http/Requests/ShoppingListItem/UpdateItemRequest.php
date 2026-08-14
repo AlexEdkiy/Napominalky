@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\ShoppingListItem;
 
 use App\Enums\ShoppingCategory;
+use App\Enums\TaskStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,6 +28,7 @@ final class UpdateItemRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'category' => ['sometimes', Rule::enum(ShoppingCategory::class)],
             'is_checked' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', Rule::enum(TaskStatus::class)],
             'position' => ['sometimes', 'integer', 'min:0'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:9999'],
             'deadline' => ['sometimes', 'nullable', 'date'],

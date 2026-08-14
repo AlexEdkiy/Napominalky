@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\ShoppingList;
 
+use App\Enums\TaskStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,7 @@ final class StoreListRequest extends FormRequest
             'type' => ['nullable', 'string', Rule::in(['goods', 'tasks'])],
             'tags' => ['nullable', 'string', 'max:1000'],
             'is_completed' => ['nullable', 'boolean'],
+            'status' => ['sometimes', Rule::enum(TaskStatus::class)],
         ];
     }
 }

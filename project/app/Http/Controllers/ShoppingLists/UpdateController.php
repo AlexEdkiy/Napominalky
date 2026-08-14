@@ -6,6 +6,7 @@ namespace App\Http\Controllers\ShoppingLists;
 
 use App\Actions\ShoppingList\UpdateListAction;
 use App\Data\ShoppingListData;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShoppingList\UpdateListRequest;
 use App\Http\Resources\ShoppingListResource;
@@ -32,6 +33,12 @@ final class UpdateController extends Controller
             isCompleted: $request->has('is_completed')
                 ? $request->boolean('is_completed')
                 : $shoppingList->is_completed,
+            status: $request->has('status')
+                ? TaskStatus::from($request->string('status')->toString())
+                : null,
+            statusIsManual: $request->has('status_is_manual')
+                ? $request->boolean('status_is_manual')
+                : null,
         );
 
         $updated = ($this->updateList)($shoppingList, $data);

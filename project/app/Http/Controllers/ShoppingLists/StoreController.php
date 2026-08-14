@@ -6,6 +6,7 @@ namespace App\Http\Controllers\ShoppingLists;
 
 use App\Actions\ShoppingList\CreateListAction;
 use App\Data\ShoppingListData;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShoppingList\StoreListRequest;
 use App\Http\Resources\ShoppingListResource;
@@ -34,6 +35,9 @@ final class StoreController extends Controller
             type: $request->filled('type') ? $request->string('type')->toString() : 'goods',
             tags: $request->filled('tags') ? $request->string('tags')->toString() : null,
             isCompleted: $request->boolean('is_completed'),
+            status: $request->filled('status')
+                ? TaskStatus::from($request->string('status')->toString())
+                : null,
         );
 
         $list = ($this->createList)($request->user(), $data, $uuid);
