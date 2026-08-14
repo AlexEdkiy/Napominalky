@@ -59,6 +59,7 @@ final class SyncChangesResource extends JsonResource
                 'notes' => $this->resource['notes'],
                 'shopping_lists' => $this->resource['shopping_lists'],
                 'shopping_list_items' => $this->resource['shopping_list_items'],
+                'shopping_list_item_comments' => $this->resource['shopping_list_item_comments'],
                 'reminders' => $this->resource['reminders'],
             ],
             'meta' => [

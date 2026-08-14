@@ -90,13 +90,7 @@ it('delivers comments to clients over GET /sync/changes (HTTP envelope)', functi
         ->and($row['deleted_at'])->toBeNull()
         ->and($row)->toHaveKeys(['created_at', 'updated_at'])
         ->and($row)->not->toHaveKeys(['id', 'user_id', 'shopping_list_item_id', 'server_revision']);
-})->skip(
-    'БАГ (MBE): SyncChangesResource::toArray() жёстко перечисляет 4 сущности '
-    .'(notes/shopping_lists/shopping_list_items/reminders) и ТЕРЯЕТ ключ '
-    .'shopping_list_item_comments из результата SyncPullService::pull() — '
-    .'комментарии никогда не доезжают до клиентов по HTTP GET /sync/changes '
-    .'(в т.ч. бэкфилл). Снять skip после добавления ключа в ресурс.',
-);
+});
 
 it('pulls a deleted comment as a tombstone after the previous cursor (service level)', function (): void {
     $comment = ShoppingListItemComment::factory()->forItem($this->item)->create();
@@ -231,13 +225,7 @@ it('does not fail the whole batch when a pushed comment references an unknown pa
     // изменение применяется без родителя» — как минимум батч не должен падать.
     $response->assertOk();
     expect($response->json('data.applied'))->toContain($goodUuid);
-})->skip(
-    'БАГ (DEV): неизвестный/чужой shopping_list_item_uuid не резолвится, '
-    .'shopping_list_item_id остаётся NULL при NOT NULL constraint — INSERT падает, '
-    .'транзакция откатывает ВЕСЬ батч, /sync/push отвечает 500. Расходится с '
-    .'докблоком SyncParentResolver («изменение применяется без родителя»). '
-    .'Снять skip после фикса (skip change / отложенный резолв / nullable FK).',
-);
+});
 
 // ---------------------------------------------------------------------------
 // Legacy: одиночное поле comment пункта (двухфазный вывод)

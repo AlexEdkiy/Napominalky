@@ -63,6 +63,14 @@ final class SyncChangeApplier
         $model->user_id = $user->id;
         $this->fillFields($user, $model, $change);
 
+        // Комментарий-сирота: родительский пункт не резолвится (чужой/удалён
+        // hard) — shopping_list_item_id остался NULL, а FK NOT NULL. Пропускаем
+        // change (no-op), иначе INSERT валит всю push-транзакцию 500. В норме
+        // FIFO-outbox гарантирует, что родитель уже на сервере.
+        if ($model instanceof ShoppingListItemComment && $model->shopping_list_item_id === null) {
+            return null;
+        }
+
         // created_at не входит в whitelist payload, а persist() отключает
         // авто-timestamps (ради LWW updated_at), поэтому для НОВОЙ записи
         // created_at остался бы NULL. Проставляем фолбэком клиентский updated_at.
