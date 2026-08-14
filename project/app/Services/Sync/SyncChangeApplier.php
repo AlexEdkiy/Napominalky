@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Sync;
 
+use App\Actions\ShoppingList\RecalculateListStatusAction;
 use App\Data\SyncChangeData;
+use App\Enums\TaskStatus;
+use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +22,10 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class SyncChangeApplier
 {
+    public function __construct(
+        private readonly RecalculateListStatusAction $recalculateStatus,
+    ) {}
+
     /**
      * NOT NULL строковые доменные колонки: при null в клиентском payload
      * коерсятся в '' (заметка/список без заголовка), иначе нарушился бы
@@ -63,6 +70,7 @@ final class SyncChangeApplier
         }
 
         $this->persist($model, $change);
+        $this->recalculateParent($model);
 
         return $model;
     }
@@ -76,6 +84,7 @@ final class SyncChangeApplier
         if ($change->operation === 'delete') {
             $existing->deleted_at = $change->updatedAt;
             $this->persist($existing, $change);
+            $this->recalculateParent($existing);
 
             return;
         }
@@ -84,6 +93,7 @@ final class SyncChangeApplier
         $existing->deleted_at = null;
         $this->fillFields($user, $existing, $change);
         $this->persist($existing, $change);
+        $this->recalculateParent($existing);
     }
 
     /**
@@ -113,6 +123,101 @@ final class SyncChangeApplier
 
         if ($model instanceof ShoppingListItem) {
             $this->resolveParent($user, $model, $change);
+            $this->normalizeItemStatus($model, $change);
+        }
+
+        if ($model instanceof ShoppingList) {
+            $this->normalizeListStatus($model, $change);
+        }
+    }
+
+    /**
+     * Инвариант задач для списка: status='done' ⇔ is_completed=true.
+     * При обоих полях в payload приоритет у status (is_completed выводится
+     * из него); при одном is_completed статус выводится через forChecked.
+     * Для goods статусные поля не применяются (дефолт 'new'/false).
+     */
+    private function normalizeListStatus(ShoppingList $list, SyncChangeData $change): void
+    {
+        if (! $list->isTasks()) {
+            $list->status = TaskStatus::New;
+            $list->status_is_manual = false;
+
+            return;
+        }
+
+        if (array_key_exists('status', $change->payload)) {
+            $list->is_completed = ($list->status ?? TaskStatus::New)->isDone();
+
+            return;
+        }
+
+        if (array_key_exists('is_completed', $change->payload)) {
+            $list->status = TaskStatus::forChecked(
+                (bool) $list->is_completed,
+                $list->status ?? TaskStatus::New,
+            );
+        }
+    }
+
+    /**
+     * Инвариант задач для пункта: status='done' ⇔ is_checked=true
+     * (приоритет у status, как и для списка). Пункты goods-списков
+     * статуса не имеют — колонка принудительно в дефолте 'new'.
+     */
+    private function normalizeItemStatus(ShoppingListItem $item, SyncChangeData $change): void
+    {
+        if (! $this->parentIsTasks($item)) {
+            $item->status = TaskStatus::New;
+
+            return;
+        }
+
+        if (array_key_exists('status', $change->payload)) {
+            $item->is_checked = ($item->status ?? TaskStatus::New)->isDone();
+
+            return;
+        }
+
+        if (array_key_exists('is_checked', $change->payload)) {
+            $item->status = TaskStatus::forChecked(
+                (bool) $item->is_checked,
+                $item->status ?? TaskStatus::New,
+            );
+        }
+    }
+
+    /**
+     * Является ли родительский список пункта задачей (type='tasks').
+     * Родитель ищется включая tombstones: LWW может реанимировать его позже.
+     */
+    private function parentIsTasks(ShoppingListItem $item): bool
+    {
+        if ($item->shopping_list_id === null) {
+            return false;
+        }
+
+        return ShoppingList::withTrashed()
+            ->whereKey($item->shopping_list_id)
+            ->value('type') === 'tasks';
+    }
+
+    /**
+     * Пересчёт статуса родительской задачи после применения изменения пункта.
+     * Обычный save (timestamps now, свой server_revision) — отдельно от
+     * LWW-persist пункта: серверная деривация новее клиентской версии списка.
+     * Guard'ы (goods / закреплённый ручной статус) — внутри Recalculate.
+     */
+    private function recalculateParent(Model $model): void
+    {
+        if (! $model instanceof ShoppingListItem || $model->shopping_list_id === null) {
+            return;
+        }
+
+        $list = ShoppingList::query()->whereKey($model->shopping_list_id)->first();
+
+        if ($list !== null) {
+            ($this->recalculateStatus)($list);
         }
     }
 

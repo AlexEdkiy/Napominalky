@@ -17,7 +17,7 @@ it('adds an item inheriting user_id from the list owner via AddItemAction', func
     $owner = User::factory()->create();
     $list = ShoppingList::factory()->for($owner)->create();
 
-    $item = (new AddItemAction())($list, new ShoppingListItemData(
+    $item = app(AddItemAction::class)($list, new ShoppingListItemData(
         name: 'Milk',
         category: ShoppingCategory::Products,
     ));
@@ -34,7 +34,7 @@ it('persists a client-provided uuid for an item via AddItemAction', function ():
     $list = ShoppingList::factory()->create();
     $uuid = (string) Str::uuid();
 
-    $item = (new AddItemAction())($list, new ShoppingListItemData(name: 'Bread'), $uuid);
+    $item = app(AddItemAction::class)($list, new ShoppingListItemData(name: 'Bread'), $uuid);
 
     expect($item->uuid)->toBe($uuid)
         ->and(ShoppingListItem::where('uuid', $uuid)->exists())->toBeTrue();
@@ -43,9 +43,9 @@ it('persists a client-provided uuid for an item via AddItemAction', function ():
 it('auto-increments position when none is provided', function (): void {
     $list = ShoppingList::factory()->create();
 
-    $first = (new AddItemAction())($list, new ShoppingListItemData(name: 'First'));
-    $second = (new AddItemAction())($list, new ShoppingListItemData(name: 'Second'));
-    $third = (new AddItemAction())($list, new ShoppingListItemData(name: 'Third'));
+    $first = app(AddItemAction::class)($list, new ShoppingListItemData(name: 'First'));
+    $second = app(AddItemAction::class)($list, new ShoppingListItemData(name: 'Second'));
+    $third = app(AddItemAction::class)($list, new ShoppingListItemData(name: 'Third'));
 
     expect($first->position)->toBe(1)
         ->and($second->position)->toBe(2)
@@ -55,7 +55,7 @@ it('auto-increments position when none is provided', function (): void {
 it('honours an explicitly provided position', function (): void {
     $list = ShoppingList::factory()->create();
 
-    $item = (new AddItemAction())($list, new ShoppingListItemData(name: 'Fixed', position: 7));
+    $item = app(AddItemAction::class)($list, new ShoppingListItemData(name: 'Fixed', position: 7));
 
     expect($item->position)->toBe(7);
 });
@@ -66,7 +66,7 @@ it('updates an item via UpdateItemAction', function (): void {
         'category' => ShoppingCategory::Other,
     ]);
 
-    $updated = (new UpdateItemAction())($item, new ShoppingListItemData(
+    $updated = app(UpdateItemAction::class)($item, new ShoppingListItemData(
         name: 'New',
         category: ShoppingCategory::Pharmacy,
         position: 5,
@@ -80,11 +80,11 @@ it('updates an item via UpdateItemAction', function (): void {
 it('toggles is_checked via CheckItemAction', function (): void {
     $item = ShoppingListItem::factory()->create(['is_checked' => false]);
 
-    $checked = (new CheckItemAction())($item, true);
+    $checked = app(CheckItemAction::class)($item, true);
     expect($checked->is_checked)->toBeTrue()
         ->and($item->fresh()->is_checked)->toBeTrue();
 
-    $unchecked = (new CheckItemAction())($item, false);
+    $unchecked = app(CheckItemAction::class)($item, false);
     expect($unchecked->is_checked)->toBeFalse()
         ->and($item->fresh()->is_checked)->toBeFalse();
 });
@@ -92,7 +92,7 @@ it('toggles is_checked via CheckItemAction', function (): void {
 it('soft deletes an item via DeleteItemAction', function (): void {
     $item = ShoppingListItem::factory()->create();
 
-    (new DeleteItemAction())($item);
+    app(DeleteItemAction::class)($item);
 
     expect(ShoppingListItem::find($item->id))->toBeNull()
         ->and(ShoppingListItem::withTrashed()->find($item->id)->deleted_at)->not->toBeNull();

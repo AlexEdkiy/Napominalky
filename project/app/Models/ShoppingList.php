@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\TaskStatus;
 use App\Models\Concerns\HasUuid;
 use App\Models\Concerns\TracksSyncRevision;
 use Database\Factories\ShoppingListFactory;
@@ -33,7 +34,18 @@ class ShoppingList extends Model
         'type',
         'tags',
         'is_completed',
+        'status',
+        'status_is_manual',
     ];
+
+    /**
+     * Список задач (type='tasks'): только такие списки и их пункты имеют
+     * статусы TaskStatus; goods-списки живут на is_checked/is_completed.
+     */
+    public function isTasks(): bool
+    {
+        return $this->type === 'tasks';
+    }
 
     /**
      * Маршрутизация и сериализация ведутся по публичному uuid, не по id.
@@ -97,6 +109,8 @@ class ShoppingList extends Model
     {
         return [
             'is_completed' => 'boolean',
+            'status' => TaskStatus::class,
+            'status_is_manual' => 'boolean',
             'server_revision' => 'integer',
         ];
     }
