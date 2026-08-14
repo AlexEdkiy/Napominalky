@@ -73,7 +73,7 @@ function submit(): void {
         v-model="draft"
         rows="2"
         class="lk-comments-thread__input"
-        placeholder="Написать комментарий…"
+        placeholder="Комментарий…"
         aria-label="Новый комментарий"
         @keydown.enter.exact.prevent="submit"
       />

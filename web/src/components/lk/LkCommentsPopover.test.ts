@@ -99,6 +99,20 @@ describe('LkCommentsPopover — показ и скрытие', () => {
 })
 
 describe('LkCommentsPopover — содержимое', () => {
+  it('renders the «КОММЕНТАРИИ · N» header first with the FULL thread size (как на макете)', async () => {
+    const comments = Array.from({ length: 8 }, (_, index) => makeComment({ uuid: `c-${index}` }))
+    const wrapper = mountPopover(comments)
+    await wrapper.trigger('focusin')
+
+    const header = wrapper.find('.lk-comments-popover__header')
+    expect(header.exists()).toBe(true)
+    // Счётчик заголовка — ПОЛНЫЙ размер треда, даже когда превью усечено до 5.
+    expect(header.text()).toBe('Комментарии · 8')
+    // Заголовок — первый элемент тёмного окна (над списком комментариев).
+    const tooltip = wrapper.find('[role="tooltip"]')
+    expect(tooltip.element.firstElementChild?.classList.contains('lk-comments-popover__header')).toBe(true)
+  })
+
   it('renders the author, time and body of each comment', async () => {
     const wrapper = mountPopover([
       makeComment(),

@@ -47,6 +47,11 @@ describe('LkItemCommentsThread — список комментариев', () =>
 })
 
 describe('LkItemCommentsThread — форма отправки', () => {
+  it('uses the mockup placeholder «Комментарий…» on the input', () => {
+    const wrapper = mountThread()
+    expect(wrapper.find('textarea').attributes('placeholder')).toBe('Комментарий…')
+  })
+
   it('disables «Отправить» for an empty/whitespace draft and enables it for text', async () => {
     const wrapper = mountThread()
     const send = wrapper.find('.lk-comments-thread__send')

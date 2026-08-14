@@ -17,10 +17,11 @@ export interface LkPopoverComment {
 }
 
 /**
- * Popover с содержимым треда при наведении на 💬-триггер (слот). Показ по
- * `mouseenter` (задержка ~250мс) и `focusin` (доступность), скрытие по
- * `mouseleave` (грейс ~150мс, чтобы курсор успел зайти в панель), `focusout`
- * и Esc. Панель монтируется только в открытом состоянии (`v-if`); флип у
+ * Popover с содержимым треда при наведении на 💬-триггер (слот): тёмное окно
+ * (как на макете) с заголовком «КОММЕНТАРИИ · N». Показ по `mouseenter`
+ * (задержка ~250мс) и `focusin` (доступность), скрытие по `mouseleave`
+ * (грейс ~150мс, чтобы курсор успел зайти в панель), `focusout` и Esc.
+ * Панель монтируется только в открытом состоянии (`v-if`); флип у
  * нижнего/правого края окна; таймеры чистятся в `onUnmounted`.
  */
 interface Props {
@@ -135,6 +136,7 @@ onUnmounted(clearTimers)
         'lk-comments-popover__panel--right': alignRight,
       }"
     >
+      <p class="lk-comments-popover__header">Комментарии · {{ comments.length }}</p>
       <template v-for="(comment, index) in visibleComments" :key="comment.uuid">
         <p v-if="groupTitle(index) !== null" class="lk-comments-popover__group">
           {{ groupTitle(index) }}
@@ -158,6 +160,7 @@ onUnmounted(clearTimers)
   display: inline-flex;
 }
 
+/* Тёмное окно — как на макете («КОММЕНТАРИИ · N» на тёмном фоне). */
 .lk-comments-popover__panel {
   position: absolute;
   top: calc(100% + 6px);
@@ -170,9 +173,9 @@ onUnmounted(clearTimers)
   box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff;
-  border: 1px solid #e3e6e5;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  background: #262d29;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -190,13 +193,23 @@ onUnmounted(clearTimers)
   right: 0;
 }
 
+/* Заголовок окна «КОММЕНТАРИИ · N» (uppercase — визуально как на макете). */
+.lk-comments-popover__header {
+  margin: 0 0 1px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .lk-comments-popover__group {
   margin: 3px 0 0;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #9aa39f;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .lk-comments-popover__group:first-child {
@@ -218,21 +231,21 @@ onUnmounted(clearTimers)
 .lk-comments-popover__author {
   font-size: 12px;
   font-weight: 700;
-  color: #1f2622;
+  color: #fff;
   white-space: nowrap;
 }
 
 .lk-comments-popover__time {
   font-size: 10.5px;
   font-weight: 600;
-  color: #9aa39f;
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
 }
 
 .lk-comments-popover__body {
   font-size: 12.5px;
   font-weight: 500;
-  color: #3a423e;
+  color: rgba(255, 255, 255, 0.85);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -241,6 +254,6 @@ onUnmounted(clearTimers)
   margin: 0;
   font-size: 11.5px;
   font-weight: 600;
-  color: #8a938f;
+  color: rgba(255, 255, 255, 0.55);
 }
 </style>
