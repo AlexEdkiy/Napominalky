@@ -97,6 +97,7 @@ function handleStatusSelect(value: TaskStatus | 'auto'): void {
         <span
           v-if="list.status_is_manual"
           class="lk-task-row__status-manual"
+          role="img"
           title="Задано вручную"
           aria-label="Задано вручную"
         />

@@ -374,6 +374,8 @@ describe('TasksView', () => {
     expect(tasksStatusCell.find('.lk-status-badge__pill--interactive').text()).toBe('В работе')
     expect(tasksStatusCell.find('.lk-task-row__status-manual').exists()).toBe(true)
     expect(tasksStatusCell.find('.lk-task-row__status-manual').attributes('title')).toBe('Задано вручную')
+    // role="img": aria-label на пустом span без роли скринридеры не читают.
+    expect(tasksStatusCell.find('.lk-task-row__status-manual').attributes('role')).toBe('img')
 
     // goods: статусов нет — прочерк, бейджа и индикатора нет.
     const goodsStatusCell = rows[1]!.find('.lk-task-row__cell--status')
@@ -447,6 +449,40 @@ describe('TasksView', () => {
     await vi.waitFor(() =>
       expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { status_is_manual: false }),
     )
+  })
+
+  it('sorts rows by the СТАТУС header (Новая→В работе→Отложена→Выполнена), goods «—» в конце', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods' }),
+        makeList({ uuid: 'l-2', title: 'Отпуск', type: 'tasks', status: 'done', status_label: 'Выполнена' }),
+        makeList({ uuid: 'l-3', title: 'Ремонт', type: 'tasks', status: 'in_progress', status_label: 'В работе' }),
+        makeList({ uuid: 'l-4', title: 'Дача', type: 'tasks', status: 'new' }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const statusHeader = wrapper.findAll('.tasks-view__sort')[1]
+    expect(statusHeader?.text()).toContain('Статус')
+    await statusHeader?.trigger('click')
+    expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual([
+      'Дача',
+      'Ремонт',
+      'Отпуск',
+      'Продукты',
+    ])
+
+    // Реверс: порядок статусов обратный, goods (без статуса) по-прежнему в конце.
+    await statusHeader?.trigger('click')
+    expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual([
+      'Отпуск',
+      'Ремонт',
+      'Дача',
+      'Продукты',
+    ])
   })
 
   it('sorts rows by title on a header click and reverses on the second click', async () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import LkStatusBadge from './LkStatusBadge.vue'
@@ -85,6 +85,29 @@ describe('LkStatusBadge — интерактивный режим', () => {
     await wrapper.findAll('[role="menuitemradio"]')[3]?.trigger('click')
     expect(wrapper.emitted('select')).toEqual([['done']])
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+  })
+
+  it('Escape closes ONLY the menu: событие гасится и не доходит до window (модалка выше не закроется)', async () => {
+    const wrapper = mountBadge({ status: 'new', interactive: true })
+    const windowListener = vi.fn()
+    window.addEventListener('keydown', windowListener)
+    try {
+      await wrapper.find('.lk-status-badge__pill--interactive').trigger('click')
+      expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+
+      // Реальное нажатие всплывает через document к window — бейдж должен
+      // погасить его на document, закрыв только меню.
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+      expect(windowListener).not.toHaveBeenCalled()
+
+      // Меню закрыто (слушатель снят) — Esc свободно доходит до window.
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      expect(windowListener).toHaveBeenCalledTimes(1)
+    } finally {
+      window.removeEventListener('keydown', windowListener)
+    }
   })
 
   it('closes the menu on Escape and on an outside click', async () => {

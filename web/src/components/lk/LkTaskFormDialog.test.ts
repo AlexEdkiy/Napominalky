@@ -294,6 +294,31 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('Escape при открытом меню статуса пункта закрывает ТОЛЬКО меню, а не модалку', async () => {
+    const tasksList: ShoppingList = { ...list, uuid: 'l-2', type: 'tasks' }
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Плитка' })])
+    const { wrapper } = await mountDialog()
+    const forms = useLkForms()
+    forms.openTaskForm(tasksList)
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('.lk-item-row__status .lk-status-badge__pill--interactive').trigger('click')
+    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+
+    // Реальный Esc всплывает через document к window: бейдж гасит его на
+    // document — модалка (слушатель на window) остаётся открытой.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(forms.isTaskFormOpen.value).toBe(true)
+
+    // Повторный Esc (меню уже закрыто) закрывает саму модалку.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(forms.isTaskFormOpen.value).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
   it('keeps the existing type on edit save and colors accents by the actual list type', async () => {
     const tasksList: ShoppingList = { ...list, uuid: 'l-2', title: 'Дела', type: 'tasks', tags: [] }
     vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...tasksList, title: 'Дела недели' })

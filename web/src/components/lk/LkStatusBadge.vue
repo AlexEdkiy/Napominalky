@@ -37,6 +37,9 @@ function closeOnOutsideClick(event: MouseEvent): void {
 
 function closeOnEscape(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
+    // Esc закрывает только меню (верхний слой): гасим событие, чтобы
+    // window-обработчик модалки формы не закрыл заодно и модалку.
+    event.stopPropagation()
     isOpen.value = false
   }
 }
