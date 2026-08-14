@@ -20,6 +20,9 @@ function makeList(overrides: Partial<ShoppingList>): ShoppingList {
     items_count: 4,
     checked_items_count: 2,
     is_completed: false,
+    status: 'new',
+    status_label: 'Новая',
+    status_is_manual: false,
     created_at: '2026-07-01T00:00:00Z',
     updated_at: '2026-07-01T00:00:00Z',
     ...overrides,
@@ -33,6 +36,8 @@ function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
     category: 'products',
     category_label: 'Продукты',
     is_checked: false,
+    status: 'new',
+    status_label: 'Новая',
     position: 0,
     quantity: null,
     deadline: null,
@@ -159,6 +164,7 @@ describe('TasksView', () => {
 
     expect(wrapper.findAll('.tasks-view__sort').map((th) => th.text().replace(/[↑↓]\s*$/, '').trim())).toEqual([
       'Задача',
+      'Статус',
       'Теги',
       'Дата',
       'Напоминание',
@@ -171,10 +177,10 @@ describe('TasksView', () => {
     // Тексты кнопок тулбара и нижней строки — как в макете.
     expect(wrapper.find('.tasks-view__create-btn').text()).toContain('Новая задача')
     expect(wrapper.find('.tasks-view__add').text()).toContain('Добавить задачу')
-    // Пустые Теги/Дата/Напоминание — прочерки «—» (у списков без
-    // датированных пунктов; принятое отклонение от скриншотов).
+    // Пустые Статус (у goods статусов нет)/Теги/Дата/Напоминание — прочерки
+    // «—» (у списков без датированных пунктов; принятое отклонение от скриншотов).
     const emptyCells = wrapper.findAll('.lk-task-row')[0]!.findAll('.lk-task-row__empty')
-    expect(emptyCells.map((cell) => cell.text())).toEqual(['—', '—', '—'])
+    expect(emptyCells.map((cell) => cell.text())).toEqual(['—', '—', '—', '—'])
   })
 
   it('renders tag pills in the tags column', async () => {
@@ -218,9 +224,10 @@ describe('TasksView', () => {
     // colgroup задаёт ширины колонок (вместе с table-layout: fixed) — подмена
     // «—» на значения дат не пересчитывает раскладку и не двигает соседей.
     const cols = wrapper.findAll('.tasks-view__table colgroup col')
-    expect(cols).toHaveLength(4)
+    expect(cols).toHaveLength(5)
     expect(cols.map((col) => col.classes()[0])).toEqual([
       'tasks-view__col--title',
+      'tasks-view__col--status',
       'tasks-view__col--tags',
       'tasks-view__col--date',
       'tasks-view__col--reminder',
@@ -242,20 +249,21 @@ describe('TasksView', () => {
     const { wrapper } = await mountTasksView()
     await vi.waitFor(() => expect(wrapper.find('.lk-task-row').exists()).toBe(true))
 
-    // Пока пункты не подгружены — плейсхолдеры «—» в колонках ДАТА и НАПОМИНАНИЕ.
+    // Пока пункты не подгружены — плейсхолдеры «—» в колонках ДАТА и НАПОМИНАНИЕ
+    // (после ЗАДАЧА/СТАТУС/ТЕГИ это 4-я и 5-я ячейки).
     const cellsBefore = wrapper.find('.lk-task-row').findAll('td')
-    expect(cellsBefore[2]?.find('.lk-task-row__empty').exists()).toBe(true)
     expect(cellsBefore[3]?.find('.lk-task-row__empty').exists()).toBe(true)
+    expect(cellsBefore[4]?.find('.lk-task-row__empty').exists()).toBe(true)
 
     resolveItems?.([makeItem({ deadline: '2026-03-12', reminder_at: '2026-03-12T14:00:00' })])
     await vi.waitFor(() => expect(wrapper.find('.lk-task-row__date').exists()).toBe(true))
 
-    // Значения появляются в тех же ячейках (3-я и 4-я), заменяя плейсхолдер.
+    // Значения появляются в тех же ячейках (4-я и 5-я), заменяя плейсхолдер.
     const cellsAfter = wrapper.find('.lk-task-row').findAll('td')
-    expect(cellsAfter[2]?.find('.lk-task-row__date').exists()).toBe(true)
-    expect(cellsAfter[2]?.find('.lk-task-row__empty').exists()).toBe(false)
-    expect(cellsAfter[3]?.find('.lk-task-row__reminder').exists()).toBe(true)
+    expect(cellsAfter[3]?.find('.lk-task-row__date').exists()).toBe(true)
     expect(cellsAfter[3]?.find('.lk-task-row__empty').exists()).toBe(false)
+    expect(cellsAfter[4]?.find('.lk-task-row__reminder').exists()).toBe(true)
+    expect(cellsAfter[4]?.find('.lk-task-row__empty').exists()).toBe(false)
     vi.useRealTimers()
   })
 
@@ -339,6 +347,142 @@ describe('TasksView', () => {
 
     expect(wrapper.find('.lk-task-row').classes()).toContain('lk-task-row--completed')
     expect((wrapper.find('.lk-task-row__checkbox').element as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('shows an interactive status badge for tasks rows and «—» for goods in the СТАТУС column', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({
+          uuid: 'l-1',
+          title: 'Ремонт',
+          type: 'tasks',
+          status: 'in_progress',
+          status_label: 'В работе',
+          status_is_manual: true,
+        }),
+        makeList({ uuid: 'l-2', title: 'Продукты', type: 'goods' }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const rows = wrapper.findAll('.lk-task-row')
+    // tasks: бейдж с лейблом статуса + индикатор ручного закрепления.
+    const tasksStatusCell = rows[0]!.find('.lk-task-row__cell--status')
+    expect(tasksStatusCell.find('.lk-status-badge__pill--interactive').text()).toBe('В работе')
+    expect(tasksStatusCell.find('.lk-task-row__status-manual').exists()).toBe(true)
+    expect(tasksStatusCell.find('.lk-task-row__status-manual').attributes('title')).toBe('Задано вручную')
+    // role="img": aria-label на пустом span без роли скринридеры не читают.
+    expect(tasksStatusCell.find('.lk-task-row__status-manual').attributes('role')).toBe('img')
+
+    // goods: статусов нет — прочерк, бейджа и индикатора нет.
+    const goodsStatusCell = rows[1]!.find('.lk-task-row__cell--status')
+    expect(goodsStatusCell.find('.lk-status-badge').exists()).toBe(false)
+    expect(goodsStatusCell.find('.lk-task-row__empty').text()).toBe('—')
+  })
+
+  it('hides the manual pin when the task status is derived automatically', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([makeList({ uuid: 'l-1', type: 'tasks', status_is_manual: false })]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    expect(wrapper.find('.lk-task-row__status-manual').exists()).toBe(false)
+  })
+
+  it('changes the task status from the badge menu (PUT {status}) without opening the row modal', async () => {
+    stubMatchMedia(true)
+    const list = makeList({ uuid: 'l-1', type: 'tasks', status: 'new' })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([list]))
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({
+      ...list,
+      status: 'postponed',
+      status_label: 'Отложена',
+      status_is_manual: true,
+    })
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-status-badge__pill--interactive').trigger('click')
+    // Клик по бейджу не открыл модалку строки.
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
+
+    await wrapper.findAll('[role="menuitemradio"]')[2]?.trigger('click')
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { status: 'postponed' }),
+    )
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-status-badge__pill--interactive').text()).toBe('Отложена'),
+    )
+  })
+
+  it('resets the manual pin via the «Авто» menu item (PUT {status_is_manual:false})', async () => {
+    stubMatchMedia(true)
+    const list = makeList({
+      uuid: 'l-1',
+      type: 'tasks',
+      status: 'done',
+      status_label: 'Выполнена',
+      status_is_manual: true,
+    })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([list]))
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({
+      ...list,
+      status: 'new',
+      status_label: 'Новая',
+      status_is_manual: false,
+    })
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    await wrapper.find('.lk-status-badge__pill--interactive').trigger('click')
+    await wrapper.find('.lk-status-badge__option--auto').trigger('click')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { status_is_manual: false }),
+    )
+  })
+
+  it('sorts rows by the СТАТУС header (Новая→В работе→Отложена→Выполнена), goods «—» в конце', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
+      paginatedLists([
+        makeList({ uuid: 'l-1', title: 'Продукты', type: 'goods' }),
+        makeList({ uuid: 'l-2', title: 'Отпуск', type: 'tasks', status: 'done', status_label: 'Выполнена' }),
+        makeList({ uuid: 'l-3', title: 'Ремонт', type: 'tasks', status: 'in_progress', status_label: 'В работе' }),
+        makeList({ uuid: 'l-4', title: 'Дача', type: 'tasks', status: 'new' }),
+      ]),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+
+    const statusHeader = wrapper.findAll('.tasks-view__sort')[1]
+    expect(statusHeader?.text()).toContain('Статус')
+    await statusHeader?.trigger('click')
+    expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual([
+      'Дача',
+      'Ремонт',
+      'Отпуск',
+      'Продукты',
+    ])
+
+    // Реверс: порядок статусов обратный, goods (без статуса) по-прежнему в конце.
+    await statusHeader?.trigger('click')
+    expect(wrapper.findAll('.lk-task-row__title').map((cell) => cell.text())).toEqual([
+      'Отпуск',
+      'Ремонт',
+      'Дача',
+      'Продукты',
+    ])
   })
 
   it('sorts rows by title on a header click and reverses on the second click', async () => {

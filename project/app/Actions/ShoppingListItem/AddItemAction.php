@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Actions\ShoppingListItem;
 
+use App\Actions\ShoppingList\RecalculateListStatusAction;
 use App\Data\ShoppingListItemData;
+use App\Enums\TaskStatus;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 
 final class AddItemAction
 {
+    public function __construct(
+        private readonly RecalculateListStatusAction $recalculateStatus,
+    ) {}
+
     public function __invoke(
         ShoppingList $list,
         ShoppingListItemData $data,
@@ -28,6 +34,15 @@ final class AddItemAction
             'tags' => $data->tags,
         ]);
 
+        // Статус пункта — только для списков задач; goods остаются на
+        // is_checked (колонка status в дефолте 'new'). Явный status имеет
+        // приоритет, is_checked выводится из него (инвариант done ⇔ checked).
+        if ($list->isTasks()) {
+            $status = $data->status ?? TaskStatus::forChecked($data->isChecked, TaskStatus::New);
+            $item->status = $status;
+            $item->is_checked = $status->isDone();
+        }
+
         // user_id денормализуется из владельца списка для sync-фильтра.
         $item->user_id = $list->user_id;
 
@@ -38,6 +53,7 @@ final class AddItemAction
         }
 
         $item->save();
+        ($this->recalculateStatus)($list);
 
         return $item;
     }

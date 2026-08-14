@@ -9,11 +9,13 @@ import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { LK_STATUS_COLORS, LK_STATUS_LABELS, LK_STATUS_ORDER } from '@/constants/lkStatusColors'
 import { colorForTag } from '@/constants/lkTagColors'
 import type { ValidationErrorResponse } from '@/types/api'
 import type {
   ShoppingList,
   ShoppingListType,
+  TaskStatus,
   UpdateShoppingListItemPayload,
 } from '@/types/shoppingList'
 import { shoppingListAccent } from '@/utils/shoppingList'
@@ -87,6 +89,10 @@ const itemTagSuggestions = computed<string[]>(() => {
   const fromItems = items.value.flatMap((item) => item.tags)
   return [...new Set([...TAG_PRESETS, ...tags.value, ...fromItems])]
 })
+/** Блок «Статус» — только в edit-режиме tasks-списка; у goods статусов нет. */
+const showStatusBlock = computed<boolean>(
+  () => currentList.value !== null && form.type === 'tasks',
+)
 
 function resetForm(): void {
   const list = taskFormList.value
@@ -210,6 +216,44 @@ async function handleUpdateItem(uuid: string, patch: UpdateShoppingListItemPaylo
   const updated = await updateItem(uuid, patch)
   if (updated !== null) {
     hasItemChanges.value = true
+    if (patch.status !== undefined) {
+      // Статус пункта мог поменять деривированный статус задачи — обновляем список.
+      await refreshCurrentList()
+    }
+  }
+}
+
+/** Перечитывает текущий список (статус/закрепление/is_completed) с сервера. */
+async function refreshCurrentList(): Promise<void> {
+  const current = currentList.value
+  if (current === null) {
+    return
+  }
+  try {
+    currentList.value = await shoppingListsApi.fetchList(current.uuid)
+  } catch {
+    // Второстепенное обновление: при сбое остаётся прежнее состояние.
+  }
+}
+
+/**
+ * Выбор в блоке «Статус» (только tasks, edit-режим): PUT сразу — как и
+ * атрибуты пунктов, — чтобы деривация статуса и бейджи не расходились.
+ * Статус — закрепляет вручную; «Авто» — сбрасывает закрепление. После смены
+ * перечитываем пункты: сервер мог свести их `is_checked`/`status`.
+ */
+async function handleSelectStatus(value: TaskStatus | 'auto'): Promise<void> {
+  const current = currentList.value
+  if (current === null) {
+    return
+  }
+  try {
+    const payload = value === 'auto' ? { status_is_manual: false as const } : { status: value }
+    currentList.value = await shoppingListsApi.updateList(current.uuid, payload)
+    hasItemChanges.value = true
+    void loadItems()
+  } catch (error) {
+    applyValidation(error)
   }
 }
 
@@ -334,6 +378,38 @@ async function confirmDelete(): Promise<void> {
               >
                 <LkIcon :name="option.icon" :size="17" />
                 {{ option.label }}
+              </button>
+            </div>
+          </template>
+
+          <template v-if="showStatusBlock">
+            <span class="lk-form-dialog__label">Статус</span>
+            <div class="lk-form-dialog__statuses" role="group" aria-label="Статус задачи">
+              <button
+                v-for="option in LK_STATUS_ORDER"
+                :key="option"
+                type="button"
+                class="lk-form-dialog__status"
+                :class="{ 'lk-form-dialog__status--active': currentList?.status === option }"
+                :style="
+                  currentList?.status === option
+                    ? { background: LK_STATUS_COLORS[option].fg, color: '#fff' }
+                    : { background: LK_STATUS_COLORS[option].bg, color: LK_STATUS_COLORS[option].fg }
+                "
+                :aria-pressed="currentList?.status === option"
+                @click="handleSelectStatus(option)"
+              >
+                {{ LK_STATUS_LABELS[option] }}
+              </button>
+              <button
+                type="button"
+                class="lk-form-dialog__status lk-form-dialog__status-auto"
+                :class="{ 'lk-form-dialog__status-auto--active': currentList?.status_is_manual === false }"
+                :aria-pressed="currentList?.status_is_manual === false"
+                title="Вычислять статус из пунктов автоматически"
+                @click="handleSelectStatus('auto')"
+              >
+                Авто
               </button>
             </div>
           </template>
@@ -627,6 +703,35 @@ async function confirmDelete(): Promise<void> {
 
 .lk-form-dialog__type--active-tasks {
   background: #d99a3e;
+  color: #fff;
+}
+
+/* Чипы блока «Статус» — как теговые чипы; «Авто» — нейтральный сегмент. */
+.lk-form-dialog__statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lk-form-dialog__status {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 15px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.lk-form-dialog__status-auto {
+  background: #eef1f0;
+  color: #5a625e;
+}
+
+.lk-form-dialog__status-auto--active {
+  background: #1f2622;
   color: #fff;
 }
 

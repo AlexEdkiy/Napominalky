@@ -3,10 +3,12 @@ import { computed, ref } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkItemAttributes from '@/components/lk/LkItemAttributes.vue'
+import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
 import type {
   ShoppingListItem,
   ShoppingListType,
+  TaskStatus,
   UpdateShoppingListItemPayload,
 } from '@/types/shoppingList'
 import {
@@ -41,6 +43,15 @@ const emit = defineEmits<{
 }>()
 
 const values = computed(() => attributeValuesFromItem(props.item))
+/** Статусы только у пунктов tasks-списков; у goods их нет вовсе. */
+const showStatus = computed<boolean>(() => props.listType === 'tasks')
+/**
+ * «Выполнен» для зачёркивания/чекбокса: у tasks — по `status === 'done'`
+ * (сервер гарантирует эквивалент `is_checked`), у goods — по `is_checked`.
+ */
+const isDone = computed<boolean>(() =>
+  props.listType === 'tasks' ? props.item.status === 'done' : props.item.is_checked,
+)
 const quantity = computed<number>(() => props.item.quantity ?? 1)
 const showQuantityChip = computed<boolean>(() => props.listType === 'goods' && quantity.value > 1)
 const showDeadlineChip = computed<boolean>(
@@ -70,6 +81,13 @@ function handleCheck(event: Event): void {
   emit('check', (event.target as HTMLInputElement).checked)
 }
 
+/** Меню бейджа статуса пункта (без «Авто») → PUT пункта `{ status }` наверху. */
+function handleStatusSelect(value: TaskStatus | 'auto'): void {
+  if (value !== 'auto') {
+    emit('update', { status: value })
+  }
+}
+
 function handleCommentClick(): void {
   autoOpenAttribute.value = 'comment'
   if (!props.expanded) {
@@ -85,7 +103,7 @@ function handleAutoOpened(): void {
 <template>
   <li
     class="lk-form-dialog__item"
-    :class="{ 'lk-form-dialog__item--checked': item.is_checked }"
+    :class="{ 'lk-form-dialog__item--checked': isDone }"
   >
     <div class="lk-item-row__top">
       <label class="lk-form-dialog__item-label">
@@ -93,7 +111,7 @@ function handleAutoOpened(): void {
           type="checkbox"
           class="lk-form-dialog__item-checkbox"
           :style="{ accentColor: accentColor }"
-          :checked="item.is_checked"
+          :checked="isDone"
           @change="handleCheck"
         />
         <span class="lk-item-row__name-block">
@@ -122,6 +140,13 @@ function handleAutoOpened(): void {
           </span>
         </span>
       </label>
+      <LkStatusBadge
+        v-if="showStatus"
+        class="lk-item-row__status"
+        :status="item.status"
+        interactive
+        @select="handleStatusSelect"
+      />
       <button
         type="button"
         class="lk-item-row__comment-btn"
@@ -236,6 +261,11 @@ function handleAutoOpened(): void {
   align-items: center;
   gap: 5px;
   color: #9aa39f;
+}
+
+/* Компактный бейдж статуса пункта — между названием и кнопкой «Комментарий». */
+.lk-item-row__status {
+  flex-shrink: 0;
 }
 
 /* Кнопка «Комментарий» — визуально как chevron; активная (комментарий задан)

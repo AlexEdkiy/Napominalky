@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Enums\ShoppingCategory;
+use App\Enums\TaskStatus;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -36,6 +37,7 @@ class ShoppingListItemFactory extends Factory
             'name' => fake()->words(2, true),
             'category' => fake()->randomElement(ShoppingCategory::cases()),
             'is_checked' => false,
+            'status' => TaskStatus::New,
             'position' => 0,
         ];
     }
@@ -43,6 +45,27 @@ class ShoppingListItemFactory extends Factory
     public function checked(): static
     {
         return $this->state(fn (): array => ['is_checked' => true]);
+    }
+
+    /**
+     * Выполненная строка задачи: инвариант done ⇔ is_checked.
+     */
+    public function done(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => TaskStatus::Done,
+            'is_checked' => true,
+        ]);
+    }
+
+    public function inProgress(): static
+    {
+        return $this->state(fn (): array => ['status' => TaskStatus::InProgress]);
+    }
+
+    public function postponed(): static
+    {
+        return $this->state(fn (): array => ['status' => TaskStatus::Postponed]);
     }
 
     public function forList(ShoppingList $list): static

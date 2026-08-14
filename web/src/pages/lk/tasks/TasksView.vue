@@ -8,7 +8,7 @@ import { useLkForms } from '@/composables/useLkForms'
 import { useLkTasksTable } from '@/composables/useLkTasksTable'
 import { useLkWideDesktop } from '@/composables/useLkBreakpoint'
 import type { LkTasksSortKey, LkTasksTab, LkTasksTypeFilter } from '@/composables/useLkTasksTable'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { ShoppingList, TaskStatus } from '@/types/shoppingList'
 
 const TABS: { value: LkTasksTab; label: string }[] = [
   { value: 'all', label: 'Все' },
@@ -25,6 +25,7 @@ const TYPE_FILTERS: { value: LkTasksTypeFilter; label: string }[] = [
 
 const COLUMNS: { key: LkTasksSortKey; label: string }[] = [
   { key: 'title', label: 'Задача' },
+  { key: 'status', label: 'Статус' },
   { key: 'tags', label: 'Теги' },
   { key: 'date', label: 'Дата' },
   { key: 'reminder', label: 'Напоминание' },
@@ -47,6 +48,7 @@ const {
   reload,
   loadNextPage,
   toggleCompleted,
+  changeStatus,
 } = useLkTasksTable()
 
 function handleOpen(list: ShoppingList): void {
@@ -55,6 +57,11 @@ function handleOpen(list: ShoppingList): void {
 
 async function handleToggleCompleted(list: ShoppingList): Promise<void> {
   await toggleCompleted(list)
+}
+
+/** Смена статуса из бейджа колонки СТАТУС (tasks): статус или «Авто». */
+async function handleChangeStatus(list: ShoppingList, value: TaskStatus | 'auto'): Promise<void> {
+  await changeStatus(list, value)
 }
 
 // Модалка «Задача/список» рендерится в `LkLayout`, а не здесь — при
@@ -146,7 +153,7 @@ onMounted(() => reload())
 
             <tbody>
               <tr v-if="visibleLists.length === 0">
-                <td class="tasks-view__empty-cell" colspan="4">
+                <td class="tasks-view__empty-cell" colspan="5">
                   <template v-if="lists.length === 0">
                     Пока нет задач.
                     <button type="button" class="tasks-view__empty-cta" @click="openTaskForm()">
@@ -164,10 +171,11 @@ onMounted(() => reload())
                 :derived="derivedFor(list.uuid) ?? null"
                 @open="handleOpen"
                 @toggle-completed="handleToggleCompleted"
+                @change-status="handleChangeStatus"
               />
 
               <tr class="tasks-view__add-row" @click="openTaskForm()">
-                <td colspan="4">
+                <td colspan="5">
                   <span class="tasks-view__add">
                     <LkIcon name="plus" :size="15" />
                     Добавить задачу
@@ -296,6 +304,10 @@ onMounted(() => reload())
 }
 
 /* Колонка ЗАДАЧА без ширины — занимает остаток; заголовок внутри ellipsis'ится. */
+.tasks-view__col--status {
+  width: 130px;
+}
+
 .tasks-view__col--tags {
   width: 180px;
 }

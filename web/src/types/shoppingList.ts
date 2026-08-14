@@ -10,6 +10,13 @@ export type ShoppingCategory = 'products' | 'household' | 'pharmacy' | 'other'
 export type ShoppingListType = 'goods' | 'tasks'
 
 /**
+ * Статус задачи (списка `type === 'tasks'`) и её пунктов. Осмыслен ТОЛЬКО для
+ * tasks: для goods сервер отдаёт дефолт (`new`), UI статус не показывает и не
+ * отправляет. Инвариант `done ⇔ is_completed`/`is_checked` обеспечивает сервер.
+ */
+export type TaskStatus = 'new' | 'in_progress' | 'postponed' | 'done'
+
+/**
  * Список покупок — зеркало ShoppingListResource (snake_case), нормализованное
  * на клиенте: `tags` — уже разобранный `string[]` (сервер хранит и отдаёт
  * его непрозрачной JSON-строкой в TEXT-колонке; парсинг — в
@@ -29,6 +36,15 @@ export interface ShoppingList {
    * переключает его через PUT /shopping-lists/{uuid}.
    */
   is_completed: boolean
+  /** Статус задачи (см. `TaskStatus`); для goods — серверный дефолт, UI его игнорирует. */
+  status: TaskStatus
+  status_label: string
+  /**
+   * Закреплён ли статус вручную: пока `false`, сервер сам выводит статус
+   * задачи из статусов пунктов; `true` — пользователь выбрал статус явно.
+   * Сбрасывается PUT'ом `{ status_is_manual: false }` (пункт «Авто»).
+   */
+  status_is_manual: boolean
   created_at: string
   updated_at: string
 }
@@ -54,6 +70,9 @@ export interface ShoppingListItem {
   link: string | null
   comment: string | null
   tags: string[]
+  /** Статус пункта (только tasks; `done ⇔ is_checked` гарантирует сервер). */
+  status: TaskStatus
+  status_label: string
   created_at: string
   updated_at: string
 }
@@ -79,6 +98,8 @@ export interface CreateShoppingListPayload {
   type?: ShoppingListType
   tags?: string[]
   is_completed?: boolean
+  /** Только для tasks — для goods фронт статус не отправляет. */
+  status?: TaskStatus
   uuid?: string
 }
 
@@ -92,6 +113,10 @@ export interface UpdateShoppingListPayload {
   type?: ShoppingListType
   tags?: string[]
   is_completed?: boolean
+  /** Смена статуса задачи: PUT `{ status }` (сервер закрепит его как ручной). */
+  status?: TaskStatus
+  /** Сброс закрепления на автоматику: PUT `{ status_is_manual: false }`. */
+  status_is_manual?: boolean
 }
 
 /**
@@ -110,6 +135,8 @@ export interface CreateShoppingListItemPayload {
   link?: string | null
   comment?: string | null
   tags?: string[]
+  /** Только для пунктов tasks-списков. */
+  status?: TaskStatus
 }
 
 /**
@@ -129,4 +156,6 @@ export interface UpdateShoppingListItemPayload {
   link?: string | null
   comment?: string | null
   tags?: string[]
+  /** Смена статуса пункта (только tasks); `is_checked` сервер сведёт сам. */
+  status?: TaskStatus
 }

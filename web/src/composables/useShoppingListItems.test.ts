@@ -10,6 +10,8 @@ const item: ShoppingListItem = {
   category: 'products',
   category_label: 'Продукты',
   is_checked: false,
+  status: 'new',
+  status_label: 'Новая',
   position: 1,
   quantity: null,
   deadline: null,

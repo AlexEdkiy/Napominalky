@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\ShoppingCategory;
+use App\Enums\TaskStatus;
 use App\Models\Concerns\HasUuid;
 use App\Models\Concerns\TracksSyncRevision;
 use Database\Factories\ShoppingListItemFactory;
@@ -31,6 +32,7 @@ class ShoppingListItem extends Model
         'name',
         'category',
         'is_checked',
+        'status',
         'position',
         'quantity',
         'deadline',
@@ -74,6 +76,7 @@ class ShoppingListItem extends Model
         return [
             'category' => ShoppingCategory::class,
             'is_checked' => 'boolean',
+            'status' => TaskStatus::class,
             'position' => 'integer',
             'quantity' => 'integer',
             'deadline' => 'immutable_date',

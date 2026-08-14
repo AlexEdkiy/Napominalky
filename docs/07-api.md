@@ -212,6 +212,14 @@ PUT  /api/v1/devices/{uuid}               → 200
 | DELETE    | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}` | Удалить элемент          | ✓    |
 | POST      | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}/check` | Отметить купленным | ✓   |
 
+**Статусы задач (списки `type=tasks`):**
+
+- Ресурс списка содержит `status` (`new` / `in_progress` / `postponed` / `done`), `status_label` (русская подпись) и `status_is_manual` (bool — статус закреплён вручную и не деривируется из пунктов).
+- Ресурс пункта содержит `status` и `status_label` (те же значения enum).
+- В Store/Update списка принимается опциональный `status` (enum); в Update списка дополнительно `status_is_manual` (bool). В Store/Update пункта — опциональный `status`.
+- Инвариант: `status=done` ⇔ `is_completed` / `is_checked` (сервер синхронизирует автоматически, в т.ч. на `/check`).
+- Для списков `type=goods` статус носит номинальный характер (всегда отдаётся, по умолчанию `new`); клиент его не отображает, передача `status` для goods не является ошибкой (поле игнорируется доменным слоем).
+
 ### Устройства (FCM)
 
 | Метод | URI                       | Описание                    | Auth |

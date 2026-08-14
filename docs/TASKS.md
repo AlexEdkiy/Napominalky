@@ -1,29 +1,29 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-12 (моб. форма напоминания: карточки как на главной; статус «В календаре» при экспорте — MOB-56)
+> Последнее обновление: 2026-08-14 (Статусы задач и строк: backend+web — enum, деривация, закрепление ручного, колонка СТАТУС/бейджи, только для tasks — ARCH-2/DEV-20/MBE-17/WEB-41/TEST-16/UITEST-11)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
 
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
-| ARCH    | 1            | architect                 |
-| DEV     | 19           | backend-developer         |
-| MBE     | 16           | mobile-backend-developer  |
+| ARCH    | 2            | architect                 |
+| DEV     | 20           | backend-developer         |
+| MBE     | 17           | mobile-backend-developer  |
 | MOB     | 56           | mobile-developer          |
-| WEB     | 40           | web-developer             |
-| TEST    | 15           | test-engineer             |
-| UITEST  | 10           | ux-ui-test-engineer       |
+| WEB     | 41           | web-developer             |
+| TEST    | 16           | test-engineer             |
+| UITEST  | 11           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 38           | technical-writer          |
+| DOC     | 39           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 121 |
+| Completed | 122 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2363,4 +2363,24 @@
   - [x] tsc OK, Jest зелёный (916)
 - **Создана:** 2026-08-12
 - **Завершена:** 2026-08-12
+
+### FEAT-1: Статусы задач и строк (backend + web) — Новая/В работе/Отложена/Выполнена
+- **Исполнители:** architect (ARCH-2), backend-developer (DEV-20), mobile-backend-developer (MBE-17), web-developer (WEB-41), test-engineer (TEST-16), ux-ui-test-engineer (UITEST-11)
+- **Статус:** completed (backend+web; mobile — следующим шагом)
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** MOB-статусы (обмен)
+- **Стандарты:** docs/02-php.md, 03-laravel.md, 04-database.md, 05-typescript-vue.md, 07-api.md
+- **Описание:** Введены статусы **Новая/В работе/Отложена/Выполнена** (по умолчанию Новая) — ТОЛЬКО для списков `type='tasks'` и их пунктов; списки `goods` (Покупки) без статусов (остаётся `is_checked`/`is_completed`). Enum `TaskStatus`; колонки `shopping_lists.status`+`status_is_manual`, `shopping_list_items.status` (миграции `2026_08_14_100000/100100` с backfill из is_completed/is_checked). **Автоматика деривации статуса задачи из пунктов** (`ListStatusResolver` + `RecalculateListStatusAction`): любой пункт in_progress → задача in_progress; все done → done; все postponed → postponed; иначе new. **Ручной статус закрепляется** (`status_is_manual`): любой явный статус в PUT/POST → закрепление, автоматика не трогает; сброс — `status_is_manual:false` или снятие is_completed (UI «Авто»). **Инвариант** `done ⇔ is_completed/is_checked` (приоритет status над булевыми). Sync: `SyncEntities::FIELDS` += is_completed/status/status_is_manual (список) и status (пункт), нормализация в `SyncChangeApplier` — заложено под будущую мобилку. API: валидация status (enum, 422 на невалидном; goods номинально без 422), поля в ресурсах. Web: колонка «СТАТУС» (бейджи — Новая синий/В работе amber/Отложена lilac/Выполнена зелёный), `LkStatusBadge` с меню (задача +«Авто», пункт без), выбор статуса задачи/строк, индикатор ручного закрепления, goods «—»; зачёркивание tasks-строки по `status==='done'`.
+- **Файлы:** backend — `app/Enums/TaskStatus.php`, `app/Services/ShoppingList/ListStatusResolver.php`, `app/Actions/ShoppingList*/…`, `app/Models/{ShoppingList,ShoppingListItem}.php`, `app/Data/*`, `app/Http/{Requests,Resources,Controllers}/ShoppingList*`, `app/Services/Sync/{SyncEntities,SyncSerializer,SyncChangeApplier}.php`, `database/migrations/2026_08_14_1000*`, фабрики, `docs/07-api.md`; web — `types/shoppingList.ts`, `constants/lkStatusColors.ts`, `components/lk/{LkStatusBadge,LkTaskFormDialog,LkTaskItemRow}.vue`, `components/lk/tasks/LkTaskTableRow.vue`, `pages/lk/tasks/TasksView.vue`, `composables/useLkTasksTable.ts` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Статусы только для tasks; goods без статусов
+  - [x] Деривация задача←пункты; ручной статус закрепляется, «Авто» сбрасывает
+  - [x] Инвариант done⇔is_completed/is_checked; enum-валидация API
+  - [x] Колонка СТАТУС + бейджи/меню по макету; sync-поля заложены под мобилку
+  - [x] Pest 357 passed; vue-tsc OK, Vitest 574 passed
+- **Известные полировки (web, не блок.):** дропдаун-меню статуса может обрезаться у нижних строк длинного списка (нужен Teleport/floating); ARIA-навигация меню стрелками.
+- **Следующий шаг:** статусы в мобильном приложении + обмен (MOB) — schema/outbox/деривация локально, sync-поля уже готовы.
+- **Создана:** 2026-08-14
+- **Завершена:** 2026-08-14
 

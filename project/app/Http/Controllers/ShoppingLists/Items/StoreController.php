@@ -7,6 +7,7 @@ namespace App\Http\Controllers\ShoppingLists\Items;
 use App\Actions\ShoppingListItem\AddItemAction;
 use App\Data\ShoppingListItemData;
 use App\Enums\ShoppingCategory;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShoppingListItem\StoreItemRequest;
 use App\Http\Resources\ShoppingListItemResource;
@@ -45,6 +46,9 @@ final class StoreController extends Controller
                 ? ShoppingCategory::from($request->string('category')->toString())
                 : ShoppingCategory::Other,
             isChecked: $request->boolean('is_checked'),
+            status: $request->filled('status')
+                ? TaskStatus::from($request->string('status')->toString())
+                : null,
             position: (int) $request->integer('position'),
             quantity: $request->filled('quantity') ? (int) $request->integer('quantity') : 1,
             deadline: $request->filled('deadline') ? $request->string('deadline')->toString() : null,

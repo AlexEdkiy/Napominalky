@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
 import { lkTableDateLabel, lkTableTimeLabel } from '@/composables/useLkTasksTable'
 import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { ShoppingList, TaskStatus } from '@/types/shoppingList'
 
 interface Props {
   list: ShoppingList
@@ -20,6 +21,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   toggleCompleted: [list: ShoppingList]
   open: [list: ShoppingList]
+  changeStatus: [list: ShoppingList, value: TaskStatus | 'auto']
 }>()
 
 /** Русское склонение «пункт/пункта/пунктов». */
@@ -57,6 +59,11 @@ function handleRowClick(): void {
 function handleToggle(): void {
   emit('toggleCompleted', props.list)
 }
+
+/** Выбор в меню бейджа СТАТУС (только tasks); клик по бейджу строку не открывает. */
+function handleStatusSelect(value: TaskStatus | 'auto'): void {
+  emit('changeStatus', props.list, value)
+}
 </script>
 
 <template>
@@ -80,6 +87,22 @@ function handleToggle(): void {
           <span class="lk-task-row__subtitle">{{ subtitle }}</span>
         </span>
       </span>
+    </td>
+
+    <!-- Статусы только у tasks; для goods — прочерк. @click.stop: клик по
+         бейджу/меню не должен открывать модалку строки. -->
+    <td class="lk-task-row__cell lk-task-row__cell--status" @click.stop>
+      <span v-if="list.type === 'tasks'" class="lk-task-row__status">
+        <LkStatusBadge :status="list.status" interactive with-auto @select="handleStatusSelect" />
+        <span
+          v-if="list.status_is_manual"
+          class="lk-task-row__status-manual"
+          role="img"
+          title="Задано вручную"
+          aria-label="Задано вручную"
+        />
+      </span>
+      <span v-else class="lk-task-row__empty">—</span>
     </td>
 
     <td class="lk-task-row__cell lk-task-row__cell--tags">
@@ -185,6 +208,26 @@ function handleToggle(): void {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Меню бейджа позиционируется от .lk-status-badge — ячейке нужен visible. */
+.lk-task-row__cell--status {
+  overflow: visible;
+}
+
+.lk-task-row__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Индикатор ручного закрепления статуса — маленькая точка рядом с бейджем. */
+.lk-task-row__status-manual {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8a938f;
 }
 
 .lk-task-row__date {

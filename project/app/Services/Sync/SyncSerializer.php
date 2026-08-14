@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Sync;
 
+use App\Enums\TaskStatus;
 use App\Models\Note;
 use App\Models\Reminder;
 use App\Models\ShoppingList;
@@ -67,6 +68,10 @@ final class SyncSerializer
             // tags — непрозрачная JSON-строка (как в sync-whitelist SyncEntities);
             // мобильный клиент уже принимает поля type/tags в ServerShoppingList.
             'tags' => $list->tags,
+            'is_completed' => $list->is_completed,
+            // Статус задачи (только type='tasks'; для goods всегда 'new'/false).
+            'status' => $list->status?->value ?? TaskStatus::New->value,
+            'status_is_manual' => $list->status_is_manual,
             ...$this->timestamps($list),
         ];
     }
@@ -85,6 +90,8 @@ final class SyncSerializer
             'name' => $item->name,
             'category' => $item->category->value,
             'is_checked' => $item->is_checked,
+            // Статус строки задачи (только для пунктов type='tasks').
+            'status' => $item->status?->value ?? TaskStatus::New->value,
             'position' => $item->position,
             ...$this->timestamps($item),
         ];

@@ -34,7 +34,7 @@ it('persists a client-provided uuid via CreateListAction', function (): void {
 it('updates a list title via UpdateListAction', function (): void {
     $list = ShoppingList::factory()->create(['title' => 'Before']);
 
-    $updated = (new UpdateListAction())($list, new ShoppingListData(title: 'After'));
+    $updated = app(UpdateListAction::class)($list, new ShoppingListData(title: 'After'));
 
     expect($updated->title)->toBe('After')
         ->and($list->fresh()->title)->toBe('After');

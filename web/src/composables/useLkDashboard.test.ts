@@ -35,6 +35,9 @@ function makeList(itemsCount: number, checkedCount: number, uuid: string): Shopp
     items_count: itemsCount,
     checked_items_count: checkedCount,
     is_completed: false,
+    status: 'new',
+    status_label: 'Новая',
+    status_is_manual: false,
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
   }
@@ -47,6 +50,8 @@ function makeItem(uuid: string, overrides: Partial<ShoppingListItem> = {}): Shop
     category: 'products',
     category_label: 'Продукты',
     is_checked: false,
+    status: 'new',
+    status_label: 'Новая',
     position: 0,
     quantity: null,
     deadline: null,

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\ShoppingLists\Items;
 use App\Actions\ShoppingListItem\UpdateItemAction;
 use App\Data\ShoppingListItemData;
 use App\Enums\ShoppingCategory;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShoppingListItem\UpdateItemRequest;
 use App\Http\Resources\ShoppingListItemResource;
@@ -42,6 +43,9 @@ final class UpdateController extends Controller
                 ? ShoppingCategory::from($request->string('category')->toString())
                 : $item->category,
             isChecked: $request->has('is_checked') ? $request->boolean('is_checked') : $item->is_checked,
+            status: $request->has('status')
+                ? TaskStatus::from($request->string('status')->toString())
+                : null,
             position: $request->has('position') ? (int) $request->integer('position') : $item->position,
             quantity: $request->has('quantity') ? (int) $request->integer('quantity') : $item->quantity,
             deadline: $request->has('deadline')
