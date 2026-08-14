@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-14 (Статусы задач и строк: backend+web — enum, деривация, закрепление ручного, колонка СТАТУС/бейджи, только для tasks — ARCH-2/DEV-20/MBE-17/WEB-41/TEST-16/UITEST-11)
+> Последнее обновление: 2026-08-14 (фикс 422 при смене статуса задачи — partial PUT списка — MBE-18)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,7 +9,7 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 2            | architect                 |
 | DEV     | 20           | backend-developer         |
-| MBE     | 17           | mobile-backend-developer  |
+| MBE     | 18           | mobile-backend-developer  |
 | MOB     | 56           | mobile-developer          |
 | WEB     | 41           | web-developer             |
 | TEST    | 16           | test-engineer             |
@@ -17,13 +17,13 @@
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 39           | technical-writer          |
+| DOC     | 40           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 122 |
+| Completed | 123 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2381,6 +2381,21 @@
   - [x] Pest 357 passed; vue-tsc OK, Vitest 574 passed
 - **Известные полировки (web, не блок.):** дропдаун-меню статуса может обрезаться у нижних строк длинного списка (нужен Teleport/floating); ARIA-навигация меню стрелками.
 - **Следующий шаг:** статусы в мобильном приложении + обмен (MOB) — schema/outbox/деривация локально, sync-поля уже готовы.
+- **Создана:** 2026-08-14
+- **Завершена:** 2026-08-14
+
+### MBE-18: Фикс 422 при смене статуса задачи (partial PUT списка)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** high (прод-баг)
+- **Зависимости:** FEAT-1
+- **Блокирует:** —
+- **Стандарты:** docs/07-api.md, 03-laravel.md
+- **Описание:** Смена статуса задачи из таблицы (`changeStatus` → `PUT { status }` / `{ status_is_manual:false }` без title) падала с **422**: `UpdateListRequest.title` был `required`, а контроллер всегда брал `title` из запроса (затёр бы название пустой строкой). Исправлено: `title` → `['sometimes','required','string','max:255']`; `UpdateController` берёт `title` из запроса только при наличии, иначе — существующий `$shoppingList->title` (по образцу рабочего item-контроллера, где `name` уже sometimes). Смена статуса СТРОКИ уже работала (name sometimes). Добавлен регресс-тест partial PUT (только status/только status_is_manual → 200, title сохранён). Backend применён live (bind-mount + optimize:clear).
+- **Файлы:** `project/app/Http/Controllers/ShoppingLists/UpdateController.php`, `project/app/Http/Requests/ShoppingList/UpdateListRequest.php`, `project/tests/Feature/ShoppingLists/TaskStatusApiContractTest.php`
+- **Критерии приёмки:**
+  - [x] PUT списка только со status → 200, title не затёрт, статус закреплён
+  - [x] «Авто»-сброс partial → 200; Pest зелёный
 - **Создана:** 2026-08-14
 - **Завершена:** 2026-08-14
 
