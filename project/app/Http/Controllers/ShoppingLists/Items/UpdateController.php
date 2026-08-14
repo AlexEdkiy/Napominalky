@@ -29,6 +29,9 @@ final class UpdateController extends Controller
 
         $updated = ($this->updateItem)($item, $this->toData($request, $item));
 
+        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта).
+        $updated->loadCount('comments');
+
         return ShoppingListItemResource::make($updated);
     }
 

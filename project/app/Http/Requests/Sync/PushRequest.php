@@ -38,7 +38,7 @@ final class PushRequest extends FormRequest
             'changes.*.entity_type' => [
                 'required',
                 'string',
-                'in:note,shopping_list,shopping_list_item,reminder',
+                'in:note,shopping_list,shopping_list_item,shopping_list_item_comment,reminder',
             ],
             'changes.*.uuid' => ['required', 'uuid'],
             'changes.*.operation' => ['required', 'in:create,update,delete'],

@@ -38,6 +38,9 @@ use App\Http\Controllers\Settings\ToggleSyncController;
 use App\Http\Controllers\ShoppingLists\DestroyController as ListDestroyController;
 use App\Http\Controllers\ShoppingLists\IndexController as ListIndexController;
 use App\Http\Controllers\ShoppingLists\Items\CheckController as ItemCheckController;
+use App\Http\Controllers\ShoppingLists\Items\Comments\DestroyController as ItemCommentDestroyController;
+use App\Http\Controllers\ShoppingLists\Items\Comments\IndexController as ItemCommentIndexController;
+use App\Http\Controllers\ShoppingLists\Items\Comments\StoreController as ItemCommentStoreController;
 use App\Http\Controllers\ShoppingLists\Items\DestroyController as ItemDestroyController;
 use App\Http\Controllers\ShoppingLists\Items\IndexController as ItemIndexController;
 use App\Http\Controllers\ShoppingLists\Items\StoreController as ItemStoreController;
@@ -143,6 +146,16 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     Route::put('{item}', ItemUpdateController::class)->name('update');
                     Route::delete('{item}', ItemDestroyController::class)->name('destroy');
                     Route::post('{item}/check', ItemCheckController::class)->name('check');
+
+                    // Тред комментариев строки: {comment} скоупится внутри
+                    // relation comments() родительского {item} (по uuid).
+                    Route::prefix('{item}/comments')->name('comments.')->scopeBindings()
+                        ->group(function (): void {
+                            Route::get('/', ItemCommentIndexController::class)->name('index');
+                            Route::post('/', ItemCommentStoreController::class)->name('store');
+                            Route::delete('{comment}', ItemCommentDestroyController::class)
+                                ->name('destroy');
+                        });
                 });
         });
 

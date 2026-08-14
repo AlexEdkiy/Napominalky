@@ -17,7 +17,10 @@ final class IndexController extends Controller
     {
         $this->authorize('view', $shoppingList);
 
+        // withCount/with — comments_count и тред в ресурсе пункта без N+1.
         $items = $shoppingList->items()
+            ->withCount('comments')
+            ->with(['comments' => static fn ($query) => $query->orderBy('created_at')->orderBy('id')])
             ->orderBy('position')
             ->paginate(self::DEFAULT_PER_PAGE);
 
