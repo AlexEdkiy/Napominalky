@@ -8,6 +8,7 @@ use App\Models\Note;
 use App\Models\Reminder;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
+use App\Models\ShoppingListItemComment;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -32,6 +33,7 @@ final class SyncEntities
         'note' => Note::class,
         'shopping_list' => ShoppingList::class,
         'shopping_list_item' => ShoppingListItem::class,
+        'shopping_list_item_comment' => ShoppingListItemComment::class,
         'reminder' => Reminder::class,
     ];
 
@@ -44,6 +46,7 @@ final class SyncEntities
         'note' => 'notes',
         'shopping_list' => 'shopping_lists',
         'shopping_list_item' => 'shopping_list_items',
+        'shopping_list_item_comment' => 'shopping_list_item_comments',
         'reminder' => 'reminders',
     ];
 
@@ -51,9 +54,11 @@ final class SyncEntities
      * entity_type → доменные колонки, принимаемые из клиентского payload при
      * push (whitelist). Сюда НЕ входят id, user_id, uuid, server_revision и
      * временные метки — они выставляются сервером (см. SyncPushService).
-     * Состав согласован с публичными полями SyncSerializer. Поле
-     * shopping_list_uuid — публичная ссылка на родителя, отдельно
-     * резолвится в shopping_list_id и в этот список не включается.
+     * Состав согласован с публичными полями SyncSerializer. Поля
+     * shopping_list_uuid / shopping_list_item_uuid — публичные ссылки на
+     * родителя, отдельно резолвятся во внутренние FK и в этот список не
+     * включаются. Поле comment пункта остаётся в whitelist на время
+     * двухфазного вывода (тред shopping_list_item_comment его заменяет).
      *
      * @var array<string, list<string>>
      */
@@ -73,6 +78,7 @@ final class SyncEntities
             'comment',
             'tags',
         ],
+        'shopping_list_item_comment' => ['author_name', 'body'],
         'reminder' => [
             'title',
             'notes',

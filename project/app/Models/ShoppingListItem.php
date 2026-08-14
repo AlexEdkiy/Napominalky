@@ -12,6 +12,7 @@ use Database\Factories\ShoppingListItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ShoppingListItem extends Model
@@ -64,6 +65,17 @@ class ShoppingListItem extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Тред комментариев строки. Имя relation `comments` завязано на
+     * scopeBindings вложенного маршрута (items/{item}/comments/{comment}).
+     *
+     * @return HasMany<ShoppingListItemComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(ShoppingListItemComment::class);
     }
 
     /**

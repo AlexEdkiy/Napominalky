@@ -32,6 +32,7 @@ final class SyncPullService
      *     notes: list<array<string, mixed>>,
      *     shopping_lists: list<array<string, mixed>>,
      *     shopping_list_items: list<array<string, mixed>>,
+     *     shopping_list_item_comments: list<array<string, mixed>>,
      *     reminders: list<array<string, mixed>>,
      *     cursor: int,
      *     has_more: bool
@@ -94,6 +95,12 @@ final class SyncPullService
             $query->with(['shoppingList' => static fn ($relation) => $relation->withTrashed()]);
         }
 
+        // Родительская строка нужна сериализатору (item?->uuid) — eager load
+        // включая tombstones, иначе N+1 и потеря ссылки на удалённого родителя.
+        if ($entityType === 'shopping_list_item_comment') {
+            $query->with(['item' => static fn ($relation) => $relation->withTrashed()]);
+        }
+
         return $query->get();
     }
 
@@ -101,7 +108,7 @@ final class SyncPullService
      * Сериализует и раскладывает страницу по множественным ключам выдачи.
      * Пустые наборы остаются пустыми массивами.
      *
-     * @param list<Model> $page
+     * @param  list<Model>  $page
      * @return array<string, list<array<string, mixed>>>
      */
     private function groupByEntity(array $page): array
@@ -123,7 +130,7 @@ final class SyncPullService
      * Новый курсор клиента: максимальный отданный server_revision либо $since,
      * если в страницу ничего не попало.
      *
-     * @param list<Model> $page
+     * @param  list<Model>  $page
      */
     private function cursorFor(array $page, int $since): int
     {
@@ -138,8 +145,9 @@ final class SyncPullService
             'notes' => 'note',
             'shopping_lists' => 'shopping_list',
             'shopping_list_items' => 'shopping_list_item',
+            'shopping_list_item_comments' => 'shopping_list_item_comment',
             'reminders' => 'reminder',
-            default => throw new InvalidArgumentException('Unknown table: ' . $model->getTable()),
+            default => throw new InvalidArgumentException('Unknown table: '.$model->getTable()),
         };
     }
 }
