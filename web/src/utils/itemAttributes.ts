@@ -7,17 +7,19 @@ import type { ShoppingListItem } from '@/types/shoppingList'
  * инлайн-редактор → токены заданных значений. Чистые функции без побочных
  * эффектов — используются в `LkItemAttributes.vue` / `LkTaskItemRow.vue` и
  * покрыты юнит-тестами.
+ *
+ * Комментарии — НЕ атрибут: тред комментариев живёт отдельным компонентом
+ * (`LkItemCommentsThread`), открывается кнопкой 💬 в основной строке пункта.
  */
 
 /** Атрибут пункта, доступный через чипсы/токены в развёрнутой панели. */
-export type ItemAttribute = 'deadline' | 'reminder' | 'link' | 'comment' | 'tag'
+export type ItemAttribute = 'deadline' | 'reminder' | 'link' | 'tag'
 
 /** Текущие значения атрибутов пункта (используются токенами и редакторами). */
 export interface ItemAttributeValues {
   deadline: string | null
   reminderAt: string | null
   link: string | null
-  comment: string | null
   tags: string[]
 }
 
@@ -25,7 +27,6 @@ export const ATTRIBUTE_ORDER: readonly ItemAttribute[] = [
   'deadline',
   'reminder',
   'link',
-  'comment',
   'tag',
 ]
 
@@ -33,7 +34,6 @@ export const ATTRIBUTE_LABELS: Record<ItemAttribute, string> = {
   deadline: 'Дедлайн',
   reminder: 'Напоминание',
   link: 'Ссылка',
-  comment: 'Комментарий',
   tag: 'Тег',
 }
 
@@ -41,7 +41,6 @@ export const ATTRIBUTE_ICONS: Record<ItemAttribute, LkIconName> = {
   deadline: 'calendar',
   reminder: 'bell',
   link: 'link',
-  comment: 'comment',
   tag: 'tag',
 }
 
@@ -51,7 +50,6 @@ export function attributeValuesFromItem(item: ShoppingListItem): ItemAttributeVa
     deadline: item.deadline,
     reminderAt: item.reminder_at,
     link: item.link,
-    comment: item.comment,
     tags: item.tags,
   }
 }
@@ -65,8 +63,6 @@ export function isAttributeSet(attribute: ItemAttribute, values: ItemAttributeVa
       return values.reminderAt !== null && values.reminderAt.length > 0
     case 'link':
       return values.link !== null && values.link.length > 0
-    case 'comment':
-      return values.comment !== null && values.comment.length > 0
     case 'tag':
       return values.tags.length > 0
     default:
@@ -150,8 +146,6 @@ export function formatAttributeToken(
       return values.reminderAt !== null ? formatReminderToken(values.reminderAt, now) : ''
     case 'link':
       return values.link !== null ? formatLinkToken(values.link) : ''
-    case 'comment':
-      return 'Есть заметка'
     case 'tag':
       return values.tags.join(', ')
     default:

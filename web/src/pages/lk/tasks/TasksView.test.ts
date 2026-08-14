@@ -44,6 +44,8 @@ function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
     reminder_at: null,
     link: null,
     comment: null,
+    comments_count: 0,
+    comments: [],
     tags: [],
     created_at: '2026-07-01T00:00:00Z',
     updated_at: '2026-07-01T00:00:00Z',
@@ -212,6 +214,103 @@ describe('TasksView', () => {
     // Формат колонки НАПОМИНАНИЕ — «⏰ HH:MM», как в макете.
     expect(wrapper.find('.lk-task-row__reminder').text()).toBe('⏰ 09:00')
     vi.useRealTimers()
+  })
+
+  it('shows the 💬 counter in the ЗАДАЧА cell from the derived comments once loaded', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({ uuid: 'l-1' })]))
+    let resolveItems: ((items: ShoppingListItem[]) => void) | undefined
+    vi.mocked(shoppingListsApi.fetchItems).mockReturnValue(
+      new Promise((resolve) => {
+        resolveItems = resolve
+      }),
+    )
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row').exists()).toBe(true))
+
+    // Пока derived не загружен — индикатор комментариев не показывается.
+    expect(wrapper.find('.lk-task-row__comments').exists()).toBe(false)
+
+    resolveItems?.([
+      makeItem({
+        uuid: 'i-1',
+        name: 'Плитка',
+        comments_count: 2,
+        comments: [
+          { uuid: 'c-1', author_name: 'Анна', body: 'Взять образец', created_at: '2026-03-01T10:00:00' },
+          { uuid: 'c-2', author_name: 'Пётр', body: 'Уже взял', created_at: '2026-03-02T11:00:00' },
+        ],
+      }),
+      makeItem({
+        uuid: 'i-2',
+        name: 'Затирка',
+        comments_count: 1,
+        comments: [
+          { uuid: 'c-3', author_name: 'Анна', body: 'Белую', created_at: '2026-03-03T12:00:00' },
+        ],
+      }),
+    ])
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row__comments').exists()).toBe(true))
+
+    // Суммарный счётчик по всем пунктам списка — в ячейке ЗАДАЧА.
+    const indicator = wrapper.find('.lk-task-row__comments')
+    expect(indicator.text()).toContain('3')
+    expect(wrapper.find('.lk-task-row__cell--task .lk-task-row__comments').exists()).toBe(true)
+  })
+
+  it('hides the 💬 counter when the list items carry no comments', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({ uuid: 'l-1' })]))
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1' })])
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(shoppingListsApi.fetchItems).toHaveBeenCalled())
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.lk-task-row__comments').exists()).toBe(false)
+  })
+
+  it('opens the hover popover grouped by items and does NOT open the row modal on click', async () => {
+    stubMatchMedia(true)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({ uuid: 'l-1' })]))
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({
+        uuid: 'i-1',
+        name: 'Плитка',
+        comments_count: 1,
+        comments: [
+          { uuid: 'c-1', author_name: 'Анна', body: 'Взять образец', created_at: '2026-03-01T10:00:00' },
+        ],
+      }),
+      makeItem({
+        uuid: 'i-2',
+        name: 'Затирка',
+        comments_count: 1,
+        comments: [
+          { uuid: 'c-2', author_name: 'Пётр', body: 'Белую', created_at: '2026-03-03T12:00:00' },
+        ],
+      }),
+    ])
+
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row__comments').exists()).toBe(true))
+
+    // Превью по focusin (hover-задержки покрыты тестами LkCommentsPopover).
+    await wrapper.find('.lk-comments-popover').trigger('focusin')
+    const tooltip = wrapper.find('[role="tooltip"]')
+    expect(tooltip.exists()).toBe(true)
+    // Содержимое сгруппировано по пунктам: имя пункта → его комментарии.
+    expect(tooltip.findAll('.lk-comments-popover__group').map((group) => group.text())).toEqual([
+      'Плитка',
+      'Затирка',
+    ])
+    expect(tooltip.text()).toContain('Взять образец')
+    expect(tooltip.text()).toContain('Пётр')
+
+    // @click.stop: клик по индикатору не открывает модалку строки.
+    await wrapper.find('.lk-task-row__comments').trigger('click')
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
   })
 
   it('fixes the column layout with a colgroup so background date loading cannot shift columns', async () => {

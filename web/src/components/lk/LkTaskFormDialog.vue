@@ -14,6 +14,7 @@ import { colorForTag } from '@/constants/lkTagColors'
 import type { ValidationErrorResponse } from '@/types/api'
 import type {
   ShoppingList,
+  ShoppingListItem,
   ShoppingListType,
   TaskStatus,
   UpdateShoppingListItemPayload,
@@ -53,6 +54,8 @@ const isConfirmingDelete = ref(false)
 const hasItemChanges = ref(false)
 /** uuid раскрытого пункта (панель атрибутов); одновременно раскрыт ровно один. */
 const expandedItemUuid = ref<string | null>(null)
+/** Пункт, ожидающий подтверждения удаления (крестик × в строке → диалог). */
+const removingItem = ref<ShoppingListItem | null>(null)
 
 const {
   items,
@@ -65,6 +68,7 @@ const {
   update: updateItem,
   remove: removeItem,
   check: checkItem,
+  addComment,
 } = useShoppingListItems(() => currentList.value?.uuid ?? '')
 
 const isEdit = computed<boolean>(() => currentList.value !== null)
@@ -109,6 +113,7 @@ function resetForm(): void {
   isConfirmingDelete.value = false
   hasItemChanges.value = false
   expandedItemUuid.value = null
+  removingItem.value = null
   if (list !== null) {
     void loadItems()
   }
@@ -197,9 +202,33 @@ async function handleCheckItem(uuid: string, isChecked: boolean): Promise<void> 
   hasItemChanges.value = true
 }
 
-async function handleRemoveItem(uuid: string): Promise<void> {
-  await removeItem(uuid)
-  hasItemChanges.value = true
+/** Крестик × в строке пункта: удаление ТОЛЬКО после подтверждения в диалоге. */
+function requestRemoveItem(item: ShoppingListItem): void {
+  removingItem.value = item
+}
+
+function cancelRemoveItem(): void {
+  removingItem.value = null
+}
+
+async function confirmRemoveItem(): Promise<void> {
+  const target = removingItem.value
+  removingItem.value = null
+  if (target === null) {
+    return
+  }
+  const removed = await removeItem(target.uuid)
+  if (removed) {
+    hasItemChanges.value = true
+  }
+}
+
+/** Отправка комментария из треда пункта: POST + локальный append в composable. */
+async function handleAddComment(uuid: string, body: string): Promise<void> {
+  const created = await addComment(uuid, body)
+  if (created !== null) {
+    hasItemChanges.value = true
+  }
 }
 
 /** Раскрыть/свернуть панель атрибутов пункта (одновременно раскрыт один). */
@@ -266,6 +295,10 @@ function handleClose(): void {
 
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && isTaskFormOpen.value) {
+    // Открытый confirm-диалог сам ловит Esc (отмена) — модалку не закрываем.
+    if (isConfirmingDelete.value || removingItem.value !== null) {
+      return
+    }
     handleClose()
   }
 }
@@ -447,9 +480,10 @@ async function confirmDelete(): Promise<void> {
               :expanded="expandedItemUuid === item.uuid"
               :tag-suggestions="itemTagSuggestions"
               @check="handleCheckItem(item.uuid, $event)"
-              @remove="handleRemoveItem(item.uuid)"
+              @remove-request="requestRemoveItem(item)"
               @toggle-expand="toggleItemExpand(item.uuid)"
               @update="handleUpdateItem(item.uuid, $event)"
+              @add-comment="handleAddComment(item.uuid, $event)"
             />
           </ul>
           <p v-if="itemsError" role="alert" class="lk-form-dialog__error">{{ itemsError }}</p>
@@ -521,6 +555,16 @@ async function confirmDelete(): Promise<void> {
       cancel-label="Отмена"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
+    />
+
+    <LkConfirmDialog
+      v-if="removingItem !== null"
+      :title="`Удалить строку «${removingItem.name}»?`"
+      message="Строка и её комментарии будут удалены безвозвратно."
+      confirm-label="Удалить"
+      cancel-label="Отмена"
+      @confirm="confirmRemoveItem"
+      @cancel="cancelRemoveItem"
     />
   </div>
 </template>

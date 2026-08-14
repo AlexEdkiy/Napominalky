@@ -58,6 +58,8 @@ function makeItem(
     reminder_at: null,
     link: null,
     comment: null,
+    comments_count: 0,
+    comments: [],
     tags: [],
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',

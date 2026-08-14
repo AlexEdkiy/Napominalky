@@ -58,6 +58,8 @@ function makeItem(uuid: string, overrides: Partial<ShoppingListItem> = {}): Shop
     reminder_at: null,
     link: null,
     comment: null,
+    comments_count: 0,
+    comments: [],
     tags: [],
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
@@ -143,8 +145,18 @@ describe('useLkDashboard', () => {
     await load()
     await vi.waitFor(() => expect(taskListDates.value.size).toBe(2))
 
-    expect(taskListDates.value.get('l-1')).toEqual({ deadline: '2026-07-06', reminderAt: null })
-    expect(taskListDates.value.get('l-2')).toEqual({ deadline: '2026-07-08', reminderAt: null })
+    expect(taskListDates.value.get('l-1')).toEqual({
+      deadline: '2026-07-06',
+      reminderAt: null,
+      commentsCount: 0,
+      comments: [],
+    })
+    expect(taskListDates.value.get('l-2')).toEqual({
+      deadline: '2026-07-08',
+      reminderAt: null,
+      commentsCount: 0,
+      comments: [],
+    })
     // Пункты запрашиваются только для активных списков панели «Задачи».
     expect(shoppingListsApi.fetchItems).not.toHaveBeenCalledWith('l-3')
   })

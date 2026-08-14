@@ -67,6 +67,21 @@ export function formatRelativeDate(iso: string | null): string {
 }
 
 /**
+ * Метка времени комментария треда строки задачи: «HH:MM DD.MM.YY» в локальной
+ * зоне (как на макете). Возвращает пустую строку для некорректного значения.
+ */
+export function formatCommentTimestamp(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  const day = `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${pad(date.getFullYear() % 100)}`
+  return `${time} ${day}`
+}
+
+/**
  * Конвертирует ISO 8601-строку в значение для `<input type="datetime-local">`
  * (формат `YYYY-MM-DDTHH:mm` в локальной зоне).
  */

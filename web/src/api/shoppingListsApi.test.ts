@@ -130,6 +130,96 @@ describe('shoppingListsApi', () => {
 
     expect(result.data[0]?.tags).toEqual(['Покупки', 'Здоровье'])
   })
+
+  it('defaults comments to [] and comments_count to 0 when the item wire omits them', async () => {
+    const wireItem = {
+      uuid: 'i-1',
+      name: 'Молоко',
+      category: 'products',
+      category_label: 'Продукты',
+      is_checked: false,
+      position: 0,
+      quantity: null,
+      deadline: null,
+      reminder_at: null,
+      link: null,
+      comment: null,
+      tags: '[]',
+      created_at: '2026-07-01T00:00:00Z',
+      updated_at: '2026-07-01T00:00:00Z',
+    }
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: [wireItem] } })
+
+    const result = await shoppingListsApi.fetchItems('l-1')
+
+    expect(result[0]?.comments).toEqual([])
+    expect(result[0]?.comments_count).toBe(0)
+  })
+
+  it('passes the embedded comments thread through the item normalization', async () => {
+    const comment = {
+      uuid: 'c-1',
+      author_name: 'Анна',
+      body: 'Взять образец',
+      created_at: '2026-07-01T10:00:00Z',
+    }
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        data: [
+          {
+            ...wireList,
+            uuid: 'i-1',
+            tags: '[]',
+            comments: [comment],
+            comments_count: 1,
+          },
+        ],
+      },
+    })
+
+    const result = await shoppingListsApi.fetchItems('l-1')
+
+    expect(result[0]?.comments).toEqual([comment])
+    expect(result[0]?.comments_count).toBe(1)
+  })
+
+  it('GETs the item comments thread from the nested endpoint', async () => {
+    const comments = [
+      { uuid: 'c-1', author_name: 'Анна', body: 'Первый', created_at: '2026-07-01T10:00:00Z' },
+      { uuid: 'c-2', author_name: 'Пётр', body: 'Второй', created_at: '2026-07-02T10:00:00Z' },
+    ]
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: comments } })
+
+    const result = await shoppingListsApi.fetchItemComments('l-1', 'i-1')
+
+    expect(apiClient.get).toHaveBeenCalledWith('/shopping-lists/l-1/items/i-1/comments')
+    expect(result).toEqual(comments)
+  })
+
+  it('POSTs a new comment body and returns the created resource', async () => {
+    const created = {
+      uuid: 'c-9',
+      author_name: 'Анна',
+      body: 'Новый',
+      created_at: '2026-07-03T10:00:00Z',
+    }
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { data: created } })
+
+    const result = await shoppingListsApi.addItemComment('l-1', 'i-1', { body: 'Новый' })
+
+    expect(apiClient.post).toHaveBeenCalledWith('/shopping-lists/l-1/items/i-1/comments', {
+      body: 'Новый',
+    })
+    expect(result).toEqual(created)
+  })
+
+  it('DELETEs a comment by its uuid under the item', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValue({ status: 204 })
+
+    await shoppingListsApi.deleteItemComment('l-1', 'i-1', 'c-1')
+
+    expect(apiClient.delete).toHaveBeenCalledWith('/shopping-lists/l-1/items/i-1/comments/c-1')
+  })
 })
 
 vi.mock('./client', () => ({

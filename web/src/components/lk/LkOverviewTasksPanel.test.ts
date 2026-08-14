@@ -74,7 +74,10 @@ async function mountPanel(
 /** Карта производных дат: uuid → ближайший deadline пунктов. */
 function makeDerived(entries: Record<string, string | null>): Map<string, LkListDerivedDates> {
   return new Map(
-    Object.entries(entries).map(([uuid, deadline]) => [uuid, { deadline, reminderAt: null }]),
+    Object.entries(entries).map(([uuid, deadline]) => [
+      uuid,
+      { deadline, reminderAt: null, commentsCount: 0, comments: [] },
+    ]),
   )
 }
 

@@ -43,6 +43,8 @@ function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
     reminder_at: null,
     link: null,
     comment: null,
+    comments_count: 0,
+    comments: [],
     tags: [],
     created_at: '2026-06-01T00:00:00Z',
     updated_at: '2026-06-01T00:00:00Z',
@@ -227,9 +229,24 @@ describe('useLkTasksTable', () => {
     await table.reload()
     await vi.waitFor(() => expect(table.derivedFor('l-1')).toBeDefined())
 
-    expect(table.derivedFor('l-1')).toEqual({ deadline: '2026-03-12', reminderAt: '2026-03-12T09:00:00' })
-    expect(table.derivedFor('l-2')).toEqual({ deadline: '2026-03-11', reminderAt: null })
-    expect(table.derivedFor('l-3')).toEqual({ deadline: null, reminderAt: null })
+    expect(table.derivedFor('l-1')).toEqual({
+      deadline: '2026-03-12',
+      reminderAt: '2026-03-12T09:00:00',
+      commentsCount: 0,
+      comments: [],
+    })
+    expect(table.derivedFor('l-2')).toEqual({
+      deadline: '2026-03-11',
+      reminderAt: null,
+      commentsCount: 0,
+      comments: [],
+    })
+    expect(table.derivedFor('l-3')).toEqual({
+      deadline: null,
+      reminderAt: null,
+      commentsCount: 0,
+      comments: [],
+    })
 
     table.toggleSort('date')
     expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-2', 'l-1', 'l-3'])
@@ -252,9 +269,55 @@ describe('useLkTasksTable', () => {
     await table.reload()
     await vi.waitFor(() => expect(table.derivedFor('l-1')).toBeDefined())
 
-    expect(table.derivedFor('l-1')).toEqual({ deadline: null, reminderAt: null })
+    expect(table.derivedFor('l-1')).toEqual({
+      deadline: null,
+      reminderAt: null,
+      commentsCount: 0,
+      comments: [],
+    })
     expect(lkTableDateLabel(table.derivedFor('l-1')?.deadline ?? null, NOW)).toBe('')
     expect(lkTableTimeLabel(table.derivedFor('l-1')?.reminderAt ?? null)).toBe('')
+  })
+
+  it('derives the total comments counter and a flat item-grouped thread for the 💬 popover', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([makeList({ uuid: 'l-1' })]))
+    // Комментарии приходят embed'ом в ТОМ ЖЕ fetchItems, что и даты, —
+    // дополнительных запросов агрегат не делает.
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({
+        uuid: 'i-1',
+        name: 'Плитка',
+        comments_count: 2,
+        comments: [
+          { uuid: 'c-1', author_name: 'Анна', body: 'Взять образец', created_at: '2026-03-01T10:00:00Z' },
+          { uuid: 'c-2', author_name: 'Пётр', body: 'Уже взял', created_at: '2026-03-02T11:00:00Z' },
+        ],
+      }),
+      makeItem({
+        uuid: 'i-2',
+        name: 'Затирка',
+        comments_count: 1,
+        comments: [
+          { uuid: 'c-3', author_name: 'Анна', body: 'Белую', created_at: '2026-03-03T12:00:00Z' },
+        ],
+      }),
+    ])
+
+    const table = useLkTasksTable()
+    await table.reload()
+    await vi.waitFor(() => expect(table.derivedFor('l-1')).toBeDefined())
+
+    expect(shoppingListsApi.fetchItems).toHaveBeenCalledTimes(1)
+    const derived = table.derivedFor('l-1')
+    expect(derived?.commentsCount).toBe(3)
+    expect(derived?.comments).toEqual([
+      { uuid: 'c-1', itemName: 'Плитка', author_name: 'Анна', body: 'Взять образец', created_at: '2026-03-01T10:00:00Z' },
+      { uuid: 'c-2', itemName: 'Плитка', author_name: 'Пётр', body: 'Уже взял', created_at: '2026-03-02T11:00:00Z' },
+      { uuid: 'c-3', itemName: 'Затирка', author_name: 'Анна', body: 'Белую', created_at: '2026-03-03T12:00:00Z' },
+    ])
+    // Даты не сломаны параллельной агрегацией комментариев.
+    expect(derived?.deadline).toBeNull()
+    expect(derived?.reminderAt).toBeNull()
   })
 
   it('keeps rendering when the background items fetch fails (derived stays undefined)', async () => {

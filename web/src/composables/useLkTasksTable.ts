@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { useShoppingLists } from '@/composables/useShoppingLists'
 import { LK_STATUS_ORDER } from '@/constants/lkStatusColors'
-import type { ShoppingList, ShoppingListType, TaskStatus } from '@/types/shoppingList'
+import type { ShoppingList, ShoppingListItem, ShoppingListType, TaskStatus } from '@/types/shoppingList'
 import { isShoppingListCompleted } from '@/utils/shoppingList'
 
 /**
@@ -30,16 +30,36 @@ function statusRank(list: ShoppingList): number | null {
 }
 
 /**
- * Производные даты списка для колонок ДАТА / НАПОМИНАНИЕ.
+ * Комментарий треда пункта, «сплющенный» для попапа таблицы «Задачи и
+ * списки»: содержит имя пункта, чтобы попап мог сгруппировать тред по
+ * строкам списка.
+ */
+export interface LkListCommentPreview {
+  uuid: string
+  itemName: string
+  author_name: string
+  body: string
+  created_at: string
+}
+
+/**
+ * Производные данные списка из его пунктов: даты для колонок ДАТА /
+ * НАПОМИНАНИЕ и комментарии для 💬-попапа колонки ЗАДАЧА.
  *
  * ВРЕМЕННОЕ РЕШЕНИЕ (по решению пользователя): у списка нет собственных
  * полей даты/напоминания на бэкенде, поэтому значения выводятся из
  * `deadline`/`reminder_at` ПУНКТОВ списка (только чтение) — ближайшие
- * к текущему моменту, см. `nearestIso`.
+ * к текущему моменту, см. `nearestIso`. Комментарии (`comments_count` +
+ * embed `comments`) приходят в тех же ответах `fetchItems` — дополнительных
+ * запросов агрегат не делает.
  */
 export interface LkListDerivedDates {
   deadline: string | null
   reminderAt: string | null
+  /** Суммарное число комментариев тредов всех пунктов списка. */
+  commentsCount: number
+  /** Плоский список комментариев (в порядке пунктов, внутри пункта — ASC). */
+  comments: LkListCommentPreview[]
 }
 
 /**
@@ -142,7 +162,20 @@ function sortTime(iso: string | null | undefined): number {
   return iso === null || iso === undefined ? Number.NaN : new Date(iso).getTime()
 }
 
-/** Производные даты одного списка из его пунктов; null — ошибка загрузки пунктов. */
+/** Комментарии пунктов «в плоском виде» для 💬-попапа таблицы (embed из fetchItems). */
+function flattenItemComments(items: ShoppingListItem[]): LkListCommentPreview[] {
+  return items.flatMap((item) =>
+    item.comments.map((comment) => ({
+      uuid: comment.uuid,
+      itemName: item.name,
+      author_name: comment.author_name,
+      body: comment.body,
+      created_at: comment.created_at,
+    })),
+  )
+}
+
+/** Производные данные одного списка из его пунктов; null — ошибка загрузки пунктов. */
 async function deriveListDates(
   list: ShoppingList,
   now: Date,
@@ -154,6 +187,8 @@ async function deriveListDates(
       {
         deadline: nearestIso(items.map((item) => item.deadline), now),
         reminderAt: nearestIso(items.map((item) => item.reminder_at), now),
+        commentsCount: items.reduce((sum, item) => sum + item.comments_count, 0),
+        comments: flattenItemComments(items),
       },
     ]
   } catch {
