@@ -32,6 +32,10 @@ jest.mock('@/theme', () => ({
       borderSubtle: '#eee',
       borderInput: '#ddd',
       danger: '#FF3B30',
+      purple: '#7C6CF0',
+      purpleBg: '#E9E7FB',
+      noteBlue: '#4067a8',
+      noteBlueBg: '#dde6f3',
     },
   }),
 }))
@@ -42,6 +46,9 @@ const makeList = (overrides: Partial<ShoppingList> = {}): ShoppingList => ({
   title: 'Продукты',
   type: 'goods',
   tags: null,
+  status: 'new',
+  statusIsManual: false,
+  isCompleted: false,
   serverRevision: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -147,5 +154,32 @@ describe('ListCard — соответствие макету (Экран «За�
       expect(getByText('5 пунктов · 2 куплено')).toBeTruthy()
       expect(queryByTestId('icon-chevron-forward')).toBeNull()
     })
+  })
+})
+
+describe('ListCard — бейдж статуса задачи (только tasks)', () => {
+  it('показывает бейдж статуса для tasks-списка', async () => {
+    const { getByTestId, getByText } = await render(
+      <ListCard
+        list={makeList({ type: 'tasks', status: 'in_progress' })}
+        onPress={jest.fn()}
+      />,
+    )
+    expect(getByTestId('list-status-badge')).toBeTruthy()
+    expect(getByText('В работе')).toBeTruthy()
+  })
+
+  it('показывает «Выполнена» для tasks со status=done', async () => {
+    const { getByText } = await render(
+      <ListCard list={makeList({ type: 'tasks', status: 'done' })} onPress={jest.fn()} />,
+    )
+    expect(getByText('Выполнена')).toBeTruthy()
+  })
+
+  it('НЕ показывает бейдж статуса для goods-списка', async () => {
+    const { queryByTestId } = await render(
+      <ListCard list={makeList({ type: 'goods', status: 'new' })} onPress={jest.fn()} />,
+    )
+    expect(queryByTestId('list-status-badge')).toBeNull()
   })
 })

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { QueryKeys } from '@/constants/QueryKeys'
+import type { TaskStatus } from '@/constants/taskStatus'
 import {
   shoppingListsRepo,
   type CreateListData,
@@ -11,6 +12,12 @@ import {
 interface UpdateListVariables {
   uuid: string
   patch: UpdateListPatch
+}
+
+/** 'auto' = сброс ручного закрепления с пересчётом статуса из пунктов. */
+interface SetListStatusVariables {
+  uuid: string
+  status: TaskStatus | 'auto'
 }
 
 /** TanStack Query поверх локального shoppingListsRepo (SQLite, local-first). */
@@ -41,6 +48,15 @@ export function useShoppingLists() {
     onSuccess: invalidate,
   })
 
+  // Ручной статус задачи (закрепляется) / «Авто» (сброс + пересчёт из пунктов).
+  const setListStatus = useMutation({
+    mutationFn: ({ uuid, status }: SetListStatusVariables) =>
+      status === 'auto'
+        ? shoppingListsRepo.setListStatusAuto(uuid)
+        : shoppingListsRepo.setListStatus(uuid, status),
+    onSuccess: invalidate,
+  })
+
   return {
     lists: query.data ?? [],
     isLoading: query.isLoading,
@@ -48,6 +64,7 @@ export function useShoppingLists() {
     createList,
     updateList,
     deleteList,
+    setListStatus,
   }
 }
 

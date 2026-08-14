@@ -27,12 +27,20 @@ export interface ServerNote {
   deleted_at: string | null
 }
 
-/** Серверная запись списка покупок (pull). */
+/**
+ * Серверная запись списка покупок (pull). status/status_is_manual/is_completed
+ * — статусная модель задач (значимы только для type='tasks'): status —
+ * 'new'|'in_progress'|'postponed'|'done', status_is_manual — статус закреплён
+ * вручную, is_completed ⇔ status='done' (сервер нормализует инвариант).
+ */
 export interface ServerShoppingList {
   uuid: string
   title: string
   type: string
   tags: string | null
+  status: string
+  status_is_manual: boolean
+  is_completed: boolean
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -55,6 +63,9 @@ export interface ServerShoppingListItem {
   comment: string | null
   tags: string | null
   is_checked: boolean
+  /** Статус пункта задачи ('new'|'in_progress'|'postponed'|'done');
+   *  инвариант status='done' ⇔ is_checked (сервер нормализует). */
+  status: string
   position: number
   created_at: string
   updated_at: string

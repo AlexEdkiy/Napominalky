@@ -2,7 +2,7 @@
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { fireEvent, render } from '@testing-library/react-native'
 
 import ItemRow from '../ItemRow'
 import type { ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
@@ -22,6 +22,10 @@ jest.mock('@/theme', () => ({
       borderSubtle: '#eee',
       borderInput: '#ddd',
       danger: '#FF3B30',
+      purple: '#7C6CF0',
+      purpleBg: '#E9E7FB',
+      noteBlue: '#4067a8',
+      noteBlueBg: '#dde6f3',
     },
   }),
 }))
@@ -39,6 +43,7 @@ const baseItem = (): ShoppingListItem => ({
   comment: null,
   tags: null,
   isChecked: false,
+  status: 'new',
   position: 0,
   notificationId: null,
   serverRevision: null,
@@ -130,5 +135,57 @@ describe('ItemRow — индикаторы мета-полей (свёрнуты
       />,
     )
     expect(queryByText(/^#/)).toBeNull()
+  })
+})
+
+describe('ItemRow — статусы пунктов задач (только tasks)', () => {
+  it('показывает бейдж статуса для пункта tasks-списка', async () => {
+    const item = { ...baseItem(), status: 'in_progress' as const }
+    const { getByTestId, getByText } = await render(
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    expect(getByTestId('item-status-badge')).toBeTruthy()
+    expect(getByText('В работе')).toBeTruthy()
+  })
+
+  it('НЕ показывает бейдж статуса для goods-списка', async () => {
+    const { queryByTestId } = await render(
+      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    expect(queryByTestId('item-status-badge')).toBeNull()
+  })
+
+  it('тап по бейджу вызывает onOpenStatus с uuid пункта', async () => {
+    const onOpenStatus = jest.fn()
+    const item = { ...baseItem(), status: 'postponed' as const }
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={item}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onOpenStatus={onOpenStatus}
+      />,
+    )
+    fireEvent.press(getByLabelText('Статус: Отложена'))
+    expect(onOpenStatus).toHaveBeenCalledWith('item-1')
+  })
+
+  it('зачёркивание пункта задачи — по status=done (приоритет над isChecked)', async () => {
+    const item = { ...baseItem(), status: 'done' as const, isChecked: true }
+    const { getByLabelText } = await render(
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    const checkbox = getByLabelText('Отметить Тестовый пункт')
+    expect(checkbox.props.accessibilityState.checked).toBe(true)
+  })
+
+  it('пункт задачи со status=in_progress НЕ зачёркнут (checked=false)', async () => {
+    const item = { ...baseItem(), status: 'in_progress' as const }
+    const { getByLabelText } = await render(
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    const checkbox = getByLabelText('Отметить Тестовый пункт')
+    expect(checkbox.props.accessibilityState.checked).toBe(false)
   })
 })

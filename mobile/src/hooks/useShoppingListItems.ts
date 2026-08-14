@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { QueryKeys } from '@/constants/QueryKeys'
+import type { TaskStatus } from '@/constants/taskStatus'
 import {
   shoppingListsRepo,
   type CreateItemData,
@@ -16,6 +17,11 @@ interface UpdateItemVariables {
 interface CheckItemVariables {
   uuid: string
   checked: boolean
+}
+
+interface SetItemStatusVariables {
+  uuid: string
+  status: TaskStatus
 }
 
 /**
@@ -57,6 +63,12 @@ export function useShoppingListItems(listUuid: string) {
     onSuccess: invalidate,
   })
 
+  const setItemStatus = useMutation({
+    mutationFn: ({ uuid, status }: SetItemStatusVariables) =>
+      shoppingListsRepo.setItemStatus(uuid, status),
+    onSuccess: invalidate,
+  })
+
   return {
     items: query.data ?? [],
     isLoading: query.isLoading,
@@ -65,5 +77,6 @@ export function useShoppingListItems(listUuid: string) {
     updateItem,
     deleteItem,
     checkItem,
+    setItemStatus,
   }
 }

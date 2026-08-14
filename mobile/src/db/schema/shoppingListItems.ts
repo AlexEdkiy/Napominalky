@@ -24,6 +24,9 @@ export const shoppingListItems = sqliteTable(
     comment: text('comment'),
     tags: text('tags'),
     isChecked: integer('is_checked').notNull().default(0),
+    /** Статус пункта задачи: new|in_progress|postponed|done. Инвариант:
+     *  status='done' ⇔ is_checked=1 (для goods сервер статусы игнорирует). */
+    status: text('status').notNull().default('new'),
     position: integer('position').notNull().default(0),
     /** Локальный id запланированного уведомления (не синхронизируется). */
     notificationId: text('notification_id'),

@@ -11,6 +11,9 @@ const baseList: ServerShoppingList = {
   title: 'Test list',
   type: 'goods',
   tags: null,
+  status: 'new',
+  status_is_manual: false,
+  is_completed: false,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
   deleted_at: null,
@@ -28,6 +31,7 @@ const baseItem: ServerShoppingListItem = {
   comment: null,
   tags: null,
   is_checked: false,
+  status: 'new',
   position: 0,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
@@ -227,6 +231,68 @@ describe('createdAt фолбэк = updated_at при null created_at (серве
   it('reminder', () => {
     const s = { ...baseReminder, created_at: null } as unknown as ServerReminder
     expect(mappers.reminder.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
+  })
+})
+
+describe('shoppingListMapper — статусы задач (status/status_is_manual/is_completed)', () => {
+  it('маппит status и булевы поля true → 1', () => {
+    const row = mappers.shopping_list.toRow({
+      ...baseList,
+      type: 'tasks',
+      status: 'in_progress',
+      status_is_manual: true,
+      is_completed: false,
+    })
+    expect(row.status).toBe('in_progress')
+    expect(row.statusIsManual).toBe(1)
+    expect(row.isCompleted).toBe(0)
+  })
+
+  it('маппит done + is_completed=true → 1 (инвариант с сервера)', () => {
+    const row = mappers.shopping_list.toRow({
+      ...baseList,
+      status: 'done',
+      status_is_manual: false,
+      is_completed: true,
+    })
+    expect(row.status).toBe('done')
+    expect(row.statusIsManual).toBe(0)
+    expect(row.isCompleted).toBe(1)
+  })
+
+  it('нормализует невалидный/отсутствующий status → new, булевы → 0', () => {
+    const s = {
+      ...baseList,
+      status: undefined,
+      status_is_manual: undefined,
+      is_completed: undefined,
+    } as unknown as ServerShoppingList
+    const row = mappers.shopping_list.toRow(s)
+    expect(row.status).toBe('new')
+    expect(row.statusIsManual).toBe(0)
+    expect(row.isCompleted).toBe(0)
+    expect(mappers.shopping_list.toRow({ ...baseList, status: 'bogus' }).status).toBe('new')
+  })
+})
+
+describe('shoppingListItemMapper — статус пункта', () => {
+  it('маппит каждый валидный статус как есть', () => {
+    for (const status of ['new', 'in_progress', 'postponed', 'done']) {
+      const row = mappers.shopping_list_item.toRow({ ...baseItem, status })
+      expect(row.status).toBe(status)
+    }
+  })
+
+  it('нормализует невалидный/отсутствующий status → new', () => {
+    const s = { ...baseItem, status: undefined } as unknown as ServerShoppingListItem
+    expect(mappers.shopping_list_item.toRow(s).status).toBe('new')
+    expect(mappers.shopping_list_item.toRow({ ...baseItem, status: 'x' }).status).toBe('new')
+  })
+
+  it('toRow пункта не содержит notificationId — pull не затирает локальное поле', () => {
+    const row = mappers.shopping_list_item.toRow(baseItem)
+    expect(row).not.toHaveProperty('notificationId')
+    expect(row).not.toHaveProperty('notification_id')
   })
 })
 

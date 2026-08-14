@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
 import ProgressRing from '@/components/ui/ProgressRing'
+import StatusBadge from '@/components/lists/StatusBadge'
 import type { ShoppingList, ListType } from '@/db/repositories/shoppingListsRepo'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
@@ -57,9 +58,15 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
         <Ionicons name={cfg.icon} size={16} color={cfg.iconColor} />
       </ProgressRing>
       <View style={styles.info}>
-        <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
-          {title}
-        </Text>
+        {/* Бейдж статуса — ТОЛЬКО для задач (tasks); goods — без статусов */}
+        <View style={styles.titleRow}>
+          <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
+            {title}
+          </Text>
+          {list.type === 'tasks' && (
+            <StatusBadge status={list.status} testID="list-status-badge" />
+          )}
+        </View>
         <Text style={[styles.counter, { color: colors.textSecondary }]}>
           {listStatusLabel(list)}
         </Text>
@@ -87,7 +94,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.8 },
   info: { flex: 1, gap: 2 },
-  title: { ...typography.body, fontSize: 15.5, fontWeight: '700' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { ...typography.body, fontSize: 15.5, fontWeight: '700', flexShrink: 1 },
   counter: { ...typography.bodySm, fontSize: 12.5 },
   deadlineChip: {
     flexDirection: 'row',
