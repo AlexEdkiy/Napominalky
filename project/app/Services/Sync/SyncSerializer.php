@@ -9,6 +9,7 @@ use App\Models\Note;
 use App\Models\Reminder;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
+use App\Models\ShoppingListItemComment;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -33,10 +34,11 @@ final class SyncSerializer
         return match (true) {
             $model instanceof Note => $this->note($model),
             $model instanceof ShoppingList => $this->shoppingList($model),
+            $model instanceof ShoppingListItemComment => $this->shoppingListItemComment($model),
             $model instanceof ShoppingListItem => $this->shoppingListItem($model),
             $model instanceof Reminder => $this->reminder($model),
             default => throw new InvalidArgumentException(
-                'Unsupported sync model: ' . $model::class,
+                'Unsupported sync model: '.$model::class,
             ),
         };
     }
@@ -94,6 +96,23 @@ final class SyncSerializer
             'status' => $item->status?->value ?? TaskStatus::New->value,
             'position' => $item->position,
             ...$this->timestamps($item),
+        ];
+    }
+
+    /**
+     * shopping_list_item_uuid — публичная ссылка на родительскую строку:
+     * внутренний shopping_list_item_id наружу не отдаётся.
+     *
+     * @return array<string, mixed>
+     */
+    private function shoppingListItemComment(ShoppingListItemComment $comment): array
+    {
+        return [
+            'uuid' => $comment->uuid,
+            'shopping_list_item_uuid' => $comment->item?->uuid,
+            'author_name' => $comment->author_name,
+            'body' => $comment->body,
+            ...$this->timestamps($comment),
         ];
     }
 

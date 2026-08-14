@@ -211,6 +211,16 @@ PUT  /api/v1/devices/{uuid}               → 200
 | PUT       | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}` | Обновить элемент         | ✓    |
 | DELETE    | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}` | Удалить элемент          | ✓    |
 | POST      | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}/check` | Отметить купленным | ✓   |
+| GET       | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}/comments` | Тред комментариев строки | ✓ |
+| POST      | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}/comments` | Добавить комментарий | ✓ |
+| DELETE    | `/api/v1/shopping-lists/{uuid}/items/{itemUuid}/comments/{commentUuid}` | Удалить комментарий | ✓ |
+
+**Комментарии-тред к строкам задач:**
+
+- Ресурс комментария: `{ uuid, author_name, body, created_at }` (`created_at` — ISO 8601).
+- `GET …/comments` — весь тред без пагинации, хронологический порядок (ASC). `POST …/comments` — тело `{ body: string ≤2000 (required), uuid?: uuid }` (клиентский `uuid` — offline-идемпотентность), ответ `201` с ресурсом. `DELETE …/comments/{commentUuid}` — `204`; удалять может только владелец (`403` иначе).
+- Ресурс пункта содержит `comments_count` (int, всегда) и `comments` (массив ресурсов треда, ASC — в списке пунктов). Поле `comment` пункта — **deprecated** (legacy одиночный комментарий, заменён тредом; пока отдаётся).
+- Вложенный биндинг скоупится: чужой/несуществующий `{itemUuid}`/`{commentUuid}` → `404`.
 
 **Статусы задач (списки `type=tasks`):**
 

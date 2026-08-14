@@ -1,29 +1,29 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-14 (статусы задач в МП + обмен: схема/миграция 0010, деривация, sync, UI-бейджи — MOB-57)
+> Последнее обновление: 2026-08-14 (Комментарии-тред к строкам задач: backend+web — таблица/API/sync, тред+попап 💬, крестик удаления+подтверждение; +2 sync-фикса — ARCH-3/DEV-21/MBE-19/WEB-42/TEST-17/UITEST-12)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
 
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
-| ARCH    | 2            | architect                 |
-| DEV     | 20           | backend-developer         |
-| MBE     | 18           | mobile-backend-developer  |
+| ARCH    | 3            | architect                 |
+| DEV     | 21           | backend-developer         |
+| MBE     | 19           | mobile-backend-developer  |
 | MOB     | 57           | mobile-developer          |
-| WEB     | 41           | web-developer             |
-| TEST    | 16           | test-engineer             |
-| UITEST  | 11           | ux-ui-test-engineer       |
+| WEB     | 42           | web-developer             |
+| TEST    | 17           | test-engineer             |
+| UITEST  | 12           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 41           | technical-writer          |
+| DOC     | 42           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 124 |
+| Completed | 125 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2414,6 +2414,26 @@
   - [x] Обмен: pull-mappers + push новых полей на сервер
   - [x] UI-бейджи и смена статуса задачи (детали) / пункта (строка)
   - [x] tsc OK, Jest зелёный (976)
+- **Создана:** 2026-08-14
+- **Завершена:** 2026-08-14
+
+### FEAT-2: Комментарии (тред) к строкам задач (backend + web)
+- **Исполнители:** architect (ARCH-3), backend-developer (DEV-21), mobile-backend-developer (MBE-19), web-developer (WEB-42), test-engineer (TEST-17), ux-ui-test-engineer (UITEST-12)
+- **Статус:** completed (backend+web; mobile — следующим шагом)
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** MOB-комментарии
+- **Стандарты:** docs/02-php.md, 03-laravel.md, 04-database.md, 05-typescript-vue.md, 07-api.md
+- **Описание:** К строке задачи (пункт) можно добавлять **несколько комментариев** (тред), каждый с автором (имя) и временем (created_at, авто). Тред ЗАМЕНЯЕТ одиночное поле `comment` (существующие мигрированы в первый комментарий; колонка оставлена — двухфазный вывод, старые APK не ломаются). Новая таблица `shopping_list_item_comments` (uuid, shopping_list_item_id, user_id=владелец, author_name денормализовано, body, server_revision, softDeletes). Actions Add/Delete, Policy, API: `GET/POST/DELETE /shopping-lists/{list}/items/{item}/comments`; ресурс пункта += `comments_count` + embed `comments` (eager-load, попап без лишних запросов). Sync: новая сущность `shopping_list_item_comment` (author_name/body, резолв родителя), заложена под мобилку. Web: тред в раскрытой строке (`LkItemCommentsThread`, отправка), popover 💬 при наведении (`LkCommentsPopover`, тёмное окно «Комментарии · N» по макету) в строке и таблице (данные из уже загружаемых пунктов), счётчик 💬; крестик × вместо текста «Удалить строку» + подтверждение (`LkConfirmDialog`); одиночный редактор `comment` убран из атрибутов. **2 sync-бага (найдены TEST, исправлены):** `SyncChangesResource` не отдавал `shopping_list_item_comments` (клиенты не получали тред/бэкфилл); push комментария-сироты валил батч 500 (skip при нерезолве родителя).
+- **Файлы:** backend — `app/Models/ShoppingListItemComment.php`, `app/Actions/ShoppingListItemComment/*`, `app/Policies/ShoppingListItemCommentPolicy.php`, `app/Http/{Controllers/ShoppingLists/Items/Comments/*,Requests/ShoppingListItemComment/*,Resources/ShoppingListItemCommentResource.php}`, `app/Http/Resources/{ShoppingListItemResource,Sync/SyncChangesResource}.php`, `app/Services/Sync/{SyncEntities,SyncSerializer,SyncChangeApplier,SyncPullService,SyncParentResolver}.php`, `database/migrations/2026_08_14_1100*`, `routes/api.php`, `docs/07-api.md`; web — `components/lk/{LkItemCommentsThread,LkCommentsPopover,LkTaskItemRow,LkItemAttributes,LkTaskFormDialog}.vue`, `components/lk/tasks/LkTaskTableRow.vue`, `composables/{useShoppingListItems,useLkTasksTable}.ts`, `utils/{itemAttributes,datetime}.ts`, `types/shoppingList.ts`, `api/shoppingListsApi.ts` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Тред: несколько комментариев с автором и временем; отправка (текст, время авто)
+  - [x] Popover 💬 при наведении (строка + таблица), без лишних запросов
+  - [x] Крестик × вместо «Удалить строку» + подтверждение
+  - [x] API CRUD + sync нового типа; комментарии доезжают до клиентов (sync-фиксы)
+  - [x] Pest 398 passed; vue-tsc OK, Vitest 611 passed
+- **Известные компромиссы:** legacy `comment` в старом APK не виден в веб-треде до mobile-релиза (двухфазный вывод; drop колонки — отдельной задачей); `note.body` теперь коерсит null→'' в sync (осознанно, для заметок практически без изменений).
+- **Следующий шаг:** комментарии в мобильном приложении (тред в шторке пункта + обмен) — sync-сущность и API готовы.
 - **Создана:** 2026-08-14
 - **Завершена:** 2026-08-14
 

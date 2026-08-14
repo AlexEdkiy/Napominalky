@@ -9,6 +9,7 @@ use App\Data\SyncChangeData;
 use App\Enums\TaskStatus;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
+use App\Models\ShoppingListItemComment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,7 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  * Применяет одно клиентское изменение к серверной записи (upsert/tombstone).
  *
  * Инкапсулирует whitelist-присвоение полей, разрешение родителя для
- * shopping_list_item и критичную для LWW запись хранимого updated_at = клиентский
+ * shopping_list_item и shopping_list_item_comment (через SyncParentResolver)
+ * и критичную для LWW запись хранимого updated_at = клиентский
  * updated_at (с отключением авто-timestamps). server_revision при save проставит
  * трейт TracksSyncRevision. См. docs/architecture «Часть 0.2».
  */
@@ -24,16 +26,17 @@ final class SyncChangeApplier
 {
     public function __construct(
         private readonly RecalculateListStatusAction $recalculateStatus,
+        private readonly SyncParentResolver $parentResolver,
     ) {}
 
     /**
      * NOT NULL строковые доменные колонки: при null в клиентском payload
-     * коерсятся в '' (заметка/список без заголовка), иначе нарушился бы
-     * constraint и весь push батча падал бы 500.
+     * коерсятся в '' (заметка/список без заголовка, комментарий без тела),
+     * иначе нарушился бы constraint и весь push батча падал бы 500.
      *
      * @var list<string>
      */
-    private const array NON_NULLABLE_STRINGS = ['title', 'name'];
+    private const array NON_NULLABLE_STRINGS = ['title', 'name', 'author_name', 'body'];
 
     /**
      * Создаёт новую запись из изменения (operation create/update/delete).
@@ -54,11 +57,19 @@ final class SyncChangeApplier
 
         $class = SyncEntities::modelFor($change->entityType);
         /** @var Model $model */
-        $model = new $class();
+        $model = new $class;
 
         $model->uuid = $change->uuid;
         $model->user_id = $user->id;
         $this->fillFields($user, $model, $change);
+
+        // Комментарий-сирота: родительский пункт не резолвится (чужой/удалён
+        // hard) — shopping_list_item_id остался NULL, а FK NOT NULL. Пропускаем
+        // change (no-op), иначе INSERT валит всю push-транзакцию 500. В норме
+        // FIFO-outbox гарантирует, что родитель уже на сервере.
+        if ($model instanceof ShoppingListItemComment && $model->shopping_list_item_id === null) {
+            return null;
+        }
 
         // created_at не входит в whitelist payload, а persist() отключает
         // авто-timestamps (ради LWW updated_at), поэтому для НОВОЙ записи
@@ -122,8 +133,14 @@ final class SyncChangeApplier
         }
 
         if ($model instanceof ShoppingListItem) {
-            $this->resolveParent($user, $model, $change);
+            $this->parentResolver->resolveItemParent($user, $model, $change->payload);
             $this->normalizeItemStatus($model, $change);
+        }
+
+        // Комментарии треда на статус задачи не влияют — пересчёт не нужен
+        // (recalculateParent реагирует только на ShoppingListItem).
+        if ($model instanceof ShoppingListItemComment) {
+            $this->parentResolver->resolveCommentParent($user, $model, $change->payload);
         }
 
         if ($model instanceof ShoppingList) {
@@ -218,29 +235,6 @@ final class SyncChangeApplier
 
         if ($list !== null) {
             ($this->recalculateStatus)($list);
-        }
-    }
-
-    /**
-     * Резолвит публичный shopping_list_uuid из payload во внутренний
-     * shopping_list_id (в рамках записей того же пользователя, включая
-     * мягко удалённые родители). Чужой/неизвестный uuid игнорируется.
-     */
-    private function resolveParent(User $user, ShoppingListItem $item, SyncChangeData $change): void
-    {
-        $parentUuid = $change->payload['shopping_list_uuid'] ?? null;
-
-        if (! is_string($parentUuid) || $parentUuid === '') {
-            return;
-        }
-
-        $parentId = $user->shoppingLists()
-            ->withTrashed()
-            ->where('uuid', $parentUuid)
-            ->value('id');
-
-        if ($parentId !== null) {
-            $item->shopping_list_id = $parentId;
         }
     }
 

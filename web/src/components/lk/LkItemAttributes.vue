@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
@@ -16,6 +16,12 @@ import {
   type ItemAttributeValues,
 } from '@/utils/itemAttributes'
 
+/**
+ * Панель атрибутов раскрытой строки пункта: дедлайн/напоминание/ссылка/тег +
+ * степпер количества (goods). Комментарии — НЕ здесь: тред живёт отдельным
+ * компонентом `LkItemCommentsThread` под панелью; удаление строки — крестиком
+ * в основной строке пункта (`LkTaskItemRow`).
+ */
 interface Props {
   values: ItemAttributeValues
   listType: ShoppingListType
@@ -23,16 +29,12 @@ interface Props {
   accentColor: string
   accentSoft: string
   tagSuggestions: string[]
-  /** Сигнал авто-открытия редактора (кнопка «Комментарий» в строке пункта). */
-  autoOpenAttribute?: ItemAttribute | null
 }
 
-const props = withDefaults(defineProps<Props>(), { autoOpenAttribute: null })
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   update: [patch: UpdateShoppingListItemPayload]
-  remove: []
-  autoOpened: []
 }>()
 
 /**
@@ -45,20 +47,11 @@ const draftTags = ref<string[]>([])
 const tagInput = ref('')
 const linkError = ref<string | null>(null)
 
-/**
- * «Комментарий» не показывается в ряду чипсов/токенов — его редактор
- * открывается кнопкой в основной строке пункта (сигнал `autoOpenAttribute`);
- * `ATTRIBUTE_ORDER` в утилитах при этом не меняется.
- */
-const CHIP_ATTRIBUTES: readonly ItemAttribute[] = ATTRIBUTE_ORDER.filter(
-  (attribute) => attribute !== 'comment',
-)
-
 const setAttributes = computed<ItemAttribute[]>(() =>
-  CHIP_ATTRIBUTES.filter((attribute) => isAttributeSet(attribute, props.values)),
+  ATTRIBUTE_ORDER.filter((attribute) => isAttributeSet(attribute, props.values)),
 )
 const availableAttributes = computed<ItemAttribute[]>(() =>
-  CHIP_ATTRIBUTES.filter((attribute) => !isAttributeSet(attribute, props.values)),
+  ATTRIBUTE_ORDER.filter((attribute) => !isAttributeSet(attribute, props.values)),
 )
 const availableSuggestions = computed<string[]>(() =>
   props.tagSuggestions.filter((tag) => !draftTags.value.includes(tag)),
@@ -72,8 +65,6 @@ function currentDraftFor(attribute: ItemAttribute): string {
       return isoToDateTimeLocal(props.values.reminderAt)
     case 'link':
       return props.values.link ?? ''
-    case 'comment':
-      return props.values.comment ?? ''
     default:
       return ''
   }
@@ -92,22 +83,6 @@ function closeEditor(): void {
   linkError.value = null
 }
 
-/**
- * Авто-открытие редактора по сигналу из строки (при монтировании панели
- * и при повторных кликах на уже раскрытой строке); `autoOpened` возвращает
- * сигнал в null, чтобы следующий клик сработал снова.
- */
-watch(
-  () => props.autoOpenAttribute,
-  (attribute) => {
-    if (attribute !== null) {
-      openEditor(attribute)
-      emit('autoOpened')
-    }
-  },
-  { immediate: true },
-)
-
 function removeAttribute(attribute: ItemAttribute): void {
   if (activeEditor.value === attribute) {
     closeEditor()
@@ -120,7 +95,6 @@ function removeAttribute(attribute: ItemAttribute): void {
     deadline: { deadline: null },
     reminder: { reminder_at: null },
     link: { link: null },
-    comment: { comment: null },
   }
   emit('update', patchByAttribute[attribute])
 }
@@ -154,8 +128,6 @@ function buildPatch(attribute: ItemAttribute): UpdateShoppingListItemPayload | n
         return null
       }
       return { link: text === '' ? null : text }
-    case 'comment':
-      return { comment: text === '' ? null : text }
     default:
       addTagFromInput()
       return { tags: draftTags.value }
@@ -185,13 +157,10 @@ function changeQuantity(delta: number): void {
 
 <template>
   <div class="lk-item-attrs">
-    <!--
-      Верхний тулбар: степпер количества (goods) слева, компактная «Удалить
-      строку» справа — деструктивное действие живёт в раскрытой области,
-      не занимая отдельной широкой строки внизу.
-    -->
-    <div class="lk-item-attrs__toolbar">
-      <div v-if="listType === 'goods'" class="lk-item-attrs__quantity">
+    <!-- Степпер количества — только у goods; «Удалить строку» переехала
+         крестиком в основную строку пункта (LkTaskItemRow). -->
+    <div v-if="listType === 'goods'" class="lk-item-attrs__toolbar">
+      <div class="lk-item-attrs__quantity">
         <span class="lk-item-attrs__quantity-label">Количество</span>
         <button
           type="button"
@@ -214,9 +183,6 @@ function changeQuantity(delta: number): void {
           +
         </button>
       </div>
-      <button type="button" class="lk-item-attrs__remove" @click="emit('remove')">
-        Удалить строку
-      </button>
     </div>
 
     <div class="lk-item-attrs__chips">
@@ -291,15 +257,6 @@ function changeQuantity(delta: number): void {
         />
         <span v-if="linkError" role="alert" class="lk-item-attrs__error">{{ linkError }}</span>
       </template>
-
-      <textarea
-        v-else-if="activeEditor === 'comment'"
-        v-model="draftText"
-        rows="3"
-        class="lk-item-attrs__input lk-item-attrs__textarea"
-        placeholder="Заметка к пункту"
-        aria-label="Текст комментария"
-      />
 
       <template v-else>
         <div v-if="draftTags.length > 0" class="lk-item-attrs__tag-list">
@@ -500,12 +457,6 @@ function changeQuantity(delta: number): void {
   font-family: inherit;
 }
 
-.lk-item-attrs__textarea {
-  height: auto;
-  padding: 8px 10px;
-  resize: vertical;
-}
-
 .lk-item-attrs__error {
   color: #cf5b4a;
   font-size: 0.78rem;
@@ -584,22 +535,5 @@ function changeQuantity(delta: number): void {
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-}
-
-.lk-item-attrs__remove {
-  margin-left: auto;
-  flex-shrink: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  color: #cf5b4a;
-  font-size: 12.5px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.lk-item-attrs__remove:hover {
-  text-decoration: underline;
 }
 </style>

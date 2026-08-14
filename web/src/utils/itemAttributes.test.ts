@@ -22,20 +22,20 @@ const emptyValues: ItemAttributeValues = {
   deadline: null,
   reminderAt: null,
   link: null,
-  comment: null,
   tags: [],
 }
 
 describe('ATTRIBUTE_ORDER / ATTRIBUTE_LABELS', () => {
-  it('keeps the МП order: Дедлайн, Напоминание, Ссылка, Комментарий, Тег', () => {
-    expect(ATTRIBUTE_ORDER).toEqual(['deadline', 'reminder', 'link', 'comment', 'tag'])
+  it('keeps the order without «Комментарий» (тред — не атрибут): Дедлайн, Напоминание, Ссылка, Тег', () => {
+    expect(ATTRIBUTE_ORDER).toEqual(['deadline', 'reminder', 'link', 'tag'])
     expect(ATTRIBUTE_ORDER.map((attr) => ATTRIBUTE_LABELS[attr])).toEqual([
       'Дедлайн',
       'Напоминание',
       'Ссылка',
-      'Комментарий',
       'Тег',
     ])
+    // 'comment' исключён из атрибутов целиком.
+    expect(ATTRIBUTE_ORDER).not.toContain('comment')
   })
 })
 
@@ -45,15 +45,14 @@ describe('attributeValuesFromItem', () => {
       deadline: '2026-07-20',
       reminder_at: '2026-07-20T09:00:00Z',
       link: 'https://example.com',
-      comment: 'заметка',
       tags: ['Дом'],
     } as unknown as ShoppingListItem
 
+    // legacy `comment` в values больше не попадает (тред — не атрибут).
     expect(attributeValuesFromItem(item)).toEqual({
       deadline: '2026-07-20',
       reminderAt: '2026-07-20T09:00:00Z',
       link: 'https://example.com',
-      comment: 'заметка',
       tags: ['Дом'],
     })
   })
@@ -70,13 +69,11 @@ describe('isAttributeSet', () => {
     expect(isAttributeSet('deadline', { ...emptyValues, deadline: '2026-07-20' })).toBe(true)
     expect(isAttributeSet('reminder', { ...emptyValues, reminderAt: '2026-07-20T09:00:00Z' })).toBe(true)
     expect(isAttributeSet('link', { ...emptyValues, link: 'https://a.ru' })).toBe(true)
-    expect(isAttributeSet('comment', { ...emptyValues, comment: 'текст' })).toBe(true)
     expect(isAttributeSet('tag', { ...emptyValues, tags: ['Дом'] })).toBe(true)
   })
 
   it('treats empty strings as not set', () => {
     expect(isAttributeSet('link', { ...emptyValues, link: '' })).toBe(false)
-    expect(isAttributeSet('comment', { ...emptyValues, comment: '' })).toBe(false)
   })
 })
 
@@ -130,13 +127,11 @@ describe('formatAttributeToken', () => {
       deadline: '2026-07-20',
       reminderAt: '2026-07-21T10:00:00',
       link: 'https://example.com/page',
-      comment: 'длинный текст',
       tags: ['Дом', 'Важное'],
     }
     expect(formatAttributeToken('deadline', values, NOW)).toBe('20 июл')
     expect(formatAttributeToken('reminder', values, NOW)).toBe('21 июл 10:00')
     expect(formatAttributeToken('link', values, NOW)).toBe('example.com')
-    expect(formatAttributeToken('comment', values, NOW)).toBe('Есть заметка')
     expect(formatAttributeToken('tag', values, NOW)).toBe('Дом, Важное')
   })
 

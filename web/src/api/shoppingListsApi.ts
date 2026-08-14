@@ -1,10 +1,12 @@
 import { apiClient } from '@/api/client'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import type {
+  CreateItemCommentPayload,
   CreateShoppingListItemPayload,
   CreateShoppingListPayload,
   ShoppingList,
   ShoppingListItem,
+  ShoppingListItemComment,
   ShoppingListParams,
   UpdateShoppingListItemPayload,
   UpdateShoppingListPayload,
@@ -14,17 +16,27 @@ import { parseTags } from '@/utils/tags'
 /**
  * Форма ответа сервера «на проводе»: `tags` — непрозрачная JSON-строка
  * (или уже массив/`null`) до нормализации через `parseTags`. См. пометку в
- * `types/shoppingList.ts`.
+ * `types/shoppingList.ts`. `comments`/`comments_count` у пункта опциональны —
+ * embed треда приходит не во всех ответах (нормализуются в `[]`/`0`).
  */
 type ShoppingListWire = Omit<ShoppingList, 'tags'> & { tags: unknown }
-type ShoppingListItemWire = Omit<ShoppingListItem, 'tags'> & { tags: unknown }
+type ShoppingListItemWire = Omit<ShoppingListItem, 'tags' | 'comments' | 'comments_count'> & {
+  tags: unknown
+  comments?: ShoppingListItemComment[]
+  comments_count?: number
+}
 
 function normalizeList(wire: ShoppingListWire): ShoppingList {
   return { ...wire, tags: parseTags(wire.tags) }
 }
 
 function normalizeItem(wire: ShoppingListItemWire): ShoppingListItem {
-  return { ...wire, tags: parseTags(wire.tags) }
+  return {
+    ...wire,
+    tags: parseTags(wire.tags),
+    comments: wire.comments ?? [],
+    comments_count: wire.comments_count ?? 0,
+  }
 }
 
 /**
@@ -130,5 +142,40 @@ export const shoppingListsApi = {
       { is_checked: isChecked },
     )
     return normalizeItem(data.data)
+  },
+
+  /** Тред комментариев строки — весь, хронологический порядок (ASC). */
+  fetchItemComments: async (
+    listUuid: string,
+    itemUuid: string,
+  ): Promise<ShoppingListItemComment[]> => {
+    const { data } = await apiClient.get<ApiResponse<ShoppingListItemComment[]>>(
+      `/shopping-lists/${listUuid}/items/${itemUuid}/comments`,
+    )
+    return data.data
+  },
+
+  /** Добавляет комментарий в тред (author_name/created_at проставит сервер). */
+  addItemComment: async (
+    listUuid: string,
+    itemUuid: string,
+    payload: CreateItemCommentPayload,
+  ): Promise<ShoppingListItemComment> => {
+    const { data } = await apiClient.post<ApiResponse<ShoppingListItemComment>>(
+      `/shopping-lists/${listUuid}/items/${itemUuid}/comments`,
+      payload,
+    )
+    return data.data
+  },
+
+  /** Удаляет комментарий треда (204; только автор — иначе 403 на сервере). */
+  deleteItemComment: async (
+    listUuid: string,
+    itemUuid: string,
+    commentUuid: string,
+  ): Promise<void> => {
+    await apiClient.delete(
+      `/shopping-lists/${listUuid}/items/${itemUuid}/comments/${commentUuid}`,
+    )
   },
 }

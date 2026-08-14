@@ -18,6 +18,8 @@ const item: ShoppingListItem = {
   reminder_at: null,
   link: null,
   comment: null,
+  comments_count: 0,
+  comments: [],
   tags: [],
   created_at: '2026-06-01T00:00:00Z',
   updated_at: '2026-06-01T00:00:00Z',
@@ -91,6 +93,50 @@ describe('useShoppingListItems', () => {
     expect(ok).toBe(true)
     expect(items.value).toHaveLength(0)
   })
+
+  it('addComment POSTs the body and appends the created comment locally (без рефетча)', async () => {
+    const existing = {
+      uuid: 'c-1',
+      author_name: 'Анна',
+      body: 'Старый',
+      created_at: '2026-03-01T10:00:00Z',
+    }
+    const created = {
+      uuid: 'c-2',
+      author_name: 'Анна',
+      body: 'Новый',
+      created_at: '2026-03-02T11:00:00Z',
+    }
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      { ...item, comments: [existing], comments_count: 1 },
+    ])
+    vi.mocked(shoppingListsApi.addItemComment).mockResolvedValue(created)
+
+    const { items, load, addComment } = useShoppingListItems('l-1')
+    await load()
+    const result = await addComment('i-1', 'Новый')
+
+    expect(shoppingListsApi.addItemComment).toHaveBeenCalledWith('l-1', 'i-1', { body: 'Новый' })
+    expect(result).toEqual(created)
+    // Локальный append в конец треда (ASC) + инкремент счётчика — БЕЗ fetchItems.
+    expect(items.value[0]?.comments).toEqual([existing, created])
+    expect(items.value[0]?.comments_count).toBe(2)
+    expect(shoppingListsApi.fetchItems).toHaveBeenCalledTimes(1)
+  })
+
+  it('addComment surfaces the error and keeps the thread intact on failure', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
+    vi.mocked(shoppingListsApi.addItemComment).mockRejectedValue(new Error('Сеть недоступна'))
+
+    const { items, error, load, addComment } = useShoppingListItems('l-1')
+    await load()
+    const result = await addComment('i-1', 'Текст')
+
+    expect(result).toBeNull()
+    expect(error.value).toBe('Сеть недоступна')
+    expect(items.value[0]?.comments).toEqual([])
+    expect(items.value[0]?.comments_count).toBe(0)
+  })
 })
 
 vi.mock('@/api/shoppingListsApi', () => ({
@@ -104,5 +150,8 @@ vi.mock('@/api/shoppingListsApi', () => ({
     updateItem: vi.fn(),
     deleteItem: vi.fn(),
     checkItem: vi.fn(),
+    fetchItemComments: vi.fn(),
+    addItemComment: vi.fn(),
+    deleteItemComment: vi.fn(),
   },
 }))

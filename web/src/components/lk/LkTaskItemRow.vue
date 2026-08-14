@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
+import LkCommentsPopover from '@/components/lk/LkCommentsPopover.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkItemAttributes from '@/components/lk/LkItemAttributes.vue'
+import LkItemCommentsThread from '@/components/lk/LkItemCommentsThread.vue'
 import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
 import type {
@@ -11,18 +13,16 @@ import type {
   TaskStatus,
   UpdateShoppingListItemPayload,
 } from '@/types/shoppingList'
-import {
-  attributeValuesFromItem,
-  formatDeadlineToken,
-  type ItemAttribute,
-} from '@/utils/itemAttributes'
+import { attributeValuesFromItem, formatDeadlineToken } from '@/utils/itemAttributes'
 
 /**
  * Строка пункта в модалке «Задача/покупка»: чекбокс + название + компактная
  * мета-строка (как в МП: чип количества/теги/дедлайн + индикаторы) + кнопка
- * «Комментарий» + chevron, раскрывающий панель атрибутов (`LkItemAttributes`).
- * Классы верхнего ряда (`lk-form-dialog__item*`) сохранены от прежней
- * инлайн-разметки диалога.
+ * 💬 (счётчик треда; hover — попап-превью, клик — раскрыть к треду) + chevron
+ * + крестик удаления строки (подтверждение — у родителя, см. `removeRequest`).
+ * В раскрытом виде: панель атрибутов (`LkItemAttributes`) и тред
+ * комментариев (`LkItemCommentsThread`). Классы верхнего ряда
+ * (`lk-form-dialog__item*`) сохранены от прежней инлайн-разметки диалога.
  */
 interface Props {
   item: ShoppingListItem
@@ -37,9 +37,10 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   check: [checked: boolean]
-  remove: []
+  removeRequest: []
   toggleExpand: []
   update: [patch: UpdateShoppingListItemPayload]
+  addComment: [body: string]
 }>()
 
 const values = computed(() => attributeValuesFromItem(props.item))
@@ -58,7 +59,8 @@ const showDeadlineChip = computed<boolean>(
   () => props.listType === 'tasks' && props.item.deadline !== null,
 )
 const hasReminder = computed<boolean>(() => props.item.reminder_at !== null)
-const hasComment = computed<boolean>(() => (props.item.comment ?? '') !== '')
+/** Индикатор наличия треда — по счётчику комментариев (не по legacy `comment`). */
+const hasComment = computed<boolean>(() => props.item.comments_count > 0)
 const hasLink = computed<boolean>(() => (props.item.link ?? '') !== '')
 const hasMetaLine = computed<boolean>(
   () =>
@@ -70,12 +72,20 @@ const hasMetaLine = computed<boolean>(
 )
 
 /**
- * Сигнал авто-открытия редактора атрибута в раскрытой панели: кнопка
- * «Комментарий» в строке ставит `'comment'`, панель открывает редактор
- * и эмитит `autoOpened` — сигнал сбрасывается, чтобы повторный клик
- * срабатывал снова.
+ * Сигнал «раскрыть к треду»: кнопка 💬 инкрементирует счётчик — тред
+ * фокусирует поле ввода (в т.ч. сразу после монтирования раскрытой панели).
+ * Сбрасывается при сворачивании, чтобы chevron-раскрытие не крало фокус.
  */
-const autoOpenAttribute = ref<ItemAttribute | null>(null)
+const threadFocusSignal = ref(0)
+
+watch(
+  () => props.expanded,
+  (expanded) => {
+    if (!expanded) {
+      threadFocusSignal.value = 0
+    }
+  },
+)
 
 function handleCheck(event: Event): void {
   emit('check', (event.target as HTMLInputElement).checked)
@@ -89,14 +99,10 @@ function handleStatusSelect(value: TaskStatus | 'auto'): void {
 }
 
 function handleCommentClick(): void {
-  autoOpenAttribute.value = 'comment'
+  threadFocusSignal.value += 1
   if (!props.expanded) {
     emit('toggleExpand')
   }
-}
-
-function handleAutoOpened(): void {
-  autoOpenAttribute.value = null
 }
 </script>
 
@@ -147,16 +153,19 @@ function handleAutoOpened(): void {
         interactive
         @select="handleStatusSelect"
       />
-      <button
-        type="button"
-        class="lk-item-row__comment-btn"
-        :class="{ 'lk-item-row__comment-btn--active': hasComment }"
-        :style="hasComment ? { background: accentSoft, color: accentColor } : undefined"
-        :aria-label="`Комментарий: ${item.name}`"
-        @click.stop="handleCommentClick"
-      >
-        <LkIcon name="comment" :size="16" />
-      </button>
+      <LkCommentsPopover :comments="item.comments">
+        <button
+          type="button"
+          class="lk-item-row__comment-btn"
+          :class="{ 'lk-item-row__comment-btn--active': hasComment }"
+          :style="hasComment ? { background: accentSoft, color: accentColor } : undefined"
+          :aria-label="`Комментарии: ${item.name}`"
+          @click.stop="handleCommentClick"
+        >
+          <LkIcon name="comment" :size="16" />
+          <span v-if="hasComment" class="lk-item-row__comment-count">{{ item.comments_count }}</span>
+        </button>
+      </LkCommentsPopover>
       <button
         type="button"
         class="lk-item-row__chevron"
@@ -167,21 +176,33 @@ function handleAutoOpened(): void {
       >
         <LkIcon name="chevron-down" :size="16" />
       </button>
+      <button
+        type="button"
+        class="lk-item-row__remove"
+        :aria-label="`Удалить строку ${item.name}`"
+        @click.stop="emit('removeRequest')"
+      >
+        &times;
+      </button>
     </div>
 
-    <LkItemAttributes
-      v-if="expanded"
-      :values="values"
-      :list-type="listType"
-      :quantity="quantity"
-      :accent-color="accentColor"
-      :accent-soft="accentSoft"
-      :tag-suggestions="tagSuggestions"
-      :auto-open-attribute="autoOpenAttribute"
-      @update="emit('update', $event)"
-      @remove="emit('remove')"
-      @auto-opened="handleAutoOpened"
-    />
+    <template v-if="expanded">
+      <LkItemAttributes
+        :values="values"
+        :list-type="listType"
+        :quantity="quantity"
+        :accent-color="accentColor"
+        :accent-soft="accentSoft"
+        :tag-suggestions="tagSuggestions"
+        @update="emit('update', $event)"
+      />
+      <LkItemCommentsThread
+        :comments="item.comments"
+        :accent-color="accentColor"
+        :focus-signal="threadFocusSignal"
+        @submit="emit('addComment', $event)"
+      />
+    </template>
   </li>
 </template>
 
@@ -263,17 +284,18 @@ function handleAutoOpened(): void {
   color: #9aa39f;
 }
 
-/* Компактный бейдж статуса пункта — между названием и кнопкой «Комментарий». */
+/* Компактный бейдж статуса пункта — между названием и кнопкой 💬. */
 .lk-item-row__status {
   flex-shrink: 0;
 }
 
-/* Кнопка «Комментарий» — визуально как chevron; активная (комментарий задан)
-   красится инлайн в accentSoft/accentColor и служит индикатором наличия. */
+/* Кнопка 💬 — визуально как chevron; активная (есть комментарии) красится
+   инлайн в accentSoft/accentColor и несёт бейдж-счётчик треда. */
 .lk-item-row__comment-btn,
-.lk-item-row__chevron {
+.lk-item-row__chevron,
+.lk-item-row__remove {
   flex-shrink: 0;
-  width: 28px;
+  min-width: 28px;
   height: 28px;
   border-radius: 8px;
   border: none;
@@ -283,6 +305,17 @@ function handleAutoOpened(): void {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.lk-item-row__comment-btn {
+  gap: 3px;
+  padding: 0 5px;
+}
+
+.lk-item-row__comment-count {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .lk-item-row__chevron {
@@ -298,4 +331,15 @@ function handleAutoOpened(): void {
   transform: rotate(180deg);
 }
 
+/* Крестик удаления строки — как в дизайне: последний в ряду, деструктивный
+   красный появляется на hover. */
+.lk-item-row__remove {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.lk-item-row__remove:hover {
+  background: #fbe3df;
+  color: #cf5b4a;
+}
 </style>

@@ -33,6 +33,9 @@ final class StoreController extends Controller
 
         $item = ($this->addItem)($shoppingList, $this->toData($request), $uuid);
 
+        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта).
+        $item->loadCount('comments');
+
         return ShoppingListItemResource::make($item)
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);

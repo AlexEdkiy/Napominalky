@@ -36,6 +36,8 @@ function makeItem(overrides: Partial<ShoppingListItem>): ShoppingListItem {
     reminder_at: null,
     link: null,
     comment: null,
+    comments_count: 0,
+    comments: [],
     tags: [],
     created_at: '2026-07-01T00:00:00Z',
     updated_at: '2026-07-01T00:00:00Z',
@@ -388,7 +390,7 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  it('checks and removes items immediately through the API in the edit mode', async () => {
+  it('checks items immediately and removes them through the × cross AFTER confirmation', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
     vi.mocked(shoppingListsApi.checkItem).mockResolvedValue(makeItem({ uuid: 'i-1', is_checked: true }))
     vi.mocked(shoppingListsApi.deleteItem).mockResolvedValue(undefined)
@@ -400,12 +402,35 @@ describe('LkTaskFormDialog', () => {
     await wrapper.find('.lk-form-dialog__item-checkbox').setValue(true)
     await vi.waitFor(() => expect(shoppingListsApi.checkItem).toHaveBeenCalledWith('l-1', 'i-1', true))
 
-    // Удаление живёт в раскрытой области пункта («Удалить строку»), а не
-    // «крестиком» в самой строке.
-    expect(wrapper.find('.lk-item-attrs__remove').exists()).toBe(false)
+    // Текстовой «Удалить строку» в раскрытой области больше нет — только × в строке.
     await wrapper.find('.lk-item-row__chevron').trigger('click')
-    await wrapper.find('.lk-item-attrs__remove').trigger('click')
+    expect(wrapper.find('.lk-item-attrs__remove').exists()).toBe(false)
+
+    // Крестик открывает confirm-диалог с именем строки; удаления ещё нет.
+    await wrapper.find('.lk-item-row__remove').trigger('click')
+    expect(wrapper.text()).toContain('Удалить строку «Молоко»?')
+    expect(shoppingListsApi.deleteItem).not.toHaveBeenCalled()
+
+    await wrapper.find('.lk-confirm-dialog__confirm').trigger('click')
     await vi.waitFor(() => expect(shoppingListsApi.deleteItem).toHaveBeenCalledWith('l-1', 'i-1'))
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(0))
+    vi.unstubAllGlobals()
+  })
+
+  it('does NOT remove the item when the row-delete confirmation is cancelled', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('.lk-item-row__remove').trigger('click')
+    await wrapper.find('.lk-confirm-dialog__cancel').trigger('click')
+
+    expect(shoppingListsApi.deleteItem).not.toHaveBeenCalled()
+    expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1)
+    // Диалог подтверждения закрыт.
+    expect(wrapper.find('.lk-confirm-dialog__panel').exists()).toBe(false)
     vi.unstubAllGlobals()
   })
 
@@ -482,32 +507,50 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  it('opens the comment editor from the row button (раскрытие + авто-открытие) and PUTs the comment', async () => {
+  it('opens the thread from the 💬 button and POSTs a new comment with a local append', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1' })])
-    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', comment: 'привезти' }))
+    vi.mocked(shoppingListsApi.addItemComment).mockResolvedValue({
+      uuid: 'c-1',
+      author_name: 'Анна',
+      body: 'привезти',
+      created_at: '2026-03-05T14:30:00',
+    })
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm(list)
     await wrapper.vm.$nextTick()
     await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
 
-    // «Комментарий» больше не в чипсах раскрытой панели — только кнопка в строке.
+    // Кнопка 💬 раскрывает строку к треду; старого редактора comment нет.
     await wrapper.find('.lk-item-row__comment-btn').trigger('click')
     await wrapper.vm.$nextTick()
     expect(wrapper.find('[aria-label="Добавить: Комментарий"]').exists()).toBe(false)
-    const textarea = wrapper.find('textarea[aria-label="Текст комментария"]')
-    expect(textarea.exists()).toBe(true)
+    expect(wrapper.find('textarea[aria-label="Текст комментария"]').exists()).toBe(false)
+    const thread = wrapper.find('.lk-comments-thread')
+    expect(thread.exists()).toBe(true)
+    expect(thread.text()).toContain('Комментариев пока нет')
 
-    await textarea.setValue('привезти')
-    await wrapper.find('.lk-item-attrs__editor-apply').trigger('click')
+    const itemFetchesBefore = vi.mocked(shoppingListsApi.fetchItems).mock.calls.length
+    await thread.find('textarea').setValue('привезти')
+    await thread.find('.lk-comments-thread__send').trigger('click')
+
+    // POST в тред (НЕ PUT пункта), локальный append без рефетча пунктов.
     await vi.waitFor(() =>
-      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { comment: 'привезти' }),
+      expect(shoppingListsApi.addItemComment).toHaveBeenCalledWith('l-1', 'i-1', { body: 'привезти' }),
     )
-    // Заданный комментарий подсвечивает кнопку в строке (индикатор наличия).
-    await vi.waitFor(() =>
-      expect(wrapper.find('.lk-item-row__comment-btn').classes()).toContain(
-        'lk-item-row__comment-btn--active',
-      ),
+    expect(shoppingListsApi.updateItem).not.toHaveBeenCalled()
+    expect(vi.mocked(shoppingListsApi.fetchItems).mock.calls.length).toBe(itemFetchesBefore)
+    await vi.waitFor(() => {
+      const item = wrapper.find('.lk-comments-thread__item')
+      expect(item.exists()).toBe(true)
+      expect(item.text()).toContain('Анна')
+      expect(item.text()).toContain('привезти')
+      expect(item.text()).toContain('14:30 05.03.26')
+    })
+    // Кнопка 💬 подсвечена и несёт счётчик 1 (индикатор наличия треда).
+    expect(wrapper.find('.lk-item-row__comment-btn').classes()).toContain(
+      'lk-item-row__comment-btn--active',
     )
+    expect(wrapper.find('.lk-item-row__comment-count').text()).toBe('1')
     vi.unstubAllGlobals()
   })
 
@@ -831,5 +874,8 @@ vi.mock('@/api/shoppingListsApi', () => ({
     updateItem: vi.fn(),
     deleteItem: vi.fn(),
     checkItem: vi.fn(),
+    fetchItemComments: vi.fn(),
+    addItemComment: vi.fn(),
+    deleteItemComment: vi.fn(),
   },
 }))

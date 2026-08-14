@@ -22,6 +22,13 @@ final class ShoppingListItemResource extends JsonResource
      * для пунктов списков type='tasks', для goods номинальны). Внутренний id,
      * user_id, shopping_list_id, server_revision и deleted_at не экспонируются.
      *
+     * comments_count присутствует всегда (контроллеры обязаны withCount /
+     * loadCount, fallback-подсчёт — страховка); comments встраивается только
+     * при загруженном relation (whenLoaded, хронологический ASC).
+     *
+     * @deprecated Поле `comment` — legacy одиночный комментарий; заменено
+     *             тредом `comments` (двухфазный вывод, пока отдаётся).
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -40,6 +47,8 @@ final class ShoppingListItemResource extends JsonResource
             'reminder_at' => $this->reminder_at?->toISOString(),
             'link' => $this->link,
             'comment' => $this->comment,
+            'comments_count' => (int) ($this->comments_count ?? $this->comments()->count()),
+            'comments' => ShoppingListItemCommentResource::collection($this->whenLoaded('comments')),
             'tags' => $this->tags,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

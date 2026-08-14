@@ -50,6 +50,28 @@ export interface ShoppingList {
 }
 
 /**
+ * Комментарий треда строки задачи — зеркало
+ * ShoppingListItemCommentResource. `author_name` — денормализованный снимок
+ * имени автора на момент написания; `created_at` — ISO 8601 (время сервера).
+ */
+export interface ShoppingListItemComment {
+  uuid: string
+  author_name: string
+  body: string
+  created_at: string
+}
+
+/**
+ * Полезная нагрузка добавления комментария треда
+ * (POST /shopping-lists/{uuid}/items/{itemUuid}/comments). `uuid` опционален —
+ * клиентский идентификатор для offline-идемпотентности.
+ */
+export interface CreateItemCommentPayload {
+  body: string
+  uuid?: string
+}
+
+/**
  * Позиция списка покупок — зеркало ShoppingListItemResource (snake_case),
  * нормализованное на клиенте (`tags` уже разобран, см. пометку у
  * `ShoppingList` выше). `deadline` — только дата (`YYYY-MM-DD`, без
@@ -68,7 +90,15 @@ export interface ShoppingListItem {
   deadline: string | null
   reminder_at: string | null
   link: string | null
+  /**
+   * @deprecated Legacy одиночный комментарий — заменён тредом `comments`
+   *             (сервер пока отдаёт поле, UI его больше не использует).
+   */
   comment: string | null
+  /** Число комментариев треда (всегда присутствует в ресурсе). */
+  comments_count: number
+  /** Тред комментариев (ASC по created_at); `[]`, если embed не пришёл. */
+  comments: ShoppingListItemComment[]
   tags: string[]
   /** Статус пункта (только tasks; `done ⇔ is_checked` гарантирует сервер). */
   status: TaskStatus
@@ -133,6 +163,7 @@ export interface CreateShoppingListItemPayload {
   deadline?: string | null
   reminder_at?: string | null
   link?: string | null
+  /** @deprecated Одиночный комментарий заменён тредом (`CreateItemCommentPayload`). */
   comment?: string | null
   tags?: string[]
   /** Только для пунктов tasks-списков. */
@@ -154,6 +185,7 @@ export interface UpdateShoppingListItemPayload {
   deadline?: string | null
   reminder_at?: string | null
   link?: string | null
+  /** @deprecated Одиночный комментарий заменён тредом (`CreateItemCommentPayload`). */
   comment?: string | null
   tags?: string[]
   /** Смена статуса пункта (только tasks); `is_checked` сервер сведёт сам. */

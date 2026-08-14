@@ -26,6 +26,9 @@ final class CheckController extends Controller
 
         $updated = ($this->checkItem)($item, $request->boolean('is_checked'));
 
+        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта).
+        $updated->loadCount('comments');
+
         return ShoppingListItemResource::make($updated);
     }
 }

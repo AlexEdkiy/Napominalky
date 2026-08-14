@@ -5,6 +5,7 @@ import { shoppingListsApi } from '@/api/shoppingListsApi'
 import type {
   CreateShoppingListItemPayload,
   ShoppingListItem,
+  ShoppingListItemComment,
   UpdateShoppingListItemPayload,
 } from '@/types/shoppingList'
 
@@ -99,6 +100,33 @@ export function useShoppingListItems(listUuid: MaybeRefOrGetter<string>) {
     }
   }
 
+  /**
+   * Добавляет комментарий в тред пункта: POST …/comments, затем локальный
+   * append созданного комментария в `item.comments` + `comments_count++`
+   * (без полного рефетча пунктов — тред ASC, новый всегда в конце).
+   */
+  async function addComment(
+    itemUuid: string,
+    body: string,
+  ): Promise<ShoppingListItemComment | null> {
+    error.value = null
+    try {
+      const comment = await shoppingListsApi.addItemComment(toValue(listUuid), itemUuid, { body })
+      const target = items.value.find((item) => item.uuid === itemUuid)
+      if (target !== undefined) {
+        replaceItem({
+          ...target,
+          comments: [...target.comments, comment],
+          comments_count: target.comments_count + 1,
+        })
+      }
+      return comment
+    } catch (e) {
+      resolveError(e)
+      return null
+    }
+  }
+
   return {
     items,
     isLoading,
@@ -110,5 +138,6 @@ export function useShoppingListItems(listUuid: MaybeRefOrGetter<string>) {
     update,
     remove,
     check,
+    addComment,
   }
 }
