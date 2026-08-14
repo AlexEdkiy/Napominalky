@@ -56,6 +56,7 @@ const base = (): ShoppingListItem => ({
   comment: null,
   tags: null,
   isChecked: false,
+  status: 'new',
   position: 0,
   notificationId: null,
   serverRevision: null,

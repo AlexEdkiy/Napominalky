@@ -15,6 +15,12 @@ export const shoppingLists = sqliteTable('shopping_lists', {
   type: text('type').notNull().default('goods'),
   /** Теги списка: JSON-массив строк (nullable). Синхронизируется с backend. */
   tags: text('tags'),
+  /** Статус задачи: new|in_progress|postponed|done. Только для type=tasks. */
+  status: text('status').notNull().default('new'),
+  /** 1 = статус закреплён вручную (автодеривация из пунктов отключена). */
+  statusIsManual: integer('status_is_manual').notNull().default(0),
+  /** Инвариант: 1 ⇔ status='done' (зеркало backend is_completed). */
+  isCompleted: integer('is_completed').notNull().default(0),
   serverRevision: integer('server_revision'),
   createdAt: text('created_at')
     .notNull()

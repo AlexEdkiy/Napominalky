@@ -17,7 +17,8 @@ import { Ionicons } from '@expo/vector-icons'
 
 import AttributeSheet, { type AttributeSheetValue } from '@/components/lists/AttributeSheet'
 import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
-import QuickAddItem from '@/components/lists/QuickAddItem'
+import ListDetailHeader, { type ItemFilter } from '@/components/lists/ListDetailHeader'
+import StatusSheet, { type StatusSheetValue } from '@/components/lists/StatusSheet'
 import type {
   CreateItemData,
   ListType,
@@ -29,14 +30,6 @@ import { useShoppingListItems } from '@/hooks/useShoppingListItems'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import type { ItemAttribute } from '@/utils/itemAttributes'
-
-type ItemFilter = 'all' | 'active' | 'done'
-
-const ITEM_FILTERS: readonly { key: ItemFilter; label: string }[] = [
-  { key: 'all', label: 'Все' },
-  { key: 'active', label: 'Не выполнено' },
-  { key: 'done', label: 'Выполнено' },
-]
 
 const filterItems = (items: ShoppingListItem[], filter: ItemFilter): ShoppingListItem[] => {
   if (filter === 'active') return items.filter((i) => !i.isChecked)
@@ -51,22 +44,32 @@ interface AttributeSheetTarget {
   attribute: ItemAttribute
 }
 
+/** Цель шторки статуса: сама задача (list) либо пункт по uuid. */
+type StatusSheetTarget = { kind: 'list' } | { kind: 'item'; itemUuid: string }
+
 export default function ListDetailScreen() {
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
   const listUuid = uuid ?? ''
   const { colors } = useTheme()
   const { data: list, isLoading } = useShoppingList(listUuid)
-  const { deleteList } = useShoppingLists()
-  const { items, addItem, updateItem, deleteItem, checkItem } = useShoppingListItems(listUuid)
+  const { deleteList, setListStatus } = useShoppingLists()
+  const { items, addItem, updateItem, deleteItem, checkItem, setItemStatus } =
+    useShoppingListItems(listUuid)
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null)
   const [sheetTarget, setSheetTarget] = useState<AttributeSheetTarget | null>(null)
+  const [statusTarget, setStatusTarget] = useState<StatusSheetTarget | null>(null)
 
   const accentColor = list?.type === 'tasks' ? colors.amber : colors.accent
   const accentBg = list?.type === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const listType: ListType = list?.type ?? 'goods'
+  const isTasks = listType === 'tasks'
   const sheetItem = items.find((i) => i.uuid === sheetTarget?.itemUuid)
+  const statusItem =
+    statusTarget?.kind === 'item'
+      ? items.find((i) => i.uuid === statusTarget.itemUuid)
+      : undefined
 
   const handleAdd = (data: CreateItemData): void => {
     addItem.mutate(data)
@@ -93,6 +96,17 @@ export default function ListDetailScreen() {
     const patch = buildAttributePatch(sheetTarget.attribute, value)
     updateItem.mutate({ uuid: sheetTarget.itemUuid, patch })
     setSheetTarget(null)
+  }
+
+  /** Выбор в шторке статуса: задача (в т.ч. «Авто») либо пункт (без «Авто»). */
+  const handleSelectStatus = (value: StatusSheetValue): void => {
+    if (statusTarget === null) return
+    if (statusTarget.kind === 'list') {
+      setListStatus.mutate({ uuid: listUuid, status: value })
+    } else if (value !== 'auto') {
+      setItemStatus.mutate({ uuid: statusTarget.itemUuid, status: value })
+    }
+    setStatusTarget(null)
   }
 
   const confirmDeleteList = (): void => {
@@ -161,6 +175,11 @@ export default function ListDetailScreen() {
               onQuantityChange={handleQuantityChange}
               onOpenAttribute={handleOpenAttribute}
               onUpdateMeta={handleUpdateMeta}
+              onOpenStatus={
+                isTasks
+                  ? (itemUuid) => setStatusTarget({ kind: 'item', itemUuid })
+                  : undefined
+              }
             />
           )}
           contentContainerStyle={styles.list}
@@ -169,7 +188,7 @@ export default function ListDetailScreen() {
             // отступ от края экрана; шапка уже имеет собственные margin/padding
             // (16), поэтому компенсируем внешний паддинг здесь, чтобы не удвоить его.
             <View style={styles.headerOffset}>
-              <ListHeader
+              <ListDetailHeader
                 listType={listType}
                 accentColor={accentColor}
                 accentBg={accentBg}
@@ -179,6 +198,9 @@ export default function ListDetailScreen() {
                 isEmpty={items.length === 0}
                 emptyHint={emptyHint}
                 emptySubHint={emptySubHint}
+                listStatus={isTasks ? list.status : undefined}
+                statusIsManual={list.statusIsManual}
+                onOpenListStatus={() => setStatusTarget({ kind: 'list' })}
               />
             </View>
           }
@@ -204,6 +226,19 @@ export default function ListDetailScreen() {
           accentBg={accentBg}
           onConfirm={handleConfirmAttribute}
           onClose={() => setSheetTarget(null)}
+        />
+
+        {/* Шторка статуса: задача — 4 статуса + «Авто»; пункт — без «Авто» */}
+        <StatusSheet
+          visible={statusTarget !== null}
+          title={statusTarget?.kind === 'list' ? 'Статус задачи' : 'Статус пункта'}
+          current={
+            statusTarget?.kind === 'list' ? list.status : statusItem?.status ?? 'new'
+          }
+          showAuto={statusTarget?.kind === 'list'}
+          isAuto={!list.statusIsManual}
+          onSelect={handleSelectStatus}
+          onClose={() => setStatusTarget(null)}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -265,139 +300,6 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
   )
 }
 
-// ---- Sub-components --------------------------------------------------------
-
-interface ListHeaderProps {
-  listType: ListType
-  accentColor: string
-  accentBg: string
-  itemFilter: ItemFilter
-  onFilterChange: (f: ItemFilter) => void
-  onAdd: (data: CreateItemData) => void
-  isEmpty: boolean
-  emptyHint: string
-  emptySubHint: string
-}
-
-const ListHeader: React.FC<ListHeaderProps> = ({
-  listType,
-  accentColor,
-  accentBg,
-  itemFilter,
-  onFilterChange,
-  onAdd,
-  isEmpty,
-  emptyHint,
-  emptySubHint,
-}) => {
-  return (
-    <>
-      <QuickAddItem listType={listType} onAdd={onAdd} autoFocus={false} />
-
-      {isEmpty ? (
-        <EmptyBanner
-          accentBg={accentBg}
-          accentColor={accentColor}
-          listType={listType}
-          hint={emptyHint}
-          subHint={emptySubHint}
-        />
-      ) : (
-        <ItemFilterSegment
-          filters={ITEM_FILTERS}
-          active={itemFilter}
-          onSelect={onFilterChange}
-          accentColor={accentColor}
-        />
-      )}
-    </>
-  )
-}
-
-// ---- ItemFilterSegment -----------------------------------------------------
-
-interface ItemFilterSegmentProps {
-  filters: readonly { key: ItemFilter; label: string }[]
-  active: ItemFilter
-  onSelect: (f: ItemFilter) => void
-  accentColor: string
-}
-
-const ItemFilterSegment: React.FC<ItemFilterSegmentProps> = ({
-  filters,
-  active,
-  onSelect,
-  accentColor,
-}) => {
-  const { colors } = useTheme()
-  return (
-    <View style={[styles.filterRow, { backgroundColor: colors.borderSubtle }]}>
-      {filters.map((f) => {
-        const isActive = f.key === active
-        return (
-          <Pressable
-            key={f.key}
-            onPress={() => onSelect(f.key)}
-            style={[
-              styles.filterTab,
-              isActive && [styles.filterTabActive, { backgroundColor: colors.surface }],
-            ]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
-          >
-            <Text
-              style={[
-                styles.filterLabel,
-                { color: isActive ? accentColor : colors.textSecondary },
-              ]}
-            >
-              {f.label}
-            </Text>
-          </Pressable>
-        )
-      })}
-    </View>
-  )
-}
-
-// ---- EmptyBanner -----------------------------------------------------------
-
-interface EmptyBannerProps {
-  accentBg: string
-  accentColor: string
-  listType: ListType
-  hint: string
-  subHint: string
-}
-
-const EmptyBanner: React.FC<EmptyBannerProps> = ({
-  accentBg,
-  accentColor,
-  listType,
-  hint,
-  subHint,
-}) => {
-  const { colors } = useTheme()
-  const icon: React.ComponentProps<typeof Ionicons>['name'] =
-    listType === 'tasks' ? 'list' : 'bag-handle'
-  const successText = 'Задача создана — добавьте первый пункт'
-  return (
-    <View style={styles.emptyBannerOuter}>
-      <View style={[styles.emptyBannerSuccess, { backgroundColor: accentBg }]}>
-        <Ionicons name="checkmark-circle" size={20} color={accentColor} />
-        <Text style={[styles.emptyBannerSuccessText, { color: accentColor }]}>{successText}</Text>
-      </View>
-      <View style={styles.emptyCenter}>
-        <View style={[styles.emptyIcon, { backgroundColor: accentBg }]}>
-          <Ionicons name={icon} size={40} color={accentColor} />
-        </View>
-        <Text style={[styles.emptyBannerTitle, { color: colors.textPrimary }]}>{hint}</Text>
-        <Text style={[styles.emptyBannerSub, { color: colors.textSecondary }]}>{subHint}</Text>
-      </View>
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1 },
@@ -434,55 +336,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
   },
-  filterRow: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-    borderRadius: 12,
-    padding: 4,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 9,
-  },
-  filterTabActive: {
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
-  },
-  filterLabel: { ...typography.bodySm, fontWeight: '600' },
-  emptyBannerOuter: { gap: 0 },
-  emptyBannerSuccess: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  emptyBannerSuccessText: { ...typography.bodySm, fontWeight: '600', flex: 1 },
-  emptyCenter: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    gap: 10,
-  },
-  emptyIcon: {
-    width: 84,
-    height: 84,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyBannerTitle: { ...typography.cardTitle, textAlign: 'center' },
-  emptyBannerSub: { ...typography.body, textAlign: 'center' },
   emptyFilter: { alignItems: 'center', paddingTop: 32 },
   emptyFilterText: { ...typography.body },
 })

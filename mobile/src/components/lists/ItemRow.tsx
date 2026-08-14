@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
 import AttributeChips from '@/components/lists/AttributeChips'
+import StatusBadge from '@/components/lists/StatusBadge'
 import type { ListType, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
 import { parseTags } from '@/db/repositories/shoppingListsRepo'
 import { useTheme } from '@/theme'
@@ -20,6 +21,8 @@ interface ItemRowProps {
   onQuantityChange?: (uuid: string, quantity: number) => void
   onOpenAttribute?: (uuid: string, attribute: ItemAttribute) => void
   onUpdateMeta?: (uuid: string, patch: MetaPatch) => void
+  /** Тап по бейджу статуса пункта (только tasks) — открыть меню смены. */
+  onOpenStatus?: ((uuid: string) => void) | undefined
 }
 
 export interface MetaPatch {
@@ -40,11 +43,15 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   onQuantityChange,
   onOpenAttribute,
   onUpdateMeta,
+  onOpenStatus,
 }) => {
   const { colors } = useTheme()
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const checkboxRadius = listType === 'tasks' ? 10 : 7
+  const isTask = listType === 'tasks'
+  // Инвариант done ⇔ is_checked; для tasks приоритет у status (зачёркивание).
+  const done = isTask ? item.status === 'done' : item.isChecked
   // 5: показываем ВСЕ теги пункта (не только первый)
   const tags = parseTags(item.tags)
   const hasDeadlineChip = listType === 'tasks' && item.deadline != null
@@ -52,8 +59,8 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
     item.reminderAt !== null ||
     (item.comment !== null && item.comment.length > 0) ||
     (item.link !== null && item.link.length > 0)
-  // 3: тег(и) + чип дедлайна + иконки-индикаторы — в одной строке (metaLine)
-  const hasMetaLine = hasDeadlineChip || hasMetaIndicator || tags.length > 0
+  // 3: тег(и) + чип дедлайна + бейдж статуса (tasks) + иконки — metaLine
+  const hasMetaLine = isTask || hasDeadlineChip || hasMetaIndicator || tags.length > 0
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
@@ -61,24 +68,24 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
         <View
           style={[
             styles.accent,
-            { backgroundColor: accentColor, opacity: item.isChecked ? 0.4 : 1 },
+            { backgroundColor: accentColor, opacity: done ? 0.4 : 1 },
           ]}
         />
         <Pressable
           accessibilityRole="checkbox"
-          accessibilityState={{ checked: item.isChecked }}
+          accessibilityState={{ checked: done }}
           accessibilityLabel={`Отметить ${item.name}`}
-          onPress={() => onToggle(item.uuid, !item.isChecked)}
+          onPress={() => onToggle(item.uuid, !done)}
           style={[
             styles.checkbox,
             {
               borderRadius: checkboxRadius,
-              backgroundColor: item.isChecked ? accentColor : 'transparent',
-              borderColor: item.isChecked ? accentColor : colors.textTertiary,
+              backgroundColor: done ? accentColor : 'transparent',
+              borderColor: done ? accentColor : colors.textTertiary,
             },
           ]}
         >
-          {item.isChecked && <Ionicons name="checkmark" size={14} color="#fff" />}
+          {done && <Ionicons name="checkmark" size={14} color="#fff" />}
         </Pressable>
         <Pressable
           style={styles.main}
@@ -91,8 +98,8 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
               numberOfLines={1}
               style={[
                 styles.name,
-                { color: item.isChecked ? colors.textTertiary : colors.textPrimary },
-                item.isChecked && styles.nameDone,
+                { color: done ? colors.textTertiary : colors.textPrimary },
+                done && styles.nameDone,
               ]}
             >
               {item.name}
@@ -106,6 +113,18 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
           {/* 3/5: тег(и) + чип дедлайна + мета-иконки — единый горизонтальный ряд */}
           {hasMetaLine && (
             <View style={styles.metaLine}>
+              {/* Бейдж статуса пункта — только для tasks; goods без статусов */}
+              {isTask && (
+                <StatusBadge
+                  status={item.status}
+                  testID="item-status-badge"
+                  onPress={
+                    onOpenStatus !== undefined
+                      ? () => onOpenStatus(item.uuid)
+                      : undefined
+                  }
+                />
+              )}
               {tags.map((tag) => (
                 <View key={tag} style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
                   <Text style={[styles.chipText, { color: colors.textSecondary }]}>#{tag}</Text>

@@ -1,3 +1,4 @@
+import { normalizeTaskStatus } from '@/constants/taskStatus'
 import { notes } from '@/db/schema/notes'
 import { reminders } from '@/db/schema/reminders'
 import { shoppingListItems } from '@/db/schema/shoppingListItems'
@@ -45,6 +46,9 @@ const shoppingListMapper: EntityMapper<ServerShoppingList> = {
     title: s.title ?? '',
     type: s.type ?? 'goods',
     tags: s.tags ?? null,
+    status: normalizeTaskStatus(s.status),
+    statusIsManual: flag(s.status_is_manual ?? false),
+    isCompleted: flag(s.is_completed ?? false),
     createdAt: s.created_at ?? s.updated_at,
     updatedAt: s.updated_at,
     deletedAt: s.deleted_at,
@@ -65,6 +69,7 @@ const shoppingListItemMapper: EntityMapper<ServerShoppingListItem> = {
     comment: s.comment ?? null,
     tags: s.tags ?? null,
     isChecked: flag(s.is_checked),
+    status: normalizeTaskStatus(s.status),
     position: s.position ?? 0,
     createdAt: s.created_at ?? s.updated_at,
     updatedAt: s.updated_at,
