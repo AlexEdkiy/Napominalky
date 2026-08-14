@@ -165,3 +165,31 @@ it('accepts a valid status for goods without a 422 keeping it nominal', function
         ->assertJsonPath('data.status', 'new')
         ->assertJsonPath('data.status_is_manual', false);
 });
+
+it('accepts a partial PUT with only status (no title) and keeps the title', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    // Регресс: смена статуса из таблицы шлёт PUT { status } БЕЗ title.
+    // Раньше title=required давал 422 и/или контроллер затирал название.
+    $list = ShoppingList::factory()->for($user)->tasks()->create([
+        'title' => 'Перед уходом в отпуск',
+        'status' => TaskStatus::New,
+    ]);
+
+    $this->putJson("/api/v1/shopping-lists/{$list->uuid}", [
+        'status' => 'in_progress',
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.title', 'Перед уходом в отпуск')
+        ->assertJsonPath('data.status', 'in_progress')
+        ->assertJsonPath('data.status_is_manual', true);
+
+    // «Авто»-сброс тоже partial (только status_is_manual), title не теряется.
+    $this->putJson("/api/v1/shopping-lists/{$list->uuid}", [
+        'status_is_manual' => false,
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.title', 'Перед уходом в отпуск')
+        ->assertJsonPath('data.status_is_manual', false);
+});

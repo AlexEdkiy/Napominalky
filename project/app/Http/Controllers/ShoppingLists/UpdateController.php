@@ -23,7 +23,11 @@ final class UpdateController extends Controller
         $this->authorize('update', $shoppingList);
 
         $data = new ShoppingListData(
-            title: $request->string('title')->toString(),
+            // Частичное обновление (напр. только смена статуса из таблицы) —
+            // title может не прийти: берём существующий, чтобы не затереть.
+            title: $request->has('title')
+                ? $request->string('title')->toString()
+                : $shoppingList->title,
             type: $request->has('type')
                 ? $request->string('type')->toString()
                 : $shoppingList->type,
