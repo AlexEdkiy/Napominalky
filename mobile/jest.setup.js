@@ -1,4 +1,9 @@
 // Глобальные моки нативных Expo-модулей для unit-тестов.
+
+// react-native-gesture-handler (Swipeable строк): официальный jest-мок нативных
+// хендлеров — компоненты рендерят детей, жесты no-op.
+require('react-native-gesture-handler/jestSetup')
+
 jest.mock('expo-crypto', () => ({
   randomUUID: jest.fn(() => '00000000-0000-4000-8000-000000000000'),
   digestStringAsync: jest.fn(async (_alg, data) => `hash:${data}`),

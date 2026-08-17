@@ -132,6 +132,14 @@ export default function ListDetailScreen() {
     ])
   }
 
+  /**
+   * Удаление из свайп-действия строки: кнопка «Удалить» в выехавшей зоне и есть
+   * подтверждение (inline, без Alert) — сразу soft delete + sync.
+   */
+  const handleSwipeDelete = (itemUuid: string): void => {
+    deleteItem.mutate(itemUuid)
+  }
+
   if (isLoading) {
     return <ActivityIndicator size="large" style={styles.loader} color={colors.accent} />
   }
@@ -187,6 +195,7 @@ export default function ListDetailScreen() {
               }
               commentsCount={commentCounts.get(item.uuid) ?? 0}
               onOpenComments={setCommentsItemUuid}
+              onSwipeDelete={handleSwipeDelete}
             />
           )}
           contentContainerStyle={styles.list}

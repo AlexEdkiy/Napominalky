@@ -1,14 +1,15 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Swipeable } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 
 import AttributeChips from '@/components/lists/AttributeChips'
-import StatusBadge from '@/components/lists/StatusBadge'
+import MetaLine from '@/components/lists/ItemRowMetaLine'
+import SwipeDeleteAction from '@/components/lists/SwipeDeleteAction'
 import type { ListType, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
 import { parseTags } from '@/db/repositories/shoppingListsRepo'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
-import { formatDeadlineDisplay } from '@/utils/datetime'
 import type { ItemAttribute, ItemAttributeValues } from '@/utils/itemAttributes'
 
 interface ItemRowProps {
@@ -27,6 +28,11 @@ interface ItemRowProps {
   commentsCount?: number
   /** Тап по 💬/кнопке «Комментарии» — открыть тред пункта. */
   onOpenComments?: (uuid: string) => void
+  /**
+   * Подтверждённое удаление из свайп-действия: свайп влево открывает кнопку
+   * «Удалить», тап по ней = подтверждение (без Alert). Без пропа свайпа нет.
+   */
+  onSwipeDelete?: ((uuid: string) => void) | undefined
 }
 
 export interface MetaPatch {
@@ -49,8 +55,10 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   onOpenStatus,
   commentsCount = 0,
   onOpenComments,
+  onSwipeDelete,
 }) => {
   const { colors } = useTheme()
+  const swipeableRef = useRef<Swipeable | null>(null)
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const checkboxRadius = listType === 'tasks' ? 10 : 7
@@ -61,13 +69,31 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   const tags = parseTags(item.tags)
   const hasDeadlineChip = listType === 'tasks' && item.deadline != null
   const hasMetaIndicator =
-    item.reminderAt !== null ||
-    commentsCount > 0 ||
-    (item.link !== null && item.link.length > 0)
+    item.reminderAt !== null || commentsCount > 0 || (item.link !== null && item.link.length > 0)
   // 3: тег(и) + чип дедлайна + бейдж статуса (tasks) + иконки — metaLine
   const hasMetaLine = isTask || hasDeadlineChip || hasMetaIndicator || tags.length > 0
 
+  // Свайп влево = inline-подтверждение: удаляет только тап по кнопке «Удалить».
+  const handleSwipeDelete = (): void => {
+    swipeableRef.current?.close()
+    onSwipeDelete?.(item.uuid)
+  }
+
+  const swipeProps = onSwipeDelete === undefined ? {} : {
+    renderRightActions: () => (
+      <SwipeDeleteAction itemName={item.name} onConfirm={handleSwipeDelete} />
+    ),
+  }
+
   return (
+    <Swipeable
+      ref={swipeableRef}
+      {...swipeProps}
+      overshootRight={false}
+      friction={2}
+      rightThreshold={40}
+      containerStyle={styles.swipeContainer}
+    >
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
       <View style={styles.row}>
         <View
@@ -92,66 +118,47 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
         >
           {done && <Ionicons name="checkmark" size={14} color="#fff" />}
         </Pressable>
-        <Pressable
-          style={styles.main}
-          onPress={() => onExpand?.(item.uuid)}
-          accessibilityRole="button"
-          accessibilityLabel={item.name}
-        >
-          <View style={styles.nameRow}>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.name,
-                { color: done ? colors.textTertiary : colors.textPrimary },
-                done && styles.nameDone,
-              ]}
-            >
-              {item.name}
-            </Text>
-            {listType === 'goods' && item.quantity > 1 && (
-              <View style={[styles.chip, { backgroundColor: accentBg }]}>
-                <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
-              </View>
-            )}
-          </View>
+        {/* Фикс «второго тапа»: metaLine — сестра Pressable-раскрытия, не потомок */}
+        <View style={styles.main}>
+          <Pressable
+            style={styles.nameTap}
+            hitSlop={{ top: 12, bottom: hasMetaLine ? 0 : 12 }}
+            onPress={() => onExpand?.(item.uuid)}
+            accessibilityRole="button"
+            accessibilityLabel={item.name}
+          >
+            <View style={styles.nameRow}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.name,
+                  { color: done ? colors.textTertiary : colors.textPrimary },
+                  done && styles.nameDone,
+                ]}
+              >
+                {item.name}
+              </Text>
+              {listType === 'goods' && item.quantity > 1 && (
+                <View style={[styles.chip, { backgroundColor: accentBg }]}>
+                  <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
+                </View>
+              )}
+            </View>
+          </Pressable>
           {/* 3/5: тег(и) + чип дедлайна + мета-иконки — единый горизонтальный ряд */}
           {hasMetaLine && (
-            <View style={styles.metaLine}>
-              {/* Бейдж статуса пункта — только для tasks; goods без статусов */}
-              {isTask && (
-                <StatusBadge
-                  status={item.status}
-                  testID="item-status-badge"
-                  onPress={
-                    onOpenStatus !== undefined
-                      ? () => onOpenStatus(item.uuid)
-                      : undefined
-                  }
-                />
-              )}
-              {tags.map((tag) => (
-                <View key={tag} style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
-                  <Text style={[styles.chipText, { color: colors.textSecondary }]}>#{tag}</Text>
-                </View>
-              ))}
-              {/* DEF-05: форматированная дата вместо raw YYYY-MM-DD */}
-              {listType === 'tasks' && item.deadline != null && (
-                <View style={[styles.chip, { backgroundColor: accentBg }]}>
-                  <Ionicons name="calendar-outline" size={11} color={accentColor} />
-                  <Text style={[styles.chipText, { color: accentColor }]}>
-                    {formatDeadlineDisplay(item.deadline)}
-                  </Text>
-                </View>
-              )}
-              <MetaIndicators
-                item={item}
-                commentsCount={commentsCount}
-                onOpenComments={onOpenComments}
-              />
-            </View>
+            <MetaLine
+              item={item}
+              isTask={isTask}
+              tags={tags}
+              accentColor={accentColor}
+              accentBg={accentBg}
+              commentsCount={commentsCount}
+              onOpenStatus={onOpenStatus}
+              onOpenComments={onOpenComments}
+            />
           )}
-        </Pressable>
+        </View>
         {/* DEF-01: убран Pressable с close-circle-outline; chevron — единственный правый элемент */}
         {onExpand !== undefined && (
           <Pressable
@@ -182,50 +189,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
         />
       )}
     </View>
-  )
-}
-
-// ---- MetaIndicators --------------------------------------------------------
-
-interface MetaIndicatorsProps {
-  item: ShoppingListItem
-  commentsCount: number
-  onOpenComments: ((uuid: string) => void) | undefined
-}
-
-/** Иконки-индикаторы меты пункта; 💬 показывает счётчик треда и открывает его. */
-const MetaIndicators: React.FC<MetaIndicatorsProps> = ({
-  item,
-  commentsCount,
-  onOpenComments,
-}) => {
-  const { colors } = useTheme()
-  const hasReminder = item.reminderAt !== null
-  const hasComments = commentsCount > 0
-  const hasLink = item.link !== null && item.link.length > 0
-  if (!hasReminder && !hasComments && !hasLink) return null
-
-  return (
-    <View style={styles.indicators}>
-      {hasReminder && (
-        <Ionicons name="notifications-outline" size={12} color={colors.textTertiary} />
-      )}
-      {hasComments && (
-        <Pressable
-          onPress={onOpenComments !== undefined ? () => onOpenComments(item.uuid) : undefined}
-          accessibilityRole="button"
-          accessibilityLabel={`Комментарии: ${commentsCount}`}
-          hitSlop={6}
-          style={styles.commentsBadge}
-        >
-          <Ionicons name="chatbubble-outline" size={12} color={colors.textTertiary} />
-          <Text style={[styles.commentsBadgeText, { color: colors.textTertiary }]}>
-            {commentsCount}
-          </Text>
-        </Pressable>
-      )}
-      {hasLink && <Ionicons name="link-outline" size={12} color={colors.textTertiary} />}
-    </View>
+    </Swipeable>
   )
 }
 
@@ -353,10 +317,12 @@ const QuantityRow: React.FC<QuantityRowProps> = ({ item, accentColor, onQuantity
 }
 
 const styles = StyleSheet.create({
+  // Отступ между плашками — на контейнере Swipeable: красная зона действия
+  // не просвечивает в межстрочном зазоре (actions рендерятся под строкой).
+  swipeContainer: { marginBottom: 2 },
   wrapper: {
     borderRadius: 14,
     overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
-    marginBottom: 2,
   },
   row: {
     flexDirection: 'row',
@@ -380,6 +346,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   main: { flex: 1, paddingVertical: 12 },
+  nameTap: { justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   name: { ...typography.body, flexShrink: 1 },
   nameDone: { textDecorationLine: 'line-through' },
@@ -392,21 +359,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
-  // DEF-06/3.6/3: тег(и) + чип дедлайна + иконки-индикаторы в один горизонтальный ряд
-  metaLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  indicators: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  commentsBadge: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  commentsBadgeText: { ...typography.bodySm, fontSize: 11, fontWeight: '600' },
   commentsBtn: {
     flexDirection: 'row',
     alignItems: 'center',

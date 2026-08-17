@@ -189,3 +189,117 @@ describe('ItemRow — статусы пунктов задач (только tas
     expect(checkbox.props.accessibilityState.checked).toBe(false)
   })
 })
+
+describe('ItemRow — свайп влево: удаление с подтверждением в строке (Swipeable)', () => {
+  it('с onSwipeDelete рендерится правое действие «Удалить» (renderRightActions)', async () => {
+    const { getByTestId, getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onSwipeDelete={jest.fn()}
+      />,
+    )
+    expect(getByTestId('item-swipe-delete')).toBeTruthy()
+    expect(getByLabelText('Удалить Тестовый пункт')).toBeTruthy()
+  })
+
+  it('без onSwipeDelete свайп-действия нет', async () => {
+    const { queryByTestId } = await render(
+      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} onDelete={jest.fn()} />,
+    )
+    expect(queryByTestId('item-swipe-delete')).toBeNull()
+  })
+
+  it('свайп сам по себе НЕ удаляет: без тапа по кнопке onSwipeDelete не вызван', async () => {
+    const onSwipeDelete = jest.fn()
+    await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onSwipeDelete={onSwipeDelete}
+      />,
+    )
+    expect(onSwipeDelete).not.toHaveBeenCalled()
+  })
+
+  it('тап по «Удалить» (= подтверждение в строке) вызывает onSwipeDelete с uuid', async () => {
+    const onSwipeDelete = jest.fn()
+    const onDelete = jest.fn()
+    const { getByTestId } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onDelete={onDelete}
+        onSwipeDelete={onSwipeDelete}
+      />,
+    )
+    fireEvent.press(getByTestId('item-swipe-delete'))
+    expect(onSwipeDelete).toHaveBeenCalledWith('item-1')
+    // Alert-путь (onDelete из раскрытой панели) не задействован
+    expect(onDelete).not.toHaveBeenCalled()
+  })
+})
+
+describe('ItemRow — тап по статусу не конфликтует с раскрытием строки', () => {
+  it('тап по бейджу статуса вызывает onOpenStatus и НЕ вызывает onExpand', async () => {
+    const onOpenStatus = jest.fn()
+    const onExpand = jest.fn()
+    const item = { ...baseItem(), status: 'new' as const }
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={item}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onExpand={onExpand}
+        onOpenStatus={onOpenStatus}
+      />,
+    )
+    fireEvent.press(getByLabelText('Статус: Новая'))
+    expect(onOpenStatus).toHaveBeenCalledWith('item-1')
+    expect(onExpand).not.toHaveBeenCalled()
+  })
+
+  it('тап по названию строки вызывает onExpand (раскрытие)', async () => {
+    const onExpand = jest.fn()
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onExpand={onExpand}
+        onOpenStatus={jest.fn()}
+      />,
+    )
+    fireEvent.press(getByLabelText('Тестовый пункт'))
+    expect(onExpand).toHaveBeenCalledWith('item-1')
+  })
+
+  it('бейдж статуса НЕ вложен в Pressable раскрытия (нет предка с onExpand-обработчиком)', async () => {
+    const { getByTestId, getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onExpand={jest.fn()}
+        onOpenStatus={jest.fn()}
+      />,
+    )
+    const namePressable = getByLabelText('Тестовый пункт')
+    // Поднимаемся от бейджа к корню: Pressable раскрытия не должен встретиться.
+    let node: { parent: unknown } | null = getByTestId('item-status-badge')
+    let nestedInExpand = false
+    while (node !== null) {
+      if (node === namePressable) nestedInExpand = true
+      node = (node as { parent: { parent: unknown } | null }).parent
+    }
+    expect(nestedInExpand).toBe(false)
+  })
+})

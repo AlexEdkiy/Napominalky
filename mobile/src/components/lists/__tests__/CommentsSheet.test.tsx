@@ -1,7 +1,7 @@
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
-import { Alert } from 'react-native'
+import { Alert, Animated, PanResponder } from 'react-native'
 import { act, fireEvent, render } from '@testing-library/react-native'
 
 import CommentsSheet from '../CommentsSheet'
@@ -179,5 +179,82 @@ describe('CommentsSheet — тред комментариев', () => {
     )
     expect(mockDeleteMutate).toHaveBeenCalledWith('c1')
     alertSpy.mockRestore()
+  })
+
+  it('тап по скриму вызывает onClose', async () => {
+    const onClose = jest.fn()
+    const { getByLabelText } = await render(<CommentsSheet {...baseProps} onClose={onClose} />)
+    fireEvent.press(getByLabelText('Закрыть'))
+    expect(onClose).toHaveBeenCalled()
+  })
+})
+
+// Свайп вниз закрывает шторку — тот же паттерн и подход к тестам, что у
+// AttributeSheet: обработчики PanResponder на drag-зоне; логика решения
+// (закрыть/спружинить назад) проверяется через перехваченный конфиг
+// PanResponder.create, анимации Animated мокируются (RAF нестабилен в jest).
+describe('CommentsSheet — свайп вниз закрывает шторку', () => {
+  it('на drag-зоне (grabber+header) навешаны обработчики свайпа (PanResponder)', async () => {
+    const { getByTestId } = await render(<CommentsSheet {...baseProps} />)
+    const dragZone = getByTestId('comments-sheet-drag-zone')
+    expect(typeof dragZone.props.onStartShouldSetResponder).toBe('function')
+    expect(typeof dragZone.props.onMoveShouldSetResponder).toBe('function')
+    expect(typeof dragZone.props.onResponderRelease).toBe('function')
+  })
+
+  type ReleaseConfig = {
+    onPanResponderRelease?: (evt: unknown, gesture: { dy: number; dx: number; vy: number }) => void
+  }
+
+  const withMockedGesture = async (
+    onClose: () => void,
+    release: (config: ReleaseConfig) => void,
+  ): Promise<void> => {
+    let config: ReleaseConfig = {}
+    const createSpy = jest.spyOn(PanResponder, 'create').mockImplementation((cfg) => {
+      config = cfg as ReleaseConfig
+      return { panHandlers: {} }
+    })
+    const timingSpy = jest.spyOn(Animated, 'timing').mockReturnValue({
+      start: (cb?: (result: { finished: boolean }) => void) => cb?.({ finished: true }),
+      stop: jest.fn(),
+      reset: jest.fn(),
+    } as unknown as Animated.CompositeAnimation)
+    const springSpy = jest.spyOn(Animated, 'spring').mockReturnValue({
+      start: jest.fn(),
+      stop: jest.fn(),
+      reset: jest.fn(),
+    } as unknown as Animated.CompositeAnimation)
+
+    const { unmount } = await render(<CommentsSheet {...baseProps} onClose={onClose} />)
+    release(config)
+    unmount()
+    createSpy.mockRestore()
+    timingSpy.mockRestore()
+    springSpy.mockRestore()
+  }
+
+  it('свайп вниз дальше порога (>100px) вызывает onClose', async () => {
+    const onClose = jest.fn()
+    await withMockedGesture(onClose, (config) => {
+      config.onPanResponderRelease?.({}, { dy: 150, dx: 0, vy: 0.2 })
+    })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('быстрый флик вниз (высокая vy) закрывает даже при небольшом dy', async () => {
+    const onClose = jest.fn()
+    await withMockedGesture(onClose, (config) => {
+      config.onPanResponderRelease?.({}, { dy: 30, dx: 0, vy: 1.5 })
+    })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('свайп вниз ниже порога НЕ закрывает шторку (возврат spring)', async () => {
+    const onClose = jest.fn()
+    await withMockedGesture(onClose, (config) => {
+      config.onPanResponderRelease?.({}, { dy: 20, dx: 0, vy: 0.1 })
+    })
+    expect(onClose).not.toHaveBeenCalled()
   })
 })
