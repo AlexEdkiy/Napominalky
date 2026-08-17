@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   Alert,
+  Animated,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -16,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
 import { useItemComments } from '@/hooks/useItemComments'
+import { useSheetDragToClose } from '@/hooks/useSheetDragToClose'
 import type { ShoppingListItemComment } from '@/db/repositories/itemCommentsRepo'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
@@ -45,6 +47,8 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
 }) => {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
+  // Свайп вниз по drag-зоне (ручка + заголовок) закрывает шторку, как в AttributeSheet.
+  const { panHandlers, translateY } = useSheetDragToClose(itemUuid, onClose)
   const { comments, addComment, deleteComment } = useItemComments(itemUuid ?? '', listUuid)
   const [draft, setDraft] = useState('')
   const [keyboardHeight, setKeyboardHeight] = useState(0)
@@ -90,7 +94,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть" />
-        <View
+        <Animated.View
           testID="comments-sheet"
           style={[
             styles.sheet,
@@ -98,15 +102,18 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
               backgroundColor: colors.surface,
               paddingBottom: insets.bottom + 16,
               marginBottom: keyboardHeight,
+              transform: [{ translateY }],
             },
           ]}
         >
-          <View style={styles.grabber} />
-          <View style={styles.header}>
-            <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
-              <Ionicons name="chatbubble-outline" size={18} color={accentColor} />
+          <View testID="comments-sheet-drag-zone" {...panHandlers}>
+            <View style={styles.grabber} />
+            <View style={styles.header}>
+              <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
+                <Ionicons name="chatbubble-outline" size={18} color={accentColor} />
+              </View>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Комментарии</Text>
             </View>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Комментарии</Text>
           </View>
 
           <FlatList
@@ -148,7 +155,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
               </Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   )

@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { fireEvent, render } from '@testing-library/react-native'
 
 // ---- Изменяемые синглтоны для управления данными -------------------------
 
@@ -128,12 +128,14 @@ jest.mock('@/hooks/useShoppingLists', () => ({
   }),
 }))
 
+const mockDeleteItemMutate = jest.fn()
+
 jest.mock('@/hooks/useShoppingListItems', () => ({
   useShoppingListItems: () => ({
     items: mockItems,
     addItem: { mutate: jest.fn() },
     updateItem: { mutate: jest.fn() },
-    deleteItem: { mutate: jest.fn() },
+    deleteItem: { mutate: mockDeleteItemMutate },
     checkItem: { mutate: jest.fn() },
   }),
 }))
@@ -384,5 +386,59 @@ describe('Экран [uuid] — плашки пунктов не упирают�
     const match = /list:\s*\{[^}]*paddingHorizontal:\s*(\d+)/.exec(source)
     expect(match).not.toBeNull()
     expect(Number(match?.[1])).toBeGreaterThanOrEqual(12)
+  })
+})
+
+// ============================================================
+// Тап с первого раза при открытой клавиатуре: keyboardShouldPersistTaps
+// ============================================================
+
+describe('Экран [uuid] — keyboardShouldPersistTaps (тап срабатывает с первого раза)', () => {
+  // FlatList — композитный, проп не доходит до хост-рендера в снимке; проверяем
+  // по исходнику: без него первый тап по статусу/атрибутам гасит клавиатуру
+  // и «съедается», контрол срабатывает лишь со второго раза.
+  it('FlatList экрана имеет keyboardShouldPersistTaps="handled" (структурно, по исходнику)', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../../../../app/lists/[uuid].tsx'), 'utf-8')
+    expect(source).toMatch(/<FlatList[\s\S]*?keyboardShouldPersistTaps="handled"/)
+  })
+
+  it('FlatList треда CommentsSheet имеет keyboardShouldPersistTaps="handled" (структурно)', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../CommentsSheet.tsx'), 'utf-8')
+    expect(source).toMatch(/<FlatList[\s\S]*?keyboardShouldPersistTaps="handled"/)
+  })
+})
+
+// ============================================================
+// Свайп влево по строке: удаление с подтверждением в строке (без Alert)
+// ============================================================
+
+describe('Экран [uuid] — свайп-удаление пункта с inline-подтверждением', () => {
+  beforeEach(() => {
+    resetToGoodsEmpty()
+    mockListData = { ...mockListData, itemsCount: 1 }
+    mockItems = [makeItem('Молоко', false, 'i1')]
+    mockDeleteItemMutate.mockClear()
+  })
+
+  it('строка обёрнута в Swipeable: правое действие «Удалить» доступно', async () => {
+    const { getByTestId } = await render(<Screen />)
+    expect(getByTestId('item-swipe-delete')).toBeTruthy()
+  })
+
+  it('тап по «Удалить» вызывает deleteItem.mutate(uuid) БЕЗ Alert-подтверждения', async () => {
+    const { Alert } = require('react-native')
+    const alertSpy = jest.spyOn(Alert, 'alert')
+    const { getByTestId } = await render(<Screen />)
+
+    fireEvent.press(getByTestId('item-swipe-delete'))
+
+    expect(mockDeleteItemMutate).toHaveBeenCalledWith('i1')
+    expect(alertSpy).not.toHaveBeenCalled()
+    alertSpy.mockRestore()
+  })
+
+  it('без тапа по кнопке удаление не происходит (свайп сам не удаляет)', async () => {
+    await render(<Screen />)
+    expect(mockDeleteItemMutate).not.toHaveBeenCalled()
   })
 })

@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Animated,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
-  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
 import SheetContent from '@/components/lists/AttributeSheetContent'
+import { useSheetDragToClose } from '@/hooks/useSheetDragToClose'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { ATTRIBUTE_ICONS, type AttributeSheetValue, type ItemAttribute } from '@/utils/itemAttributes'
@@ -89,8 +89,8 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
 }) => {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
-  const translateY = useRef(new Animated.Value(300)).current
-  const dragY = useRef(new Animated.Value(0)).current
+  // Свайп вниз по drag-зоне закрывает шторку (общий паттерн bottom-sheet).
+  const { panHandlers, translateY } = useSheetDragToClose(attribute, onClose)
   const visible = attribute !== null
   const [keyboardHeight, setKeyboardHeight] = useState(0)
 
@@ -105,9 +105,6 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
       currentDeadline, currentReminderAt, currentLink, currentTags,
     }))
     setPendingTagText('')
-    translateY.setValue(300)
-    dragY.setValue(0)
-    Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 18, mass: 0.9 }).start()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attribute])
 
@@ -127,27 +124,6 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
     }
   }, [])
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_evt, gesture) =>
-          Math.abs(gesture.dy) > 4 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
-        onPanResponderMove: (_evt, gesture) => {
-          if (gesture.dy > 0) dragY.setValue(gesture.dy)
-        },
-        onPanResponderRelease: (_evt, gesture) => {
-          const shouldClose = gesture.dy > 100 || gesture.vy > 1.2
-          if (shouldClose) {
-            Animated.timing(dragY, { toValue: 600, duration: 180, useNativeDriver: true }).start(onClose)
-            return
-          }
-          Animated.spring(dragY, { toValue: 0, useNativeDriver: true, damping: 18, mass: 0.9 }).start()
-        },
-      }),
-    [dragY, onClose],
-  )
-
   if (attribute === null) return null
 
   const isValid = validateDraft(attribute, draft, pendingTagText)
@@ -164,8 +140,6 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
     onConfirm(draft)
   }
 
-  const combinedTranslateY = Animated.add(translateY, dragY)
-
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -178,11 +152,11 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
               backgroundColor: colors.surface,
               paddingBottom: insets.bottom + 16,
               marginBottom: keyboardHeight,
-              transform: [{ translateY: combinedTranslateY }],
+              transform: [{ translateY }],
             },
           ]}
         >
-          <View testID="attribute-sheet-drag-zone" {...panResponder.panHandlers}>
+          <View testID="attribute-sheet-drag-zone" {...panHandlers}>
             <View style={styles.grabber} />
             <View style={styles.header}>
               <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>

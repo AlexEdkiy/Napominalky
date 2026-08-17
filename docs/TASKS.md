@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-14 (комментарии-тред в МП + обмен: миграция 0011, sync-сущность, тред в пункте — MOB-58)
+> Последнее обновление: 2026-08-17 (моб. жесты строки: свайп-вниз шторки, свайп-влево удаление с подтверждением в строке, фикс двойного тапа — MOB-59)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 3            | architect                 |
 | DEV     | 21           | backend-developer         |
 | MBE     | 19           | mobile-backend-developer  |
-| MOB     | 58           | mobile-developer          |
+| MOB     | 59           | mobile-developer          |
 | WEB     | 42           | web-developer             |
 | TEST    | 17           | test-engineer             |
 | UITEST  | 12           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 43           | technical-writer          |
+| DOC     | 44           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 126 |
+| Completed | 127 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2453,4 +2453,22 @@
   - [x] tsc OK, Jest зелёный (1019)
 - **Создана:** 2026-08-14
 - **Завершена:** 2026-08-14
+
+### MOB-59: Жесты строки задачи — свайп-вниз шторки, свайп-влево удаление, фикс двойного тапа
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MOB-57, MOB-58
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** Три UI-правки экрана деталей списка задач. (1) Свайп вниз закрывает шторку комментариев (`CommentsSheet`): общий хук `useSheetDragToClose` (PanResponder + Animated translateY, порог 100px/скорость), переиспользован и в `AttributeSheet` (рефактор без смены поведения). (2) Свайп влево по строке (`ItemRow`) — удаление с подтверждением ПРЯМО В СТРОКЕ (не Alert): `Swipeable` (react-native-gesture-handler), из-под строки выезжает красная кнопка `SwipeDeleteAction`, тап по ней = подтверждение → `onSwipeDelete`→`deleteItem` (soft+sync); смахивание назад — отмена. Добавлен `GestureHandlerRootView` в `app/_layout.tsx` + jest-мок. (3) Фикс тапа по статусу/атрибутам «со второго раза»: истинная причина — вложенные Pressable (StatusBadge с hitSlop внутри Pressable-раскрытия). metaLine (статус/теги/дедлайн/индикаторы) вынесена сестрой Pressable-раскрытия (`ItemRowMetaLine`) — тап по статусу всегда `onOpenStatus` с первого раза и не раскрывает строку; `keyboardShouldPersistTaps="handled"` на FlatList уже стоял (закреплён регресс-тестом).
+- **Файлы:** `mobile/src/hooks/useSheetDragToClose.ts` (new), `mobile/src/components/lists/{CommentsSheet,AttributeSheet,ItemRow,ItemRowMetaLine,SwipeDeleteAction}.tsx`, `mobile/app/lists/[uuid].tsx`, `mobile/app/_layout.tsx`, `mobile/jest.setup.js` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Свайп вниз закрывает шторку комментариев
+  - [x] Свайп влево → кнопка «Удалить» в строке, тап подтверждает (не Alert); свайп сам не удаляет
+  - [x] Тап по статусу/атрибутам срабатывает с первого раза, не раскрывая строку
+  - [x] tsc OK, Jest зелёный (1036)
+- **Отклонения:** legacy `Swipeable` (не ReanimatedSwipeable) — сознательно ради стабильности в jest; старый путь удаления (кнопка в раскрытой панели с Alert) сохранён.
+- **Создана:** 2026-08-17
+- **Завершена:** 2026-08-17
 

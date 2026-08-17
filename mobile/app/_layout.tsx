@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { StyleSheet } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useEffect, useState } from 'react'
 
@@ -75,6 +77,9 @@ function RootLayout(): React.JSX.Element {
   }
 
   return (
+    // Жесты react-native-gesture-handler (Swipeable строк пунктов) требуют
+    // GestureHandlerRootView в корне; expo-router сам приложение не оборачивает.
+    <GestureHandlerRootView style={styles.root}>
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <DbProvider>
@@ -100,8 +105,13 @@ function RootLayout(): React.JSX.Element {
         </DbProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+})
 
 export default function Root(): React.JSX.Element {
   return (
