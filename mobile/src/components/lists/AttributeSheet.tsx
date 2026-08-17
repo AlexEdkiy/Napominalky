@@ -27,7 +27,6 @@ export interface AttributeSheetProps {
   currentDeadline: string | null
   currentReminderAt: string | null
   currentLink: string | null
-  currentComment: string | null
   currentTags: string[]
   accentColor: string
   accentBg: string
@@ -39,7 +38,6 @@ const TITLES: Record<ItemAttribute, string> = {
   deadline: 'Когда дедлайн',
   reminder: 'Когда напомнить',
   link: 'Ссылка',
-  comment: 'Комментарий',
   tag: 'Выберите тег',
 }
 
@@ -47,7 +45,6 @@ interface CurrentValues {
   currentDeadline: string | null
   currentReminderAt: string | null
   currentLink: string | null
-  currentComment: string | null
   currentTags: string[]
 }
 
@@ -59,8 +56,6 @@ const initialDraft = (attribute: ItemAttribute, values: CurrentValues): Attribut
       return values.currentReminderAt
     case 'link':
       return values.currentLink ?? ''
-    case 'comment':
-      return values.currentComment ?? ''
     case 'tag':
       return values.currentTags
     default:
@@ -86,7 +81,6 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
   currentDeadline,
   currentReminderAt,
   currentLink,
-  currentComment,
   currentTags,
   accentColor,
   accentBg,
@@ -108,7 +102,7 @@ const AttributeSheet: React.FC<AttributeSheetProps> = ({
   useEffect(() => {
     if (attribute === null) return
     setDraft(initialDraft(attribute, {
-      currentDeadline, currentReminderAt, currentLink, currentComment, currentTags,
+      currentDeadline, currentReminderAt, currentLink, currentTags,
     }))
     setPendingTagText('')
     translateY.setValue(300)

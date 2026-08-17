@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-14 (Комментарии-тред к строкам задач: backend+web — таблица/API/sync, тред+попап 💬, крестик удаления+подтверждение; +2 sync-фикса — ARCH-3/DEV-21/MBE-19/WEB-42/TEST-17/UITEST-12)
+> Последнее обновление: 2026-08-14 (комментарии-тред в МП + обмен: миграция 0011, sync-сущность, тред в пункте — MOB-58)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 3            | architect                 |
 | DEV     | 21           | backend-developer         |
 | MBE     | 19           | mobile-backend-developer  |
-| MOB     | 57           | mobile-developer          |
+| MOB     | 58           | mobile-developer          |
 | WEB     | 42           | web-developer             |
 | TEST    | 17           | test-engineer             |
 | UITEST  | 12           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 42           | technical-writer          |
+| DOC     | 43           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 125 |
+| Completed | 126 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2433,7 +2433,24 @@
   - [x] API CRUD + sync нового типа; комментарии доезжают до клиентов (sync-фиксы)
   - [x] Pest 398 passed; vue-tsc OK, Vitest 611 passed
 - **Известные компромиссы:** legacy `comment` в старом APK не виден в веб-треде до mobile-релиза (двухфазный вывод; drop колонки — отдельной задачей); `note.body` теперь коерсит null→'' в sync (осознанно, для заметок практически без изменений).
-- **Следующий шаг:** комментарии в мобильном приложении (тред в шторке пункта + обмен) — sync-сущность и API готовы.
+- **Следующий шаг:** комментарии в мобильном приложении (тред в шторке пункта + обмен) — sync-сущность и API готовы. → выполнено MOB-58.
+- **Создана:** 2026-08-14
+- **Завершена:** 2026-08-14
+
+### MOB-58: Комментарии-тред к строкам задач в мобильном приложении + обмен
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** FEAT-2 (backend+web)
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** Мобильная часть комментариев-тред. Схема Drizzle: таблица `shopping_list_item_comments` (uuid, shopping_list_item_uuid+индекс, user_id, author_name, body, server_revision, timestamps, deleted_at); миграция **0011_item_comments** (sql+snapshot+journal+migrations.js). Локальный `comment`→тред НЕ мигрируется (серверный бэкфилл; иначе дубли) — вместо этого `ensureSchemaPullVersion()` (sync_meta `schema_pull_version=11`): при версии <11 → `resetPullCursor` + фиксация, идемпотентно, из DbProvider после миграций. Sync: `ServerShoppingListItemComment` тип + `shoppingListItemCommentMapper` (pull) + `applyBatch('shopping_list_item_comment', data.shopping_list_item_comments ?? [])`; push через baseRepo→outbox (snake_case-снимок: shopping_list_item_uuid/author_name/body), FIFO гарантирует пункт раньше комментария. Репо `itemCommentsRepo` (listComments ASC, addComment — автор из `useAuthStore` user.name, фолбэк email/«Вы», deleteComment soft+outbox, countsForItems). UI: тред `CommentsSheet` (bottom-sheet: автор/время «ЧЧ:ММ ДД.ММ.ГГ»/текст + ввод + отправить, удаление с подтверждением), 💬-счётчик в `ItemRow`; одиночный редактор `comment` удалён из атрибутов (AttributeSheet/Chips/QuickAddItem). Хуки `useItemComments`/`useItemCommentCounts`.
+- **Файлы:** `mobile/src/db/schema/shoppingListItemComments.ts`, `mobile/src/db/migrations/0011_item_comments*`, `mobile/src/db/repositories/itemCommentsRepo.ts`, `mobile/src/services/sync/{mappers,applyChanges,syncMeta}.ts`, `mobile/src/types/sync.ts`, `mobile/src/hooks/useItemComments.ts`, `mobile/src/components/lists/{CommentsSheet,ItemRow,AttributeSheet,AttributeSheetContent,AttributeChips,QuickAddItem}.tsx`, `mobile/app/lists/[uuid].tsx`, `mobile/src/providers/DbProvider.tsx` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Схема+миграция 0011; сброс курсора для подтяжки бэкфилла (идемпотентно)
+  - [x] Sync нового типа: pull-mapper+apply, push через outbox (FIFO родитель раньше)
+  - [x] Тред в пункте (автор/время/текст, отправка, удаление) вместо одиночного comment; счётчик 💬
+  - [x] tsc OK, Jest зелёный (1019)
 - **Создана:** 2026-08-14
 - **Завершена:** 2026-08-14
 

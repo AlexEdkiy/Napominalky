@@ -62,6 +62,15 @@ export const isReminderUrgent = (iso: string): boolean => {
   return date < tomorrowStart
 }
 
+/** «ЧЧ:ММ ДД.ММ.ГГ» — метка времени комментария в треде пункта. */
+export const formatCommentTimestamp = (iso: string): string => {
+  const date = new Date(iso)
+  if (!Number.isFinite(date.getTime())) return iso
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  const yy = pad(date.getFullYear() % 100)
+  return `${time} ${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${yy}`
+}
+
 /** «Изменено дд.мм.гггг» для подзаголовка заметки. */
 export const formatUpdatedAt = (iso: string): string => {
   const date = new Date(iso)

@@ -11,6 +11,15 @@ export const DEVICE_NAME = 'device_name'
 export const LAST_SYNCED_AT = 'last_synced_at'
 /** uuid последнего вошедшего пользователя — для изоляции при смене аккаунта. */
 export const LAST_USER_ID = 'last_user_id'
+/** Версия локальной схемы, для которой уже выполнен полный pull (реконсиляция). */
+export const SCHEMA_PULL_VERSION = 'schema_pull_version'
+
+/**
+ * Текущая версия схемы, требующая полного pull после апдейта приложения.
+ * 11 = миграция 0011 (тред комментариев): сервер бэкфиллом создал комментарии
+ * из legacy-поля comment, локально их можно получить только полным pull.
+ */
+export const CURRENT_SCHEMA_PULL_VERSION = 11
 
 type Writer = Pick<Database, 'select' | 'insert'>
 
@@ -88,3 +97,26 @@ export const setLastSyncedAt = async (
 export const resetPullCursor = async (
   db: Writer = defaultDb,
 ): Promise<void> => setMeta(LAST_PULLED_REVISION, '0', db)
+
+/**
+ * Одноразовый (идемпотентный) сброс pull-курсора при апдейте схемы: если
+ * сохранённая версия < CURRENT_SCHEMA_PULL_VERSION — сбрасывает курсор
+ * (следующий pull от 0 подтянет новые сущности, включая серверный бэкфилл
+ * комментариев) и фиксирует версию. Повторные вызовы — no-op.
+ * ВАЖНО: legacy-поле comment пункта в тред локально НЕ мигрируется —
+ * серверный бэкфилл уже создал комментарии, локальная миграция дала бы дубли.
+ *
+ * @returns true, если курсор был сброшен (версия повышена).
+ */
+export const ensureSchemaPullVersion = async (
+  db: Writer = defaultDb,
+): Promise<boolean> => {
+  const raw = await getMeta(SCHEMA_PULL_VERSION, db)
+  const stored = raw === null ? 0 : Number.parseInt(raw, 10)
+  const current = Number.isNaN(stored) ? 0 : stored
+  if (current >= CURRENT_SCHEMA_PULL_VERSION) return false
+
+  await resetPullCursor(db)
+  await setMeta(SCHEMA_PULL_VERSION, String(CURRENT_SCHEMA_PULL_VERSION), db)
+  return true
+}

@@ -98,6 +98,13 @@ const applyAll = async (
   await applyBatch(writer, mappers.note, 'note', data.notes)
   await applyBatch(writer, mappers.shopping_list, 'shopping_list', data.shopping_lists)
   await applyBatch(writer, mappers.shopping_list_item, 'shopping_list_item', data.shopping_list_items)
+  // `?? []` — устойчивость к старому серверу без сущности комментариев.
+  await applyBatch(
+    writer,
+    mappers.shopping_list_item_comment,
+    'shopping_list_item_comment',
+    data.shopping_list_item_comments ?? [],
+  )
   await applyBatch(writer, mappers.reminder, 'reminder', data.reminders)
   await saveCursor(writer, meta.cursor)
 }

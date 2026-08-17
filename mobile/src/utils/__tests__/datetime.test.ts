@@ -1,4 +1,5 @@
 import {
+  formatCommentTimestamp,
   formatDateTime,
   formatDeadlineChip,
   formatDeadlineDisplay,
@@ -88,6 +89,21 @@ describe('formatUpdatedAt', () => {
 
   it('возвращает пустую строку для невалидного входа', () => {
     expect(formatUpdatedAt('bad')).toBe('')
+  })
+})
+
+describe('formatCommentTimestamp', () => {
+  it('формат «ЧЧ:ММ ДД.ММ.ГГ» (локальное время)', () => {
+    const iso = '2026-06-19T14:05:00'
+    expect(formatCommentTimestamp(iso)).toBe('14:05 19.06.26')
+  })
+
+  it('однозначные день/месяц/минуты дополняются нулями', () => {
+    expect(formatCommentTimestamp('2026-01-05T08:07:00')).toBe('08:07 05.01.26')
+  })
+
+  it('возвращает исходную строку для невалидной даты', () => {
+    expect(formatCommentTimestamp('bad')).toBe('bad')
   })
 })
 

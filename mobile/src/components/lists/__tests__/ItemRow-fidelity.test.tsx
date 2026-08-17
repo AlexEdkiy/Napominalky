@@ -283,16 +283,49 @@ describe('ItemRow — мета-индикаторы (макет)', () => {
     expect(getByTestId('icon-notifications-outline')).toBeTruthy()
   })
 
-  it('иконка комментария при наличии comment', async () => {
-    const { getByTestId } = await render(
+  // Индикатор 💬 теперь считает тред комментариев (commentsCount), а не legacy comment.
+  it('иконка комментария со счётчиком при commentsCount > 0', async () => {
+    const { getByTestId, getByLabelText, getByText } = await render(
+      <ItemRow
+        item={base()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        commentsCount={3}
+      />,
+    )
+    expect(getByTestId('icon-chatbubble-outline')).toBeTruthy()
+    expect(getByLabelText('Комментарии: 3')).toBeTruthy()
+    expect(getByText('3')).toBeTruthy()
+  })
+
+  it('тап по 💬 вызывает onOpenComments с uuid пункта', async () => {
+    const onOpenComments = jest.fn()
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={base()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        commentsCount={2}
+        onOpenComments={onOpenComments}
+      />,
+    )
+    fireEvent.press(getByLabelText('Комментарии: 2'))
+    expect(onOpenComments).toHaveBeenCalledWith('item-1')
+  })
+
+  it('legacy-поле comment пункта БЕЗ треда не показывает индикатор', async () => {
+    const { queryByTestId } = await render(
       <ItemRow
         item={{ ...base(), comment: 'Взять свежее' }}
         listType="goods"
         onToggle={jest.fn()}
         onDelete={jest.fn()}
+        commentsCount={0}
       />,
     )
-    expect(getByTestId('icon-chatbubble-outline')).toBeTruthy()
+    expect(queryByTestId('icon-chatbubble-outline')).toBeNull()
   })
 
   it('иконка ссылки при наличии link', async () => {
@@ -388,8 +421,10 @@ describe('ItemRow — раскрытая панель атрибутов (мак
     expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
   })
 
-  it('показывает чипс «Комментарий» при пустом комментарии', async () => {
-    const { getByLabelText } = await render(
+  // Чипс «Комментарий» удалён: вместо него кнопка треда «Комментарии (N)».
+  it('чипс «Комментарий» отсутствует, есть кнопка «Комментарии (N)» треда', async () => {
+    const onOpenComments = jest.fn()
+    const { queryByLabelText, getByLabelText } = await render(
       <ItemRow
         item={base()}
         listType="goods"
@@ -399,9 +434,13 @@ describe('ItemRow — раскрытая панель атрибутов (мак
         onExpand={jest.fn()}
         onOpenAttribute={jest.fn()}
         onUpdateMeta={jest.fn()}
+        commentsCount={2}
+        onOpenComments={onOpenComments}
       />,
     )
-    expect(getByLabelText('Добавить: Комментарий')).toBeTruthy()
+    expect(queryByLabelText('Добавить: Комментарий')).toBeNull()
+    fireEvent.press(getByLabelText('Комментарии (2)'))
+    expect(onOpenComments).toHaveBeenCalledWith('item-1')
   })
 
   it('показывает чипс «Тег»', async () => {

@@ -24,7 +24,8 @@ const accentColor = '#d99a3e'
 const accentBg = '#fbf3e4'
 
 describe('AttributeChips — чипсы (незаданные) и токены (заданные)', () => {
-  it('при пустых values показывает все 5 чипсов, токенов нет', async () => {
+  // Чипс «Комментарий» удалён: одиночный комментарий заменён тредом (CommentsSheet).
+  it('при пустых values показывает все 4 чипса (без «Комментарий»), токенов нет', async () => {
     const { getByLabelText, queryByLabelText } = await render(
       <AttributeChips
         values={EMPTY_ATTRIBUTE_VALUES}
@@ -37,7 +38,7 @@ describe('AttributeChips — чипсы (незаданные) и токены (
     expect(getByLabelText('Добавить: Дедлайн')).toBeTruthy()
     expect(getByLabelText('Добавить: Напоминание')).toBeTruthy()
     expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
-    expect(getByLabelText('Добавить: Комментарий')).toBeTruthy()
+    expect(queryByLabelText('Добавить: Комментарий')).toBeNull()
     expect(getByLabelText('Добавить: Тег')).toBeTruthy()
     expect(queryByLabelText(/^Дедлайн:/)).toBeNull()
   })
@@ -71,20 +72,6 @@ describe('AttributeChips — чипсы (незаданные) и токены (
     expect(getByLabelText('Ссылка: example.com')).toBeTruthy()
   })
 
-  it('комментарий отображается как «Есть заметка»', async () => {
-    const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, comment: 'Взять свежее' }
-    const { getByLabelText } = await render(
-      <AttributeChips
-        values={values}
-        accentColor={accentColor}
-        accentBg={accentBg}
-        onOpen={jest.fn()}
-        onRemove={jest.fn()}
-      />,
-    )
-    expect(getByLabelText('Комментарий: Есть заметка')).toBeTruthy()
-  })
-
   it('несколько тегов отображаются через запятую в одном токене', async () => {
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, tags: ['срочно', 'дом'] }
     const { getByLabelText } = await render(
@@ -116,7 +103,7 @@ describe('AttributeChips — чипсы (незаданные) и токены (
 
   it('тап по токену вызывает onOpen (редактировать) с именем атрибута', async () => {
     const onOpen = jest.fn()
-    const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, comment: 'Заметка' }
+    const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, link: 'https://example.com' }
     const { getByLabelText } = await render(
       <AttributeChips
         values={values}
@@ -126,8 +113,8 @@ describe('AttributeChips — чипсы (незаданные) и токены (
         onRemove={jest.fn()}
       />,
     )
-    fireEvent.press(getByLabelText('Комментарий: Есть заметка'))
-    expect(onOpen).toHaveBeenCalledWith('comment')
+    fireEvent.press(getByLabelText('Ссылка: example.com'))
+    expect(onOpen).toHaveBeenCalledWith('link')
   })
 
   it('«×» на токене вызывает onRemove с именем атрибута', async () => {

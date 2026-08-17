@@ -2,6 +2,7 @@ import { normalizeTaskStatus } from '@/constants/taskStatus'
 import { notes } from '@/db/schema/notes'
 import { reminders } from '@/db/schema/reminders'
 import { shoppingListItems } from '@/db/schema/shoppingListItems'
+import { shoppingListItemComments } from '@/db/schema/shoppingListItemComments'
 import { shoppingLists } from '@/db/schema/shoppingLists'
 import type { SyncTable } from '@/db/repositories/baseRepo'
 import type {
@@ -9,6 +10,7 @@ import type {
   ServerReminder,
   ServerShoppingList,
   ServerShoppingListItem,
+  ServerShoppingListItemComment,
 } from '@/types/sync'
 
 /** boolean → SQLite integer (1/0). */
@@ -77,6 +79,19 @@ const shoppingListItemMapper: EntityMapper<ServerShoppingListItem> = {
   }),
 }
 
+const shoppingListItemCommentMapper: EntityMapper<ServerShoppingListItemComment> = {
+  table: shoppingListItemComments as unknown as SyncTable,
+  toRow: (s) => ({
+    uuid: s.uuid,
+    shoppingListItemUuid: s.shopping_list_item_uuid,
+    authorName: s.author_name ?? '',
+    body: s.body ?? '',
+    createdAt: s.created_at ?? s.updated_at,
+    updatedAt: s.updated_at,
+    deletedAt: s.deleted_at,
+  }),
+}
+
 // ЛОКАЛЬНЫЕ поля reminders (notification_id, calendar_event_id) намеренно
 // отсутствуют в toRow: pull не должен их затирать, они устройство-специфичны.
 const reminderMapper: EntityMapper<ServerReminder> = {
@@ -102,5 +117,6 @@ export const mappers = {
   note: noteMapper,
   shopping_list: shoppingListMapper,
   shopping_list_item: shoppingListItemMapper,
+  shopping_list_item_comment: shoppingListItemCommentMapper,
   reminder: reminderMapper,
 }
