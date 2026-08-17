@@ -38,7 +38,6 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
       deadline: attrs.deadline,
       reminderAt: attrs.reminderAt,
       link: attrs.link,
-      comment: attrs.comment,
       tags: serializeTags(attrs.tags),
     })
     setName('')
@@ -96,7 +95,6 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
         currentDeadline={attrs.deadline}
         currentReminderAt={attrs.reminderAt}
         currentLink={attrs.link}
-        currentComment={attrs.comment}
         currentTags={attrs.tags}
         accentColor={accentColor}
         accentBg={accentBg}
@@ -115,7 +113,6 @@ const applyAttributeValue = (
   if (attribute === 'deadline') return { ...values, deadline: typeof value === 'string' ? value : null }
   if (attribute === 'reminder') return { ...values, reminderAt: typeof value === 'string' ? value : null }
   if (attribute === 'link') return { ...values, link: typeof value === 'string' ? value : null }
-  if (attribute === 'comment') return { ...values, comment: typeof value === 'string' ? value : null }
   return { ...values, tags: Array.isArray(value) ? value : [] }
 }
 

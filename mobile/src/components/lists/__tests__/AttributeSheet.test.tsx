@@ -43,7 +43,6 @@ const baseProps = {
   currentDeadline: null,
   currentReminderAt: null,
   currentLink: null,
-  currentComment: null,
   currentTags: [] as string[],
   accentColor,
   accentBg,
@@ -182,27 +181,13 @@ describe('AttributeSheet — link', () => {
   })
 })
 
-describe('AttributeSheet — comment', () => {
-  it('открывается с заголовком «Комментарий» и placeholder «Добавьте заметку к задаче»', async () => {
-    const { getByText, getByPlaceholderText } = await render(
-      <AttributeSheet {...baseProps} attribute="comment" onConfirm={jest.fn()} onClose={jest.fn()} />,
+// Атрибут «Комментарий» удалён: одиночный комментарий заменён тредом (CommentsSheet).
+describe('AttributeSheet — comment больше не атрибут', () => {
+  it('редактор одиночного комментария недоступен (placeholder отсутствует)', async () => {
+    const { queryByPlaceholderText } = await render(
+      <AttributeSheet {...baseProps} attribute="link" onConfirm={jest.fn()} onClose={jest.fn()} />,
     )
-    expect(getByText('Комментарий')).toBeTruthy()
-    expect(getByPlaceholderText('Добавьте заметку к задаче')).toBeTruthy()
-  })
-
-  it('ввод комментария + «Готово» вызывает onConfirm со строкой', async () => {
-    const onConfirm = jest.fn()
-    const { getByPlaceholderText, getByLabelText } = await render(
-      <AttributeSheet {...baseProps} attribute="comment" onConfirm={onConfirm} onClose={jest.fn()} />,
-    )
-    await act(async () => {
-      fireEvent.changeText(getByPlaceholderText('Добавьте заметку к задаче'), 'Взять свежее')
-    })
-    await act(async () => {
-      fireEvent.press(getByLabelText('Готово'))
-    })
-    expect(onConfirm).toHaveBeenCalledWith('Взять свежее')
+    expect(queryByPlaceholderText('Добавьте заметку к задаче')).toBeNull()
   })
 })
 

@@ -1,4 +1,9 @@
-export type SyncEntityType = 'note' | 'shopping_list' | 'shopping_list_item' | 'reminder'
+export type SyncEntityType =
+  | 'note'
+  | 'shopping_list'
+  | 'shopping_list_item'
+  | 'shopping_list_item_comment'
+  | 'reminder'
 export type SyncOperation = 'create' | 'update' | 'delete'
 
 /** Исходящее локальное изменение, отправляемое на сервер (push). */
@@ -72,6 +77,21 @@ export interface ServerShoppingListItem {
   deleted_at: string | null
 }
 
+/**
+ * Серверная запись комментария-треда к пункту (pull). Родитель —
+ * shopping_list_item_uuid (публичный uuid пункта), author_name — снимок имени
+ * автора на момент создания, deleted_at != null — tombstone.
+ */
+export interface ServerShoppingListItemComment {
+  uuid: string
+  shopping_list_item_uuid: string
+  author_name: string
+  body: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
 /** Серверная запись напоминания (pull). */
 export interface ServerReminder {
   uuid: string
@@ -95,6 +115,8 @@ export interface SyncChangesResponse {
     notes: ServerNote[]
     shopping_lists: ServerShoppingList[]
     shopping_list_items: ServerShoppingListItem[]
+    /** Опционально: старый сервер может не отдавать комментарии-треды. */
+    shopping_list_item_comments?: ServerShoppingListItemComment[]
     reminders: ServerReminder[]
   }
   meta: {

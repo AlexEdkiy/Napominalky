@@ -1,8 +1,9 @@
-import React, { createContext, useContext, type ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator'
 import { db, type Database } from '@/db/client'
 import migrations from '@/db/migrations/migrations'
+import { ensureSchemaPullVersion } from '@/services/sync/syncMeta'
 import ErrorScreen from '@/components/ErrorScreen'
 
 const DbContext = createContext<Database | null>(null)
@@ -13,11 +14,30 @@ interface DbProviderProps {
 
 /**
  * Применяет Drizzle-миграции к локальной SQLite и предоставляет
- * типизированный `db` через контекст. Дети рендерятся после успешной миграции.
+ * типизированный `db` через контекст. Дети рендерятся после успешной миграции
+ * и одноразового сброса pull-курсора при апдейте схемы (ensureSchemaPullVersion
+ * — полный pull подтянет новые sync-сущности, напр. тред комментариев).
  * При ошибке миграции показывает полный message и stack для диагностики.
  */
 const DbProvider: React.FC<DbProviderProps> = ({ children }) => {
   const { success, error } = useMigrations(db, migrations)
+  const [metaReady, setMetaReady] = useState(false)
+
+  useEffect(() => {
+    if (!success) return
+    let cancelled = false
+    ensureSchemaPullVersion(db)
+      .catch((err: unknown) => {
+        // Сбой служебной метки не должен блокировать приложение.
+        console.warn('[db] ensureSchemaPullVersion failed', err)
+      })
+      .finally(() => {
+        if (!cancelled) setMetaReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [success])
 
   if (error) {
     return (
@@ -29,7 +49,7 @@ const DbProvider: React.FC<DbProviderProps> = ({ children }) => {
     )
   }
 
-  if (!success) {
+  if (!success || !metaReady) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />

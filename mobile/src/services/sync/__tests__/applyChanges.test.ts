@@ -5,6 +5,7 @@ import { applyChanges } from '../applyChanges'
 import type {
   ServerNote,
   ServerReminder,
+  ServerShoppingListItemComment,
   SyncChangesResponse,
 } from '@/types/sync'
 
@@ -381,5 +382,80 @@ describe('applyChanges — best-effort (одна сбойная запись н�
     await expect(
       applyChanges(emptyResponse([baseNote({ uuid: 'n1' })], 5), db),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('applyChanges — shopping_list_item_comments (тред комментариев)', () => {
+  const baseComment = (over: Partial<ServerShoppingListItemComment>): ServerShoppingListItemComment => ({
+    uuid: 'c1',
+    shopping_list_item_uuid: 'i1',
+    author_name: 'Алексей',
+    body: 'Взять свежее',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    deleted_at: null,
+    ...over,
+  })
+
+  const commentsResponse = (
+    comments: ServerShoppingListItemComment[],
+    cursor = 5,
+  ): SyncChangesResponse => ({
+    data: {
+      notes: [],
+      shopping_lists: [],
+      shopping_list_items: [],
+      shopping_list_item_comments: comments,
+      reminders: [],
+    },
+    meta: { cursor, has_more: false },
+  })
+
+  it('вставляет серверный комментарий (включая бэкфилл) в локальную таблицу', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+
+    await applyChanges(commentsResponse([baseComment({ uuid: 'c1' })]), db)
+
+    const values = state.inserts.find((i) => i.values.uuid === 'c1')?.values
+    expect(values).toBeDefined()
+    expect(values?.shoppingListItemUuid).toBe('i1')
+    expect(values?.authorName).toBe('Алексей')
+    expect(values?.body).toBe('Взять свежее')
+  })
+
+  it('применяет tombstone комментария (deleted_at)', async () => {
+    const state = newState({ c1: { updatedAt: '2026-01-01T00:00:00Z' } })
+    const db = createFakeDb(state) as never
+
+    await applyChanges(
+      commentsResponse([
+        baseComment({
+          uuid: 'c1',
+          updated_at: '2026-02-01T00:00:00Z',
+          deleted_at: '2026-02-01T00:00:00Z',
+        }),
+      ]),
+      db,
+    )
+
+    expect(state.updates[0]?.values.deletedAt).toBe('2026-02-01T00:00:00Z')
+  })
+
+  it('устойчива к старому серверу: ответ БЕЗ shopping_list_item_comments не падает', async () => {
+    const state = newState()
+    const db = createFakeDb(state) as never
+    const legacyResponse = {
+      data: {
+        notes: [baseNote({ uuid: 'n1' })],
+        shopping_lists: [],
+        shopping_list_items: [],
+        reminders: [],
+      },
+      meta: { cursor: 3, has_more: false },
+    } as SyncChangesResponse
+
+    await expect(applyChanges(legacyResponse, db)).resolves.toBeUndefined()
+    expect(state.inserts.find((i) => i.values.uuid === 'n1')).toBeDefined()
   })
 })

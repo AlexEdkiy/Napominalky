@@ -4,6 +4,7 @@ import type {
   ServerReminder,
   ServerShoppingList,
   ServerShoppingListItem,
+  ServerShoppingListItemComment,
 } from '@/types/sync'
 
 const baseList: ServerShoppingList = {
@@ -33,6 +34,16 @@ const baseItem: ServerShoppingListItem = {
   is_checked: false,
   status: 'new',
   position: 0,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-02T00:00:00Z',
+  deleted_at: null,
+}
+
+const baseComment: ServerShoppingListItemComment = {
+  uuid: 'c1',
+  shopping_list_item_uuid: 'i1',
+  author_name: 'Алексей',
+  body: 'Взять свежее',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
   deleted_at: null,
@@ -303,5 +314,46 @@ describe('reminderMapper — локальные поля не попадают �
     expect(row).not.toHaveProperty('notification_id')
     expect(row).not.toHaveProperty('calendarEventId')
     expect(row).not.toHaveProperty('calendar_event_id')
+  })
+})
+
+describe('shoppingListItemCommentMapper — комментарий-тред пункта (round-trip pull)', () => {
+  it('маппит все поля контракта в строку локальной схемы', () => {
+    const row = mappers.shopping_list_item_comment.toRow(baseComment)
+    expect(row.uuid).toBe('c1')
+    expect(row.shoppingListItemUuid).toBe('i1')
+    expect(row.authorName).toBe('Алексей')
+    expect(row.body).toBe('Взять свежее')
+    expect(row.createdAt).toBe('2024-01-01T00:00:00Z')
+    expect(row.updatedAt).toBe('2024-01-02T00:00:00Z')
+    expect(row.deletedAt).toBeNull()
+  })
+
+  it('переносит tombstone deleted_at', () => {
+    const row = mappers.shopping_list_item_comment.toRow({
+      ...baseComment,
+      deleted_at: '2024-02-01T00:00:00Z',
+    })
+    expect(row.deletedAt).toBe('2024-02-01T00:00:00Z')
+  })
+
+  it('NOT NULL фолбэки: author_name/body → "" при null/undefined', () => {
+    const s = {
+      ...baseComment,
+      author_name: undefined,
+      body: undefined,
+    } as unknown as ServerShoppingListItemComment
+    const row = mappers.shopping_list_item_comment.toRow(s)
+    expect(row.authorName).toBe('')
+    expect(row.body).toBe('')
+  })
+
+  it('createdAt фолбэк = updated_at при null created_at', () => {
+    const s = { ...baseComment, created_at: null } as unknown as ServerShoppingListItemComment
+    expect(mappers.shopping_list_item_comment.toRow(s).createdAt).toBe('2024-01-02T00:00:00Z')
+  })
+
+  it('целевая таблица маппера — shopping_list_item_comments', () => {
+    expect(mappers.shopping_list_item_comment.table).toBeDefined()
   })
 })

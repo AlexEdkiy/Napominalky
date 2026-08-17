@@ -90,14 +90,15 @@ describe('QuickAddItem — соответствие макету', () => {
     expect(getByLabelText('Добавить')).toBeTruthy()
   })
 
-  it('под полем показаны чипсы всех 5 атрибутов (черновик пуст)', async () => {
-    const { getByLabelText } = await render(
+  // Чипс «Комментарий» удалён: комментарии добавляются тредом к созданному пункту.
+  it('под полем показаны чипсы всех 4 атрибутов (черновик пуст, без «Комментарий»)', async () => {
+    const { getByLabelText, queryByLabelText } = await render(
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
     expect(getByLabelText('Добавить: Дедлайн')).toBeTruthy()
     expect(getByLabelText('Добавить: Напоминание')).toBeTruthy()
     expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
-    expect(getByLabelText('Добавить: Комментарий')).toBeTruthy()
+    expect(queryByLabelText('Добавить: Комментарий')).toBeNull()
     expect(getByLabelText('Добавить: Тег')).toBeTruthy()
   })
 
@@ -117,7 +118,6 @@ describe('QuickAddItem — соответствие макету', () => {
       deadline: null,
       reminderAt: null,
       link: null,
-      comment: null,
       tags: null,
     })
   })

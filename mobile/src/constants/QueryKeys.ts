@@ -35,6 +35,10 @@ export const QueryKeys = {
     list: (params: ListParams) => ['shopping-lists', 'list', params] as const,
     detail: (uuid: string) => ['shopping-lists', uuid] as const,
     items: (listUuid: string) => ['shopping-lists', listUuid, 'items'] as const,
+    itemComments: (itemUuid: string) =>
+      ['shopping-lists', 'item-comments', itemUuid] as const,
+    itemCommentCounts: (listUuid: string) =>
+      ['shopping-lists', listUuid, 'item-comment-counts'] as const,
     nearestDeadlines: ['shopping-lists', 'nearest-deadlines'] as const,
   },
   sync: {

@@ -23,12 +23,15 @@ interface ItemRowProps {
   onUpdateMeta?: (uuid: string, patch: MetaPatch) => void
   /** Тап по бейджу статуса пункта (только tasks) — открыть меню смены. */
   onOpenStatus?: ((uuid: string) => void) | undefined
+  /** Количество комментариев треда пункта (бейдж 💬 + кнопка в панели). */
+  commentsCount?: number
+  /** Тап по 💬/кнопке «Комментарии» — открыть тред пункта. */
+  onOpenComments?: (uuid: string) => void
 }
 
 export interface MetaPatch {
   deadline?: string | null
   link?: string | null
-  comment?: string | null
   tags?: string | null
   reminderAt?: string | null
 }
@@ -44,6 +47,8 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   onOpenAttribute,
   onUpdateMeta,
   onOpenStatus,
+  commentsCount = 0,
+  onOpenComments,
 }) => {
   const { colors } = useTheme()
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
@@ -57,7 +62,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   const hasDeadlineChip = listType === 'tasks' && item.deadline != null
   const hasMetaIndicator =
     item.reminderAt !== null ||
-    (item.comment !== null && item.comment.length > 0) ||
+    commentsCount > 0 ||
     (item.link !== null && item.link.length > 0)
   // 3: тег(и) + чип дедлайна + бейдж статуса (tasks) + иконки — metaLine
   const hasMetaLine = isTask || hasDeadlineChip || hasMetaIndicator || tags.length > 0
@@ -139,7 +144,11 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
                   </Text>
                 </View>
               )}
-              <MetaIndicators item={item} />
+              <MetaIndicators
+                item={item}
+                commentsCount={commentsCount}
+                onOpenComments={onOpenComments}
+              />
             </View>
           )}
         </Pressable>
@@ -168,6 +177,8 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
           onUpdateMeta={onUpdateMeta}
           onQuantityChange={listType === 'goods' ? onQuantityChange : undefined}
           onDelete={onDelete}
+          commentsCount={commentsCount}
+          onOpenComments={onOpenComments}
         />
       )}
     </View>
@@ -178,22 +189,40 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
 
 interface MetaIndicatorsProps {
   item: ShoppingListItem
+  commentsCount: number
+  onOpenComments: ((uuid: string) => void) | undefined
 }
 
-const MetaIndicators: React.FC<MetaIndicatorsProps> = ({ item }) => {
+/** Иконки-индикаторы меты пункта; 💬 показывает счётчик треда и открывает его. */
+const MetaIndicators: React.FC<MetaIndicatorsProps> = ({
+  item,
+  commentsCount,
+  onOpenComments,
+}) => {
   const { colors } = useTheme()
   const hasReminder = item.reminderAt !== null
-  const hasComment = item.comment !== null && item.comment.length > 0
+  const hasComments = commentsCount > 0
   const hasLink = item.link !== null && item.link.length > 0
-  if (!hasReminder && !hasComment && !hasLink) return null
+  if (!hasReminder && !hasComments && !hasLink) return null
 
   return (
     <View style={styles.indicators}>
       {hasReminder && (
         <Ionicons name="notifications-outline" size={12} color={colors.textTertiary} />
       )}
-      {hasComment && (
-        <Ionicons name="chatbubble-outline" size={12} color={colors.textTertiary} />
+      {hasComments && (
+        <Pressable
+          onPress={onOpenComments !== undefined ? () => onOpenComments(item.uuid) : undefined}
+          accessibilityRole="button"
+          accessibilityLabel={`Комментарии: ${commentsCount}`}
+          hitSlop={6}
+          style={styles.commentsBadge}
+        >
+          <Ionicons name="chatbubble-outline" size={12} color={colors.textTertiary} />
+          <Text style={[styles.commentsBadgeText, { color: colors.textTertiary }]}>
+            {commentsCount}
+          </Text>
+        </Pressable>
       )}
       {hasLink && <Ionicons name="link-outline" size={12} color={colors.textTertiary} />}
     </View>
@@ -210,6 +239,8 @@ interface ExpandedPanelProps {
   onUpdateMeta: ((uuid: string, patch: MetaPatch) => void) | undefined
   onQuantityChange: ((uuid: string, quantity: number) => void) | undefined
   onDelete: (uuid: string) => void
+  commentsCount: number
+  onOpenComments: ((uuid: string) => void) | undefined
 }
 
 /** Раскрытая панель пункта: чипсы/токены атрибутов + степпер количества (goods) + удаление. */
@@ -221,13 +252,14 @@ const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
   onUpdateMeta,
   onQuantityChange,
   onDelete,
+  commentsCount,
+  onOpenComments,
 }) => {
   const { colors } = useTheme()
   const values: ItemAttributeValues = {
     deadline: item.deadline,
     reminderAt: item.reminderAt,
     link: item.link,
-    comment: item.comment,
     tags: parseTags(item.tags),
   }
 
@@ -235,7 +267,6 @@ const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
     if (attribute === 'deadline') onUpdateMeta?.(item.uuid, { deadline: null })
     else if (attribute === 'reminder') onUpdateMeta?.(item.uuid, { reminderAt: null })
     else if (attribute === 'link') onUpdateMeta?.(item.uuid, { link: null })
-    else if (attribute === 'comment') onUpdateMeta?.(item.uuid, { comment: null })
     else onUpdateMeta?.(item.uuid, { tags: null })
   }
 
@@ -257,6 +288,21 @@ const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
         onOpen={(attribute) => onOpenAttribute?.(item.uuid, attribute)}
         onRemove={handleRemove}
       />
+
+      {/* Тред комментариев заменяет одиночный атрибут «Комментарий» */}
+      {onOpenComments !== undefined && (
+        <Pressable
+          onPress={() => onOpenComments(item.uuid)}
+          accessibilityRole="button"
+          accessibilityLabel={`Комментарии (${commentsCount})`}
+          style={[styles.commentsBtn, { borderColor: accentBg }]}
+        >
+          <Ionicons name="chatbubble-outline" size={13} color={accentColor} />
+          <Text style={[styles.commentsBtnText, { color: accentColor }]}>
+            {`Комментарии (${commentsCount})`}
+          </Text>
+        </Pressable>
+      )}
 
       <Pressable
         onPress={() => onDelete(item.uuid)}
@@ -359,6 +405,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  commentsBadge: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  commentsBadgeText: { ...typography.bodySm, fontSize: 11, fontWeight: '600' },
+  commentsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.4,
+    paddingHorizontal: 12,
+  },
+  commentsBtnText: { ...typography.bodySm, fontSize: 12, fontWeight: '700' },
   chevronBtn: { padding: 6 },
   expanded: {
     paddingHorizontal: 16,

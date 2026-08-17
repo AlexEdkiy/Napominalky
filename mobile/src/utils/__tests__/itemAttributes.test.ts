@@ -19,7 +19,6 @@ describe('isAttributeSet', () => {
     expect(isAttributeSet('deadline', EMPTY_ATTRIBUTE_VALUES)).toBe(false)
     expect(isAttributeSet('reminder', EMPTY_ATTRIBUTE_VALUES)).toBe(false)
     expect(isAttributeSet('link', EMPTY_ATTRIBUTE_VALUES)).toBe(false)
-    expect(isAttributeSet('comment', EMPTY_ATTRIBUTE_VALUES)).toBe(false)
     expect(isAttributeSet('tag', EMPTY_ATTRIBUTE_VALUES)).toBe(false)
   })
 
@@ -28,13 +27,11 @@ describe('isAttributeSet', () => {
       deadline: '2026-07-10',
       reminderAt: '2026-07-09T09:00:00.000Z',
       link: 'https://a.com',
-      comment: 'note',
       tags: ['срочно'],
     }
     expect(isAttributeSet('deadline', values)).toBe(true)
     expect(isAttributeSet('reminder', values)).toBe(true)
     expect(isAttributeSet('link', values)).toBe(true)
-    expect(isAttributeSet('comment', values)).toBe(true)
     expect(isAttributeSet('tag', values)).toBe(true)
   })
 })
@@ -121,11 +118,6 @@ describe('formatLinkToken (домен из ссылки)', () => {
 })
 
 describe('formatAttributeToken', () => {
-  it('comment → «Есть заметка»', () => {
-    const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, comment: 'Взять свежее' }
-    expect(formatAttributeToken('comment', values)).toBe('Есть заметка')
-  })
-
   it('tag → теги через запятую', () => {
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, tags: ['срочно', 'дом'] }
     expect(formatAttributeToken('tag', values)).toBe('срочно, дом')

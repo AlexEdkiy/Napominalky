@@ -4,8 +4,9 @@
  * AttributeSheet, ItemRow и композере нового пункта.
  */
 
-/** Атрибут пункта, доступный через чипсы/шторку. */
-export type ItemAttribute = 'deadline' | 'reminder' | 'link' | 'comment' | 'tag'
+/** Атрибут пункта, доступный через чипсы/шторку.
+ *  'comment' удалён: одиночный комментарий заменён тредом (CommentsSheet). */
+export type ItemAttribute = 'deadline' | 'reminder' | 'link' | 'tag'
 
 /** Значение, редактируемое в AttributeSheet (тип зависит от attribute). */
 export type AttributeSheetValue = string | string[] | null
@@ -15,7 +16,6 @@ export interface ItemAttributeValues {
   deadline: string | null
   reminderAt: string | null
   link: string | null
-  comment: string | null
   tags: string[]
 }
 
@@ -23,7 +23,6 @@ export const EMPTY_ATTRIBUTE_VALUES: ItemAttributeValues = {
   deadline: null,
   reminderAt: null,
   link: null,
-  comment: null,
   tags: [],
 }
 
@@ -31,7 +30,6 @@ export const ATTRIBUTE_ORDER: readonly ItemAttribute[] = [
   'deadline',
   'reminder',
   'link',
-  'comment',
   'tag',
 ]
 
@@ -39,7 +37,6 @@ export const ATTRIBUTE_LABELS: Record<ItemAttribute, string> = {
   deadline: 'Дедлайн',
   reminder: 'Напоминание',
   link: 'Ссылка',
-  comment: 'Комментарий',
   tag: 'Тег',
 }
 
@@ -47,7 +44,6 @@ export const ATTRIBUTE_ICONS: Record<ItemAttribute, string> = {
   deadline: 'calendar-outline',
   reminder: 'notifications-outline',
   link: 'link-outline',
-  comment: 'chatbubble-outline',
   tag: 'pricetag-outline',
 }
 
@@ -60,8 +56,6 @@ export const isAttributeSet = (attribute: ItemAttribute, values: ItemAttributeVa
       return values.reminderAt !== null && values.reminderAt.length > 0
     case 'link':
       return values.link !== null && values.link.length > 0
-    case 'comment':
-      return values.comment !== null && values.comment.length > 0
     case 'tag':
       return values.tags.length > 0
     default:
@@ -135,8 +129,6 @@ export const formatAttributeToken = (attribute: ItemAttribute, values: ItemAttri
       return values.reminderAt !== null ? formatReminderToken(values.reminderAt) : ''
     case 'link':
       return values.link !== null ? formatLinkToken(values.link) : ''
-    case 'comment':
-      return 'Есть заметка'
     case 'tag':
       return values.tags.join(', ')
     default:

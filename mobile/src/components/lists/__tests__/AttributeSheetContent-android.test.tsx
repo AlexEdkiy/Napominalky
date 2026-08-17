@@ -56,7 +56,6 @@ const baseProps = {
   currentDeadline: null,
   currentReminderAt: null,
   currentLink: null,
-  currentComment: null,
   currentTags: [] as string[],
   accentColor,
   accentBg,

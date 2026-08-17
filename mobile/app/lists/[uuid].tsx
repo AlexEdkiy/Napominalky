@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
 import AttributeSheet, { type AttributeSheetValue } from '@/components/lists/AttributeSheet'
+import CommentsSheet from '@/components/lists/CommentsSheet'
 import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
 import ListDetailHeader, { type ItemFilter } from '@/components/lists/ListDetailHeader'
 import StatusSheet, { type StatusSheetValue } from '@/components/lists/StatusSheet'
@@ -27,6 +28,7 @@ import type {
 import { parseTags, serializeTags } from '@/db/repositories/shoppingListsRepo'
 import { useShoppingList, useShoppingLists } from '@/hooks/useShoppingLists'
 import { useShoppingListItems } from '@/hooks/useShoppingListItems'
+import { useItemCommentCounts } from '@/hooks/useItemComments'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import type { ItemAttribute } from '@/utils/itemAttributes'
@@ -60,6 +62,9 @@ export default function ListDetailScreen() {
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null)
   const [sheetTarget, setSheetTarget] = useState<AttributeSheetTarget | null>(null)
   const [statusTarget, setStatusTarget] = useState<StatusSheetTarget | null>(null)
+  /** uuid пункта, чей тред комментариев открыт (null — шторка скрыта). */
+  const [commentsItemUuid, setCommentsItemUuid] = useState<string | null>(null)
+  const commentCounts = useItemCommentCounts(listUuid, items.map((i) => i.uuid))
 
   const accentColor = list?.type === 'tasks' ? colors.amber : colors.accent
   const accentBg = list?.type === 'tasks' ? colors.amberBg : colors.accentSoftBg
@@ -180,6 +185,8 @@ export default function ListDetailScreen() {
                   ? (itemUuid) => setStatusTarget({ kind: 'item', itemUuid })
                   : undefined
               }
+              commentsCount={commentCounts.get(item.uuid) ?? 0}
+              onOpenComments={setCommentsItemUuid}
             />
           )}
           contentContainerStyle={styles.list}
@@ -220,12 +227,20 @@ export default function ListDetailScreen() {
           currentDeadline={sheetItem?.deadline ?? null}
           currentReminderAt={sheetItem?.reminderAt ?? null}
           currentLink={sheetItem?.link ?? null}
-          currentComment={sheetItem?.comment ?? null}
           currentTags={parseTags(sheetItem?.tags ?? null)}
           accentColor={accentColor}
           accentBg={accentBg}
           onConfirm={handleConfirmAttribute}
           onClose={() => setSheetTarget(null)}
+        />
+
+        {/* Тред комментариев пункта (заменяет одиночный атрибут «Комментарий») */}
+        <CommentsSheet
+          itemUuid={commentsItemUuid}
+          listUuid={listUuid}
+          accentColor={accentColor}
+          accentBg={accentBg}
+          onClose={() => setCommentsItemUuid(null)}
         />
 
         {/* Шторка статуса: задача — 4 статуса + «Авто»; пункт — без «Авто» */}
@@ -251,7 +266,6 @@ const buildAttributePatch = (attribute: ItemAttribute, value: AttributeSheetValu
   if (attribute === 'deadline') return { deadline: typeof value === 'string' ? value : null }
   if (attribute === 'reminder') return { reminderAt: typeof value === 'string' ? value : null }
   if (attribute === 'link') return { link: typeof value === 'string' ? value : null }
-  if (attribute === 'comment') return { comment: typeof value === 'string' ? value : null }
   return { tags: serializeTags(Array.isArray(value) ? value : []) }
 }
 

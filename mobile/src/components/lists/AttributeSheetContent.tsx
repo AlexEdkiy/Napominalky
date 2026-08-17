@@ -84,9 +84,6 @@ const SheetContent: React.FC<SheetContentProps> = ({
   if (attribute === 'link') {
     return <LinkContent draft={typeof draft === 'string' ? draft : ''} accentColor={accentColor} onChange={onChange} />
   }
-  if (attribute === 'comment') {
-    return <CommentContent draft={typeof draft === 'string' ? draft : ''} accentColor={accentColor} onChange={onChange} />
-  }
   return (
     <TagContent
       draft={Array.isArray(draft) ? draft : []}
@@ -270,7 +267,7 @@ const ReminderContent: React.FC<ReminderContentProps> = ({ draft, deadline, acce
   )
 }
 
-// ---- Link / Comment ---------------------------------------------------------
+// ---- Link -------------------------------------------------------------------
 
 interface LinkContentProps {
   draft: string
@@ -292,31 +289,6 @@ const LinkContent: React.FC<LinkContentProps> = ({ draft, accentColor, onChange 
         autoFocus
         style={[styles.input, { borderColor: colors.borderInput, color: colors.textPrimary }]}
         accessibilityLabel="Ссылка"
-        selectionColor={accentColor}
-      />
-    </View>
-  )
-}
-
-interface CommentContentProps {
-  draft: string
-  accentColor: string
-  onChange: (value: AttributeSheetValue) => void
-}
-
-const CommentContent: React.FC<CommentContentProps> = ({ draft, accentColor, onChange }) => {
-  const { colors } = useTheme()
-  return (
-    <View style={styles.content}>
-      <TextInput
-        value={draft}
-        onChangeText={onChange}
-        placeholder="Добавьте заметку к задаче"
-        placeholderTextColor={colors.textTertiary}
-        multiline
-        autoFocus
-        style={[styles.input, styles.inputMulti, { borderColor: colors.borderInput, color: colors.textPrimary }]}
-        accessibilityLabel="Комментарий"
         selectionColor={accentColor}
       />
     </View>
@@ -405,7 +377,6 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === 'ios' ? 12 : 10,
     ...typography.body,
   },
-  inputMulti: { minHeight: 90, textAlignVertical: 'top' },
   newTagRow: {
     flexDirection: 'row',
     alignItems: 'center',

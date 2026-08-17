@@ -138,6 +138,17 @@ jest.mock('@/hooks/useShoppingListItems', () => ({
   }),
 }))
 
+// Тред комментариев: экран использует счётчики, CommentsSheet — тред пункта.
+jest.mock('@/hooks/useItemComments', () => ({
+  useItemComments: () => ({
+    comments: [],
+    isLoading: false,
+    addComment: { mutate: jest.fn() },
+    deleteComment: { mutate: jest.fn() },
+  }),
+  useItemCommentCounts: () => new Map<string, number>(),
+}))
+
 // ---- Хелперы ------------------------------------------------------------
 
 const resetToGoodsEmpty = () => {
