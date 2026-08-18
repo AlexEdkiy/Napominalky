@@ -121,6 +121,96 @@ describe('LkTaskItemRow — свёрнутый вид', () => {
   })
 })
 
+describe('LkTaskItemRow — инлайн-редактирование названия', () => {
+  async function startEditing(wrapper: VueWrapper) {
+    await wrapper.find('[aria-label="Переименовать Молоко"]').trigger('click')
+    return wrapper.find('.lk-item-row__name-input')
+  }
+
+  it('enters the edit mode from the pencil with the current name prefilled, без побочных эффектов', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).value).toBe('Молоко')
+    // Текст имени скрыт на время редактирования.
+    expect(wrapper.find('.lk-form-dialog__item-name').exists()).toBe(false)
+    // Карандаш не трогает чекбокс (label) и не раскрывает строку.
+    expect(wrapper.emitted('check')).toBeUndefined()
+    expect(wrapper.emitted('toggleExpand')).toBeUndefined()
+  })
+
+  it('saves on Enter → emits update {name} and leaves the edit mode', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    await input.setValue('Кефир')
+    await input.trigger('keydown.enter')
+    expect(wrapper.emitted('update')).toEqual([[{ name: 'Кефир' }]])
+    expect(wrapper.find('.lk-item-row__name-input').exists()).toBe(false)
+    // Переименование не эмитит check/toggleExpand.
+    expect(wrapper.emitted('check')).toBeUndefined()
+    expect(wrapper.emitted('toggleExpand')).toBeUndefined()
+  })
+
+  it('saves on blur as well (клик мимо инпута)', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    await input.setValue('Кефир 2%')
+    await input.trigger('blur')
+    expect(lastEmittedUpdate(wrapper)).toEqual({ name: 'Кефир 2%' })
+  })
+
+  it('cancels on Esc: без update, старое имя на месте (blur после Esc тоже не сохраняет)', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    await input.setValue('Другое')
+    await input.trigger('keydown.esc')
+    await input.trigger('blur')
+    expect(wrapper.emitted('update')).toBeUndefined()
+    expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Молоко')
+  })
+
+  it('stops the Esc keydown from bubbling (модалка на window его не увидит)', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    const seen: string[] = []
+    wrapper.element.addEventListener('keydown', (event: Event) => seen.push((event as KeyboardEvent).key))
+    await input.trigger('keydown.esc')
+    expect(seen).toEqual([])
+  })
+
+  it('does NOT save an empty/whitespace name — откат к прежнему', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    await input.setValue('   ')
+    await input.trigger('keydown.enter')
+    expect(wrapper.emitted('update')).toBeUndefined()
+    expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Молоко')
+  })
+
+  it('does NOT emit update when the name is unchanged', async () => {
+    const wrapper = mountRow()
+    const input = await startEditing(wrapper)
+    await input.trigger('keydown.enter')
+    expect(wrapper.emitted('update')).toBeUndefined()
+    expect(wrapper.find('.lk-item-row__name-input').exists()).toBe(false)
+  })
+
+  it('не конфликтует с остальными контролами строки: чекбокс/статус/раскрытие работают в режиме правки', async () => {
+    const wrapper = mountRow({ listType: 'tasks' })
+    await startEditing(wrapper)
+
+    await wrapper.find('.lk-form-dialog__item-checkbox').setValue(true)
+    expect(wrapper.emitted('check')).toEqual([[true]])
+
+    // Клик по бейджу статуса открывает его меню, а не сохраняет/ломает правку.
+    await wrapper.find('.lk-status-badge__pill--interactive').trigger('click')
+    expect(wrapper.findAll('[role="menuitemradio"]')).toHaveLength(4)
+
+    await wrapper.find('.lk-item-row__chevron').trigger('click')
+    expect(wrapper.emitted('toggleExpand')).toHaveLength(1)
+  })
+})
+
 describe('LkTaskItemRow — крестик удаления строки', () => {
   it('renders the × remove button as the LAST control of the row', () => {
     const wrapper = mountRow()

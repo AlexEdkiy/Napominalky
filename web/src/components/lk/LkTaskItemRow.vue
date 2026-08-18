@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import LkCommentsPopover from '@/components/lk/LkCommentsPopover.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
@@ -104,6 +104,42 @@ function handleCommentClick(): void {
     emit('toggleExpand')
   }
 }
+
+/**
+ * Инлайн-редактирование названия пункта: карандаш рядом с именем переводит
+ * его в `<input>`. Enter/blur сохраняют (PUT `{ name }` наверху), Esc —
+ * отмена с откатом. Триггер — ТОЛЬКО кнопка-карандаш (`.prevent.stop`):
+ * клик по самому имени по-прежнему работает как label чекбокса, а Esc в
+ * инпуте гасится `.stop`, чтобы не закрыть модалку.
+ */
+const isEditingName = ref(false)
+const nameDraft = ref('')
+const nameInput = ref<HTMLInputElement | null>(null)
+
+async function startNameEdit(): Promise<void> {
+  nameDraft.value = props.item.name
+  isEditingName.value = true
+  await nextTick()
+  nameInput.value?.focus()
+  nameInput.value?.select()
+}
+
+/** Enter/blur: пустое/пробельное или неизменённое имя НЕ отправляем — откат. */
+function commitNameEdit(): void {
+  if (!isEditingName.value) {
+    return
+  }
+  isEditingName.value = false
+  const name = nameDraft.value.trim()
+  if (name !== '' && name !== props.item.name) {
+    emit('update', { name })
+  }
+}
+
+function cancelNameEdit(): void {
+  isEditingName.value = false
+  nameDraft.value = props.item.name
+}
 </script>
 
 <template>
@@ -121,7 +157,34 @@ function handleCommentClick(): void {
           @change="handleCheck"
         />
         <span class="lk-item-row__name-block">
-          <span class="lk-form-dialog__item-name">{{ item.name }}</span>
+          <!-- Редактирование имени: карандаш → input. `.prevent.stop` на кнопке
+               и инпуте не дают label переключить чекбокс; Enter — `.prevent`,
+               чтобы не сабмитить форму диалога; Esc — `.stop`, чтобы не закрыть
+               модалку (слушатель на window его не увидит). -->
+          <input
+            v-if="isEditingName"
+            ref="nameInput"
+            v-model="nameDraft"
+            type="text"
+            class="lk-item-row__name-input"
+            maxlength="255"
+            :aria-label="`Новое название пункта ${item.name}`"
+            @click.prevent.stop
+            @keydown.enter.prevent.stop="commitNameEdit"
+            @keydown.esc.stop="cancelNameEdit"
+            @blur="commitNameEdit"
+          />
+          <span v-else class="lk-item-row__name-line">
+            <span class="lk-form-dialog__item-name">{{ item.name }}</span>
+            <button
+              type="button"
+              class="lk-item-row__name-edit"
+              :aria-label="`Переименовать ${item.name}`"
+              @click.prevent.stop="startNameEdit"
+            >
+              <LkIcon name="edit" :size="12" />
+            </button>
+          </span>
           <span v-if="hasMetaLine" class="lk-item-row__meta">
             <span
               v-if="showQuantityChip"
@@ -246,12 +309,54 @@ function handleCommentClick(): void {
   gap: 3px;
 }
 
+.lk-item-row__name-line {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .lk-form-dialog__item-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #1f2622;
   font-weight: 600;
+}
+
+/* Карандаш переименования — приглушён, подсвечивается на hover строки. */
+.lk-item-row__name-edit {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #b3bab6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lk-item-row__name-edit:hover {
+  background: #eef1f0;
+  color: #5a625e;
+}
+
+/* Инлайн-инпут имени — компактный, на месте названия. */
+.lk-item-row__name-input {
+  width: 100%;
+  height: 28px;
+  box-sizing: border-box;
+  border: 1.5px solid #e3e6e5;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: #fbfcfb;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2622;
 }
 
 .lk-form-dialog__item--checked .lk-form-dialog__item-name {
