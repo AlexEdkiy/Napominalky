@@ -117,7 +117,16 @@ describe('AttributesSheet — структура (все атрибуты в о�
     const { getByLabelText } = await render(
       <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} onClose={onClose} />,
     )
-    fireEvent.press(getByLabelText('Закрыть'))
+    fireEvent.press(getByLabelText('Закрыть шторку'))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('кнопка «×» в шапке вызывает onClose', async () => {
+    const onClose = jest.fn()
+    const { getByTestId } = await render(
+      <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} onClose={onClose} />,
+    )
+    fireEvent.press(getByTestId('attributes-sheet-close'))
     expect(onClose).toHaveBeenCalled()
   })
 })

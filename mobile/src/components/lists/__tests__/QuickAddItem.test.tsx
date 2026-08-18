@@ -170,6 +170,53 @@ describe('QuickAddItem — облегчённая форма', () => {
     expect(queryByTestId('quick-add-attributes-dot')).toBeNull()
   })
 
+  it('в шторке композера есть футер «Отмена»/«Готово»; «Готово» закрывает шторку', async () => {
+    const { getByLabelText, queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    expect(getByLabelText('Отмена')).toBeTruthy()
+    await act(async () => {
+      fireEvent.press(getByLabelText('Готово'))
+    })
+    expect(queryByTestId('attributes-sheet')).toBeNull()
+  })
+
+  it('«Отмена» в шторке откатывает заданные в ней атрибуты черновика', async () => {
+    const { getByLabelText, queryByLabelText, queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сегодня'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Отмена'))
+    })
+    expect(queryByLabelText(/^Дедлайн:/)).toBeNull()
+    expect(queryByTestId('quick-add-attributes-dot')).toBeNull()
+  })
+
+  it('введённое имя показывается подзаголовком в шапке шторки композера', async () => {
+    const { getByPlaceholderText, getByLabelText, getAllByText } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText('Новая задача'), 'Согласовать акт сверки')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    expect(getAllByText('Согласовать акт сверки').length).toBeGreaterThan(0)
+  })
+
   it('создаёт пункт только с именем, если атрибуты не заданы', async () => {
     const onAdd = jest.fn()
     const { getByPlaceholderText, getByLabelText } = await render(

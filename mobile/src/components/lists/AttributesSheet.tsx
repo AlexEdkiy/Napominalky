@@ -33,9 +33,9 @@ export interface AttributesSheetProps {
   values: ItemAttributeValues
   accentColor: string
   accentBg: string
-  /** Название пункта; undefined — поле не показывается (композер нового пункта). */
+  /** Название пункта — подзаголовок шапки; undefined — подзаголовка нет. */
   name?: string | undefined
-  /** Сохранение названия (blur/Enter, непустое). */
+  /** Сохранение названия (blur/Enter, непустое); undefined — подзаголовок read-only. */
   onRename?: ((name: string) => void) | undefined
   /** Количество (только goods); undefined — строка скрыта. */
   quantity?: number | undefined
@@ -44,14 +44,20 @@ export interface AttributesSheetProps {
   onChangeAttribute: (attribute: ItemAttribute, value: AttributeSheetValue) => void
   /** «Удалить пункт» в футере (после подтверждения); undefined — футер скрыт. */
   onDelete?: (() => void) | undefined
+  /** Режим композера: «Отмена» — откат черновика и закрытие (футер вместо «Удалить пункт»). */
+  onCancel?: (() => void) | undefined
+  /** Режим композера: «Готово» — подтвердить черновик и закрыть. */
+  onDone?: (() => void) | undefined
   onClose: () => void
 }
 
 /**
- * Единая шторка «Допатрибуты»: название пункта + количество (goods) + все
- * атрибуты (дедлайн/напоминание/ссылка/тег) с инлайн-редакторами + футер
- * «Удалить пункт». Паттерн bottom-sheet как у CommentsSheet: свайп вниз по
- * drag-зоне закрывает (useSheetDragToClose), scrim закрывает по тапу.
+ * Единая шторка «Допатрибуты»: шапка (иконка + заголовок + подзаголовок-название
+ * пункта + «×») + количество (goods) + все атрибуты (дедлайн/напоминание/
+ * ссылка/тег) с инлайн-редакторами + футер: «Удалить пункт» (существующий
+ * пункт) либо «Отмена»/«Готово» (композер). Паттерн bottom-sheet как у
+ * CommentsSheet: свайп вниз по drag-зоне закрывает (useSheetDragToClose),
+ * scrim закрывает по тапу.
  */
 const AttributesSheet: React.FC<AttributesSheetProps> = ({
   visible,
@@ -64,6 +70,8 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
   onQuantityChange,
   onChangeAttribute,
   onDelete,
+  onCancel,
+  onDone,
   onClose,
 }) => {
   const { colors } = useTheme()
@@ -102,7 +110,7 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть" />
+        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть шторку" />
         <Animated.View
           testID="attributes-sheet"
           style={[
@@ -121,14 +129,26 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
               <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
                 <Ionicons name="options-outline" size={18} color={accentColor} />
               </View>
-              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Допатрибуты</Text>
+              <View style={styles.headerText}>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Допатрибуты</Text>
+                {name !== undefined && (
+                  <NameSubtitle name={name} onRename={onRename} />
+                )}
+              </View>
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Закрыть"
+                hitSlop={8}
+                testID="attributes-sheet-close"
+                style={[styles.closeBtn, { backgroundColor: colors.borderSubtle }]}
+              >
+                <Ionicons name="close" size={16} color={colors.textSecondary} />
+              </Pressable>
             </View>
           </View>
 
           <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
-            {name !== undefined && onRename !== undefined && (
-              <NameField name={name} accentColor={accentColor} onRename={onRename} />
-            )}
             {quantity !== undefined && onQuantityChange !== undefined && (
               <QuantityRow
                 quantity={quantity}
@@ -163,32 +183,62 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
               <Text style={[styles.deleteText, { color: colors.danger }]}>Удалить пункт</Text>
             </Pressable>
           )}
+          {onDelete === undefined && onDone !== undefined && (
+            <View style={styles.composerFooter}>
+              {onCancel !== undefined && (
+                <Pressable
+                  onPress={onCancel}
+                  accessibilityRole="button"
+                  accessibilityLabel="Отмена"
+                  style={[styles.cancelBtn, { borderColor: colors.borderInput }]}
+                >
+                  <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Отмена</Text>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={onDone}
+                accessibilityRole="button"
+                accessibilityLabel="Готово"
+                style={[styles.doneBtn, { backgroundColor: accentColor }]}
+              >
+                <Text style={styles.doneText}>Готово</Text>
+              </Pressable>
+            </View>
+          )}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   )
 }
 
-// ---- NameField --------------------------------------------------------------
+// ---- NameSubtitle -----------------------------------------------------------
 
-interface NameFieldProps {
+interface NameSubtitleProps {
   name: string
-  accentColor: string
-  onRename: (name: string) => void
+  onRename: ((name: string) => void) | undefined
 }
 
 /**
- * Редактирование названия пункта (переехало из раскрытой панели строки):
- * коммит по blur/Enter, пустое/неизменённое имя не сохраняется,
+ * Подзаголовок шапки — название пункта (по макету). С onRename это инпут
+ * без рамки: коммит по blur/Enter, пустое/неизменённое имя не сохраняется,
  * черновик пересинхронизируется при внешнем изменении (напр. после pull).
+ * Без onRename (композер) — просто текст.
  */
-const NameField: React.FC<NameFieldProps> = ({ name, accentColor, onRename }) => {
+const NameSubtitle: React.FC<NameSubtitleProps> = ({ name, onRename }) => {
   const { colors } = useTheme()
   const [draft, setDraft] = useState(name)
 
   useEffect(() => {
     setDraft(name)
   }, [name])
+
+  if (onRename === undefined) {
+    return (
+      <Text numberOfLines={1} style={[styles.subtitle, { color: colors.textSecondary }]}>
+        {name}
+      </Text>
+    )
+  }
 
   const commit = (): void => {
     const next = draft.trim()
@@ -200,19 +250,16 @@ const NameField: React.FC<NameFieldProps> = ({ name, accentColor, onRename }) =>
   }
 
   return (
-    <View style={styles.nameRow}>
-      <Ionicons name="pencil-outline" size={14} color={accentColor} />
-      <TextInput
-        value={draft}
-        onChangeText={setDraft}
-        onBlur={commit}
-        onSubmitEditing={commit}
-        returnKeyType="done"
-        testID="item-name-input"
-        accessibilityLabel="Название пункта"
-        style={[styles.nameInput, { color: colors.textPrimary, borderColor: colors.borderInput }]}
-      />
-    </View>
+    <TextInput
+      value={draft}
+      onChangeText={setDraft}
+      onBlur={commit}
+      onSubmitEditing={commit}
+      returnKeyType="done"
+      testID="item-name-input"
+      accessibilityLabel="Название пункта"
+      style={[styles.subtitleInput, { color: colors.textSecondary }]}
+    />
   )
 }
 
@@ -279,22 +326,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerText: { flex: 1, gap: 1 },
   headerTitle: { ...typography.body, fontSize: 17, fontWeight: '700' },
-  body: { flexGrow: 0 },
-  nameRow: {
-    flexDirection: 'row',
+  subtitle: { ...typography.bodySm, fontSize: 12 },
+  subtitleInput: { ...typography.bodySm, fontSize: 12, paddingVertical: 0 },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
+    justifyContent: 'center',
   },
-  nameInput: {
-    ...typography.body,
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
+  body: { flexGrow: 0 },
   quantityRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,6 +367,24 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   deleteText: { ...typography.bodySm, fontWeight: '600' },
+  composerFooter: { flexDirection: 'row', gap: 10 },
+  cancelBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelText: { ...typography.buttonLabel, fontSize: 15, fontWeight: '600' },
+  doneBtn: {
+    flex: 1.4,
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneText: { ...typography.buttonLabel, fontSize: 15, fontWeight: '700', color: '#fff' },
 })
 
 export default AttributesSheet

@@ -65,6 +65,7 @@ export default function ListDetailScreen() {
   const listType: ListType = list?.type ?? 'goods'
   const isTasks = listType === 'tasks'
   const attributesItem = items.find((i) => i.uuid === attributesItemUuid)
+  const commentsItem = items.find((i) => i.uuid === commentsItemUuid)
   const statusItem =
     statusTarget?.kind === 'item'
       ? items.find((i) => i.uuid === statusTarget.itemUuid)
@@ -242,6 +243,7 @@ export default function ListDetailScreen() {
           listUuid={listUuid}
           accentColor={accentColor}
           accentBg={accentBg}
+          itemName={commentsItem?.name}
           onClose={() => setCommentsItemUuid(null)}
         />
 

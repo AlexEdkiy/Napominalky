@@ -92,11 +92,14 @@ const AttributesSheetRow: React.FC<AttributesSheetRowProps> = ({
             <Ionicons name="close" size={15} color={colors.textTertiary} />
           </Pressable>
         )}
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={14}
-          color={colors.textTertiary}
-        />
+        {/* По макету: «>» у заполненного, «+» (accent) у пустого; ^ — редактор раскрыт */}
+        {expanded ? (
+          <Ionicons name="chevron-up" size={14} color={colors.textTertiary} />
+        ) : isSet ? (
+          <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+        ) : (
+          <Ionicons name="add" size={18} color={accentColor} />
+        )}
       </Pressable>
 
       {expanded && (

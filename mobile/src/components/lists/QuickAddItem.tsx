@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -33,6 +33,8 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
   const [name, setName] = useState('')
   const [attrs, setAttrs] = useState<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
   const [sheetOpen, setSheetOpen] = useState(false)
+  /** Снапшот черновика на момент открытия шторки — для отката по «Отмена». */
+  const sheetSnapshot = useRef<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const placeholder = listType === 'tasks' ? 'Новая задача' : 'Добавить товар'
@@ -60,6 +62,17 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
     setAttrs((prev) => applyAttributeValue(prev, attribute, value))
   }
 
+  const openSheet = (): void => {
+    sheetSnapshot.current = attrs
+    setSheetOpen(true)
+  }
+
+  /** «Отмена» в футере шторки: откат изменений атрибутов, сделанных в шторке. */
+  const handleSheetCancel = (): void => {
+    setAttrs(sheetSnapshot.current)
+    setSheetOpen(false)
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.inputRow}>
@@ -78,7 +91,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Допатрибуты"
-            onPress={() => setSheetOpen(true)}
+            onPress={openSheet}
             hitSlop={6}
             style={styles.attrsBtn}
           >
@@ -109,7 +122,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
         values={attrs}
         accentColor={accentColor}
         accentBg={accentBg}
-        onOpen={() => setSheetOpen(true)}
+        onOpen={openSheet}
         onRemove={handleRemoveAttribute}
       />
 
@@ -118,7 +131,10 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
         values={attrs}
         accentColor={accentColor}
         accentBg={accentBg}
+        name={name.trim().length > 0 ? name.trim() : undefined}
         onChangeAttribute={handleChangeAttribute}
+        onCancel={handleSheetCancel}
+        onDone={() => setSheetOpen(false)}
         onClose={() => setSheetOpen(false)}
       />
     </View>
