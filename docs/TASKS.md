@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-17 (фикс синхр. статусов пунктов в МП + редактирование названия пункта — MOB-60/WEB-44)
+> Последнее обновление: 2026-08-17 (веб: ширина формы задачи 700px; МП: свайп-вниз закрывает шторку статусов — WEB-45/MOB-61)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 3            | architect                 |
 | DEV     | 21           | backend-developer         |
 | MBE     | 19           | mobile-backend-developer  |
-| MOB     | 60           | mobile-developer          |
-| WEB     | 44           | web-developer             |
+| MOB     | 61           | mobile-developer          |
+| WEB     | 45           | web-developer             |
 | TEST    | 17           | test-engineer             |
 | UITEST  | 12           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 46           | technical-writer          |
+| DOC     | 47           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 130 |
+| Completed | 131 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2520,5 +2520,21 @@
   - [x] Карандаш → input; Enter/blur сохраняет {name}; Esc отменяет; пустое не сохраняется
   - [x] Без конфликтов с другими контролами строки
   - [x] vue-tsc OK, Vitest зелёный (628)
+- **Создана:** 2026-08-17
+- **Завершена:** 2026-08-17
+
+### WEB-45 / MOB-61: Ширина формы задачи 700px (веб); свайп-вниз закрывает шторку статусов (МП)
+- **Исполнители:** web-developer (WEB-45), mobile-developer (MOB-61)
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** WEB-43, MOB-57/59
+- **Блокирует:** —
+- **Стандарты:** docs/05-typescript-vue.md, docs/04-typescript-rn.md
+- **Описание:** (WEB) Ширина десктопной панели `LkTaskFormDialog` по умолчанию 700px (было 1160 после WEB-43) — `max-width` 1160→700, регресс-тест обновлён; попап треда позиционируется по границе скролл-области, обрезки нет. (MOB) Шторка выбора статуса пункта/задачи `StatusSheet` не закрывалась свайпом вниз (был только scrim-тап) — применён общий хук `useSheetDragToClose` (drag-зона grabber+title, порог 100px/скорость), как в CommentsSheet/AttributeSheet; +тест-файл `StatusSheet.test.tsx` (scrim + свайп).
+- **Файлы:** `web/src/components/lk/LkTaskFormDialog.vue` (+тест), `mobile/src/components/lists/StatusSheet.tsx` (+тест)
+- **Критерии приёмки:**
+  - [x] Веб: ширина формы 700px
+  - [x] МП: свайп вниз закрывает шторку статусов
+  - [x] vue-tsc/tsc OK; Vitest 628 / Jest 1056 зелёные
 - **Создана:** 2026-08-17
 - **Завершена:** 2026-08-17
