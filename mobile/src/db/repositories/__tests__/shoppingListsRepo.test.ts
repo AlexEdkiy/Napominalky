@@ -183,6 +183,23 @@ describe('ShoppingListsRepository.updateItem', () => {
     expect(item?.quantity).toBe(5)
     expect(item?.deadline).toBe('2025-01-15')
   })
+
+  it('обновляет name (редактирование названия) и пишет update с name в outbox', async () => {
+    const inserts: InsertCall[] = []
+    const repo = new ShoppingListsRepository(createFakeDb(inserts) as never)
+
+    const item = await repo.updateItem('i1', { name: 'Новое название' })
+
+    expect(item?.name).toBe('Новое название')
+    expect(inserts).toHaveLength(1)
+    const outbox = inserts[0]?.values as Record<string, unknown>
+    expect(outbox.operation).toBe('update')
+    expect(outbox.entityType).toBe('shopping_list_item')
+    expect(outbox.entityUuid).toBe('i1')
+    // payload — полная строка в snake_case: новое имя уедет на сервер
+    const payload = JSON.parse(outbox.payload as string) as Record<string, unknown>
+    expect(payload.name).toBe('Новое название')
+  })
 })
 
 describe('ShoppingListsRepository.checkItem', () => {

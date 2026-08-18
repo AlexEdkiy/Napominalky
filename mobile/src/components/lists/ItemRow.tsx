@@ -1,5 +1,5 @@
-import React, { useRef } from 'react'
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -33,6 +33,11 @@ interface ItemRowProps {
    * «Удалить», тап по ней = подтверждение (без Alert). Без пропа свайпа нет.
    */
   onSwipeDelete?: ((uuid: string) => void) | undefined
+  /**
+   * Сохранение нового названия пункта (редактирование в раскрытой панели):
+   * поле в ExpandedPanel, коммит по blur/Enter. Пустое имя не сохраняется.
+   */
+  onRename?: ((uuid: string, name: string) => void) | undefined
 }
 
 export interface MetaPatch {
@@ -56,6 +61,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   commentsCount = 0,
   onOpenComments,
   onSwipeDelete,
+  onRename,
 }) => {
   const { colors } = useTheme()
   const swipeableRef = useRef<Swipeable | null>(null)
@@ -186,6 +192,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
           onDelete={onDelete}
           commentsCount={commentsCount}
           onOpenComments={onOpenComments}
+          onRename={onRename}
         />
       )}
     </View>
@@ -205,9 +212,11 @@ interface ExpandedPanelProps {
   onDelete: (uuid: string) => void
   commentsCount: number
   onOpenComments: ((uuid: string) => void) | undefined
+  onRename: ((uuid: string, name: string) => void) | undefined
 }
 
-/** Раскрытая панель пункта: чипсы/токены атрибутов + степпер количества (goods) + удаление. */
+/** Раскрытая панель пункта: редактирование названия + чипсы/токены атрибутов +
+ *  степпер количества (goods) + удаление. */
 const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
   item,
   accentColor,
@@ -218,6 +227,7 @@ const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
   onDelete,
   commentsCount,
   onOpenComments,
+  onRename,
 }) => {
   const { colors } = useTheme()
   const values: ItemAttributeValues = {
@@ -241,6 +251,10 @@ const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
         { borderTopColor: colors.borderSubtle, backgroundColor: colors.screenBg },
       ]}
     >
+      {onRename !== undefined && (
+        <NameEditRow item={item} accentColor={accentColor} onRename={onRename} />
+      )}
+
       {onQuantityChange !== undefined && (
         <QuantityRow item={item} accentColor={accentColor} onQuantityChange={onQuantityChange} />
       )}
@@ -281,6 +295,55 @@ const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
 }
 
 // ---- Sub-components --------------------------------------------------------
+
+interface NameEditRowProps {
+  item: ShoppingListItem
+  accentColor: string
+  onRename: (uuid: string, name: string) => void
+}
+
+/**
+ * Инлайн-редактирование названия пункта в раскрытой панели: TextInput с
+ * коммитом по потере фокуса/Enter. Пустое (или неизменённое) имя не
+ * сохраняется — поле возвращается к прежнему значению. Черновик
+ * пересинхронизируется, если name пришёл извне (напр. после pull).
+ */
+const NameEditRow: React.FC<NameEditRowProps> = ({ item, accentColor, onRename }) => {
+  const { colors } = useTheme()
+  const [draft, setDraft] = useState(item.name)
+
+  useEffect(() => {
+    setDraft(item.name)
+  }, [item.name])
+
+  const commit = (): void => {
+    const next = draft.trim()
+    if (next.length === 0 || next === item.name) {
+      setDraft(item.name)
+      return
+    }
+    onRename(item.uuid, next)
+  }
+
+  return (
+    <View style={styles.metaRowCompact}>
+      <Ionicons name="pencil-outline" size={14} color={accentColor} />
+      <TextInput
+        value={draft}
+        onChangeText={setDraft}
+        onBlur={commit}
+        onSubmitEditing={commit}
+        returnKeyType="done"
+        testID="item-name-input"
+        accessibilityLabel="Название пункта"
+        style={[
+          styles.nameInput,
+          { color: colors.textPrimary, borderColor: colors.borderInput },
+        ]}
+      />
+    </View>
+  )
+}
 
 interface QuantityRowProps {
   item: ShoppingListItem
@@ -396,6 +459,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepIcon: { fontSize: 20, lineHeight: 22, fontWeight: '700' },
+  // Редактирование названия пункта (раскрытая панель)
+  nameInput: {
+    ...typography.body,
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   stepValue: { ...typography.bodyMd, minWidth: 28, textAlign: 'center', fontWeight: '700' },
   // DEF-01: кнопка удаления в раскрытом редакторе
   deleteItemBtn: {
