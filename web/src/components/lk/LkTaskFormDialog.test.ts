@@ -176,7 +176,7 @@ describe('LkTaskFormDialog', () => {
     const types = wrapper.findAll('.lk-form-dialog__type')
     expect(types.map((button) => button.text())).toEqual(['Купить', 'Сделать'])
     expect(types[0]?.classes()).toContain('lk-form-dialog__type--active-goods')
-    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Добавить покупки')
+    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Что купить')
     // Кнопка «Добавить» по умолчанию (goods) — teal.
     expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(23, 137, 122)')
 

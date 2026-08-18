@@ -92,7 +92,7 @@ const isTypeLocked = computed<boolean>(() => taskFormList.value !== null)
 const title = computed<string>(() => form.title.trim() || 'Новая задача / покупка')
 const accent = computed(() => shoppingListAccent(form.type))
 const itemPlaceholder = computed<string>(() =>
-  form.type === 'goods' ? 'Добавить покупки' : 'Добавить задачи',
+  form.type === 'goods' ? 'Что купить' : 'Добавить задачи',
 )
 /** Выбранные теги вне пресетов («свои») — рендерятся отдельными активными чипами. */
 const customTags = computed<string[]>(() =>
