@@ -521,6 +521,94 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('renames an item inline: карандаш → input, Enter PUTs { name }, имя заменяется ответом сервера', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue(makeItem({ uuid: 'i-1', name: 'Кефир' }))
+    const { wrapper } = await mountDialog()
+    const forms = useLkForms()
+    forms.openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('[aria-label="Переименовать Молоко"]').trigger('click')
+    const input = wrapper.find('.lk-item-row__name-input')
+    expect((input.element as HTMLInputElement).value).toBe('Молоко')
+    await input.setValue('Кефир')
+    await input.trigger('keydown.enter')
+
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateItem).toHaveBeenCalledWith('l-1', 'i-1', { name: 'Кефир' }),
+    )
+    // Имя строки заменено ответом сервера; Enter НЕ сабмитит форму списка.
+    await vi.waitFor(() => expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Кефир'))
+    expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
+
+    // Переименование — «изменение пунктов»: таблица перезагрузится при закрытии.
+    await wrapper.find('.lk-form-dialog__close').trigger('click')
+    expect(forms.tasksVersion.value).toBe(1)
+    vi.unstubAllGlobals()
+  })
+
+  it('does NOT PUT an inline rename with an empty name (откат к прежнему имени)', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('[aria-label="Переименовать Молоко"]').trigger('click')
+    await wrapper.find('.lk-item-row__name-input').setValue('   ')
+    await wrapper.find('.lk-item-row__name-input').trigger('keydown.enter')
+    await wrapper.vm.$nextTick()
+
+    expect(shoppingListsApi.updateItem).not.toHaveBeenCalled()
+    expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Молоко')
+    vi.unstubAllGlobals()
+  })
+
+  it('shows an error under the items when the inline rename fails', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
+    vi.mocked(shoppingListsApi.updateItem).mockRejectedValue(new Error('Сеть недоступна'))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('[aria-label="Переименовать Молоко"]').trigger('click')
+    await wrapper.find('.lk-item-row__name-input').setValue('Кефир')
+    await wrapper.find('.lk-item-row__name-input').trigger('keydown.enter')
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Сеть недоступна'))
+    // Имя осталось прежним — состояние не менялось оптимистично без ответа.
+    expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Молоко')
+    vi.unstubAllGlobals()
+  })
+
+  it('Esc во время инлайн-переименования отменяет ТОЛЬКО правку, а не модалку', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1', name: 'Молоко' })])
+    stubMatchMedia(true)
+    const wrapper = mount(LkTaskFormDialog, { attachTo: document.body })
+    const forms = useLkForms()
+    forms.openTaskForm(list)
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+
+    await wrapper.find('[aria-label="Переименовать Молоко"]').trigger('click')
+    const input = wrapper.find('.lk-item-row__name-input')
+    await input.setValue('Другое')
+
+    // Реальный Esc всплывает из инпута к window: `.stop` в строке гасит его —
+    // правка отменена, модалка осталась открытой.
+    input.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.lk-item-row__name-input').exists()).toBe(false)
+    expect(wrapper.find('.lk-form-dialog__item-name').text()).toBe('Молоко')
+    expect(forms.isTaskFormOpen.value).toBe(true)
+    expect(shoppingListsApi.updateItem).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
   it('opens the thread from the 💬 button and POSTs a new comment with a local append', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'i-1' })])
     vi.mocked(shoppingListsApi.addItemComment).mockResolvedValue({
