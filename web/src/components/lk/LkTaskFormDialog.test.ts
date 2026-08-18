@@ -1009,12 +1009,12 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  it('doubles the desktop panel width (1160px) keeping the fluid width:100%', () => {
+  it('uses the 700px desktop panel width keeping the fluid width:100%', () => {
     // Стилевой регресс-тест по исходнику SFC (`?raw`): scoped-CSS в jsdom не
-    // применяется, поэтому проверяем сами объявления. Ширина ×2 (было 580px)
-    // нужна, чтобы влезали пункты, атрибуты и попапы тредов.
-    expect(dialogSource).toMatch(/\.lk-form-dialog__panel--desktop\s*\{[^}]*max-width:\s*1160px/)
-    expect(dialogSource).not.toContain('max-width: 580px')
+    // применяется, поэтому проверяем сами объявления. Ширина 700px — по
+    // умолчанию; попапы тредов позиционируются по границе скролл-области.
+    expect(dialogSource).toMatch(/\.lk-form-dialog__panel--desktop\s*\{[^}]*max-width:\s*700px/)
+    expect(dialogSource).not.toContain('max-width: 1160px')
     // Панель остаётся адаптивной: базовый width: 100% не тронут.
     expect(dialogSource).toMatch(/\.lk-form-dialog__panel\s*\{[^}]*width:\s*100%/)
   })

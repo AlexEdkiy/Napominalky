@@ -612,7 +612,7 @@ async function confirmDelete(): Promise<void> {
    Панель остаётся адаптивной: width:100% + max-width, на узких экранах —
    прежний мобильный fullscreen-вид. */
 .lk-form-dialog__panel--desktop {
-  max-width: 1160px;
+  max-width: 700px;
   border-radius: 22px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   margin: auto;
