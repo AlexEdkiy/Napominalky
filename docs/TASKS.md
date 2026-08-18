@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-17 (веб: форма задачи — статус в шапку, ширина ×2, облако тегов свёрнуто — WEB-43)
+> Последнее обновление: 2026-08-17 (фикс синхр. статусов пунктов в МП + редактирование названия пункта — MOB-60/WEB-44)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 3            | architect                 |
 | DEV     | 21           | backend-developer         |
 | MBE     | 19           | mobile-backend-developer  |
-| MOB     | 59           | mobile-developer          |
-| WEB     | 43           | web-developer             |
+| MOB     | 60           | mobile-developer          |
+| WEB     | 44           | web-developer             |
 | TEST    | 17           | test-engineer             |
 | UITEST  | 12           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 45           | technical-writer          |
+| DOC     | 46           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 128 |
+| Completed | 130 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2487,5 +2487,38 @@
   - [x] Ширина ×2 (1160px); попап треда помещается, не обрезается
   - [x] Теги свёрнуты за «Выбрать тег», выбранные видны; разворот/сворачивание
   - [x] vue-tsc OK, Vitest зелёный (616)
+- **Создана:** 2026-08-17
+- **Завершена:** 2026-08-17
+
+### MOB-60: Фикс синхронизации статусов пунктов + редактирование названия пункта
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** high (баг sync)
+- **Зависимости:** MOB-57
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** (Баг) Статусы пунктов/списков не синхронизировались с сервером: при добавлении статусов (миграция 0010) не сбросили pull-курсор и не сделали локальный бэкфилл — колонка `status` получила дефолт `new` всем существующим записям (включая выполненные `is_checked=1`), а серверные статусы старых записей (revision ниже курсора) не подтягивались → на МП выполненные пункты показывали «Новая». Фикс: (1) `CURRENT_SCHEMA_PULL_VERSION 11→12` в `syncMeta` — существующие устройства сбросят pull-курсор ещё раз (полный ре-pull статусов с сервера), идемпотентно; outbox не теряется (push перед pull). (2) Миграция `0012_status_backfill` (data-only): `UPDATE items SET status='done' WHERE is_checked=1 AND status='new'`; `UPDATE lists SET status='done', status_is_manual=1 WHERE is_completed=1 AND type='tasks' AND status='new'` — восстановление инварианта done⇔флаг для offline до первого pull (guard `status='new'` не трогает осмысленные статусы; in_progress/postponed придут pull'ом). (Фича) Редактирование названия пункта: в раскрытой панели `ItemRow` — `NameEditRow` (TextInput + карандаш, коммит по blur/Enter, trim, пустое/неизменённое не сохраняется) → `updateItem({name})` через repo→outbox.
+- **Файлы:** `mobile/src/services/sync/syncMeta.ts`, `mobile/src/db/migrations/0012_status_backfill.sql` (+meta), `mobile/src/components/lists/ItemRow.tsx`, `mobile/app/lists/[uuid].tsx` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Сброс курсора при 11→12 (полный ре-pull статусов); свежая установка без лишнего pull
+  - [x] Локальный бэкфилл is_checked→done / is_completed→done+manual
+  - [x] Редактирование названия пункта (blur/Enter/пустое не сохраняется)
+  - [x] tsc OK, Jest зелёный (1052)
+- **Создана:** 2026-08-17
+- **Завершена:** 2026-08-17
+
+### WEB-44: Редактирование названия пункта задачи
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** docs/05-typescript-vue.md
+- **Описание:** Инлайн-редактирование названия существующего пункта в форме задачи. В `LkTaskItemRow` — иконка-карандаш рядом с именем (не клик по имени, т.к. имя внутри label чекбокса) → `<input>`; сохранение по Enter/blur → emit `update {name}` → `useShoppingListItems().update(uuid,{name})` (PUT, backend уже принимал `name`); Esc — отмена с откатом (`.stop`, чтобы не закрыть модалку); пустое/неизменённое имя не сохраняется. Не конфликтует с чекбоксом/статус-меню/💬/раскрытием/крестиком.
+- **Файлы:** `web/src/components/lk/LkTaskItemRow.vue` (+ тесты LkTaskItemRow/LkTaskFormDialog)
+- **Критерии приёмки:**
+  - [x] Карандаш → input; Enter/blur сохраняет {name}; Esc отменяет; пустое не сохраняется
+  - [x] Без конфликтов с другими контролами строки
+  - [x] vue-tsc OK, Vitest зелёный (628)
 - **Создана:** 2026-08-17
 - **Завершена:** 2026-08-17
