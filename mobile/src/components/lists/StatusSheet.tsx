@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
 import { statusBadgeColors } from '@/components/lists/StatusBadge'
+import { useSheetDragToClose } from '@/hooks/useSheetDragToClose'
 import {
   TASK_STATUS_LABELS,
   TASK_STATUS_ORDER,
@@ -44,19 +45,9 @@ const StatusSheet: React.FC<StatusSheetProps> = ({
 }) => {
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
-  const translateY = useRef(new Animated.Value(300)).current
-
-  useEffect(() => {
-    if (!visible) return
-    translateY.setValue(300)
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 18,
-      mass: 0.9,
-    }).start()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible])
+  // Свайп вниз закрывает шторку (как в CommentsSheet/AttributeSheet);
+  // resetKey = visible → spring-появление при открытии.
+  const { panHandlers, translateY } = useSheetDragToClose(visible ? 'open' : null, onClose)
 
   if (!visible) return null
 
@@ -75,8 +66,10 @@ const StatusSheet: React.FC<StatusSheetProps> = ({
             },
           ]}
         >
-          <View style={styles.grabber} />
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          <View testID="status-sheet-drag-zone" {...panHandlers}>
+            <View style={styles.grabber} />
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          </View>
 
           {TASK_STATUS_ORDER.map((status) => (
             <StatusOption
