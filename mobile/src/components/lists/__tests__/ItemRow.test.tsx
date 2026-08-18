@@ -2,7 +2,7 @@
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
-import { fireEvent, render } from '@testing-library/react-native'
+import { act, fireEvent, render } from '@testing-library/react-native'
 
 import ItemRow from '../ItemRow'
 import type { ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
@@ -242,6 +242,89 @@ describe('ItemRow — свайп влево: удаление с подтвер�
     expect(onSwipeDelete).toHaveBeenCalledWith('item-1')
     // Alert-путь (onDelete из раскрытой панели) не задействован
     expect(onDelete).not.toHaveBeenCalled()
+  })
+})
+
+describe('ItemRow — редактирование названия пункта (раскрытая панель)', () => {
+  const renderExpanded = async (onRename: jest.Mock) =>
+    render(
+      <ItemRow
+        item={baseItem()}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onExpand={jest.fn()}
+        isExpanded
+        onRename={onRename}
+      />,
+    )
+
+  it('в раскрытой панели есть поле с текущим названием', async () => {
+    const { getByTestId } = await renderExpanded(jest.fn())
+    expect(getByTestId('item-name-input').props.value).toBe('Тестовый пункт')
+  })
+
+  it('без onRename поле названия не рендерится', async () => {
+    const { queryByTestId } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="tasks"
+        onToggle={jest.fn()}
+        onDelete={jest.fn()}
+        onExpand={jest.fn()}
+        isExpanded
+      />,
+    )
+    expect(queryByTestId('item-name-input')).toBeNull()
+  })
+
+  it('ввод нового имени + blur вызывает onRename(uuid, name) с trim', async () => {
+    const onRename = jest.fn()
+    const { getByTestId } = await renderExpanded(onRename)
+    const input = getByTestId('item-name-input')
+    await act(async () => {
+      fireEvent.changeText(input, '  Новое имя  ')
+    })
+    await act(async () => {
+      fireEvent(input, 'blur')
+    })
+    expect(onRename).toHaveBeenCalledWith('item-1', 'Новое имя')
+  })
+
+  it('Enter (submitEditing) тоже сохраняет новое имя', async () => {
+    const onRename = jest.fn()
+    const { getByTestId } = await renderExpanded(onRename)
+    const input = getByTestId('item-name-input')
+    await act(async () => {
+      fireEvent.changeText(input, 'Через Enter')
+    })
+    await act(async () => {
+      fireEvent(input, 'submitEditing')
+    })
+    expect(onRename).toHaveBeenCalledWith('item-1', 'Через Enter')
+  })
+
+  it('пустое имя НЕ сохраняется: onRename не вызван, поле вернулось к прежнему', async () => {
+    const onRename = jest.fn()
+    const { getByTestId } = await renderExpanded(onRename)
+    const input = getByTestId('item-name-input')
+    await act(async () => {
+      fireEvent.changeText(input, '   ')
+    })
+    await act(async () => {
+      fireEvent(input, 'blur')
+    })
+    expect(onRename).not.toHaveBeenCalled()
+    expect(getByTestId('item-name-input').props.value).toBe('Тестовый пункт')
+  })
+
+  it('неизменённое имя не сохраняется (нет лишней outbox-мутации)', async () => {
+    const onRename = jest.fn()
+    const { getByTestId } = await renderExpanded(onRename)
+    await act(async () => {
+      fireEvent(getByTestId('item-name-input'), 'blur')
+    })
+    expect(onRename).not.toHaveBeenCalled()
   })
 })
 

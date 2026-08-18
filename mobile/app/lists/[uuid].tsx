@@ -96,6 +96,12 @@ export default function ListDetailScreen() {
     updateItem.mutate({ uuid: itemUuid, patch })
   }
 
+  /** Сохранение отредактированного названия пункта (ItemRow гарантирует
+   *  непустое значение) — update + outbox для sync. */
+  const handleRename = (itemUuid: string, name: string): void => {
+    updateItem.mutate({ uuid: itemUuid, patch: { name } })
+  }
+
   const handleConfirmAttribute = (value: AttributeSheetValue): void => {
     if (sheetTarget === null) return
     const patch = buildAttributePatch(sheetTarget.attribute, value)
@@ -196,6 +202,7 @@ export default function ListDetailScreen() {
               commentsCount={commentCounts.get(item.uuid) ?? 0}
               onOpenComments={setCommentsItemUuid}
               onSwipeDelete={handleSwipeDelete}
+              onRename={handleRename}
             />
           )}
           contentContainerStyle={styles.list}

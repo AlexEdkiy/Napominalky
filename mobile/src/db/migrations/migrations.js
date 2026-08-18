@@ -13,6 +13,7 @@ import m0008 from './0008_lists_tags.sql';
 import m0009 from './0009_reminder_calendar_event_id.sql';
 import m0010 from './0010_task_status.sql';
 import m0011 from './0011_item_comments.sql';
+import m0012 from './0012_status_backfill.sql';
 
   export default {
     journal,
@@ -28,7 +29,8 @@ m0007,
 m0008,
 m0009,
 m0010,
-m0011
+m0011,
+m0012
     }
   }
   
