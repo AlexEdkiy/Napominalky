@@ -13,6 +13,7 @@
 /docs/
 /.git/
 /deploy/
+/.claude/worktrees/
 
 # === Секреты / окружение ===
 .env

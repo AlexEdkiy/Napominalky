@@ -49,3 +49,6 @@ yarn-error.log*
 Thumbs.db
 .idea/
 *.swp
+
+# === Claude Code (служебные worktree) ===
+.claude/worktrees/
