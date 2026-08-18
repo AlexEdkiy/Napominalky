@@ -29,6 +29,8 @@ interface CommentsSheetProps {
   listUuid: string
   accentColor: string
   accentBg: string
+  /** Название пункта — подзаголовок шапки (по макету). */
+  itemName?: string | undefined
   onClose: () => void
 }
 
@@ -43,6 +45,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
   listUuid,
   accentColor,
   accentBg,
+  itemName,
   onClose,
 }) => {
   const { colors } = useTheme()
@@ -93,7 +96,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть" />
+        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть шторку" />
         <Animated.View
           testID="comments-sheet"
           style={[
@@ -112,7 +115,27 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
               <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
                 <Ionicons name="chatbubble-outline" size={18} color={accentColor} />
               </View>
-              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Комментарии</Text>
+              <View style={styles.headerText}>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Комментарии</Text>
+                {itemName !== undefined && (
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.subtitle, { color: colors.textSecondary }]}
+                  >
+                    {itemName}
+                  </Text>
+                )}
+              </View>
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Закрыть"
+                hitSlop={8}
+                testID="comments-sheet-close"
+                style={[styles.closeBtn, { backgroundColor: colors.borderSubtle }]}
+              >
+                <Ionicons name="close" size={16} color={colors.textSecondary} />
+              </Pressable>
             </View>
           </View>
 
@@ -222,7 +245,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerText: { flex: 1, gap: 1 },
   headerTitle: { ...typography.body, fontSize: 17, fontWeight: '700' },
+  subtitle: { ...typography.bodySm, fontSize: 12 },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   thread: { flexGrow: 0 },
   empty: { ...typography.bodySm, paddingVertical: 12, textAlign: 'center' },
   comment: {

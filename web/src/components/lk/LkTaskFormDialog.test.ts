@@ -77,8 +77,11 @@ describe('LkTaskFormDialog', () => {
     useLkForms().openTaskForm()
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('.lk-form-dialog__title').text()).toBe('Новая задача / покупка')
-    expect((wrapper.find('#task-form-title').element as HTMLInputElement).value).toBe('')
+    // Название редактируется в ШАПКЕ: в new-режиме поле активно сразу (h2 нет).
+    expect(wrapper.find('.lk-form-dialog__title').exists()).toBe(false)
+    const titleInput = wrapper.find('.lk-form-dialog__header #task-form-title')
+    expect((titleInput.element as HTMLInputElement).value).toBe('')
+    expect(titleInput.attributes('placeholder')).toBe('Что нужно сделать или купить?')
     // Прогресс «M / N» — только в edit-режиме (в new списка ещё нет).
     expect(wrapper.find('.lk-form-dialog__progress').exists()).toBe(false)
     expect(wrapper.find('.lk-form-dialog__delete').exists()).toBe(false)
@@ -105,6 +108,66 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('edits the title in the HEADER on click (edit mode): Enter saves immediately via PUT', async () => {
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, title: 'Продукты на неделю' })
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    // В edit-режиме — заголовок-кнопка; поля ввода до клика нет.
+    expect(wrapper.find('#task-form-title').exists()).toBe(false)
+    await wrapper.find('.lk-form-dialog__title-button').trigger('click')
+    const input = wrapper.find('.lk-form-dialog__header #task-form-title')
+    expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).value).toBe('Продукты')
+
+    await input.setValue('  Продукты на неделю  ')
+    await input.trigger('keydown', { key: 'Enter' })
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { title: 'Продукты на неделю' }),
+    )
+    await vi.waitFor(() => expect(wrapper.find('.lk-form-dialog__title').text()).toBe('Продукты на неделю'))
+    vi.unstubAllGlobals()
+  })
+
+  it('reverts an empty title on blur and Esc cancels the edit (edit mode, no PUT)', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('.lk-form-dialog__title-button').trigger('click')
+    let input = wrapper.find('#task-form-title')
+    await input.setValue('   ')
+    await input.trigger('blur')
+    expect(wrapper.find('.lk-form-dialog__title').text()).toBe('Продукты')
+
+    await wrapper.find('.lk-form-dialog__title-button').trigger('click')
+    input = wrapper.find('#task-form-title')
+    await input.setValue('Черновик')
+    await input.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('.lk-form-dialog__title').text()).toBe('Продукты')
+    // Esc в поле названия не закрывает модалку.
+    expect(useLkForms().isTaskFormOpen.value).toBe(true)
+    expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the title error in the header and re-opens the title input when saving without a title', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('form').trigger('submit')
+    await vi.waitFor(() =>
+      expect(wrapper.find('.lk-form-dialog__header .lk-form-dialog__title-error').text()).toBe(
+        'Введите название задачи.',
+      ),
+    )
+    expect(wrapper.find('.lk-form-dialog__header #task-form-title').exists()).toBe(true)
+    expect(shoppingListsApi.createList).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
   it('switches the type toggle (Купить teal by default, Сделать amber) and the item placeholder', async () => {
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm()
@@ -113,7 +176,7 @@ describe('LkTaskFormDialog', () => {
     const types = wrapper.findAll('.lk-form-dialog__type')
     expect(types.map((button) => button.text())).toEqual(['Купить', 'Сделать'])
     expect(types[0]?.classes()).toContain('lk-form-dialog__type--active-goods')
-    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Например, Молоко')
+    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Что купить')
     // Кнопка «Добавить» по умолчанию (goods) — teal.
     expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(23, 137, 122)')
 
@@ -121,7 +184,7 @@ describe('LkTaskFormDialog', () => {
     expect(types[1]?.classes()).toContain('lk-form-dialog__type--active-tasks')
     // Активный остаётся ровно один: «Купить» теряет подсветку.
     expect(types[0]?.classes()).not.toContain('lk-form-dialog__type--active-goods')
-    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Например, Помыть окна')
+    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Добавить задачи')
     // Кнопка «Добавить» перекрашивается в amber по типу.
     expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(201, 138, 43)')
     vi.unstubAllGlobals()
@@ -135,11 +198,7 @@ describe('LkTaskFormDialog', () => {
     expect(wrapper.find('.lk-form-dialog__types').exists()).toBe(false)
     expect(wrapper.findAll('.lk-form-dialog__type')).toHaveLength(0)
     // Секция «Тип» скрыта целиком — вместе с заголовком.
-    expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual([
-      'Название',
-      'Пункты',
-      'Теги',
-    ])
+    expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual(['Теги'])
     vi.unstubAllGlobals()
   })
 
@@ -157,11 +216,7 @@ describe('LkTaskFormDialog', () => {
     await wrapper.vm.$nextTick()
 
     // Блока «Статус» в ТЕЛЕ больше нет: ни label, ни чипов.
-    expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual([
-      'Название',
-      'Пункты',
-      'Теги',
-    ])
+    expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual(['Теги'])
     expect(wrapper.find('.lk-form-dialog__statuses').exists()).toBe(false)
     // Переключатель — в шапке: интерактивный бейдж с текущим статусом
     // + точка-индикатор ручного закрепления.
@@ -344,8 +399,9 @@ describe('LkTaskFormDialog', () => {
 
     // Акценты edit-режима — по фактическому типу списка: tasks → amber.
     expect(wrapper.find('.lk-form-dialog__item-add').attributes('style')).toContain('rgb(201, 138, 43)')
-    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Например, Помыть окна')
+    expect(wrapper.find('.lk-form-dialog__item-input').attributes('placeholder')).toBe('Добавить задачи')
 
+    await wrapper.find('.lk-form-dialog__title-button').trigger('click')
     await wrapper.find('#task-form-title').setValue('Дела недели')
     await wrapper.find('form').trigger('submit')
 
@@ -885,6 +941,7 @@ describe('LkTaskFormDialog', () => {
     forms.openTaskForm(list)
     await wrapper.vm.$nextTick()
 
+    await wrapper.find('.lk-form-dialog__title-button').trigger('click')
     await wrapper.find('#task-form-title').setValue('Обновлено')
     await wrapper.find('form').trigger('submit')
 
@@ -979,9 +1036,11 @@ describe('LkTaskFormDialog', () => {
     useLkForms().openTaskForm()
     await wrapper.vm.$nextTick()
 
+    // Отдельного поля «Название» и заголовка «Пункты» нет: название — в шапке.
     const labels = wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())
-    expect(labels).toEqual(['Название', 'Тип', 'Пункты', 'Теги'])
-    expect(wrapper.find('#task-form-title').attributes('placeholder')).toBe('Что нужно сделать или купить?')
+    expect(labels).toEqual(['Тип', 'Теги'])
+    expect(wrapper.find('.lk-form-dialog__body #task-form-title').exists()).toBe(false)
+    expect(wrapper.find('.lk-form-dialog__header #task-form-title').exists()).toBe(true)
     expect(wrapper.find('.lk-form-dialog__submit').text()).toBe('Сохранить')
     expect(wrapper.find('.lk-form-dialog__cancel').text()).toBe('Отмена')
     expect(wrapper.find('input[type="date"]').exists()).toBe(false)
@@ -994,10 +1053,11 @@ describe('LkTaskFormDialog', () => {
     useLkForms().openTaskForm(list)
     await wrapper.vm.$nextTick()
 
-    // Скроллится середина (название/пункты/теги) — всё внутри `__body`.
+    // Скроллится середина (пункты/теги) — всё внутри `__body`; название — в шапке.
     const body = wrapper.find('.lk-form-dialog__body')
     expect(body.exists()).toBe(true)
-    expect(body.find('#task-form-title').exists()).toBe(true)
+    expect(body.find('#task-form-title').exists()).toBe(false)
+    expect(wrapper.find('.lk-form-dialog__header .lk-form-dialog__title-button').exists()).toBe(true)
     expect(body.find('.lk-form-dialog__item-form').exists()).toBe(true)
     expect(body.find('.lk-form-dialog__tags').exists()).toBe(true)
 

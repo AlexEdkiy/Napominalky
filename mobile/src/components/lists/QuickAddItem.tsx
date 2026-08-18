@@ -1,18 +1,20 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
-import AttributeChips from '@/components/lists/AttributeChips'
-import AttributeSheet, { type AttributeSheetValue } from '@/components/lists/AttributeSheet'
-import type { CreateItemData } from '@/db/repositories/shoppingListsRepo'
+import AttributesSheet from '@/components/lists/AttributesSheet'
+import AttributeTokens from '@/components/lists/AttributeTokens'
+import type { CreateItemData, ListType } from '@/db/repositories/shoppingListsRepo'
 import { serializeTags } from '@/db/repositories/shoppingListsRepo'
 import { useTheme } from '@/theme'
 import {
+  ATTRIBUTE_ORDER,
   EMPTY_ATTRIBUTE_VALUES,
+  isAttributeSet,
+  type AttributeSheetValue,
   type ItemAttribute,
   type ItemAttributeValues,
 } from '@/utils/itemAttributes'
-import type { ListType } from '@/db/repositories/shoppingListsRepo'
 
 interface QuickAddItemProps {
   listType: ListType
@@ -20,15 +22,23 @@ interface QuickAddItemProps {
   autoFocus?: boolean
 }
 
-/** Композер нового пункта: имя + «+», под полем — токены/чипсы атрибутов будущего пункта. */
+/**
+ * Композер нового пункта («облегчённая форма»): имя + иконка «допатрибуты»
+ * ВНУТРИ поля (открывает единую шторку AttributesSheet) + «+». Под полем —
+ * токены только заполненных атрибутов; пустых чипов-кнопок нет. На иконке —
+ * жёлтая точка-индикатор, если хоть один атрибут задан.
+ */
 const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus = false }) => {
   const { colors } = useTheme()
   const [name, setName] = useState('')
   const [attrs, setAttrs] = useState<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
-  const [openAttribute, setOpenAttribute] = useState<ItemAttribute | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  /** Снапшот черновика на момент открытия шторки — для отката по «Отмена». */
+  const sheetSnapshot = useRef<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const placeholder = listType === 'tasks' ? 'Новая задача' : 'Добавить товар'
+  const hasAttrs = ATTRIBUTE_ORDER.some((attr) => isAttributeSet(attr, attrs))
 
   const handleAdd = (): void => {
     const trimmed = name.trim()
@@ -48,26 +58,52 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
     setAttrs((prev) => applyAttributeValue(prev, attribute, attribute === 'tag' ? [] : null))
   }
 
-  const handleConfirmAttribute = (value: AttributeSheetValue): void => {
-    if (openAttribute === null) return
-    setAttrs((prev) => applyAttributeValue(prev, openAttribute, value))
-    setOpenAttribute(null)
+  const handleChangeAttribute = (attribute: ItemAttribute, value: AttributeSheetValue): void => {
+    setAttrs((prev) => applyAttributeValue(prev, attribute, value))
+  }
+
+  const openSheet = (): void => {
+    sheetSnapshot.current = attrs
+    setSheetOpen(true)
+  }
+
+  /** «Отмена» в футере шторки: откат изменений атрибутов, сделанных в шторке. */
+  const handleSheetCancel = (): void => {
+    setAttrs(sheetSnapshot.current)
+    setSheetOpen(false)
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.inputRow}>
-        <TextInput
-          accessibilityLabel={placeholder}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textTertiary}
-          value={name}
-          onChangeText={setName}
-          onSubmitEditing={handleAdd}
-          returnKeyType="done"
-          autoFocus={autoFocus}
-          style={[styles.input, { color: colors.textPrimary, borderColor: colors.borderInput }]}
-        />
+        <View style={[styles.inputWrap, { borderColor: colors.borderInput }]}>
+          <TextInput
+            accessibilityLabel={placeholder}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textTertiary}
+            value={name}
+            onChangeText={setName}
+            onSubmitEditing={handleAdd}
+            returnKeyType="done"
+            autoFocus={autoFocus}
+            style={[styles.input, { color: colors.textPrimary }]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Допатрибуты"
+            onPress={openSheet}
+            hitSlop={6}
+            style={styles.attrsBtn}
+          >
+            <Ionicons name="options-outline" size={20} color={colors.textTertiary} />
+            {hasAttrs && (
+              <View
+                testID="quick-add-attributes-dot"
+                style={[styles.dot, { backgroundColor: colors.amber }]}
+              />
+            )}
+          </Pressable>
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Добавить"
@@ -82,24 +118,24 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
         </Pressable>
       </View>
 
-      <AttributeChips
+      <AttributeTokens
         values={attrs}
         accentColor={accentColor}
         accentBg={accentBg}
-        onOpen={setOpenAttribute}
+        onOpen={openSheet}
         onRemove={handleRemoveAttribute}
       />
 
-      <AttributeSheet
-        attribute={openAttribute}
-        currentDeadline={attrs.deadline}
-        currentReminderAt={attrs.reminderAt}
-        currentLink={attrs.link}
-        currentTags={attrs.tags}
+      <AttributesSheet
+        visible={sheetOpen}
+        values={attrs}
         accentColor={accentColor}
         accentBg={accentBg}
-        onConfirm={handleConfirmAttribute}
-        onClose={() => setOpenAttribute(null)}
+        name={name.trim().length > 0 ? name.trim() : undefined}
+        onChangeAttribute={handleChangeAttribute}
+        onCancel={handleSheetCancel}
+        onDone={() => setSheetOpen(false)}
+        onClose={() => setSheetOpen(false)}
       />
     </View>
   )
@@ -127,13 +163,29 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
   },
-  input: {
+  inputWrap: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     minHeight: 48,
     borderWidth: 1,
     borderRadius: 14,
+    paddingRight: 10,
+  },
+  input: {
+    flex: 1,
+    minHeight: 48,
     paddingHorizontal: 14,
     fontSize: 15,
+  },
+  attrsBtn: { padding: 4 },
+  dot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   addButton: {
     width: 54,

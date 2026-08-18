@@ -1,6 +1,6 @@
 /**
  * Общие типы/хелперы для редизайна атрибутов пункта задачи (чипсы → шторка → токены).
- * Чистые функции без побочных эффектов — переиспользуются в AttributeChips,
+ * Чистые функции без побочных эффектов — переиспользуются в AttributeTokens,
  * AttributeSheet, ItemRow и композере нового пункта.
  */
 
@@ -120,7 +120,7 @@ export const formatLinkToken = (link: string): string => {
   }
 }
 
-/** Значение токена атрибута для отображения в AttributeChips. */
+/** Значение токена атрибута для отображения в токенах/шторке «Допатрибуты». */
 export const formatAttributeToken = (attribute: ItemAttribute, values: ItemAttributeValues): string => {
   switch (attribute) {
     case 'deadline':

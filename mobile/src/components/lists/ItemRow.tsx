@@ -1,67 +1,46 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import React, { useRef } from 'react'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 
-import AttributeChips from '@/components/lists/AttributeChips'
 import MetaLine from '@/components/lists/ItemRowMetaLine'
 import SwipeDeleteAction from '@/components/lists/SwipeDeleteAction'
 import type { ListType, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
 import { parseTags } from '@/db/repositories/shoppingListsRepo'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
-import type { ItemAttribute, ItemAttributeValues } from '@/utils/itemAttributes'
 
 interface ItemRowProps {
   item: ShoppingListItem
   listType: ListType
   onToggle: (uuid: string, checked: boolean) => void
-  onDelete: (uuid: string) => void
-  onExpand?: (uuid: string) => void
-  isExpanded?: boolean
-  onQuantityChange?: (uuid: string, quantity: number) => void
-  onOpenAttribute?: (uuid: string, attribute: ItemAttribute) => void
-  onUpdateMeta?: (uuid: string, patch: MetaPatch) => void
   /** Тап по бейджу статуса пункта (только tasks) — открыть меню смены. */
   onOpenStatus?: ((uuid: string) => void) | undefined
-  /** Количество комментариев треда пункта (бейдж 💬 + кнопка в панели). */
+  /** Количество комментариев треда пункта (жёлтый чип в мета-строке при > 0). */
   commentsCount?: number
-  /** Тап по 💬/кнопке «Комментарии» — открыть тред пункта. */
+  /** Тап по чипу/иконке комментариев — открыть тред пункта (один тап). */
   onOpenComments?: (uuid: string) => void
+  /**
+   * Тап по иконке «допатрибуты» (или названию) — открыть единую шторку
+   * AttributesSheet пункта. Раскрытия строки инлайн больше нет.
+   */
+  onOpenAttributes?: ((uuid: string) => void) | undefined
   /**
    * Подтверждённое удаление из свайп-действия: свайп влево открывает кнопку
    * «Удалить», тап по ней = подтверждение (без Alert). Без пропа свайпа нет.
    */
   onSwipeDelete?: ((uuid: string) => void) | undefined
-  /**
-   * Сохранение нового названия пункта (редактирование в раскрытой панели):
-   * поле в ExpandedPanel, коммит по blur/Enter. Пустое имя не сохраняется.
-   */
-  onRename?: ((uuid: string, name: string) => void) | undefined
-}
-
-export interface MetaPatch {
-  deadline?: string | null
-  link?: string | null
-  tags?: string | null
-  reminderAt?: string | null
 }
 
 const ItemRowComponent: React.FC<ItemRowProps> = ({
   item,
   listType,
   onToggle,
-  onDelete,
-  onExpand,
-  isExpanded = false,
-  onQuantityChange,
-  onOpenAttribute,
-  onUpdateMeta,
   onOpenStatus,
   commentsCount = 0,
   onOpenComments,
+  onOpenAttributes,
   onSwipeDelete,
-  onRename,
 }) => {
   const { colors } = useTheme()
   const swipeableRef = useRef<Swipeable | null>(null)
@@ -71,13 +50,15 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   const isTask = listType === 'tasks'
   // Инвариант done ⇔ is_checked; для tasks приоритет у status (зачёркивание).
   const done = isTask ? item.status === 'done' : item.isChecked
-  // 5: показываем ВСЕ теги пункта (не только первый)
   const tags = parseTags(item.tags)
   const hasDeadlineChip = listType === 'tasks' && item.deadline != null
-  const hasMetaIndicator =
-    item.reminderAt !== null || commentsCount > 0 || (item.link !== null && item.link.length > 0)
-  // 3: тег(и) + чип дедлайна + бейдж статуса (tasks) + иконки — metaLine
-  const hasMetaLine = isTask || hasDeadlineChip || hasMetaIndicator || tags.length > 0
+  const hasLink = item.link !== null && item.link.length > 0
+  // 5: точка-индикатор на иконке «допатрибуты» — есть хоть один атрибут
+  const hasAttributes =
+    item.deadline != null || item.reminderAt !== null || hasLink || tags.length > 0
+  const hasMetaIndicator = item.reminderAt !== null || hasLink
+  const hasMetaLine =
+    isTask || hasDeadlineChip || hasMetaIndicator || tags.length > 0 || commentsCount > 0
 
   // Свайп влево = inline-подтверждение: удаляет только тап по кнопке «Удалить».
   const handleSwipeDelete = (): void => {
@@ -124,12 +105,14 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
         >
           {done && <Ionicons name="checkmark" size={14} color="#fff" />}
         </Pressable>
-        {/* Фикс «второго тапа»: metaLine — сестра Pressable-раскрытия, не потомок */}
+        {/* Фикс «второго тапа»: metaLine — сестра Pressable названия, не потомок */}
         <View style={styles.main}>
           <Pressable
             style={styles.nameTap}
             hitSlop={{ top: 12, bottom: hasMetaLine ? 0 : 12 }}
-            onPress={() => onExpand?.(item.uuid)}
+            onPress={
+              onOpenAttributes !== undefined ? () => onOpenAttributes(item.uuid) : undefined
+            }
             accessibilityRole="button"
             accessibilityLabel={item.name}
           >
@@ -151,7 +134,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
               )}
             </View>
           </Pressable>
-          {/* 3/5: тег(и) + чип дедлайна + мета-иконки — единый горизонтальный ряд */}
+          {/* 3: ТОЛЬКО заполненные атрибуты чипами + жёлтый чип комментариев */}
           {hasMetaLine && (
             <MetaLine
               item={item}
@@ -165,216 +148,72 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
             />
           )}
         </View>
-        {/* DEF-01: убран Pressable с close-circle-outline; chevron — единственный правый элемент */}
-        {onExpand !== undefined && (
-          <Pressable
-            onPress={() => onExpand(item.uuid)}
-            accessibilityRole="button"
-            accessibilityLabel="Развернуть"
-            style={styles.chevronBtn}
-          >
-            <Ionicons
-              name={isExpanded ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={colors.textTertiary}
-            />
-          </Pressable>
-        )}
-      </View>
-      {isExpanded && (
-        <ExpandedPanel
-          item={item}
-          accentColor={accentColor}
-          accentBg={accentBg}
-          onOpenAttribute={onOpenAttribute}
-          onUpdateMeta={onUpdateMeta}
-          onQuantityChange={listType === 'goods' ? onQuantityChange : undefined}
-          onDelete={onDelete}
+        <RowControls
+          uuid={item.uuid}
+          hasAttributes={hasAttributes}
           commentsCount={commentsCount}
           onOpenComments={onOpenComments}
-          onRename={onRename}
+          onOpenAttributes={onOpenAttributes}
         />
-      )}
+      </View>
     </View>
     </Swipeable>
   )
 }
 
-// ---- ExpandedPanel -----------------------------------------------------------
+// ---- RowControls ------------------------------------------------------------
 
-interface ExpandedPanelProps {
-  item: ShoppingListItem
-  accentColor: string
-  accentBg: string
-  onOpenAttribute: ((uuid: string, attribute: ItemAttribute) => void) | undefined
-  onUpdateMeta: ((uuid: string, patch: MetaPatch) => void) | undefined
-  onQuantityChange: ((uuid: string, quantity: number) => void) | undefined
-  onDelete: (uuid: string) => void
+interface RowControlsProps {
+  uuid: string
+  hasAttributes: boolean
   commentsCount: number
   onOpenComments: ((uuid: string) => void) | undefined
-  onRename: ((uuid: string, name: string) => void) | undefined
-}
-
-/** Раскрытая панель пункта: редактирование названия + чипсы/токены атрибутов +
- *  степпер количества (goods) + удаление. */
-const ExpandedPanel: React.FC<ExpandedPanelProps> = ({
-  item,
-  accentColor,
-  accentBg,
-  onOpenAttribute,
-  onUpdateMeta,
-  onQuantityChange,
-  onDelete,
-  commentsCount,
-  onOpenComments,
-  onRename,
-}) => {
-  const { colors } = useTheme()
-  const values: ItemAttributeValues = {
-    deadline: item.deadline,
-    reminderAt: item.reminderAt,
-    link: item.link,
-    tags: parseTags(item.tags),
-  }
-
-  const handleRemove = (attribute: ItemAttribute): void => {
-    if (attribute === 'deadline') onUpdateMeta?.(item.uuid, { deadline: null })
-    else if (attribute === 'reminder') onUpdateMeta?.(item.uuid, { reminderAt: null })
-    else if (attribute === 'link') onUpdateMeta?.(item.uuid, { link: null })
-    else onUpdateMeta?.(item.uuid, { tags: null })
-  }
-
-  return (
-    <View
-      style={[
-        styles.expanded,
-        { borderTopColor: colors.borderSubtle, backgroundColor: colors.screenBg },
-      ]}
-    >
-      {onRename !== undefined && (
-        <NameEditRow item={item} accentColor={accentColor} onRename={onRename} />
-      )}
-
-      {onQuantityChange !== undefined && (
-        <QuantityRow item={item} accentColor={accentColor} onQuantityChange={onQuantityChange} />
-      )}
-
-      <AttributeChips
-        values={values}
-        accentColor={accentColor}
-        accentBg={accentBg}
-        onOpen={(attribute) => onOpenAttribute?.(item.uuid, attribute)}
-        onRemove={handleRemove}
-      />
-
-      {/* Тред комментариев заменяет одиночный атрибут «Комментарий» */}
-      {onOpenComments !== undefined && (
-        <Pressable
-          onPress={() => onOpenComments(item.uuid)}
-          accessibilityRole="button"
-          accessibilityLabel={`Комментарии (${commentsCount})`}
-          style={[styles.commentsBtn, { borderColor: accentBg }]}
-        >
-          <Ionicons name="chatbubble-outline" size={13} color={accentColor} />
-          <Text style={[styles.commentsBtnText, { color: accentColor }]}>
-            {`Комментарии (${commentsCount})`}
-          </Text>
-        </Pressable>
-      )}
-
-      <Pressable
-        onPress={() => onDelete(item.uuid)}
-        accessibilityRole="button"
-        accessibilityLabel={`Удалить пункт ${item.name}`}
-        style={styles.deleteItemBtn}
-      >
-        <Text style={[styles.deleteItemText, { color: colors.danger }]}>Удалить пункт</Text>
-      </Pressable>
-    </View>
-  )
-}
-
-// ---- Sub-components --------------------------------------------------------
-
-interface NameEditRowProps {
-  item: ShoppingListItem
-  accentColor: string
-  onRename: (uuid: string, name: string) => void
+  onOpenAttributes: ((uuid: string) => void) | undefined
 }
 
 /**
- * Инлайн-редактирование названия пункта в раскрытой панели: TextInput с
- * коммитом по потере фокуса/Enter. Пустое (или неизменённое) имя не
- * сохраняется — поле возвращается к прежнему значению. Черновик
- * пересинхронизируется, если name пришёл извне (напр. после pull).
+ * Правые контролы строки (вместо шеврона): серая иконка комментариев (только
+ * когда треда ещё нет — при commentsCount > 0 вход живёт жёлтым чипом в
+ * мета-строке) + иконка «допатрибуты» с жёлтой точкой при заданных атрибутах.
  */
-const NameEditRow: React.FC<NameEditRowProps> = ({ item, accentColor, onRename }) => {
-  const { colors } = useTheme()
-  const [draft, setDraft] = useState(item.name)
-
-  useEffect(() => {
-    setDraft(item.name)
-  }, [item.name])
-
-  const commit = (): void => {
-    const next = draft.trim()
-    if (next.length === 0 || next === item.name) {
-      setDraft(item.name)
-      return
-    }
-    onRename(item.uuid, next)
-  }
-
-  return (
-    <View style={styles.metaRowCompact}>
-      <Ionicons name="pencil-outline" size={14} color={accentColor} />
-      <TextInput
-        value={draft}
-        onChangeText={setDraft}
-        onBlur={commit}
-        onSubmitEditing={commit}
-        returnKeyType="done"
-        testID="item-name-input"
-        accessibilityLabel="Название пункта"
-        style={[
-          styles.nameInput,
-          { color: colors.textPrimary, borderColor: colors.borderInput },
-        ]}
-      />
-    </View>
-  )
-}
-
-interface QuantityRowProps {
-  item: ShoppingListItem
-  accentColor: string
-  onQuantityChange: (uuid: string, quantity: number) => void
-}
-
-const QuantityRow: React.FC<QuantityRowProps> = ({ item, accentColor, onQuantityChange }) => {
+const RowControls: React.FC<RowControlsProps> = ({
+  uuid,
+  hasAttributes,
+  commentsCount,
+  onOpenComments,
+  onOpenAttributes,
+}) => {
   const { colors } = useTheme()
   return (
-    <View style={styles.metaRowCompact}>
-      <Text style={[styles.expandLabel, { color: colors.textSecondary }]}>Количество</Text>
-      <View style={styles.stepper}>
+    <View style={styles.controls}>
+      {onOpenComments !== undefined && commentsCount === 0 && (
         <Pressable
-          onPress={() => onQuantityChange(item.uuid, Math.max(1, item.quantity - 1))}
-          style={[styles.stepBtn, { borderColor: colors.borderInput }]}
+          onPress={() => onOpenComments(uuid)}
           accessibilityRole="button"
-          accessibilityLabel="Уменьшить"
+          accessibilityLabel="Комментарии"
+          hitSlop={6}
+          style={styles.controlBtn}
         >
-          <Text style={[styles.stepIcon, { color: accentColor }]}>−</Text>
+          <Ionicons name="chatbubble-outline" size={16} color={colors.textTertiary} />
         </Pressable>
-        <Text style={[styles.stepValue, { color: colors.textPrimary }]}>{item.quantity}</Text>
+      )}
+      {onOpenAttributes !== undefined && (
         <Pressable
-          onPress={() => onQuantityChange(item.uuid, item.quantity + 1)}
-          style={[styles.stepBtn, { borderColor: colors.borderInput }]}
+          onPress={() => onOpenAttributes(uuid)}
           accessibilityRole="button"
-          accessibilityLabel="Увеличить"
+          accessibilityLabel="Допатрибуты"
+          hitSlop={6}
+          style={styles.controlBtn}
         >
-          <Text style={[styles.stepIcon, { color: accentColor }]}>+</Text>
+          <Ionicons name="options-outline" size={16} color={colors.textTertiary} />
+          {hasAttributes && (
+            <View
+              testID="item-attributes-dot"
+              style={[styles.dot, { backgroundColor: colors.amber }]}
+            />
+          )}
         </Pressable>
-      </View>
+      )}
     </View>
   )
 }
@@ -422,61 +261,16 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
-  commentsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.4,
-    paddingHorizontal: 12,
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  controlBtn: { padding: 5 },
+  dot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
-  commentsBtnText: { ...typography.bodySm, fontSize: 12, fontWeight: '700' },
-  chevronBtn: { padding: 6 },
-  expanded: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    gap: 10,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-  },
-  metaRowCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
-  },
-  expandLabel: { ...typography.bodySm, fontWeight: '600', color: undefined },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepIcon: { fontSize: 20, lineHeight: 22, fontWeight: '700' },
-  // Редактирование названия пункта (раскрытая панель)
-  nameInput: {
-    ...typography.body,
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  stepValue: { ...typography.bodyMd, minWidth: 28, textAlign: 'center', fontWeight: '700' },
-  // DEF-01: кнопка удаления в раскрытом редакторе
-  deleteItemBtn: {
-    alignSelf: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginTop: 4,
-  },
-  deleteItemText: { ...typography.bodySm, fontWeight: '500' },
 })
 
 // 3.5: memo — ввод в одном пункте не перерисовывает остальные строки списка

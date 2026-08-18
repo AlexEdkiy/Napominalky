@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import React from 'react'
-import { fireEvent, render } from '@testing-library/react-native'
+import { act, fireEvent, render } from '@testing-library/react-native'
 
 // ---- Изменяемые синглтоны для управления данными -------------------------
 
@@ -440,5 +440,50 @@ describe('Экран [uuid] — свайп-удаление пункта с inli
   it('без тапа по кнопке удаление не происходит (свайп сам не удаляет)', async () => {
     await render(<Screen />)
     expect(mockDeleteItemMutate).not.toHaveBeenCalled()
+  })
+})
+
+// ============================================================
+// Облегчённая форма: единая шторка «Допатрибуты» вместо раскрытия строки
+// ============================================================
+
+describe('Экран [uuid] — шторка «Допатрибуты» пункта', () => {
+  beforeEach(() => {
+    resetToGoodsEmpty()
+    mockListData = { ...mockListData, itemsCount: 1 }
+    mockItems = [makeItem('Молоко', false, 'i1')]
+    mockDeleteItemMutate.mockClear()
+  })
+
+  it('шеврона раскрытия строки на экране больше нет', async () => {
+    const { queryByLabelText } = await render(<Screen />)
+    expect(queryByLabelText('Развернуть')).toBeNull()
+  })
+
+  it('тап по названию пункта открывает шторку «Допатрибуты» с названием и футером', async () => {
+    const { getByLabelText, getByTestId, queryByTestId } = await render(<Screen />)
+    expect(queryByTestId('attributes-sheet')).toBeNull()
+    await act(async () => {
+      fireEvent.press(getByLabelText('Молоко'))
+    })
+    expect(getByTestId('attributes-sheet')).toBeTruthy()
+    expect(getByTestId('item-name-input').props.value).toBe('Молоко')
+    expect(getByTestId('attributes-sheet-delete')).toBeTruthy()
+  })
+
+  it('футер «Удалить пункт»: подтверждение Alert → deleteItem.mutate(uuid)', async () => {
+    const { Alert } = require('react-native')
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
+    const { getByLabelText, getByTestId } = await render(<Screen />)
+    await act(async () => {
+      fireEvent.press(getByLabelText('Молоко'))
+    })
+    fireEvent.press(getByTestId('attributes-sheet-delete'))
+    expect(alertSpy).toHaveBeenCalled()
+    expect(mockDeleteItemMutate).not.toHaveBeenCalled() // без подтверждения не удаляет
+    const buttons = alertSpy.mock.calls[0]?.[2] as Array<{ text: string; onPress?: () => void }>
+    buttons.find((b) => b.text === 'Удалить')?.onPress?.()
+    expect(mockDeleteItemMutate).toHaveBeenCalledWith('i1')
+    alertSpy.mockRestore()
   })
 })

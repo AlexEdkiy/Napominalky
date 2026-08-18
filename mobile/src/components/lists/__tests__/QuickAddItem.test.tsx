@@ -1,4 +1,9 @@
-// Тесты UI-fidelity для QuickAddItem (поле добавления + кнопка «+» + чипсы/токены атрибутов)
+/**
+ * Тесты QuickAddItem («облегчённая форма»): поле + иконка «допатрибуты» ВНУТРИ
+ * поля (открывает единую шторку AttributesSheet) + «+». Сетки из 4 чипов под
+ * полем больше нет; заполненные атрибуты — компактными токенами под полем;
+ * на иконке — жёлтая точка-индикатор при заданных атрибутах.
+ */
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
@@ -35,12 +40,13 @@ jest.mock('@/theme', () => ({
       textTertiary: '#999',
       borderInput: '#ddd',
       borderSubtle: '#eee',
+      danger: '#FF3B30',
     },
   }),
 }))
 
 // Все тесты в одном describe без вложенных describe — избегаем контекстных проблем RNTL 14
-describe('QuickAddItem — соответствие макету', () => {
+describe('QuickAddItem — облегчённая форма', () => {
   it('[goods] показывает placeholder «Добавить товар»', async () => {
     const { getByPlaceholderText } = await render(
       <QuickAddItem listType="goods" onAdd={jest.fn()} />,
@@ -55,17 +61,11 @@ describe('QuickAddItem — соответствие макету', () => {
     expect(getByLabelText('Добавить товар')).toBeTruthy()
   })
 
-  it('[goods] кнопка «+» имеет accessibilityLabel «Добавить»', async () => {
-    const { getByLabelText } = await render(
+  it('[goods] кнопка «+» имеет accessibilityLabel «Добавить» и иконку add', async () => {
+    const { getByLabelText, getByTestId } = await render(
       <QuickAddItem listType="goods" onAdd={jest.fn()} />,
     )
     expect(getByLabelText('Добавить')).toBeTruthy()
-  })
-
-  it('[goods] кнопка «+» содержит иконку add', async () => {
-    const { getByTestId } = await render(
-      <QuickAddItem listType="goods" onAdd={jest.fn()} />,
-    )
     expect(getByTestId('icon-add')).toBeTruthy()
   })
 
@@ -76,30 +76,145 @@ describe('QuickAddItem — соответствие макету', () => {
     expect(getByPlaceholderText('Новая задача')).toBeTruthy()
   })
 
-  it('[tasks] поле имеет accessibilityLabel «Новая задача»', async () => {
-    const { getByLabelText } = await render(
+  it('сетки из 4 чипов под полем НЕТ (облегчённая форма)', async () => {
+    const { queryByLabelText } = await render(
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
-    expect(getByLabelText('Новая задача')).toBeTruthy()
+    expect(queryByLabelText('Добавить: Дедлайн')).toBeNull()
+    expect(queryByLabelText('Добавить: Напоминание')).toBeNull()
+    expect(queryByLabelText('Добавить: Ссылка')).toBeNull()
+    expect(queryByLabelText('Добавить: Тег')).toBeNull()
   })
 
-  it('[tasks] кнопка «+» имеет accessibilityLabel «Добавить»', async () => {
-    const { getByLabelText } = await render(
+  it('внутри поля есть иконка «Допатрибуты» (options-outline)', async () => {
+    const { getByLabelText, getByTestId } = await render(
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
-    expect(getByLabelText('Добавить')).toBeTruthy()
+    expect(getByLabelText('Допатрибуты')).toBeTruthy()
+    expect(getByTestId('icon-options-outline')).toBeTruthy()
   })
 
-  // Чипс «Комментарий» удалён: комментарии добавляются тредом к созданному пункту.
-  it('под полем показаны чипсы всех 4 атрибутов (черновик пуст, без «Комментарий»)', async () => {
-    const { getByLabelText, queryByLabelText } = await render(
+  it('тап по иконке «Допатрибуты» открывает единую шторку со всеми атрибутами', async () => {
+    const { getByLabelText, getByText, getByTestId } = await render(
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    expect(getByTestId('attributes-sheet')).toBeTruthy()
+    expect(getByText('Допатрибуты')).toBeTruthy()
     expect(getByLabelText('Добавить: Дедлайн')).toBeTruthy()
-    expect(getByLabelText('Добавить: Напоминание')).toBeTruthy()
-    expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
-    expect(queryByLabelText('Добавить: Комментарий')).toBeNull()
     expect(getByLabelText('Добавить: Тег')).toBeTruthy()
+  })
+
+  it('в шторке нового пункта НЕТ поля названия и футера «Удалить пункт»', async () => {
+    const { getByLabelText, queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    expect(queryByTestId('item-name-input')).toBeNull()
+    expect(queryByTestId('attributes-sheet-delete')).toBeNull()
+  })
+
+  it('без атрибутов точки-индикатора на иконке нет', async () => {
+    const { queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    expect(queryByTestId('quick-add-attributes-dot')).toBeNull()
+  })
+
+  it('заданный в шторке дедлайн показывается токеном под полем + точка-индикатор', async () => {
+    const { getByLabelText, getByTestId, queryByLabelText } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сегодня'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Закрыть')) // scrim
+    })
+    expect(getByLabelText('Дедлайн: Сегодня')).toBeTruthy()
+    expect(getByTestId('quick-add-attributes-dot')).toBeTruthy()
+    // Пустых чипов по-прежнему нет
+    expect(queryByLabelText('Добавить: Ссылка')).toBeNull()
+  })
+
+  it('«×» на токене удаляет атрибут черновика; точка пропадает', async () => {
+    const { getByLabelText, queryByLabelText, queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сегодня'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Закрыть'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Удалить дедлайн'))
+    })
+    expect(queryByLabelText(/^Дедлайн:/)).toBeNull()
+    expect(queryByTestId('quick-add-attributes-dot')).toBeNull()
+  })
+
+  it('в шторке композера есть футер «Отмена»/«Готово»; «Готово» закрывает шторку', async () => {
+    const { getByLabelText, queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    expect(getByLabelText('Отмена')).toBeTruthy()
+    await act(async () => {
+      fireEvent.press(getByLabelText('Готово'))
+    })
+    expect(queryByTestId('attributes-sheet')).toBeNull()
+  })
+
+  it('«Отмена» в шторке откатывает заданные в ней атрибуты черновика', async () => {
+    const { getByLabelText, queryByLabelText, queryByTestId } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сегодня'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Отмена'))
+    })
+    expect(queryByLabelText(/^Дедлайн:/)).toBeNull()
+    expect(queryByTestId('quick-add-attributes-dot')).toBeNull()
+  })
+
+  it('введённое имя показывается подзаголовком в шапке шторки композера', async () => {
+    const { getByPlaceholderText, getByLabelText, getAllByText } = await render(
+      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
+    )
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText('Новая задача'), 'Согласовать акт сверки')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    expect(getAllByText('Согласовать акт сверки').length).toBeGreaterThan(0)
   })
 
   it('создаёт пункт только с именем, если атрибуты не заданы', async () => {
@@ -122,6 +237,38 @@ describe('QuickAddItem — соответствие макету', () => {
     })
   })
 
+  it('заданный через шторку дедлайн попадает в onAdd', async () => {
+    const onAdd = jest.fn()
+    const { getByPlaceholderText, getByLabelText } = await render(
+      <QuickAddItem listType="tasks" onAdd={onAdd} />,
+    )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Допатрибуты'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Сегодня'))
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Закрыть'))
+    })
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText('Новая задача'), 'Позвонить')
+    })
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить'))
+    })
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Позвонить', deadline: `${y}-${m}-${d}` }),
+    )
+  })
+
   it('сбрасывает поле имени после добавления пункта', async () => {
     const { getByPlaceholderText, getByLabelText } = await render(
       <QuickAddItem listType="goods" onAdd={jest.fn()} />,
@@ -134,32 +281,6 @@ describe('QuickAddItem — соответствие макету', () => {
       fireEvent.press(getByLabelText('Добавить'))
     })
     expect(input.props.value).toBe('')
-  })
-
-  it('тап по чипсу «Дедлайн» открывает шторку с заголовком «Когда дедлайн»', async () => {
-    const { getByLabelText, getByText } = await render(
-      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
-    )
-    await act(async () => {
-      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
-    })
-    expect(getByText('Когда дедлайн')).toBeTruthy()
-  })
-
-  it('выбор пресета дедлайна в шторке + «Готово» превращает чипс в токен', async () => {
-    const { getByLabelText, queryByLabelText } = await render(
-      <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
-    )
-    await act(async () => {
-      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
-    })
-    await act(async () => {
-      fireEvent.press(getByLabelText('Сегодня'))
-    })
-    await act(async () => {
-      fireEvent.press(getByLabelText('Готово'))
-    })
-    expect(queryByLabelText('Добавить: Дедлайн')).toBeNull()
   })
 
   it('не создаёт пункт с пустым именем', async () => {

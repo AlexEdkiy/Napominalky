@@ -184,7 +184,17 @@ describe('CommentsSheet — тред комментариев', () => {
   it('тап по скриму вызывает onClose', async () => {
     const onClose = jest.fn()
     const { getByLabelText } = await render(<CommentsSheet {...baseProps} onClose={onClose} />)
-    fireEvent.press(getByLabelText('Закрыть'))
+    fireEvent.press(getByLabelText('Закрыть шторку'))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('кнопка «×» в шапке вызывает onClose; подзаголовок — название пункта', async () => {
+    const onClose = jest.fn()
+    const { getByTestId, getByText } = await render(
+      <CommentsSheet {...baseProps} itemName="Сверить оплаты за июль" onClose={onClose} />,
+    )
+    expect(getByText('Сверить оплаты за июль')).toBeTruthy()
+    fireEvent.press(getByTestId('comments-sheet-close'))
     expect(onClose).toHaveBeenCalled()
   })
 })
