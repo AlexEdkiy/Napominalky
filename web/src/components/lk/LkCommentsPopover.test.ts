@@ -98,6 +98,45 @@ describe('LkCommentsPopover — показ и скрытие', () => {
   })
 })
 
+describe('LkCommentsPopover — позиционирование', () => {
+  function domRect(rect: Partial<DOMRect>): DOMRect {
+    return { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}), ...rect } as DOMRect
+  }
+
+  it('right-aligns the panel against the nearest CLIPPING ancestor, not the window', async () => {
+    // Триггер у правого края обрезающего контейнера (панель модалки формы):
+    // 200 + 300 (ширина попапа) > 400 (правый край контейнера), хотя до края
+    // ОКНА (1024px) места ещё много — раньше попап обрезался краем панели.
+    const wrapper = mount(
+      {
+        components: { LkCommentsPopover },
+        template:
+          '<div style="overflow-x: hidden; overflow-y: hidden">' +
+          '<LkCommentsPopover :comments="comments"><button type="button">💬</button></LkCommentsPopover>' +
+          '</div>',
+        data: () => ({ comments: [makeComment()] }),
+      },
+    )
+    const clip = wrapper.element as HTMLElement
+    const root = wrapper.find('.lk-comments-popover').element as HTMLElement
+    vi.spyOn(root, 'getBoundingClientRect').mockReturnValue(
+      domRect({ left: 200, right: 220, top: 90, bottom: 100, width: 20, height: 10 }),
+    )
+    vi.spyOn(clip, 'getBoundingClientRect').mockReturnValue(
+      domRect({ right: 400, bottom: 700, width: 400, height: 700 }),
+    )
+
+    await wrapper.find('.lk-comments-popover').trigger('focusin')
+    expect(wrapper.find('[role="tooltip"]').classes()).toContain('lk-comments-popover__panel--right')
+  })
+
+  it('keeps the default left alignment when nothing clips and the window is wide', async () => {
+    const wrapper = mountPopover([makeComment()])
+    await wrapper.trigger('focusin')
+    expect(wrapper.find('[role="tooltip"]').classes()).not.toContain('lk-comments-popover__panel--right')
+  })
+})
+
 describe('LkCommentsPopover — содержимое', () => {
   it('renders the «КОММЕНТАРИИ · N» header first with the FULL thread size (как на макете)', async () => {
     const comments = Array.from({ length: 8 }, (_, index) => makeComment({ uuid: `c-${index}` }))

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import LkTaskFormDialog from './LkTaskFormDialog.vue'
+import dialogSource from './LkTaskFormDialog.vue?raw'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { ShoppingList, ShoppingListItem } from '@/types/shoppingList'
@@ -142,7 +143,7 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows the «Статус» block (4 чипа + Авто) only in the edit mode of a tasks list', async () => {
+  it('shows the status switcher in the HEADER (edit + tasks) instead of a body block', async () => {
     const tasksList: ShoppingList = {
       ...list,
       uuid: 'l-2',
@@ -155,43 +156,52 @@ describe('LkTaskFormDialog', () => {
     useLkForms().openTaskForm(tasksList)
     await wrapper.vm.$nextTick()
 
-    // Блок над «Пунктами»: Название → Статус → Пункты → Теги.
+    // Блока «Статус» в ТЕЛЕ больше нет: ни label, ни чипов.
     expect(wrapper.findAll('.lk-form-dialog__label').map((label) => label.text())).toEqual([
       'Название',
-      'Статус',
       'Пункты',
       'Теги',
     ])
-    const chips = wrapper.findAll('.lk-form-dialog__status')
-    expect(chips.map((chip) => chip.text())).toEqual([
+    expect(wrapper.find('.lk-form-dialog__statuses').exists()).toBe(false)
+    // Переключатель — в шапке: интерактивный бейдж с текущим статусом
+    // + точка-индикатор ручного закрепления.
+    const badge = wrapper.find('.lk-form-dialog__header .lk-status-badge__pill--interactive')
+    expect(badge.text()).toBe('В работе')
+    expect(wrapper.find('.lk-form-dialog__header .lk-form-dialog__status-pin').exists()).toBe(true)
+
+    // Меню бейджа: 4 статуса + «Авто» (with-auto).
+    await badge.trigger('click')
+    const options = wrapper.findAll('.lk-form-dialog__header .lk-status-badge__option')
+    expect(options.map((option) => option.text())).toEqual([
       'Новая',
       'В работе',
       'Отложена',
       'Выполнена',
       'Авто',
     ])
-    // Текущий статус подсвечен; «Авто» неактивен (статус закреплён вручную).
-    expect(chips[1]?.attributes('aria-pressed')).toBe('true')
-    expect(chips[4]?.attributes('aria-pressed')).toBe('false')
     vi.unstubAllGlobals()
   })
 
-  it('hides the «Статус» block for goods lists and in the new mode', async () => {
+  it('hides the header status switcher for goods lists and in the new mode', async () => {
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm(list)
     await wrapper.vm.$nextTick()
     // goods-edit: статусов у покупок нет.
-    expect(wrapper.find('.lk-form-dialog__statuses').exists()).toBe(false)
+    expect(wrapper.find('.lk-form-dialog__header .lk-status-badge').exists()).toBe(false)
 
+    // Тик между закрытием и повторным открытием — иначе watch(isTaskFormOpen)
+    // не увидит смену и оставит currentList от прошлого списка.
     resetLkFormsForTests()
+    await wrapper.vm.$nextTick()
     useLkForms().openTaskForm()
     await wrapper.vm.$nextTick()
     // new-режим: списка ещё нет — статус ставить не на чем (даже для tasks).
-    expect(wrapper.find('.lk-form-dialog__statuses').exists()).toBe(false)
+    await wrapper.findAll('.lk-form-dialog__type')[1]?.trigger('click')
+    expect(wrapper.find('.lk-form-dialog__header .lk-status-badge').exists()).toBe(false)
     vi.unstubAllGlobals()
   })
 
-  it('PUTs the picked status immediately and re-highlights the chips from the server response', async () => {
+  it('PUTs the status picked in the header menu immediately and re-labels the badge', async () => {
     const tasksList: ShoppingList = { ...list, uuid: 'l-2', type: 'tasks' }
     vi.mocked(shoppingListsApi.updateList).mockResolvedValue({
       ...tasksList,
@@ -205,15 +215,20 @@ describe('LkTaskFormDialog', () => {
     await wrapper.vm.$nextTick()
     const itemFetchesBefore = vi.mocked(shoppingListsApi.fetchItems).mock.calls.length
 
-    await wrapper.findAll('.lk-form-dialog__status')[3]?.trigger('click')
+    await wrapper.find('.lk-form-dialog__header .lk-status-badge__pill--interactive').trigger('click')
+    await wrapper.findAll('.lk-form-dialog__header [role="menuitemradio"]')[3]?.trigger('click')
 
     // PUT сразу, без «Сохранить» — как атрибуты пунктов.
     await vi.waitFor(() =>
       expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-2', { status: 'done' }),
     )
+    // Бейдж шапки перекрашен ответом сервера; появилась точка закрепления.
     await vi.waitFor(() =>
-      expect(wrapper.findAll('.lk-form-dialog__status')[3]?.attributes('aria-pressed')).toBe('true'),
+      expect(wrapper.find('.lk-form-dialog__header .lk-status-badge__pill--interactive').text()).toBe(
+        'Выполнена',
+      ),
     )
+    expect(wrapper.find('.lk-form-dialog__status-pin').exists()).toBe(true)
     // Пункты перечитаны: сервер мог свести их статусы/is_checked.
     await vi.waitFor(() =>
       expect(vi.mocked(shoppingListsApi.fetchItems).mock.calls.length).toBeGreaterThan(itemFetchesBefore),
@@ -221,7 +236,7 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  it('resets the manual pin via «Авто» (PUT {status_is_manual:false})', async () => {
+  it('resets the manual pin via «Авто» in the header menu (PUT {status_is_manual:false})', async () => {
     const tasksList: ShoppingList = {
       ...list,
       uuid: 'l-2',
@@ -239,18 +254,17 @@ describe('LkTaskFormDialog', () => {
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm(tasksList)
     await wrapper.vm.$nextTick()
+    expect(wrapper.find('.lk-form-dialog__status-pin').exists()).toBe(true)
 
-    await wrapper.find('.lk-form-dialog__status-auto').trigger('click')
+    await wrapper.find('.lk-form-dialog__header .lk-status-badge__pill--interactive').trigger('click')
+    await wrapper.find('.lk-form-dialog__header .lk-status-badge__option--auto').trigger('click')
 
     await vi.waitFor(() =>
       expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-2', { status_is_manual: false }),
     )
-    // «Авто» подсвечен после сброса закрепления.
-    await vi.waitFor(() =>
-      expect(wrapper.find('.lk-form-dialog__status-auto').classes()).toContain(
-        'lk-form-dialog__status-auto--active',
-      ),
-    )
+    // Закрепление сброшено: точка-индикатор пропала, статус — деривированный.
+    await vi.waitFor(() => expect(wrapper.find('.lk-form-dialog__status-pin').exists()).toBe(false))
+    expect(wrapper.find('.lk-form-dialog__header .lk-status-badge__pill--interactive').text()).toBe('Новая')
     vi.unstubAllGlobals()
   })
 
@@ -627,12 +641,72 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('collapses the tag cloud by default: «Выбрать тег» expands it, «Свернуть» folds it back', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    // Свёрнуто по умолчанию: облака пресетов нет, видны ТОЛЬКО выбранные
+    // теги списка (компактно) + кнопка «Выбрать тег».
+    const summary = wrapper.find('.lk-form-dialog__tags--summary')
+    expect(summary.exists()).toBe(true)
+    expect(summary.findAll('.lk-form-dialog__tag').map((chip) => chip.text())).toEqual(['Покупки'])
+    expect(wrapper.text()).not.toContain('Здоровье')
+    expect(wrapper.find('.lk-form-dialog__tag-add').exists()).toBe(false)
+    const toggle = wrapper.find('.lk-form-dialog__tags-toggle')
+    expect(toggle.text()).toBe('Выбрать тег')
+
+    // «Выбрать тег» разворачивает облако: пресеты + «+ Свой тег» + «Свернуть».
+    await toggle.trigger('click')
+    expect(wrapper.find('.lk-form-dialog__tags--summary').exists()).toBe(false)
+    const chips = wrapper.findAll('.lk-form-dialog__tag')
+    expect(chips.map((chip) => chip.text())).toEqual([
+      'Покупки',
+      'Дом',
+      'Личное',
+      'Важное',
+      'Работа',
+      'Здоровье',
+      '+ Свой тег',
+    ])
+    expect(wrapper.find('.lk-form-dialog__tags-toggle').text()).toBe('Свернуть')
+
+    // «Свернуть» возвращает компактный вид с выбранными тегами.
+    await wrapper.find('.lk-form-dialog__tags-toggle').trigger('click')
+    expect(wrapper.find('.lk-form-dialog__tags--summary').exists()).toBe(true)
+    expect(wrapper.find('.lk-form-dialog__tag-add').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('removes a selected tag right from the collapsed summary chip', async () => {
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, tags: [] })
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+
+    // Клик по выбранному тегу в свёрнутом виде снимает его.
+    await wrapper.find('.lk-form-dialog__tags--summary .lk-form-dialog__tag').trigger('click')
+    expect(wrapper.findAll('.lk-form-dialog__tags--summary .lk-form-dialog__tag')).toHaveLength(0)
+
+    await wrapper.find('form').trigger('submit')
+    await vi.waitFor(() =>
+      expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', {
+        title: 'Продукты',
+        type: 'goods',
+        tags: [],
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it('toggles preset tag chips and adds a custom tag through «+ Свой тег»', async () => {
     vi.mocked(shoppingListsApi.createList).mockResolvedValue({ ...list, uuid: 'l-9' })
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm()
     await wrapper.vm.$nextTick()
 
+    // Облако свёрнуто по умолчанию — раскрываем его кнопкой «Выбрать тег».
+    await wrapper.find('.lk-form-dialog__tags-toggle').trigger('click')
     const chips = wrapper.findAll('.lk-form-dialog__tag')
     expect(chips.map((chip) => chip.text())).toEqual([
       'Покупки',
@@ -671,6 +745,7 @@ describe('LkTaskFormDialog', () => {
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm()
     await wrapper.vm.$nextTick()
+    await wrapper.find('.lk-form-dialog__tags-toggle').trigger('click')
 
     // Невыбранный чип «Покупки»: bg = tagPal.bg (#d8ebe4).
     const shopping = wrapper.findAll('.lk-form-dialog__tag')[0]!
@@ -844,6 +919,16 @@ describe('LkTaskFormDialog', () => {
     expect(body.find('.lk-form-dialog__footer').exists()).toBe(false)
     expect(wrapper.find('.lk-form-dialog__form .lk-form-dialog__footer').exists()).toBe(true)
     vi.unstubAllGlobals()
+  })
+
+  it('doubles the desktop panel width (1160px) keeping the fluid width:100%', () => {
+    // Стилевой регресс-тест по исходнику SFC (`?raw`): scoped-CSS в jsdom не
+    // применяется, поэтому проверяем сами объявления. Ширина ×2 (было 580px)
+    // нужна, чтобы влезали пункты, атрибуты и попапы тредов.
+    expect(dialogSource).toMatch(/\.lk-form-dialog__panel--desktop\s*\{[^}]*max-width:\s*1160px/)
+    expect(dialogSource).not.toContain('max-width: 580px')
+    // Панель остаётся адаптивной: базовый width: 100% не тронут.
+    expect(dialogSource).toMatch(/\.lk-form-dialog__panel\s*\{[^}]*width:\s*100%/)
   })
 
   it('renders as a bottom sheet on mobile and a centered modal on desktop', async () => {

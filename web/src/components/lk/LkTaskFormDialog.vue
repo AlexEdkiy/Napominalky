@@ -4,12 +4,12 @@ import { isAxiosError } from 'axios'
 
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
+import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import LkTaskItemRow from '@/components/lk/LkTaskItemRow.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
-import { LK_STATUS_COLORS, LK_STATUS_LABELS, LK_STATUS_ORDER } from '@/constants/lkStatusColors'
 import { colorForTag } from '@/constants/lkTagColors'
 import type { ValidationErrorResponse } from '@/types/api'
 import type {
@@ -45,6 +45,8 @@ const tags = ref<string[]>([])
 const newItemName = ref('')
 const customTagName = ref('')
 const isAddingCustomTag = ref(false)
+/** Облако тегов по умолчанию свёрнуто; разворачивается кнопкой «Выбрать тег». */
+const isTagCloudOpen = ref(false)
 const errors = ref<Record<string, string[]>>({})
 const generalError = ref<string | null>(null)
 const isSubmitting = ref(false)
@@ -93,10 +95,6 @@ const itemTagSuggestions = computed<string[]>(() => {
   const fromItems = items.value.flatMap((item) => item.tags)
   return [...new Set([...TAG_PRESETS, ...tags.value, ...fromItems])]
 })
-/** Блок «Статус» — только в edit-режиме tasks-списка; у goods статусов нет. */
-const showStatusBlock = computed<boolean>(
-  () => currentList.value !== null && form.type === 'tasks',
-)
 
 function resetForm(): void {
   const list = taskFormList.value
@@ -108,6 +106,7 @@ function resetForm(): void {
   newItemName.value = ''
   customTagName.value = ''
   isAddingCustomTag.value = false
+  isTagCloudOpen.value = false
   errors.value = {}
   generalError.value = null
   isConfirmingDelete.value = false
@@ -266,10 +265,11 @@ async function refreshCurrentList(): Promise<void> {
 }
 
 /**
- * Выбор в блоке «Статус» (только tasks, edit-режим): PUT сразу — как и
- * атрибуты пунктов, — чтобы деривация статуса и бейджи не расходились.
- * Статус — закрепляет вручную; «Авто» — сбрасывает закрепление. После смены
- * перечитываем пункты: сервер мог свести их `is_checked`/`status`.
+ * Выбор в статус-переключателе шапки (`LkStatusBadge` с меню, только tasks в
+ * edit-режиме): PUT сразу — как и атрибуты пунктов, — чтобы деривация статуса
+ * и бейджи не расходились. Статус — закрепляет вручную; «Авто» — сбрасывает
+ * закрепление. После смены перечитываем пункты: сервер мог свести их
+ * `is_checked`/`status`.
  */
 async function handleSelectStatus(value: TaskStatus | 'auto'): Promise<void> {
   const current = currentList.value
@@ -377,6 +377,25 @@ async function confirmDelete(): Promise<void> {
       <header class="lk-form-dialog__header">
         <h2 class="lk-form-dialog__title">{{ title }}</h2>
         <span v-if="isEdit" class="lk-form-dialog__progress">{{ checkedCount }} / {{ totalCount }}</span>
+        <!-- Статус задачи — компактный переключатель в шапке (только edit-режим
+             tasks-списка; у goods статусов нет). Точка слева — индикатор
+             ручного закрепления статуса; меню бейджа раскрывается вниз поверх
+             тела (шапка ничего не клипает — overflow у неё не задан). -->
+        <template v-if="currentList !== null && form.type === 'tasks'">
+          <span
+            v-if="currentList.status_is_manual"
+            class="lk-form-dialog__status-pin"
+            title="Статус закреплён вручную"
+            aria-label="Статус закреплён вручную"
+          />
+          <LkStatusBadge
+            class="lk-form-dialog__header-status"
+            :status="currentList.status"
+            interactive
+            with-auto
+            @select="handleSelectStatus"
+          />
+        </template>
         <button type="button" class="lk-form-dialog__close" aria-label="Закрыть" @click="handleClose">
           &times;
         </button>
@@ -411,38 +430,6 @@ async function confirmDelete(): Promise<void> {
               >
                 <LkIcon :name="option.icon" :size="17" />
                 {{ option.label }}
-              </button>
-            </div>
-          </template>
-
-          <template v-if="showStatusBlock">
-            <span class="lk-form-dialog__label">Статус</span>
-            <div class="lk-form-dialog__statuses" role="group" aria-label="Статус задачи">
-              <button
-                v-for="option in LK_STATUS_ORDER"
-                :key="option"
-                type="button"
-                class="lk-form-dialog__status"
-                :class="{ 'lk-form-dialog__status--active': currentList?.status === option }"
-                :style="
-                  currentList?.status === option
-                    ? { background: LK_STATUS_COLORS[option].fg, color: '#fff' }
-                    : { background: LK_STATUS_COLORS[option].bg, color: LK_STATUS_COLORS[option].fg }
-                "
-                :aria-pressed="currentList?.status === option"
-                @click="handleSelectStatus(option)"
-              >
-                {{ LK_STATUS_LABELS[option] }}
-              </button>
-              <button
-                type="button"
-                class="lk-form-dialog__status lk-form-dialog__status-auto"
-                :class="{ 'lk-form-dialog__status-auto--active': currentList?.status_is_manual === false }"
-                :aria-pressed="currentList?.status_is_manual === false"
-                title="Вычислять статус из пунктов автоматически"
-                @click="handleSelectStatus('auto')"
-              >
-                Авто
               </button>
             </div>
           </template>
@@ -489,7 +476,25 @@ async function confirmDelete(): Promise<void> {
           <p v-if="itemsError" role="alert" class="lk-form-dialog__error">{{ itemsError }}</p>
 
           <span class="lk-form-dialog__label">Теги</span>
-          <div class="lk-form-dialog__tags">
+          <!-- Свёрнутый вид (по умолчанию): выбранные теги компактными чипами
+               (клик — убрать тег) + кнопка «Выбрать тег», раскрывающая облако. -->
+          <div v-if="!isTagCloudOpen" class="lk-form-dialog__tags lk-form-dialog__tags--summary">
+            <button
+              v-for="tag in tags"
+              :key="tag"
+              type="button"
+              class="lk-form-dialog__tag lk-form-dialog__tag--active"
+              :style="{ background: colorForTag(tag).fg, color: '#fff' }"
+              :title="`Убрать тег «${tag}»`"
+              @click="toggleTag(tag)"
+            >
+              {{ tag }}
+            </button>
+            <button type="button" class="lk-form-dialog__tags-toggle" @click="isTagCloudOpen = true">
+              Выбрать тег
+            </button>
+          </div>
+          <div v-else class="lk-form-dialog__tags">
             <button
               v-for="tag in [...TAG_PRESETS, ...customTags]"
               :key="tag"
@@ -523,6 +528,9 @@ async function confirmDelete(): Promise<void> {
               @click="isAddingCustomTag = true"
             >
               + Свой тег
+            </button>
+            <button type="button" class="lk-form-dialog__tags-toggle" @click="isTagCloudOpen = false">
+              Свернуть
             </button>
           </div>
         </div>
@@ -599,15 +607,21 @@ async function confirmDelete(): Promise<void> {
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
 }
 
+/* Ширина ×2 (было 580px): влезают длинные пункты, панель атрибутов и попапы
+   тредов (`LkCommentsPopover`, 300px) без обрезки правым краем панели.
+   Панель остаётся адаптивной: width:100% + max-width, на узких экранах —
+   прежний мобильный fullscreen-вид. */
 .lk-form-dialog__panel--desktop {
-  max-width: 580px;
+  max-width: 1160px;
   border-radius: 22px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   margin: auto;
 }
 
+/* Паддинг — чтобы широкая панель не прилипала к краям средних экранов. */
 .lk-form-dialog__overlay--desktop {
   align-items: center;
+  padding: 24px;
 }
 
 .lk-form-dialog__form {
@@ -750,33 +764,17 @@ async function confirmDelete(): Promise<void> {
   color: #fff;
 }
 
-/* Чипы блока «Статус» — как теговые чипы; «Авто» — нейтральный сегмент. */
-.lk-form-dialog__statuses {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.lk-form-dialog__status {
-  height: 30px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 15px;
-  font-size: 12.5px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.lk-form-dialog__status-auto {
-  background: #eef1f0;
-  color: #5a625e;
-}
-
-.lk-form-dialog__status-auto--active {
+/* Точка-индикатор ручного закрепления статуса — слева от бейджа в шапке. */
+.lk-form-dialog__status-pin {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
   background: #1f2622;
-  color: #fff;
+}
+
+.lk-form-dialog__header-status {
+  flex-shrink: 0;
 }
 
 .lk-form-dialog__item-form {
@@ -832,6 +830,24 @@ async function confirmDelete(): Promise<void> {
 .lk-form-dialog__tag-add {
   background: #eef1f0;
   color: #5a625e;
+}
+
+/* «Выбрать тег» / «Свернуть» — пунктирный чип-переключатель облака тегов. */
+.lk-form-dialog__tags-toggle {
+  height: 30px;
+  padding: 0 12px;
+  border: 1.5px dashed #c3cbc7;
+  border-radius: 15px;
+  background: none;
+  color: #5a625e;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.lk-form-dialog__tags-toggle:hover {
+  background: #f2f4f3;
 }
 
 .lk-form-dialog__tag-input {
