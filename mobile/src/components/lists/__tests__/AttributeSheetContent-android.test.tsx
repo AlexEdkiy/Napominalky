@@ -3,12 +3,15 @@
  * не поддерживает `mode="datetime"` на Android — падение `TypeError: Cannot read property
  * 'dismiss' of undefined`. Проверяем, что для дедлайна и «Своё время» напоминания на Android
  * используется последовательный шаг date → time (без mode="datetime"), а на iOS — как раньше.
+ * После редизайна редакторы живут в единой шторке «Допатрибуты» (AttributesSheet);
+ * значение коммитится сразу после выбора (без кнопки «Готово»).
  */
 import React from 'react'
 import { Platform } from 'react-native'
 import { act, fireEvent, render } from '@testing-library/react-native'
 
-import AttributeSheet from '../AttributeSheet'
+import AttributesSheet from '../AttributesSheet'
+import { EMPTY_ATTRIBUTE_VALUES } from '@/utils/itemAttributes'
 
 jest.mock('@expo/vector-icons', () => {
   const { View, Text } = require('react-native')
@@ -45,38 +48,40 @@ jest.mock('@/theme', () => ({
       textTertiary: '#999',
       borderInput: '#ddd',
       borderSubtle: '#eee',
+      danger: '#FF3B30',
+      amber: '#F59E0B',
+      amberBg: '#FBEFD6',
     },
   }),
 }))
 
-const accentColor = '#d99a3e'
-const accentBg = '#fbf3e4'
-
 const baseProps = {
-  currentDeadline: null,
-  currentReminderAt: null,
-  currentLink: null,
-  currentTags: [] as string[],
-  accentColor,
-  accentBg,
+  visible: true,
+  values: EMPTY_ATTRIBUTE_VALUES,
+  accentColor: '#d99a3e',
+  accentBg: '#fbf3e4',
+  onClose: jest.fn(),
 }
 
-describe('[Пункт 4] AttributeSheetContent — Android: дедлайн без mode="datetime" (краш-фикс)', () => {
-  const withAndroid = async (fn: () => Promise<void>): Promise<void> => {
-    const original = Platform.OS
-    Platform.OS = 'android'
-    try {
-      await fn()
-    } finally {
-      Platform.OS = original
-    }
+const withAndroid = async (fn: () => Promise<void>): Promise<void> => {
+  const original = Platform.OS
+  Platform.OS = 'android'
+  try {
+    await fn()
+  } finally {
+    Platform.OS = original
   }
+}
 
+describe('[Пункт 4] Допатрибуты — Android: дедлайн без mode="datetime" (краш-фикс)', () => {
   it('«Выбрать дату» открывает пикер mode="date" (НЕ "datetime")', async () =>
     withAndroid(async () => {
       const { getByLabelText, getByTestId, queryByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="deadline" onConfirm={jest.fn()} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Выбрать дату'))
       })
@@ -87,8 +92,11 @@ describe('[Пункт 4] AttributeSheetContent — Android: дедлайн бе�
   it('после выбора даты открывается пикер mode="time" (последовательный шаг)', async () =>
     withAndroid(async () => {
       const { getByLabelText, getByTestId, queryByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="deadline" onConfirm={jest.fn()} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Выбрать дату'))
       })
@@ -99,12 +107,15 @@ describe('[Пункт 4] AttributeSheetContent — Android: дедлайн бе�
       expect(getByTestId('datetimepicker-time')).toBeTruthy()
     }))
 
-  it('после выбора времени вызывается onConfirm с "YYYY-MM-DDTHH:mm" (дата+время из двух шагов)', async () =>
+  it('после выбора времени коммитится "YYYY-MM-DDTHH:mm" (дата+время из двух шагов)', async () =>
     withAndroid(async () => {
-      const onConfirm = jest.fn()
+      const onChangeAttribute = jest.fn()
       const { getByLabelText, getByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="deadline" onConfirm={onConfirm} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={onChangeAttribute} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Выбрать дату'))
       })
@@ -114,17 +125,18 @@ describe('[Пункт 4] AttributeSheetContent — Android: дедлайн бе�
       await act(async () => {
         fireEvent(getByTestId('datetimepicker-time'), 'change', { type: 'set' }, new Date(2020, 0, 1, 14, 30))
       })
-      await act(async () => {
-        fireEvent.press(getByLabelText('Готово'))
-      })
-      expect(onConfirm).toHaveBeenCalledWith('2026-07-10T14:30')
+      expect(onChangeAttribute).toHaveBeenCalledWith('deadline', '2026-07-10T14:30')
     }))
 
-  it('dismiss на шаге даты закрывает пикер без падения и без onConfirm-значения', async () =>
+  it('dismiss на шаге даты закрывает пикер без падения и без коммита значения', async () =>
     withAndroid(async () => {
+      const onChangeAttribute = jest.fn()
       const { getByLabelText, getByTestId, queryByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="deadline" onConfirm={jest.fn()} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={onChangeAttribute} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Выбрать дату'))
       })
@@ -133,25 +145,19 @@ describe('[Пункт 4] AttributeSheetContent — Android: дедлайн бе�
       })
       expect(queryByTestId('datetimepicker-date')).toBeNull()
       expect(queryByTestId('datetimepicker-time')).toBeNull()
+      expect(onChangeAttribute).not.toHaveBeenCalled()
     }))
 })
 
-describe('[Пункт 4] AttributeSheetContent — Android: «Своё время» напоминания без mode="datetime"', () => {
-  const withAndroid = async (fn: () => Promise<void>): Promise<void> => {
-    const original = Platform.OS
-    Platform.OS = 'android'
-    try {
-      await fn()
-    } finally {
-      Platform.OS = original
-    }
-  }
-
+describe('[Пункт 4] Допатрибуты — Android: «Своё время» напоминания без mode="datetime"', () => {
   it('«Своё время» открывает пикер mode="date" (НЕ "datetime")', async () =>
     withAndroid(async () => {
       const { getByLabelText, getByTestId, queryByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="reminder" onConfirm={jest.fn()} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Напоминание'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Своё время'))
       })
@@ -159,12 +165,15 @@ describe('[Пункт 4] AttributeSheetContent — Android: «Своё врем�
       expect(queryByTestId('datetimepicker-datetime')).toBeNull()
     }))
 
-  it('date → time → onConfirm с корректным ISO (без падения)', async () =>
+  it('date → time → коммит корректного ISO (без падения)', async () =>
     withAndroid(async () => {
-      const onConfirm = jest.fn()
+      const onChangeAttribute = jest.fn()
       const { getByLabelText, getByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="reminder" onConfirm={onConfirm} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={onChangeAttribute} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Напоминание'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Своё время'))
       })
@@ -174,10 +183,8 @@ describe('[Пункт 4] AttributeSheetContent — Android: «Своё врем�
       await act(async () => {
         fireEvent(getByTestId('datetimepicker-time'), 'change', { type: 'set' }, new Date(2020, 0, 1, 9, 15))
       })
-      await act(async () => {
-        fireEvent.press(getByLabelText('Готово'))
-      })
-      const value = onConfirm.mock.calls[0]?.[0] as string
+      const [attr, value] = onChangeAttribute.mock.calls[0] as [string, string]
+      expect(attr).toBe('reminder')
       const date = new Date(value)
       expect(date.getFullYear()).toBe(2026)
       expect(date.getMonth()).toBe(6)
@@ -189,8 +196,11 @@ describe('[Пункт 4] AttributeSheetContent — Android: «Своё врем�
   it('dismiss на шаге времени закрывает пикер без падения', async () =>
     withAndroid(async () => {
       const { getByLabelText, getByTestId, queryByTestId } = await render(
-        <AttributeSheet {...baseProps} attribute="reminder" onConfirm={jest.fn()} onClose={jest.fn()} />,
+        <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} />,
       )
+      await act(async () => {
+        fireEvent.press(getByLabelText('Добавить: Напоминание'))
+      })
       await act(async () => {
         fireEvent.press(getByLabelText('Своё время'))
       })
@@ -204,11 +214,14 @@ describe('[Пункт 4] AttributeSheetContent — Android: «Своё врем�
     }))
 })
 
-describe('[Пункт 4] AttributeSheetContent — iOS: остаётся mode="datetime" (без регрессии)', () => {
+describe('[Пункт 4] Допатрибуты — iOS: остаётся mode="datetime" (без регрессии)', () => {
   it('[deadline] «Выбрать дату» на iOS показывает пикер mode="datetime" spinner', async () => {
     const { getByLabelText, getByTestId } = await render(
-      <AttributeSheet {...baseProps} attribute="deadline" onConfirm={jest.fn()} onClose={jest.fn()} />,
+      <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} />,
     )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Дедлайн'))
+    })
     await act(async () => {
       fireEvent.press(getByLabelText('Выбрать дату'))
     })
@@ -217,8 +230,11 @@ describe('[Пункт 4] AttributeSheetContent — iOS: остаётся mode="d
 
   it('[reminder] «Своё время» на iOS показывает пикер mode="datetime"', async () => {
     const { getByLabelText, getByTestId } = await render(
-      <AttributeSheet {...baseProps} attribute="reminder" onConfirm={jest.fn()} onClose={jest.fn()} />,
+      <AttributesSheet {...baseProps} onChangeAttribute={jest.fn()} />,
     )
+    await act(async () => {
+      fireEvent.press(getByLabelText('Добавить: Напоминание'))
+    })
     await act(async () => {
       fireEvent.press(getByLabelText('Своё время'))
     })

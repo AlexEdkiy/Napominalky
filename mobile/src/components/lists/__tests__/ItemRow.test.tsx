@@ -2,7 +2,7 @@
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
-import { act, fireEvent, render } from '@testing-library/react-native'
+import { fireEvent, render } from '@testing-library/react-native'
 
 import ItemRow from '../ItemRow'
 import type { ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
@@ -56,56 +56,135 @@ const baseItem = (): ShoppingListItem => ({
  * React 19 + RNTL 14: render() возвращает Promise.
  * Используем await render() для получения query-методов.
  */
-describe('ItemRow — индикаторы мета-полей (свёрнутый вид)', () => {
+describe('ItemRow — компактная строка (облегчённая форма, без раскрытия)', () => {
   it('рендерит имя пункта без падений', async () => {
     const { getByText } = await render(
-      <ItemRow
-        item={baseItem()}
-        listType="goods"
-        onToggle={jest.fn()}
-        onDelete={jest.fn()}
-      />,
+      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} />,
     )
     expect(getByText('Тестовый пункт')).toBeTruthy()
   })
 
-  it('рендерит кнопку «Развернуть» если задан onExpand', async () => {
-    const item = { ...baseItem(), reminderAt: '2026-07-01T18:00:00.000Z' }
-    const { getByLabelText } = await render(
+  it('шеврона «Развернуть» больше НЕТ (инлайн-раскрытие удалено)', async () => {
+    const { queryByLabelText } = await render(
       <ItemRow
-        item={item}
+        item={baseItem()}
         listType="goods"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
-        onExpand={jest.fn()}
-        isExpanded={false}
+        onOpenAttributes={jest.fn()}
       />,
     )
-    expect(getByLabelText('Развернуть')).toBeTruthy()
+    expect(queryByLabelText('Развернуть')).toBeNull()
   })
 
-  it('рендерит чип тега (#первыйТег) если tags задан', async () => {
-    const item = { ...baseItem(), tags: '["обувь","одежда"]' }
-    const { getByText } = await render(
+  it('рендерит иконку «Допатрибуты» если задан onOpenAttributes', async () => {
+    const { getByLabelText } = await render(
       <ItemRow
-        item={item}
+        item={baseItem()}
         listType="goods"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
+        onOpenAttributes={jest.fn()}
       />,
     )
+    expect(getByLabelText('Допатрибуты')).toBeTruthy()
+  })
+
+  it('тап по иконке «Допатрибуты» вызывает onOpenAttributes с uuid', async () => {
+    const onOpenAttributes = jest.fn()
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onOpenAttributes={onOpenAttributes}
+      />,
+    )
+    fireEvent.press(getByLabelText('Допатрибуты'))
+    expect(onOpenAttributes).toHaveBeenCalledWith('item-1')
+  })
+
+  it('тап по названию тоже открывает шторку допатрибутов', async () => {
+    const onOpenAttributes = jest.fn()
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onOpenAttributes={onOpenAttributes}
+      />,
+    )
+    fireEvent.press(getByLabelText('Тестовый пункт'))
+    expect(onOpenAttributes).toHaveBeenCalledWith('item-1')
+  })
+
+  it('без атрибутов точки-индикатора нет', async () => {
+    const { queryByTestId } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        onOpenAttributes={jest.fn()}
+      />,
+    )
+    expect(queryByTestId('item-attributes-dot')).toBeNull()
+  })
+
+  it('жёлтая точка-индикатор при заданном дедлайне', async () => {
+    const item = { ...baseItem(), deadline: '2026-07-05' }
+    const { getByTestId } = await render(
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onOpenAttributes={jest.fn()} />,
+    )
+    expect(getByTestId('item-attributes-dot')).toBeTruthy()
+  })
+
+  it('точка-индикатор при заданном напоминании', async () => {
+    const { getByTestId } = await render(
+      <ItemRow
+        item={{ ...baseItem(), reminderAt: '2026-07-01T18:00:00Z' }}
+        listType="goods"
+        onToggle={jest.fn()}
+        onOpenAttributes={jest.fn()}
+      />,
+    )
+    expect(getByTestId('item-attributes-dot')).toBeTruthy()
+  })
+
+  it('точка-индикатор при заданной ссылке', async () => {
+    const { getByTestId } = await render(
+      <ItemRow
+        item={{ ...baseItem(), link: 'https://example.com' }}
+        listType="goods"
+        onToggle={jest.fn()}
+        onOpenAttributes={jest.fn()}
+      />,
+    )
+    expect(getByTestId('item-attributes-dot')).toBeTruthy()
+  })
+
+  it('точка-индикатор при заданном теге', async () => {
+    const { getByTestId } = await render(
+      <ItemRow
+        item={{ ...baseItem(), tags: '["дом"]' }}
+        listType="goods"
+        onToggle={jest.fn()}
+        onOpenAttributes={jest.fn()}
+      />,
+    )
+    expect(getByTestId('item-attributes-dot')).toBeTruthy()
+  })
+
+  it('рендерит чипы всех тегов если tags задан', async () => {
+    const item = { ...baseItem(), tags: '["обувь","одежда"]' }
+    const { getByText } = await render(
+      <ItemRow item={item} listType="goods" onToggle={jest.fn()} />,
+    )
     expect(getByText('#обувь')).toBeTruthy()
+    expect(getByText('#одежда')).toBeTruthy()
   })
 
   it('рендерит чип ×N для товара с quantity > 1', async () => {
     const item = { ...baseItem(), quantity: 3 }
     const { getByText } = await render(
-      <ItemRow
-        item={item}
-        listType="goods"
-        onToggle={jest.fn()}
-        onDelete={jest.fn()}
-      />,
+      <ItemRow item={item} listType="goods" onToggle={jest.fn()} />,
     )
     expect(getByText('×3')).toBeTruthy()
   })
@@ -113,12 +192,7 @@ describe('ItemRow — индикаторы мета-полей (свёрнуты
   it('рендерит чип дедлайна для задачи (локализованная дата, не raw ISO)', async () => {
     const item = { ...baseItem(), deadline: '2026-07-05' }
     const { getByText, queryByText } = await render(
-      <ItemRow
-        item={item}
-        listType="tasks"
-        onToggle={jest.fn()}
-        onDelete={jest.fn()}
-      />,
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} />,
     )
     // DEF-05: отображается «5 июл», а не raw «2026-07-05»
     expect(getByText('5 июл')).toBeTruthy()
@@ -127,14 +201,88 @@ describe('ItemRow — индикаторы мета-полей (свёрнуты
 
   it('не рендерит чип тега если tags=null', async () => {
     const { queryByText } = await render(
+      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} />,
+    )
+    expect(queryByText(/^#/)).toBeNull()
+  })
+})
+
+describe('ItemRow — вход в комментарии (один тап)', () => {
+  it('commentsCount > 0 → жёлтый чип со счётчиком в мета-строке', async () => {
+    const { getByTestId, getByLabelText, getByText } = await render(
       <ItemRow
         item={baseItem()}
         listType="goods"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
+        commentsCount={3}
+        onOpenComments={jest.fn()}
       />,
     )
-    expect(queryByText(/^#/)).toBeNull()
+    const chip = getByTestId('item-comments-chip')
+    const merged = Object.assign(
+      {},
+      ...(Array.isArray(chip.props.style) ? chip.props.style : [chip.props.style]),
+    )
+    expect(merged.backgroundColor).toBe('#FEF3C7') // amberBg — жёлтый чип
+    expect(getByLabelText('Комментарии: 3')).toBeTruthy()
+    expect(getByText('3')).toBeTruthy()
+  })
+
+  it('тап по жёлтому чипу открывает тред (onOpenComments) в один тап', async () => {
+    const onOpenComments = jest.fn()
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        commentsCount={2}
+        onOpenComments={onOpenComments}
+      />,
+    )
+    fireEvent.press(getByLabelText('Комментарии: 2'))
+    expect(onOpenComments).toHaveBeenCalledWith('item-1')
+  })
+
+  it('commentsCount = 0 → серая иконка комментария (контрол), чипа нет', async () => {
+    const { getByLabelText, queryByTestId } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        commentsCount={0}
+        onOpenComments={jest.fn()}
+      />,
+    )
+    expect(getByLabelText('Комментарии')).toBeTruthy()
+    expect(queryByTestId('item-comments-chip')).toBeNull()
+  })
+
+  it('тап по серой иконке тоже открывает тред в один тап', async () => {
+    const onOpenComments = jest.fn()
+    const { getByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        commentsCount={0}
+        onOpenComments={onOpenComments}
+      />,
+    )
+    fireEvent.press(getByLabelText('Комментарии'))
+    expect(onOpenComments).toHaveBeenCalledWith('item-1')
+  })
+
+  it('при commentsCount > 0 серой иконки-дубля нет (вход один — чип)', async () => {
+    const { queryByLabelText } = await render(
+      <ItemRow
+        item={baseItem()}
+        listType="goods"
+        onToggle={jest.fn()}
+        commentsCount={1}
+        onOpenComments={jest.fn()}
+      />,
+    )
+    expect(queryByLabelText('Комментарии')).toBeNull()
   })
 })
 
@@ -142,7 +290,7 @@ describe('ItemRow — статусы пунктов задач (только tas
   it('показывает бейдж статуса для пункта tasks-списка', async () => {
     const item = { ...baseItem(), status: 'in_progress' as const }
     const { getByTestId, getByText } = await render(
-      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} />,
     )
     expect(getByTestId('item-status-badge')).toBeTruthy()
     expect(getByText('В работе')).toBeTruthy()
@@ -150,7 +298,7 @@ describe('ItemRow — статусы пунктов задач (только tas
 
   it('НЕ показывает бейдж статуса для goods-списка', async () => {
     const { queryByTestId } = await render(
-      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} onDelete={jest.fn()} />,
+      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} />,
     )
     expect(queryByTestId('item-status-badge')).toBeNull()
   })
@@ -163,7 +311,6 @@ describe('ItemRow — статусы пунктов задач (только tas
         item={item}
         listType="tasks"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
         onOpenStatus={onOpenStatus}
       />,
     )
@@ -174,7 +321,7 @@ describe('ItemRow — статусы пунктов задач (только tas
   it('зачёркивание пункта задачи — по status=done (приоритет над isChecked)', async () => {
     const item = { ...baseItem(), status: 'done' as const, isChecked: true }
     const { getByLabelText } = await render(
-      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} />,
     )
     const checkbox = getByLabelText('Отметить Тестовый пункт')
     expect(checkbox.props.accessibilityState.checked).toBe(true)
@@ -183,7 +330,7 @@ describe('ItemRow — статусы пунктов задач (только tas
   it('пункт задачи со status=in_progress НЕ зачёркнут (checked=false)', async () => {
     const item = { ...baseItem(), status: 'in_progress' as const }
     const { getByLabelText } = await render(
-      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} onDelete={jest.fn()} />,
+      <ItemRow item={item} listType="tasks" onToggle={jest.fn()} />,
     )
     const checkbox = getByLabelText('Отметить Тестовый пункт')
     expect(checkbox.props.accessibilityState.checked).toBe(false)
@@ -197,7 +344,6 @@ describe('ItemRow — свайп влево: удаление с подтвер�
         item={baseItem()}
         listType="goods"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
         onSwipeDelete={jest.fn()}
       />,
     )
@@ -207,7 +353,7 @@ describe('ItemRow — свайп влево: удаление с подтвер�
 
   it('без onSwipeDelete свайп-действия нет', async () => {
     const { queryByTestId } = await render(
-      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} onDelete={jest.fn()} />,
+      <ItemRow item={baseItem()} listType="goods" onToggle={jest.fn()} />,
     )
     expect(queryByTestId('item-swipe-delete')).toBeNull()
   })
@@ -219,7 +365,6 @@ describe('ItemRow — свайп влево: удаление с подтвер�
         item={baseItem()}
         listType="goods"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
         onSwipeDelete={onSwipeDelete}
       />,
     )
@@ -228,161 +373,56 @@ describe('ItemRow — свайп влево: удаление с подтвер�
 
   it('тап по «Удалить» (= подтверждение в строке) вызывает onSwipeDelete с uuid', async () => {
     const onSwipeDelete = jest.fn()
-    const onDelete = jest.fn()
     const { getByTestId } = await render(
       <ItemRow
         item={baseItem()}
         listType="goods"
         onToggle={jest.fn()}
-        onDelete={onDelete}
         onSwipeDelete={onSwipeDelete}
       />,
     )
     fireEvent.press(getByTestId('item-swipe-delete'))
     expect(onSwipeDelete).toHaveBeenCalledWith('item-1')
-    // Alert-путь (onDelete из раскрытой панели) не задействован
-    expect(onDelete).not.toHaveBeenCalled()
   })
 })
 
-describe('ItemRow — редактирование названия пункта (раскрытая панель)', () => {
-  const renderExpanded = async (onRename: jest.Mock) =>
-    render(
-      <ItemRow
-        item={baseItem()}
-        listType="tasks"
-        onToggle={jest.fn()}
-        onDelete={jest.fn()}
-        onExpand={jest.fn()}
-        isExpanded
-        onRename={onRename}
-      />,
-    )
-
-  it('в раскрытой панели есть поле с текущим названием', async () => {
-    const { getByTestId } = await renderExpanded(jest.fn())
-    expect(getByTestId('item-name-input').props.value).toBe('Тестовый пункт')
-  })
-
-  it('без onRename поле названия не рендерится', async () => {
-    const { queryByTestId } = await render(
-      <ItemRow
-        item={baseItem()}
-        listType="tasks"
-        onToggle={jest.fn()}
-        onDelete={jest.fn()}
-        onExpand={jest.fn()}
-        isExpanded
-      />,
-    )
-    expect(queryByTestId('item-name-input')).toBeNull()
-  })
-
-  it('ввод нового имени + blur вызывает onRename(uuid, name) с trim', async () => {
-    const onRename = jest.fn()
-    const { getByTestId } = await renderExpanded(onRename)
-    const input = getByTestId('item-name-input')
-    await act(async () => {
-      fireEvent.changeText(input, '  Новое имя  ')
-    })
-    await act(async () => {
-      fireEvent(input, 'blur')
-    })
-    expect(onRename).toHaveBeenCalledWith('item-1', 'Новое имя')
-  })
-
-  it('Enter (submitEditing) тоже сохраняет новое имя', async () => {
-    const onRename = jest.fn()
-    const { getByTestId } = await renderExpanded(onRename)
-    const input = getByTestId('item-name-input')
-    await act(async () => {
-      fireEvent.changeText(input, 'Через Enter')
-    })
-    await act(async () => {
-      fireEvent(input, 'submitEditing')
-    })
-    expect(onRename).toHaveBeenCalledWith('item-1', 'Через Enter')
-  })
-
-  it('пустое имя НЕ сохраняется: onRename не вызван, поле вернулось к прежнему', async () => {
-    const onRename = jest.fn()
-    const { getByTestId } = await renderExpanded(onRename)
-    const input = getByTestId('item-name-input')
-    await act(async () => {
-      fireEvent.changeText(input, '   ')
-    })
-    await act(async () => {
-      fireEvent(input, 'blur')
-    })
-    expect(onRename).not.toHaveBeenCalled()
-    expect(getByTestId('item-name-input').props.value).toBe('Тестовый пункт')
-  })
-
-  it('неизменённое имя не сохраняется (нет лишней outbox-мутации)', async () => {
-    const onRename = jest.fn()
-    const { getByTestId } = await renderExpanded(onRename)
-    await act(async () => {
-      fireEvent(getByTestId('item-name-input'), 'blur')
-    })
-    expect(onRename).not.toHaveBeenCalled()
-  })
-})
-
-describe('ItemRow — тап по статусу не конфликтует с раскрытием строки', () => {
-  it('тап по бейджу статуса вызывает onOpenStatus и НЕ вызывает onExpand', async () => {
+describe('ItemRow — тапы по контролам не конфликтуют с открытием шторки', () => {
+  it('тап по бейджу статуса вызывает onOpenStatus и НЕ вызывает onOpenAttributes', async () => {
     const onOpenStatus = jest.fn()
-    const onExpand = jest.fn()
+    const onOpenAttributes = jest.fn()
     const item = { ...baseItem(), status: 'new' as const }
     const { getByLabelText } = await render(
       <ItemRow
         item={item}
         listType="tasks"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
-        onExpand={onExpand}
+        onOpenAttributes={onOpenAttributes}
         onOpenStatus={onOpenStatus}
       />,
     )
     fireEvent.press(getByLabelText('Статус: Новая'))
     expect(onOpenStatus).toHaveBeenCalledWith('item-1')
-    expect(onExpand).not.toHaveBeenCalled()
+    expect(onOpenAttributes).not.toHaveBeenCalled()
   })
 
-  it('тап по названию строки вызывает onExpand (раскрытие)', async () => {
-    const onExpand = jest.fn()
-    const { getByLabelText } = await render(
-      <ItemRow
-        item={baseItem()}
-        listType="tasks"
-        onToggle={jest.fn()}
-        onDelete={jest.fn()}
-        onExpand={onExpand}
-        onOpenStatus={jest.fn()}
-      />,
-    )
-    fireEvent.press(getByLabelText('Тестовый пункт'))
-    expect(onExpand).toHaveBeenCalledWith('item-1')
-  })
-
-  it('бейдж статуса НЕ вложен в Pressable раскрытия (нет предка с onExpand-обработчиком)', async () => {
+  it('бейдж статуса НЕ вложен в Pressable названия (нет предка-обработчика)', async () => {
     const { getByTestId, getByLabelText } = await render(
       <ItemRow
         item={baseItem()}
         listType="tasks"
         onToggle={jest.fn()}
-        onDelete={jest.fn()}
-        onExpand={jest.fn()}
+        onOpenAttributes={jest.fn()}
         onOpenStatus={jest.fn()}
       />,
     )
     const namePressable = getByLabelText('Тестовый пункт')
-    // Поднимаемся от бейджа к корню: Pressable раскрытия не должен встретиться.
+    // Поднимаемся от бейджа к корню: Pressable названия не должен встретиться.
     let node: { parent: unknown } | null = getByTestId('item-status-badge')
-    let nestedInExpand = false
+    let nestedInName = false
     while (node !== null) {
-      if (node === namePressable) nestedInExpand = true
+      if (node === namePressable) nestedInName = true
       node = (node as { parent: { parent: unknown } | null }).parent
     }
-    expect(nestedInExpand).toBe(false)
+    expect(nestedInName).toBe(false)
   })
 })

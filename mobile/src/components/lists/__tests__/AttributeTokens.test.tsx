@@ -1,7 +1,11 @@
+/**
+ * Тесты AttributeTokens («облегчённая форма»): только токены ЗАПОЛНЕННЫХ
+ * атрибутов; пустых чипов-кнопок «Добавить: …» больше нет (замена AttributeChips).
+ */
 import React from 'react'
 import { fireEvent, render } from '@testing-library/react-native'
 
-import AttributeChips from '../AttributeChips'
+import AttributeTokens from '../AttributeTokens'
 import { EMPTY_ATTRIBUTE_VALUES, type ItemAttributeValues } from '@/utils/itemAttributes'
 
 jest.mock('@expo/vector-icons', () => {
@@ -14,20 +18,13 @@ jest.mock('@expo/vector-icons', () => {
   return { Ionicons }
 })
 
-jest.mock('@/theme', () => ({
-  useTheme: () => ({
-    colors: { textPrimary: '#111', textSecondary: '#666' },
-  }),
-}))
-
 const accentColor = '#d99a3e'
 const accentBg = '#fbf3e4'
 
-describe('AttributeChips — чипсы (незаданные) и токены (заданные)', () => {
-  // Чипс «Комментарий» удалён: одиночный комментарий заменён тредом (CommentsSheet).
-  it('при пустых values показывает все 4 чипса (без «Комментарий»), токенов нет', async () => {
-    const { getByLabelText, queryByLabelText } = await render(
-      <AttributeChips
+describe('AttributeTokens — только заполненные атрибуты, без пустых чипов', () => {
+  it('при пустых values не рендерит НИЧЕГО (ни токенов, ни чипов-кнопок)', async () => {
+    const { queryByLabelText, toJSON } = await render(
+      <AttributeTokens
         values={EMPTY_ATTRIBUTE_VALUES}
         accentColor={accentColor}
         accentBg={accentBg}
@@ -35,18 +32,17 @@ describe('AttributeChips — чипсы (незаданные) и токены (
         onRemove={jest.fn()}
       />,
     )
-    expect(getByLabelText('Добавить: Дедлайн')).toBeTruthy()
-    expect(getByLabelText('Добавить: Напоминание')).toBeTruthy()
-    expect(getByLabelText('Добавить: Ссылка')).toBeTruthy()
-    expect(queryByLabelText('Добавить: Комментарий')).toBeNull()
-    expect(getByLabelText('Добавить: Тег')).toBeTruthy()
-    expect(queryByLabelText(/^Дедлайн:/)).toBeNull()
+    expect(queryByLabelText('Добавить: Дедлайн')).toBeNull()
+    expect(queryByLabelText('Добавить: Напоминание')).toBeNull()
+    expect(queryByLabelText('Добавить: Ссылка')).toBeNull()
+    expect(queryByLabelText('Добавить: Тег')).toBeNull()
+    expect(toJSON()).toBeNull()
   })
 
-  it('заданный дедлайн отображается токеном, чипс дедлайна пропадает', async () => {
+  it('заданный дедлайн отображается токеном; чипов незаданных атрибутов нет', async () => {
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, deadline: '2026-07-10' }
     const { getByLabelText, queryByLabelText } = await render(
-      <AttributeChips
+      <AttributeTokens
         values={values}
         accentColor={accentColor}
         accentBg={accentBg}
@@ -56,12 +52,13 @@ describe('AttributeChips — чипсы (незаданные) и токены (
     )
     expect(getByLabelText('Дедлайн: 10 июл')).toBeTruthy()
     expect(queryByLabelText('Добавить: Дедлайн')).toBeNull()
+    expect(queryByLabelText('Добавить: Ссылка')).toBeNull()
   })
 
   it('домен извлекается из ссылки для токена', async () => {
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, link: 'https://example.com/path' }
     const { getByLabelText } = await render(
-      <AttributeChips
+      <AttributeTokens
         values={values}
         accentColor={accentColor}
         accentBg={accentBg}
@@ -75,7 +72,7 @@ describe('AttributeChips — чипсы (незаданные) и токены (
   it('несколько тегов отображаются через запятую в одном токене', async () => {
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, tags: ['срочно', 'дом'] }
     const { getByLabelText } = await render(
-      <AttributeChips
+      <AttributeTokens
         values={values}
         accentColor={accentColor}
         accentBg={accentBg}
@@ -86,26 +83,11 @@ describe('AttributeChips — чипсы (незаданные) и токены (
     expect(getByLabelText('Тег: срочно, дом')).toBeTruthy()
   })
 
-  it('тап по чипсу вызывает onOpen с именем атрибута', async () => {
-    const onOpen = jest.fn()
-    const { getByLabelText } = await render(
-      <AttributeChips
-        values={EMPTY_ATTRIBUTE_VALUES}
-        accentColor={accentColor}
-        accentBg={accentBg}
-        onOpen={onOpen}
-        onRemove={jest.fn()}
-      />,
-    )
-    fireEvent.press(getByLabelText('Добавить: Ссылка'))
-    expect(onOpen).toHaveBeenCalledWith('link')
-  })
-
-  it('тап по токену вызывает onOpen (редактировать) с именем атрибута', async () => {
+  it('тап по токену вызывает onOpen (открыть шторку «Допатрибуты»)', async () => {
     const onOpen = jest.fn()
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, link: 'https://example.com' }
     const { getByLabelText } = await render(
-      <AttributeChips
+      <AttributeTokens
         values={values}
         accentColor={accentColor}
         accentBg={accentBg}
@@ -121,7 +103,7 @@ describe('AttributeChips — чипсы (незаданные) и токены (
     const onRemove = jest.fn()
     const values: ItemAttributeValues = { ...EMPTY_ATTRIBUTE_VALUES, link: 'https://a.com' }
     const { getByLabelText } = await render(
-      <AttributeChips
+      <AttributeTokens
         values={values}
         accentColor={accentColor}
         accentBg={accentBg}

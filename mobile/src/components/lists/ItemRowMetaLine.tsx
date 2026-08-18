@@ -20,9 +20,11 @@ interface MetaLineProps {
 }
 
 /**
- * Мета-строка свёрнутого пункта: бейдж статуса (tasks) + тег(и) + чип дедлайна
- * + иконки-индикаторы. Рендерится СЕСТРОЙ Pressable-раскрытия (не внутри него):
- * тап по статусу/💬 срабатывает с первого раза и не раскрывает строку.
+ * Мета-строка пункта: бейдж статуса (tasks) + ТОЛЬКО заполненные атрибуты
+ * (теги, чип дедлайна, иконки напоминания/ссылки) + жёлтый чип комментариев
+ * со счётчиком (при commentsCount > 0; тап открывает тред в один тап).
+ * Рендерится СЕСТРОЙ Pressable названия (не потомком): тап по статусу/чипу
+ * срабатывает с первого раза.
  */
 const MetaLine: React.FC<MetaLineProps> = ({
   item,
@@ -59,7 +61,21 @@ const MetaLine: React.FC<MetaLineProps> = ({
           </Text>
         </View>
       )}
-      <MetaIndicators item={item} commentsCount={commentsCount} onOpenComments={onOpenComments} />
+      {/* 6: жёлтый чип комментариев со счётчиком — вход в тред в один тап */}
+      {commentsCount > 0 && (
+        <Pressable
+          onPress={onOpenComments !== undefined ? () => onOpenComments(item.uuid) : undefined}
+          accessibilityRole="button"
+          accessibilityLabel={`Комментарии: ${commentsCount}`}
+          hitSlop={6}
+          testID="item-comments-chip"
+          style={[styles.chip, { backgroundColor: colors.amberBg }]}
+        >
+          <Ionicons name="chatbubble-outline" size={11} color={colors.amber} />
+          <Text style={[styles.chipText, { color: colors.amber }]}>{commentsCount}</Text>
+        </Pressable>
+      )}
+      <MetaIndicators item={item} />
     </View>
   )
 }
@@ -68,40 +84,19 @@ const MetaLine: React.FC<MetaLineProps> = ({
 
 interface MetaIndicatorsProps {
   item: ShoppingListItem
-  commentsCount: number
-  onOpenComments: ((uuid: string) => void) | undefined
 }
 
-/** Иконки-индикаторы меты пункта; 💬 показывает счётчик треда и открывает его. */
-const MetaIndicators: React.FC<MetaIndicatorsProps> = ({
-  item,
-  commentsCount,
-  onOpenComments,
-}) => {
+/** Иконки-индикаторы заполненных атрибутов пункта: напоминание и ссылка. */
+const MetaIndicators: React.FC<MetaIndicatorsProps> = ({ item }) => {
   const { colors } = useTheme()
   const hasReminder = item.reminderAt !== null
-  const hasComments = commentsCount > 0
   const hasLink = item.link !== null && item.link.length > 0
-  if (!hasReminder && !hasComments && !hasLink) return null
+  if (!hasReminder && !hasLink) return null
 
   return (
     <View style={styles.indicators}>
       {hasReminder && (
         <Ionicons name="notifications-outline" size={12} color={colors.textTertiary} />
-      )}
-      {hasComments && (
-        <Pressable
-          onPress={onOpenComments !== undefined ? () => onOpenComments(item.uuid) : undefined}
-          accessibilityRole="button"
-          accessibilityLabel={`Комментарии: ${commentsCount}`}
-          hitSlop={6}
-          style={styles.commentsBadge}
-        >
-          <Ionicons name="chatbubble-outline" size={12} color={colors.textTertiary} />
-          <Text style={[styles.commentsBadgeText, { color: colors.textTertiary }]}>
-            {commentsCount}
-          </Text>
-        </Pressable>
       )}
       {hasLink && <Ionicons name="link-outline" size={12} color={colors.textTertiary} />}
     </View>
@@ -131,8 +126,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  commentsBadge: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  commentsBadgeText: { ...typography.bodySm, fontSize: 11, fontWeight: '600' },
 })
 
 export default MetaLine

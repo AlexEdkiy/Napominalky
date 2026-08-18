@@ -15,15 +15,16 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
-import AttributeSheet, { type AttributeSheetValue } from '@/components/lists/AttributeSheet'
+import AttributesSheet from '@/components/lists/AttributesSheet'
 import CommentsSheet from '@/components/lists/CommentsSheet'
-import ItemRow, { type MetaPatch } from '@/components/lists/ItemRow'
+import ItemRow from '@/components/lists/ItemRow'
 import ListDetailHeader, { type ItemFilter } from '@/components/lists/ListDetailHeader'
 import StatusSheet, { type StatusSheetValue } from '@/components/lists/StatusSheet'
 import type {
   CreateItemData,
   ListType,
   ShoppingListItem,
+  UpdateItemPatch,
 } from '@/db/repositories/shoppingListsRepo'
 import { parseTags, serializeTags } from '@/db/repositories/shoppingListsRepo'
 import { useShoppingList, useShoppingLists } from '@/hooks/useShoppingLists'
@@ -31,19 +32,12 @@ import { useShoppingListItems } from '@/hooks/useShoppingListItems'
 import { useItemCommentCounts } from '@/hooks/useItemComments'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
-import type { ItemAttribute } from '@/utils/itemAttributes'
+import type { AttributeSheetValue, ItemAttribute } from '@/utils/itemAttributes'
 
 const filterItems = (items: ShoppingListItem[], filter: ItemFilter): ShoppingListItem[] => {
   if (filter === 'active') return items.filter((i) => !i.isChecked)
   if (filter === 'done') return items.filter((i) => i.isChecked)
   return items
-}
-
-// ---- AttributeSheet target (какой пункт сейчас редактируется) --------------
-
-interface AttributeSheetTarget {
-  itemUuid: string
-  attribute: ItemAttribute
 }
 
 /** Цель шторки статуса: сама задача (list) либо пункт по uuid. */
@@ -59,8 +53,8 @@ export default function ListDetailScreen() {
     useShoppingListItems(listUuid)
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
-  const [expandedUuid, setExpandedUuid] = useState<string | null>(null)
-  const [sheetTarget, setSheetTarget] = useState<AttributeSheetTarget | null>(null)
+  /** uuid пункта, чья шторка «Допатрибуты» открыта (null — скрыта). */
+  const [attributesItemUuid, setAttributesItemUuid] = useState<string | null>(null)
   const [statusTarget, setStatusTarget] = useState<StatusSheetTarget | null>(null)
   /** uuid пункта, чей тред комментариев открыт (null — шторка скрыта). */
   const [commentsItemUuid, setCommentsItemUuid] = useState<string | null>(null)
@@ -70,7 +64,7 @@ export default function ListDetailScreen() {
   const accentBg = list?.type === 'tasks' ? colors.amberBg : colors.accentSoftBg
   const listType: ListType = list?.type ?? 'goods'
   const isTasks = listType === 'tasks'
-  const sheetItem = items.find((i) => i.uuid === sheetTarget?.itemUuid)
+  const attributesItem = items.find((i) => i.uuid === attributesItemUuid)
   const statusItem =
     statusTarget?.kind === 'item'
       ? items.find((i) => i.uuid === statusTarget.itemUuid)
@@ -80,33 +74,29 @@ export default function ListDetailScreen() {
     addItem.mutate(data)
   }
 
-  const handleExpand = (itemUuid: string): void => {
-    setExpandedUuid((prev) => (prev === itemUuid ? null : itemUuid))
+  /** Коммит атрибута из шторки «Допатрибуты» — update + outbox для sync. */
+  const handleChangeAttribute = (attribute: ItemAttribute, value: AttributeSheetValue): void => {
+    if (attributesItemUuid === null) return
+    updateItem.mutate({ uuid: attributesItemUuid, patch: buildAttributePatch(attribute, value) })
   }
 
-  const handleQuantityChange = (itemUuid: string, quantity: number): void => {
-    updateItem.mutate({ uuid: itemUuid, patch: { quantity } })
-  }
-
-  const handleOpenAttribute = (itemUuid: string, attribute: ItemAttribute): void => {
-    setSheetTarget({ itemUuid, attribute })
-  }
-
-  const handleUpdateMeta = (itemUuid: string, patch: MetaPatch): void => {
-    updateItem.mutate({ uuid: itemUuid, patch })
-  }
-
-  /** Сохранение отредактированного названия пункта (ItemRow гарантирует
+  /** Сохранение отредактированного названия пункта (шторка гарантирует
    *  непустое значение) — update + outbox для sync. */
-  const handleRename = (itemUuid: string, name: string): void => {
-    updateItem.mutate({ uuid: itemUuid, patch: { name } })
+  const handleRename = (name: string): void => {
+    if (attributesItemUuid === null) return
+    updateItem.mutate({ uuid: attributesItemUuid, patch: { name } })
   }
 
-  const handleConfirmAttribute = (value: AttributeSheetValue): void => {
-    if (sheetTarget === null) return
-    const patch = buildAttributePatch(sheetTarget.attribute, value)
-    updateItem.mutate({ uuid: sheetTarget.itemUuid, patch })
-    setSheetTarget(null)
+  const handleQuantityChange = (quantity: number): void => {
+    if (attributesItemUuid === null) return
+    updateItem.mutate({ uuid: attributesItemUuid, patch: { quantity } })
+  }
+
+  /** Удаление из футера шторки «Допатрибуты» (подтверждение — в шторке). */
+  const handleDeleteFromSheet = (): void => {
+    if (attributesItemUuid === null) return
+    deleteItem.mutate(attributesItemUuid)
+    setAttributesItemUuid(null)
   }
 
   /** Выбор в шторке статуса: задача (в т.ч. «Авто») либо пункт (без «Авто»). */
@@ -128,13 +118,6 @@ export default function ListDetailScreen() {
         style: 'destructive',
         onPress: () => deleteList.mutate(listUuid, { onSuccess: () => router.back() }),
       },
-    ])
-  }
-
-  const confirmDeleteItem = (itemUuid: string): void => {
-    Alert.alert('Удалить пункт?', 'Действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Удалить', style: 'destructive', onPress: () => deleteItem.mutate(itemUuid) },
     ])
   }
 
@@ -188,12 +171,6 @@ export default function ListDetailScreen() {
               item={item}
               listType={listType}
               onToggle={(itemUuid, checked) => checkItem.mutate({ uuid: itemUuid, checked })}
-              onDelete={confirmDeleteItem}
-              onExpand={handleExpand}
-              isExpanded={expandedUuid === item.uuid}
-              onQuantityChange={handleQuantityChange}
-              onOpenAttribute={handleOpenAttribute}
-              onUpdateMeta={handleUpdateMeta}
               onOpenStatus={
                 isTasks
                   ? (itemUuid) => setStatusTarget({ kind: 'item', itemUuid })
@@ -201,8 +178,8 @@ export default function ListDetailScreen() {
               }
               commentsCount={commentCounts.get(item.uuid) ?? 0}
               onOpenComments={setCommentsItemUuid}
+              onOpenAttributes={setAttributesItemUuid}
               onSwipeDelete={handleSwipeDelete}
-              onRename={handleRename}
             />
           )}
           contentContainerStyle={styles.list}
@@ -238,16 +215,25 @@ export default function ListDetailScreen() {
           }
         />
 
-        <AttributeSheet
-          attribute={sheetTarget?.attribute ?? null}
-          currentDeadline={sheetItem?.deadline ?? null}
-          currentReminderAt={sheetItem?.reminderAt ?? null}
-          currentLink={sheetItem?.link ?? null}
-          currentTags={parseTags(sheetItem?.tags ?? null)}
+        {/* Единая шторка «Допатрибуты» пункта: название + все атрибуты +
+            количество (goods) + футер «Удалить пункт» */}
+        <AttributesSheet
+          visible={attributesItem !== undefined}
+          values={{
+            deadline: attributesItem?.deadline ?? null,
+            reminderAt: attributesItem?.reminderAt ?? null,
+            link: attributesItem?.link ?? null,
+            tags: parseTags(attributesItem?.tags ?? null),
+          }}
           accentColor={accentColor}
           accentBg={accentBg}
-          onConfirm={handleConfirmAttribute}
-          onClose={() => setSheetTarget(null)}
+          name={attributesItem?.name}
+          onRename={handleRename}
+          quantity={listType === 'goods' ? attributesItem?.quantity : undefined}
+          onQuantityChange={listType === 'goods' ? handleQuantityChange : undefined}
+          onChangeAttribute={handleChangeAttribute}
+          onDelete={handleDeleteFromSheet}
+          onClose={() => setAttributesItemUuid(null)}
         />
 
         {/* Тред комментариев пункта (заменяет одиночный атрибут «Комментарий») */}
@@ -278,7 +264,10 @@ export default function ListDetailScreen() {
 
 // ---- buildAttributePatch ----------------------------------------------------
 
-const buildAttributePatch = (attribute: ItemAttribute, value: AttributeSheetValue): MetaPatch => {
+const buildAttributePatch = (
+  attribute: ItemAttribute,
+  value: AttributeSheetValue,
+): UpdateItemPatch => {
   if (attribute === 'deadline') return { deadline: typeof value === 'string' ? value : null }
   if (attribute === 'reminder') return { reminderAt: typeof value === 'string' ? value : null }
   if (attribute === 'link') return { link: typeof value === 'string' ? value : null }
