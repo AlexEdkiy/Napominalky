@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { isAxiosError } from 'axios'
 
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
@@ -41,6 +41,14 @@ const { isTaskFormOpen, taskFormList, closeForm, notifyTaskSaved } = useLkForms(
 const currentList = ref<ShoppingList | null>(null)
 
 const form = reactive({ title: '', type: 'goods' as ShoppingListType })
+/**
+ * Название редактируется прямо в заголовке шапки (отдельного поля «Название»
+ * в теле нет): в new-режиме поле активно сразу, в edit — по клику по названию.
+ */
+const isTitleEditing = ref(false)
+const titleInput = ref<HTMLInputElement | null>(null)
+/** Значение названия на момент входа в редактирование — откат по Esc. */
+const titleBeforeEdit = ref('')
 const tags = ref<string[]>([])
 const newItemName = ref('')
 const customTagName = ref('')
@@ -84,7 +92,7 @@ const isTypeLocked = computed<boolean>(() => taskFormList.value !== null)
 const title = computed<string>(() => form.title.trim() || 'Новая задача / покупка')
 const accent = computed(() => shoppingListAccent(form.type))
 const itemPlaceholder = computed<string>(() =>
-  form.type === 'goods' ? 'Например, Молоко' : 'Например, Помыть окна',
+  form.type === 'goods' ? 'Добавить покупки' : 'Добавить задачи',
 )
 /** Выбранные теги вне пресетов («свои») — рендерятся отдельными активными чипами. */
 const customTags = computed<string[]>(() =>
@@ -113,9 +121,64 @@ function resetForm(): void {
   hasItemChanges.value = false
   expandedItemUuid.value = null
   removingItem.value = null
+  isTitleEditing.value = false
   if (list !== null) {
     void loadItems()
+  } else {
+    startTitleEdit()
   }
+}
+
+/** Вход в редактирование названия в шапке (клик по заголовку / открытие new-режима). */
+function startTitleEdit(): void {
+  titleBeforeEdit.value = form.title
+  isTitleEditing.value = true
+  void nextTick(() => titleInput.value?.focus())
+}
+
+/**
+ * Выход из редактирования названия (Enter/blur). Edit-режим: пустое имя
+ * откатывается к текущему, изменённое — сохраняется сразу (PUT, как статус и
+ * атрибуты пунктов). New-режим: пустое имя оставляет поле активным.
+ */
+async function finishTitleEdit(): Promise<void> {
+  const trimmed = form.title.trim()
+  const current = currentList.value
+  if (current === null) {
+    if (trimmed === '') {
+      return
+    }
+    form.title = trimmed
+    isTitleEditing.value = false
+    return
+  }
+  if (trimmed === '') {
+    form.title = current.title
+    isTitleEditing.value = false
+    return
+  }
+  form.title = trimmed
+  isTitleEditing.value = false
+  if (trimmed === current.title) {
+    return
+  }
+  try {
+    errors.value = {}
+    currentList.value = await shoppingListsApi.updateList(current.uuid, { title: trimmed })
+    hasItemChanges.value = true
+  } catch (error) {
+    applyValidation(error)
+    startTitleEdit()
+  }
+}
+
+/** Esc в поле названия: откат к значению на момент входа (модалку не закрываем). */
+function cancelTitleEdit(): void {
+  form.title = titleBeforeEdit.value
+  if (currentList.value === null && form.title.trim() === '') {
+    return
+  }
+  isTitleEditing.value = false
 }
 
 watch(isTaskFormOpen, (open) => {
@@ -151,6 +214,7 @@ function validatedTitle(): string | null {
   generalError.value = null
   if (trimmed === '') {
     errors.value = { title: ['Введите название задачи.'] }
+    startTitleEdit()
     return null
   }
   return trimmed
@@ -375,7 +439,37 @@ async function confirmDelete(): Promise<void> {
       :aria-label="title"
     >
       <header class="lk-form-dialog__header">
-        <h2 class="lk-form-dialog__title">{{ title }}</h2>
+        <!-- Название задачи живёт в заголовке: клик — редактирование
+             (в new-режиме поле активно сразу). Отдельного поля в теле нет. -->
+        <div class="lk-form-dialog__title-wrap">
+          <input
+            v-if="isTitleEditing"
+            id="task-form-title"
+            ref="titleInput"
+            v-model="form.title"
+            type="text"
+            class="lk-form-dialog__title-input"
+            placeholder="Что нужно сделать или купить?"
+            aria-label="Название задачи"
+            autofocus
+            @keydown.enter.prevent="finishTitleEdit"
+            @keydown.esc.stop.prevent="cancelTitleEdit"
+            @blur="finishTitleEdit"
+          />
+          <h2 v-else class="lk-form-dialog__title">
+            <button
+              type="button"
+              class="lk-form-dialog__title-button"
+              title="Изменить название"
+              @click="startTitleEdit"
+            >
+              {{ title }}
+            </button>
+          </h2>
+          <span v-if="errors.title" class="lk-form-dialog__error lk-form-dialog__title-error">{{
+            errors.title[0]
+          }}</span>
+        </div>
         <span v-if="isEdit" class="lk-form-dialog__progress">{{ checkedCount }} / {{ totalCount }}</span>
         <!-- Статус задачи — компактный переключатель в шапке (только edit-режим
              tasks-списка; у goods статусов нет). Точка слева — индикатор
@@ -405,18 +499,6 @@ async function confirmDelete(): Promise<void> {
         <div class="lk-form-dialog__body">
           <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
 
-          <label class="lk-form-dialog__label" for="task-form-title">Название</label>
-          <input
-            id="task-form-title"
-            v-model="form.title"
-            type="text"
-            class="lk-form-dialog__input"
-            placeholder="Что нужно сделать или купить?"
-            required
-            autofocus
-          />
-          <span v-if="errors.title" class="lk-form-dialog__error">{{ errors.title[0] }}</span>
-
           <template v-if="!isTypeLocked">
             <span class="lk-form-dialog__label">Тип</span>
             <div class="lk-form-dialog__types">
@@ -434,7 +516,6 @@ async function confirmDelete(): Promise<void> {
             </div>
           </template>
 
-          <span class="lk-form-dialog__label">Пункты</span>
           <div class="lk-form-dialog__item-form">
             <input
               v-model="newItemName"
@@ -672,8 +753,15 @@ async function confirmDelete(): Promise<void> {
   padding-right: 28px;
 }
 
-.lk-form-dialog__title {
+.lk-form-dialog__title-wrap {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lk-form-dialog__title {
   min-width: 0;
   margin: 0;
   font-size: 20px;
@@ -682,6 +770,61 @@ async function confirmDelete(): Promise<void> {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Заголовок-кнопка: клик — редактирование названия прямо в шапке. */
+.lk-form-dialog__title-button {
+  display: block;
+  max-width: 100%;
+  margin: 0 -6px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.lk-form-dialog__title-button:hover,
+.lk-form-dialog__title-button:focus-visible {
+  background: #f2f4f3;
+  outline: none;
+}
+
+.lk-form-dialog__title-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0 -6px;
+  padding: 2px 6px;
+  border: none;
+  border-bottom: 2px solid #e3e6e5;
+  border-radius: 8px 8px 0 0;
+  background: #fbfcfb;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 900;
+  color: #1f2622;
+  outline: none;
+}
+
+.lk-form-dialog__title-input:focus {
+  border-bottom-color: #1f2622;
+}
+
+.lk-form-dialog__title-input::placeholder {
+  color: #aab2ae;
+  font-weight: 700;
+}
+
+.lk-form-dialog__title-error {
+  margin: 0;
 }
 
 .lk-form-dialog__progress {
