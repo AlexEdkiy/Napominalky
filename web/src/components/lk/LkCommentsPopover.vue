@@ -76,14 +76,38 @@ function clearTimers(): void {
   }
 }
 
+/** Обрезает ли контейнер содержимое по данному значению overflow. */
+function clipsOverflow(value: string): boolean {
+  return value === 'hidden' || value === 'auto' || value === 'scroll' || value === 'clip'
+}
+
+/**
+ * Правая/нижняя границы, в которые должна вписаться панель: ближайший
+ * обрезающий предок (например, скролл-тело модалки формы — иначе попап
+ * режется её краем) либо окно, если таких предков нет.
+ */
+function clipBounds(): { right: number; bottom: number } {
+  let ancestor = rootRef.value?.parentElement ?? null
+  while (ancestor !== null) {
+    const style = window.getComputedStyle(ancestor)
+    if (clipsOverflow(style.overflowX) || clipsOverflow(style.overflowY)) {
+      const rect = ancestor.getBoundingClientRect()
+      return { right: Math.min(rect.right, window.innerWidth), bottom: Math.min(rect.bottom, window.innerHeight) }
+    }
+    ancestor = ancestor.parentElement
+  }
+  return { right: window.innerWidth, bottom: window.innerHeight }
+}
+
 /** Позиционирование с флипом: вниз/влево по умолчанию, у края — вверх/вправо. */
 function updatePlacement(): void {
   const rect = rootRef.value?.getBoundingClientRect()
   if (rect === undefined) {
     return
   }
-  flipUp.value = rect.bottom + PANEL_MAX_HEIGHT > window.innerHeight
-  alignRight.value = rect.left + PANEL_WIDTH > window.innerWidth
+  const bounds = clipBounds()
+  flipUp.value = rect.bottom + PANEL_MAX_HEIGHT > bounds.bottom
+  alignRight.value = rect.left + PANEL_WIDTH > bounds.right
 }
 
 function open(): void {
