@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-21 (МП: управляющие пуши напоминаний, фикс флажка «Выполнено», закрытие формы по «Сохранить» — MOB-63)
+> Последнее обновление: 2026-08-21 (вечный спиннер синка: фикс sync_conflicts.entity_type varchar(20→40) — DEV-22; диалог закрытия повторяющегося напоминания — MOB-64)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -8,22 +8,22 @@
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
 | ARCH    | 3            | architect                 |
-| DEV     | 21           | backend-developer         |
+| DEV     | 22           | backend-developer         |
 | MBE     | 19           | mobile-backend-developer  |
-| MOB     | 63           | mobile-developer          |
+| MOB     | 64           | mobile-developer          |
 | WEB     | 46           | web-developer             |
-| TEST    | 17           | test-engineer             |
+| TEST    | 18           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 50           | technical-writer          |
+| DOC     | 51           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 135 |
+| Completed | 137 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2604,5 +2604,36 @@
   - [x] Флажок в списке открывает подтверждение и закрывает напоминание
   - [x] «Сохранить» на форме добавления/изменения закрывает форму
   - [x] tsc OK, Jest зелёный (1077)
+- **Создана:** 2026-08-21
+- **Завершена:** 2026-08-21
+
+### DEV-22 / TEST-18: Вечный спиннер синка — sync_conflicts.entity_type не вмещал тип комментария
+- **Исполнители:** backend-developer (DEV-22), test-engineer (TEST-18)
+- **Статус:** completed
+- **Приоритет:** critical
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** docs/03-laravel.md, docs/04-database.md
+- **Описание:** Симптом (прод, МП): бесконечный спиннер RefreshControl «обновление с сервером» на Главной; в логах сервера — шквал `POST /sync/push` с интервалами бэкоффа 1-2-4-8 с. Причина: `sync_conflicts.entity_type` — `varchar(20)`, а `shopping_list_item_comment` — 26 символов; запись конфликта комментария (LWW) валила INSERT `SQLSTATE[22001]` → весь push 500 → `clearOutbox` не выполнялся → клиент ретраил те же изменения вечно (у пользователя — с 18.08). Фикс: миграция `widen_sync_conflicts_entity_type` (varchar(20)→40, с down). (TEST-18) Заодно устранён flaky в `SyncPushServiceTest`: тест whitelisted-полей пушил `id => 42`, а автоинкремент тестовой БД дошёл до 42 — ложное срабатывание; заменено на заведомо недостижимый 424242424.
+- **Файлы:** `project/database/migrations/2026_08_21_140000_widen_sync_conflicts_entity_type.php`, `project/tests/Feature/Sync/SyncPushServiceTest.php`
+- **Критерии приёмки:**
+  - [x] Миграция применена к тестовой БД; Pest Sync — 81 passed
+  - [ ] Миграция применена к продовой БД (`docker exec reminders_serve php artisan migrate --force`)
+- **Создана:** 2026-08-21
+- **Завершена:** 2026-08-21
+
+### MOB-64: Диалог закрытия повторяющегося напоминания — предупреждение о следующем вхождении
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** MOB-63
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** Жалоба «флажок „Выполнено“ ничего не делает» оказалась UX-проблемой повторяющихся напоминаний: закрытие работало, но `completeReminder` создаёт следующее вхождение — карточка остаётся в списке с тихо сдвинутой датой (у пользователя daily-«Русский язык» сместился 24→28 авг за 4 нажатия). Фикс: `confirmCloseReminder` принимает напоминание, и для recurrence != none диалог предупреждает: «Напоминание повторяется: в списке появится следующее — <дата>» (`closeReminderMessage`, дата через `nextOccurrence`+`formatReminderChip`). Подключено в списке напоминаний и на форме редактирования.
+- **Файлы:** `mobile/src/utils/confirmCloseReminder.ts` (+ тест), `mobile/app/(tabs)/reminders-tab/index.tsx`, `mobile/app/reminders/[uuid].tsx`
+- **Критерии приёмки:**
+  - [x] Для повторяющегося напоминания диалог называет дату следующего вхождения
+  - [x] Для обычного — прежнее поведение (без текста)
+  - [x] tsc OK, Jest зелёный (1082)
 - **Создана:** 2026-08-21
 - **Завершена:** 2026-08-21
