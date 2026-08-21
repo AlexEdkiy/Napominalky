@@ -57,7 +57,8 @@ export default function RemindersScreen(): React.JSX.Element {
   }
 
   const handleComplete = (uuid: string): void => {
-    confirmCloseReminder(() => completeReminder.mutate(uuid))
+    const reminder = reminders.find((r) => r.uuid === uuid)
+    confirmCloseReminder(() => completeReminder.mutate(uuid), reminder)
   }
 
   return (

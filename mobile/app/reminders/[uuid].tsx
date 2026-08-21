@@ -86,8 +86,9 @@ export default function ReminderDetailScreen() {
   }
 
   const handleComplete = (): void => {
-    confirmCloseReminder(() =>
-      completeReminder.mutate(reminderUuid, { onSuccess: () => router.back() }),
+    confirmCloseReminder(
+      () => completeReminder.mutate(reminderUuid, { onSuccess: () => router.back() }),
+      reminder,
     )
   }
 
