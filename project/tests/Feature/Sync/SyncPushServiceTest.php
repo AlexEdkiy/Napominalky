@@ -169,16 +169,18 @@ it('skips unknown entity types without failing the batch', function (): void {
 it('only persists whitelisted fields', function (): void {
     $uuid = (string) Str::uuid();
 
+    // id заведомо вне диапазона автоинкремента тестовой БД: значение вроде 42
+    // ложно совпадало с реальным следующим id (flaky при «удачной» позиции sequence).
     $this->service->push($this->user, [
         noteChange($uuid, [
             'title' => 'Safe',
             'server_revision' => 1,
-            'id' => 42,
+            'id' => 424_242_424,
         ], '2026-06-01T10:00:00Z', 'create'),
     ]);
 
     $note = Note::where('uuid', $uuid)->firstOrFail();
-    expect($note->id)->not->toBe(42)
+    expect($note->id)->not->toBe(424_242_424)
         ->and($note->title)->toBe('Safe');
 });
 
