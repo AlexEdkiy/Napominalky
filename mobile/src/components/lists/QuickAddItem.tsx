@@ -37,7 +37,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
   const sheetSnapshot = useRef<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
-  const placeholder = listType === 'tasks' ? 'Новая задача' : 'Добавить товар'
+  const placeholder = listType === 'tasks' ? 'Добавить задачи' : 'Что купить'
   const hasAttrs = ATTRIBUTE_ORDER.some((attr) => isAttributeSet(attr, attrs))
 
   const handleAdd = (): void => {

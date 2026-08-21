@@ -47,18 +47,18 @@ jest.mock('@/theme', () => ({
 
 // Все тесты в одном describe без вложенных describe — избегаем контекстных проблем RNTL 14
 describe('QuickAddItem — облегчённая форма', () => {
-  it('[goods] показывает placeholder «Добавить товар»', async () => {
+  it('[goods] показывает placeholder «Что купить»', async () => {
     const { getByPlaceholderText } = await render(
       <QuickAddItem listType="goods" onAdd={jest.fn()} />,
     )
-    expect(getByPlaceholderText('Добавить товар')).toBeTruthy()
+    expect(getByPlaceholderText('Что купить')).toBeTruthy()
   })
 
-  it('[goods] поле имеет accessibilityLabel «Добавить товар»', async () => {
+  it('[goods] поле имеет accessibilityLabel «Что купить»', async () => {
     const { getByLabelText } = await render(
       <QuickAddItem listType="goods" onAdd={jest.fn()} />,
     )
-    expect(getByLabelText('Добавить товар')).toBeTruthy()
+    expect(getByLabelText('Что купить')).toBeTruthy()
   })
 
   it('[goods] кнопка «+» имеет accessibilityLabel «Добавить» и иконку add', async () => {
@@ -69,11 +69,11 @@ describe('QuickAddItem — облегчённая форма', () => {
     expect(getByTestId('icon-add')).toBeTruthy()
   })
 
-  it('[tasks] показывает placeholder «Новая задача»', async () => {
+  it('[tasks] показывает placeholder «Добавить задачи»', async () => {
     const { getByPlaceholderText } = await render(
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
-    expect(getByPlaceholderText('Новая задача')).toBeTruthy()
+    expect(getByPlaceholderText('Добавить задачи')).toBeTruthy()
   })
 
   it('сетки из 4 чипов под полем НЕТ (облегчённая форма)', async () => {
@@ -209,7 +209,7 @@ describe('QuickAddItem — облегчённая форма', () => {
       <QuickAddItem listType="tasks" onAdd={jest.fn()} />,
     )
     await act(async () => {
-      fireEvent.changeText(getByPlaceholderText('Новая задача'), 'Согласовать акт сверки')
+      fireEvent.changeText(getByPlaceholderText('Добавить задачи'), 'Согласовать акт сверки')
     })
     await act(async () => {
       fireEvent.press(getByLabelText('Допатрибуты'))
@@ -223,7 +223,7 @@ describe('QuickAddItem — облегчённая форма', () => {
       <QuickAddItem listType="goods" onAdd={onAdd} />,
     )
     await act(async () => {
-      fireEvent.changeText(getByPlaceholderText('Добавить товар'), 'Молоко')
+      fireEvent.changeText(getByPlaceholderText('Что купить'), 'Молоко')
     })
     await act(async () => {
       fireEvent.press(getByLabelText('Добавить'))
@@ -255,7 +255,7 @@ describe('QuickAddItem — облегчённая форма', () => {
       fireEvent.press(getByLabelText('Закрыть'))
     })
     await act(async () => {
-      fireEvent.changeText(getByPlaceholderText('Новая задача'), 'Позвонить')
+      fireEvent.changeText(getByPlaceholderText('Добавить задачи'), 'Позвонить')
     })
     await act(async () => {
       fireEvent.press(getByLabelText('Добавить'))
@@ -273,7 +273,7 @@ describe('QuickAddItem — облегчённая форма', () => {
     const { getByPlaceholderText, getByLabelText } = await render(
       <QuickAddItem listType="goods" onAdd={jest.fn()} />,
     )
-    const input = getByPlaceholderText('Добавить товар')
+    const input = getByPlaceholderText('Что купить')
     await act(async () => {
       fireEvent.changeText(input, 'Хлеб')
     })

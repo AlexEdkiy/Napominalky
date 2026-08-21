@@ -250,9 +250,9 @@ describe('Экран [uuid] — goods, пустой список', () => {
     expect(queryByTestId('progress-ring')).toBeNull()
   })
 
-  it('поле добавления с placeholder «Добавить товар»', async () => {
+  it('поле добавления с placeholder «Что купить»', async () => {
     const { getByPlaceholderText } = await render(<Screen />)
-    expect(getByPlaceholderText('Добавить товар')).toBeTruthy()
+    expect(getByPlaceholderText('Что купить')).toBeTruthy()
   })
 
   it('баннер «Задача создана — добавьте первый пункт»', async () => {
@@ -273,9 +273,9 @@ describe('Экран [uuid] — goods, пустой список', () => {
 describe('Экран [uuid] — tasks, пустой список', () => {
   beforeEach(() => { resetToTasksEmpty() })
 
-  it('поле добавления с placeholder «Новая задача»', async () => {
+  it('поле добавления с placeholder «Добавить задачи»', async () => {
     const { getByPlaceholderText } = await render(<Screen />)
-    expect(getByPlaceholderText('Новая задача')).toBeTruthy()
+    expect(getByPlaceholderText('Добавить задачи')).toBeTruthy()
   })
 
   it('баннер «Задача создана — добавьте первый пункт»', async () => {
