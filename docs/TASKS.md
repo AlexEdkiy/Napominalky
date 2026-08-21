@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-18 (веб: название задачи — в заголовке формы, «Пункты» убран, плейсхолдер «Добавить задачи» — WEB-46)
+> Последнее обновление: 2026-08-21 (МП: управляющие пуши напоминаний, фикс флажка «Выполнено», закрытие формы по «Сохранить» — MOB-63)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -10,20 +10,20 @@
 | ARCH    | 3            | architect                 |
 | DEV     | 21           | backend-developer         |
 | MBE     | 19           | mobile-backend-developer  |
-| MOB     | 62           | mobile-developer          |
+| MOB     | 63           | mobile-developer          |
 | WEB     | 46           | web-developer             |
 | TEST    | 17           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 49           | technical-writer          |
+| DOC     | 50           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 134 |
+| Completed | 135 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2589,3 +2589,20 @@
   - [x] vue-tsc OK, Vitest зелёный (631)
 - **Создана:** 2026-08-18
 - **Завершена:** 2026-08-18
+
+### MOB-63: Напоминания — управляющие пуши, фикс флажка «Выполнено», закрытие формы по «Сохранить»
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** MOB-62
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** (1) Управляющие пуши напоминаний: категория `reminder-actions` (`setNotificationCategoryAsync`) с кнопками «Выполнено» и «Отложить на 10 мин», обе `opensAppToForeground: false`; `scheduleReminder` вешает `categoryIdentifier`; обработка в `handleNotificationResponse` (useNotifications): «Выполнено» → `remindersRepo.completeReminder` (отмена уведомления, recurrence-следующее вхождение), «Отложить» → `snoozeReminder(now+10м)` (перепланирование), затем dismiss из шторки + инвалидация кэша `['reminders']`; тап по телу — прежняя навигация; холодный старт — через `getLastNotificationResponseAsync`. (2) Флажок «Выполнено» в списке напоминаний не срабатывал: вложенный Pressable кнопки внутри Pressable карточки терял тапы на Android (тот же класс бага, что ранее в ItemRow) — кнопка вынесена соседкой в контейнер-View. (3) Экран редактирования напоминания: «Сохранить» теперь закрывает форму (`router.back()` в onSuccess; при экспорте в календарь — после алерта с результатом, как на создании), «Выполнить» после подтверждения тоже возвращает назад.
+- **Файлы:** `mobile/src/services/notifications.ts`, `mobile/src/hooks/useNotifications.ts`, `mobile/src/components/reminders/ReminderListItem.tsx`, `mobile/app/reminders/[uuid].tsx`, `mobile/jest.setup.js` + тесты (notifications/useNotifications/uuid)
+- **Критерии приёмки:**
+  - [x] Пуш напоминания содержит кнопки «Выполнено»/«Отложить на 10 мин», действия работают без открытия приложения
+  - [x] Флажок в списке открывает подтверждение и закрывает напоминание
+  - [x] «Сохранить» на форме добавления/изменения закрывает форму
+  - [x] tsc OK, Jest зелёный (1077)
+- **Создана:** 2026-08-21
+- **Завершена:** 2026-08-21
