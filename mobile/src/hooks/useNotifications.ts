@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import * as Notifications from 'expo-notifications'
 import { router, type Href } from 'expo-router'
 
+import { QueryKeys } from '@/constants/QueryKeys'
+import { remindersRepo } from '@/db/repositories/remindersRepo'
 import {
   configureNotificationHandler,
   ensureAndroidNotificationChannel,
+  ensureReminderNotificationCategory,
+  REMINDER_ACTION_COMPLETE,
+  REMINDER_ACTION_SNOOZE_10M,
 } from '@/services/notifications'
 import { rescheduleAllNotificationsOnStart } from '@/services/notificationsBootstrap'
 import {
@@ -12,6 +18,9 @@ import {
   parseNotificationData,
   reminderRoute,
 } from '@/services/deepLinks'
+
+/** Отсрочка кнопки «Отложить на 10 мин» в уведомлении. */
+const SNOOZE_ACTION_MS = 10 * 60 * 1000
 
 interface UseNotificationsResult {
   granted: boolean
@@ -39,6 +48,49 @@ const navigateFromResponse = (
   }
 }
 
+/**
+ * Обрабатывает ответ на уведомление. Управляющие кнопки уведомления
+ * напоминания («Выполнено» / «Отложить на 10 мин») выполняют действие без
+ * навигации: репозиторий сам отменяет/перепланирует локальное уведомление,
+ * после — инвалидация кэша напоминаний и снятие уведомления из шторки.
+ * Обычный тап по телу (DEFAULT_ACTION_IDENTIFIER) — прежняя навигация.
+ */
+export const handleNotificationResponse = async (
+  response: Notifications.NotificationResponse | null,
+  queryClient: QueryClient,
+): Promise<void> => {
+  if (response === null) return
+  const link = parseNotificationData(responseData(response))
+
+  if (link?.type === 'reminder' && response.actionIdentifier === REMINDER_ACTION_COMPLETE) {
+    await remindersRepo.completeReminder(link.uuid)
+    await dismissAndInvalidate(response, queryClient)
+    return
+  }
+
+  if (link?.type === 'reminder' && response.actionIdentifier === REMINDER_ACTION_SNOOZE_10M) {
+    const snoozedUntil = new Date(Date.now() + SNOOZE_ACTION_MS).toISOString()
+    await remindersRepo.snoozeReminder(link.uuid, snoozedUntil)
+    await dismissAndInvalidate(response, queryClient)
+    return
+  }
+
+  navigateFromResponse(response)
+}
+
+/** Убирает сработавшее уведомление из шторки и обновляет кэш напоминаний. */
+const dismissAndInvalidate = async (
+  response: Notifications.NotificationResponse,
+  queryClient: QueryClient,
+): Promise<void> => {
+  try {
+    await Notifications.dismissNotificationAsync(response.notification.request.identifier)
+  } catch {
+    // Уведомление могло быть уже закрыто пользователем/системой.
+  }
+  await queryClient.invalidateQueries({ queryKey: QueryKeys.reminders.all })
+}
+
 /** Запрашивает разрешения, повторно не дёргая системный диалог, если уже granted. */
 const ensurePermissions = async (): Promise<boolean> => {
   const current = await Notifications.getPermissionsAsync()
@@ -49,19 +101,22 @@ const ensurePermissions = async (): Promise<boolean> => {
 
 /**
  * Корневой хук уведомлений (FR-27): настраивает foreground-handler, Android-канал,
- * запрашивает разрешения, переустанавливает расписание будущих напоминаний и
- * навигирует по тапу на уведомление. Обрабатывает «холодный старт» (приложение
- * открыто тапом) через getLastNotificationResponseAsync, а тапы при работающем
- * приложении — через подписку (с cleanup).
+ * категорию с управляющими кнопками, запрашивает разрешения, переустанавливает
+ * расписание будущих напоминаний и обрабатывает ответы на уведомления: тап по
+ * телу — навигация, кнопки «Выполнено»/«Отложить на 10 мин» — действие без
+ * открытия приложения. «Холодный старт» — через getLastNotificationResponseAsync,
+ * при работающем приложении — через подписку (с cleanup).
  */
 export const useNotifications = (): UseNotificationsResult => {
   const [granted, setGranted] = useState(false)
   const coldStartHandled = useRef(false)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     let active = true
     configureNotificationHandler()
     void ensureAndroidNotificationChannel()
+    void ensureReminderNotificationCategory()
 
     void ensurePermissions().then((value) => {
       if (active) setGranted(value)
@@ -69,21 +124,21 @@ export const useNotifications = (): UseNotificationsResult => {
 
     if (!coldStartHandled.current) {
       coldStartHandled.current = true
-      void Notifications.getLastNotificationResponseAsync().then(
-        navigateFromResponse,
+      void Notifications.getLastNotificationResponseAsync().then((response) =>
+        handleNotificationResponse(response, queryClient),
       )
       void rescheduleAllNotificationsOnStart()
     }
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
-      navigateFromResponse,
+      (response) => void handleNotificationResponse(response, queryClient),
     )
 
     return () => {
       active = false
       subscription.remove()
     }
-  }, [])
+  }, [queryClient])
 
   return { granted }
 }

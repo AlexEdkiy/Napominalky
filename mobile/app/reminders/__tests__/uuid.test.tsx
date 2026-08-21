@@ -140,7 +140,8 @@ describe('ReminderDetailScreen — экспорт в календарь посл
 
     expect(mockUpdate).toHaveBeenCalledTimes(1)
     expect(mockExport).not.toHaveBeenCalled()
-    expect(mockBack).not.toHaveBeenCalled()
+    // «Сохранить» закрывает форму (возврат назад) сразу после успешного PUT.
+    expect(mockBack).toHaveBeenCalledTimes(1)
   })
 
   it('с чекбоксом экспорт вызывается только после onSuccess, с Alert о результате', async () => {
@@ -167,8 +168,16 @@ describe('ReminderDetailScreen — экспорт в календарь посл
       notes: null,
       remind_at: '2026-07-03T10:00:00.000Z',
     })
-    expect(alertSpy).toHaveBeenCalledWith('Добавлено в календарь', 'Напоминание экспортировано.')
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Добавлено в календарь',
+      'Напоминание экспортировано.',
+      [expect.objectContaining({ text: 'OK' })],
+    )
+    // Возврат назад — только после закрытия алерта (кнопка OK).
     expect(mockBack).not.toHaveBeenCalled()
+    const okButtons = alertSpy.mock.calls.at(-1)?.[2] as AlertButton[]
+    okButtons.find((b) => b.text === 'OK')?.onPress?.()
+    expect(mockBack).toHaveBeenCalledTimes(1)
   })
 
   it('после успешного экспорта сохраняет eventId в calendar_event_id напоминания', async () => {
@@ -273,7 +282,7 @@ describe('ReminderDetailScreen — «Выполнить» с подтвержд�
     fireEvent.press(getByLabelText('Выполнить'))
     const buttons = alertSpy.mock.calls[0]?.[2] as AlertButton[]
     buttons.find((b) => b.text === 'Закрыть')?.onPress?.()
-    expect(mockComplete).toHaveBeenCalledWith('rem-1')
+    expect(mockComplete).toHaveBeenCalledWith('rem-1', { onSuccess: expect.any(Function) })
   })
 
   it('кнопка «Отмена» (style: cancel) не вызывает мутацию', async () => {

@@ -24,6 +24,8 @@ interface ReminderListItemProps {
  * Строка списка напоминаний: иконка будильника в мягком круге, заголовок,
  * чип «дата, время», опциональная подпись просрочки и скруглённо-квадратная
  * кнопка «выполнить» справа. Тон (danger/amber) консистентен с главной.
+ * Кнопка «выполнить» — СОСЕДКА Pressable карточки, не потомок: вложенный
+ * Pressable на Android терял тапы (тот же класс бага, что в ItemRow).
  */
 const ReminderListItem: React.FC<ReminderListItemProps> = ({
   reminder, overdueText = null, tone, onPress, onComplete,
@@ -35,43 +37,41 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
   const toneSoftBg = isOverdue ? colors.dangerSoftBg : colors.amberBg
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      onPress={() => onPress(reminder.uuid)}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: colors.surface },
-        pressed && styles.pressed,
-      ]}
-    >
-      <View
-        testID="reminder-icon-wrap"
-        style={[styles.iconCircle, { backgroundColor: toneSoftBg }]}
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        onPress={() => onPress(reminder.uuid)}
+        style={({ pressed }) => [styles.main, pressed && styles.pressed]}
       >
-        <Ionicons name="alarm" size={20} color={toneColor} />
-      </View>
-
-      <View style={styles.content}>
-        <Text numberOfLines={2} style={[styles.title, { color: colors.textPrimary }]}>
-          {title}
-        </Text>
-        <View style={styles.metaRow}>
-          <View
-            testID="reminder-date-chip"
-            style={[styles.dateChip, { backgroundColor: toneSoftBg }]}
-          >
-            <Text style={[styles.dateChipText, { color: toneColor }]}>
-              {formatReminderChip(reminder.remindAt)}
-            </Text>
-          </View>
+        <View
+          testID="reminder-icon-wrap"
+          style={[styles.iconCircle, { backgroundColor: toneSoftBg }]}
+        >
+          <Ionicons name="alarm" size={20} color={toneColor} />
         </View>
-        {isOverdue && (
-          <Text style={[styles.overdueText, { color: colors.danger }]}>
-            {overdueText}
+
+        <View style={styles.content}>
+          <Text numberOfLines={2} style={[styles.title, { color: colors.textPrimary }]}>
+            {title}
           </Text>
-        )}
-      </View>
+          <View style={styles.metaRow}>
+            <View
+              testID="reminder-date-chip"
+              style={[styles.dateChip, { backgroundColor: toneSoftBg }]}
+            >
+              <Text style={[styles.dateChipText, { color: toneColor }]}>
+                {formatReminderChip(reminder.remindAt)}
+              </Text>
+            </View>
+          </View>
+          {isOverdue && (
+            <Text style={[styles.overdueText, { color: colors.danger }]}>
+              {overdueText}
+            </Text>
+          )}
+        </View>
+      </Pressable>
 
       <Pressable
         accessibilityRole="button"
@@ -87,7 +87,7 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
       >
         <Ionicons name="checkmark" size={18} color={colors.accent} />
       </Pressable>
-    </Pressable>
+    </View>
   )
 }
 
@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: Platform.OS === 'android' ? 3 : 0,
   },
+  main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   pressed: { opacity: 0.85 },
   iconCircle: {
     width: 42,

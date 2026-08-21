@@ -2,6 +2,9 @@ import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import {
   DEFAULT_ANDROID_CHANNEL_ID,
+  REMINDER_ACTION_COMPLETE,
+  REMINDER_ACTION_SNOOZE_10M,
+  REMINDER_CATEGORY_ID,
   cancelReminder,
   configureNotificationHandler,
   ensureAndroidNotificationChannel,
@@ -46,6 +49,30 @@ describe('scheduleReminder', () => {
     expect(arg.trigger.type).toBe('date')
     expect(arg.trigger.date).toBeInstanceOf(Date)
     expect(arg.trigger.channelId).toBe(DEFAULT_ANDROID_CHANNEL_ID)
+  })
+
+  it('уведомление получает категорию с кнопками «Выполнено»/«Отложить на 10 мин»', async () => {
+    await scheduleReminder({ uuid: 'u1', title: 'Звонок', remind_at: future() })
+    const arg = mockSchedule.mock.calls[0]?.[0]
+    expect(arg.content.categoryIdentifier).toBe(REMINDER_CATEGORY_ID)
+
+    // Регистрация категории — идемпотентный singleton: проверяем на свежем
+    // экземпляре модуля (в этом файле категория уже зарегистрирована ранее).
+    const mockSetCategory = Notifications.setNotificationCategoryAsync as jest.Mock
+    let fresh: typeof import('../notifications') | undefined
+    jest.isolateModules(() => {
+      fresh = require('../notifications')
+    })
+    await fresh?.ensureReminderNotificationCategory()
+    const call = mockSetCategory.mock.calls.find(([id]: [string]) => id === REMINDER_CATEGORY_ID)
+    expect(call).toBeDefined()
+    const actions = call?.[1] as Array<{ identifier: string; buttonTitle: string; options?: { opensAppToForeground?: boolean } }>
+    expect(actions.map((a) => a.identifier)).toEqual([
+      REMINDER_ACTION_COMPLETE,
+      REMINDER_ACTION_SNOOZE_10M,
+    ])
+    expect(actions.map((a) => a.buttonTitle)).toEqual(['Выполнено', 'Отложить на 10 мин'])
+    expect(actions.every((a) => a.options?.opensAppToForeground === false)).toBe(true)
   })
 
   it('прошедшую дату не планирует, возвращает null', async () => {

@@ -49,9 +49,41 @@ export interface SchedulableListItem {
 
 let handlerConfigured = false
 let androidChannelConfigured = false
+let reminderCategoryConfigured = false
 
 /** Id Android-канала по умолчанию, используемого всеми локальными уведомлениями. */
 export const DEFAULT_ANDROID_CHANNEL_ID = 'default'
+
+/** Категория уведомления напоминания — даёт управляющие кнопки-действия. */
+export const REMINDER_CATEGORY_ID = 'reminder-actions'
+/** actionIdentifier кнопки «Выполнено» в уведомлении напоминания. */
+export const REMINDER_ACTION_COMPLETE = 'reminder-complete'
+/** actionIdentifier кнопки «Отложить на 10 мин» в уведомлении напоминания. */
+export const REMINDER_ACTION_SNOOZE_10M = 'reminder-snooze-10m'
+
+/**
+ * Регистрирует категорию уведомлений напоминаний с управляющими кнопками
+ * «Выполнено» и «Отложить на 10 мин». Обе кнопки НЕ открывают приложение
+ * (opensAppToForeground: false) — действие обрабатывается фоновым
+ * response-листенером (useNotifications), а при убитом приложении — через
+ * getLastNotificationResponseAsync на следующем старте. Идемпотентна.
+ */
+export const ensureReminderNotificationCategory = async (): Promise<void> => {
+  if (reminderCategoryConfigured) return
+  reminderCategoryConfigured = true
+  await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
+    {
+      identifier: REMINDER_ACTION_COMPLETE,
+      buttonTitle: 'Выполнено',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: REMINDER_ACTION_SNOOZE_10M,
+      buttonTitle: 'Отложить на 10 мин',
+      options: { opensAppToForeground: false },
+    },
+  ])
+}
 
 /**
  * Настраивает поведение уведомлений в foreground (баннер + список + sound).
@@ -126,11 +158,17 @@ export const scheduleReminder = async (
   if (date.getTime() <= Date.now()) return null
 
   await ensureAndroidNotificationChannel()
+  await ensureReminderNotificationCategory()
   if (!(await hasNotificationPermission())) return null
 
   const data: ReminderNotificationData = { type: 'reminder', uuid: reminder.uuid }
   return Notifications.scheduleNotificationAsync({
-    content: { title: reminder.title, body: reminder.notes ?? '', data },
+    content: {
+      title: reminder.title,
+      body: reminder.notes ?? '',
+      data,
+      categoryIdentifier: REMINDER_CATEGORY_ID,
+    },
     trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
 }

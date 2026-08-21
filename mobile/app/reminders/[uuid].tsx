@@ -25,6 +25,7 @@ const exportAfterSave = async (
   Alert.alert(
     eventId ? 'Добавлено в календарь' : 'Не удалось',
     eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
+    [{ text: 'OK', onPress: () => router.back() }],
   )
 }
 
@@ -46,9 +47,13 @@ export default function ReminderDetailScreen() {
         },
       },
       {
+        // «Сохранить» закрывает форму; при экспорте — после алерта с результатом.
         onSuccess: () => {
           // Уже экспортированное напоминание форма не помечает на экспорт.
-          if (!values.exportToCalendar) return
+          if (!values.exportToCalendar) {
+            router.back()
+            return
+          }
           void exportAfterSave(values, (eventId) =>
             setCalendarEventId.mutate({ uuid: reminderUuid, calendarEventId: eventId }),
           )
@@ -81,7 +86,9 @@ export default function ReminderDetailScreen() {
   }
 
   const handleComplete = (): void => {
-    confirmCloseReminder(() => completeReminder.mutate(reminderUuid))
+    confirmCloseReminder(() =>
+      completeReminder.mutate(reminderUuid, { onSuccess: () => router.back() }),
+    )
   }
 
   return (
