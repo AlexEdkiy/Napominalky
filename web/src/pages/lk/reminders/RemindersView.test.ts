@@ -10,12 +10,15 @@ import { remindersApi } from '@/api/remindersApi'
 import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
 import type { Reminder } from '@/types/reminder'
 
+/** Будущая дата по умолчанию: дефолтный фильтр — «Запланированные». */
+const FUTURE_REMIND_AT = new Date(Date.now() + 3 * 86_400_000).toISOString()
+
 function makeReminder(overrides: Partial<Reminder>): Reminder {
   return {
     uuid: 'r-1',
     title: 'Позвонить врачу',
     notes: null,
-    remind_at: '2026-07-10T18:00:00.000Z',
+    remind_at: FUTURE_REMIND_AT,
     recurrence: 'none',
     is_completed: false,
     completed_at: null,
@@ -85,14 +88,14 @@ describe('RemindersView', () => {
     mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 
-  it('loads pending reminders (per_page <= 100) on mount', async () => {
+  it('loads ALL reminders (per_page <= 100) on mount — разбивка на клиенте', async () => {
     vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginatedReminders([]))
 
     await mountView()
 
     await vi.waitFor(() =>
       expect(remindersApi.fetchReminders).toHaveBeenCalledWith({
-        status: 'pending',
+        status: 'all',
         sort: 'remind_at',
         order: 'asc',
         per_page: 100,
@@ -118,7 +121,7 @@ describe('RemindersView', () => {
     const { wrapper } = await mountView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
-    expect(wrapper.text()).toContain('Напоминаний пока нет')
+    expect(wrapper.text()).toContain('Ничего не запланировано')
     expect(wrapper.find('.reminders-view__empty-cta').exists()).toBe(true)
   })
 
@@ -129,22 +132,45 @@ describe('RemindersView', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('network down'))
   })
 
-  it('refetches with the selected status filter', async () => {
-    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginatedReminders([]))
+  it('switches filters client-side (без refetch): Просроченные/Запланированные/Выполненные', async () => {
+    const past = makeReminder({
+      uuid: 'r-over',
+      title: 'Просроченное дело',
+      remind_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+    })
+    const future = makeReminder({ uuid: 'r-plan', title: 'Будущее дело' })
+    const done = makeReminder({ uuid: 'r-done', title: 'Сделанное дело', is_completed: true })
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginatedReminders([past, future, done]),
+    )
 
     const { wrapper } = await mountView()
     await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
 
-    await wrapper.findAll('.reminders-view__filter')[1]?.trigger('click')
+    // Дефолт — «Запланированные»: только будущее активное, секцией с заголовком.
+    expect(wrapper.text()).toContain('Будущее дело')
+    expect(wrapper.text()).not.toContain('Просроченное дело')
+    expect(wrapper.findAll('.reminders-view__section-title').length).toBeGreaterThan(0)
 
-    await vi.waitFor(() =>
-      expect(remindersApi.fetchReminders).toHaveBeenLastCalledWith({
-        status: 'completed',
-        sort: 'remind_at',
-        order: 'asc',
-        per_page: 100,
-      }),
-    )
+    // Счётчики в сегментах — как в МП: Просроченные 1 / Запланированные 1.
+    const counts = wrapper.findAll('.reminders-view__filter-count').map((el) => el.text())
+    expect(counts).toEqual(['1', '1'])
+
+    // «Просроченные»: карточка с danger-подсветкой и подписью просрочки.
+    await wrapper.findAll('.reminders-view__filter')[0]?.trigger('click')
+    expect(wrapper.text()).toContain('Просроченное дело')
+    const overdueCard = wrapper.find('.lk-reminder-card')
+    expect(overdueCard.classes()).toContain('lk-reminder-card--overdue')
+    expect(overdueCard.text()).toContain('просрочено на 2 дня')
+    expect(overdueCard.text()).toContain('Просрочено')
+
+    // «Выполненные»: только завершённое.
+    await wrapper.findAll('.reminders-view__filter')[2]?.trigger('click')
+    expect(wrapper.text()).toContain('Сделанное дело')
+    expect(wrapper.text()).not.toContain('Будущее дело')
+
+    // Всё это — без повторных запросов к API.
+    expect(remindersApi.fetchReminders).toHaveBeenCalledTimes(1)
   })
 
   it('opens the reminder form modal (edit) with the full reminder when a card is clicked', async () => {
@@ -279,7 +305,7 @@ describe('RemindersView', () => {
     await vi.waitFor(() => expect(remindersApi.deleteReminder).toHaveBeenCalledTimes(2))
     expect(remindersApi.deleteReminder).toHaveBeenCalledWith('r-1')
     expect(remindersApi.deleteReminder).toHaveBeenCalledWith('r-2')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Напоминаний пока нет'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Ничего не запланировано'))
   })
 
   it('does not delete anything when the bulk-delete confirmation is cancelled', async () => {
@@ -347,5 +373,6 @@ vi.mock('@/api/remindersApi', () => ({
     deleteReminder: vi.fn(),
     completeReminder: vi.fn(),
     snoozeReminder: vi.fn(),
+    snoozeReminderUntil: vi.fn(),
   },
 }))

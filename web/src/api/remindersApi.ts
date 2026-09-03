@@ -66,4 +66,12 @@ export const remindersApi = {
     })
     return data.data
   },
+
+  /** Откладывание до своего времени: POST {snoozed_until: ISO} (строго в будущем). */
+  snoozeReminderUntil: async (uuid: string, snoozedUntilIso: string): Promise<Reminder> => {
+    const { data } = await apiClient.post<ApiResponse<Reminder>>(`/reminders/${uuid}/snooze`, {
+      snoozed_until: snoozedUntilIso,
+    })
+    return data.data
+  },
 }

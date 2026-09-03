@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import type { Reminder, SnoozeOption } from '@/types/reminder'
-import { formatDateTime } from '@/utils/datetime'
+import { dateTimeLocalToIso, formatDateTime } from '@/utils/datetime'
 
 interface Props {
   reminder: Reminder
@@ -11,20 +11,48 @@ interface Props {
   selectable?: boolean
   /** Карточка выбрана (управляется родителем). */
   selected?: boolean
+  /** Подпись просрочки («просрочено на N дней»); null — не просрочено. */
+  overdueText?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   selectable: false,
   selected: false,
+  overdueText: null,
 })
 
 const emit = defineEmits<{
   open: [uuid: string]
   complete: [uuid: string]
   snooze: [uuid: string, option: SnoozeOption]
+  snoozeUntil: [uuid: string, snoozedUntilIso: string]
   remove: [uuid: string]
   toggleSelect: [uuid: string]
 }>()
+
+/** Инлайн-пикер «Своё время»: открыт/черновик datetime-local. */
+const isCustomSnoozeOpen = ref(false)
+const customSnoozeDraft = ref('')
+
+const customSnoozeValid = computed<boolean>(() => {
+  const iso = dateTimeLocalToIso(customSnoozeDraft.value)
+  return iso !== null && new Date(iso).getTime() > Date.now()
+})
+
+function toggleCustomSnooze(): void {
+  isCustomSnoozeOpen.value = !isCustomSnoozeOpen.value
+  customSnoozeDraft.value = ''
+}
+
+function submitCustomSnooze(): void {
+  const iso = dateTimeLocalToIso(customSnoozeDraft.value)
+  if (iso === null || !customSnoozeValid.value) {
+    return
+  }
+  isCustomSnoozeOpen.value = false
+  customSnoozeDraft.value = ''
+  emit('snoozeUntil', props.reminder.uuid, iso)
+}
 
 const recurrenceLabels: Record<Reminder['recurrence'], string> = {
   none: 'Без повтора',
@@ -46,7 +74,10 @@ function stop(event: Event, action: () => void): void {
 <template>
   <article
     class="lk-reminder-card"
-    :class="{ 'lk-reminder-card--done': reminder.is_completed }"
+    :class="{
+      'lk-reminder-card--done': reminder.is_completed,
+      'lk-reminder-card--overdue': overdueText !== null,
+    }"
     @click="emit('open', reminder.uuid)"
   >
     <label v-if="selectable" class="lk-reminder-card__select" @click.stop>
@@ -59,16 +90,25 @@ function stop(event: Event, action: () => void): void {
       />
     </label>
 
-    <span class="lk-reminder-card__icon"><LkIcon name="bell" :size="18" /></span>
+    <span
+      class="lk-reminder-card__icon"
+      :class="{ 'lk-reminder-card__icon--overdue': overdueText !== null }"
+    ><LkIcon name="bell" :size="18" /></span>
 
     <div class="lk-reminder-card__body">
       <div class="lk-reminder-card__row">
         <h3 class="lk-reminder-card__title">{{ reminder.title }}</h3>
         <span
           class="lk-reminder-card__status"
-          :class="reminder.is_completed ? 'lk-reminder-card__status--done' : 'lk-reminder-card__status--pending'"
+          :class="
+            reminder.is_completed
+              ? 'lk-reminder-card__status--done'
+              : overdueText !== null
+                ? 'lk-reminder-card__status--overdue'
+                : 'lk-reminder-card__status--pending'
+          "
         >
-          {{ reminder.is_completed ? 'Выполнено' : 'Ожидает' }}
+          {{ reminder.is_completed ? 'Выполнено' : overdueText !== null ? 'Просрочено' : 'Ожидает' }}
         </span>
       </div>
 
@@ -78,6 +118,7 @@ function stop(event: Event, action: () => void): void {
           {{ recurrenceLabel }}
         </span>
         <span v-if="snoozedLabel" class="lk-reminder-card__snoozed">Отложено до {{ snoozedLabel }}</span>
+        <span v-if="overdueText" class="lk-reminder-card__overdue-label">{{ overdueText }}</span>
       </p>
 
       <p v-if="reminder.notes" class="lk-reminder-card__notes">{{ reminder.notes }}</p>
@@ -110,6 +151,17 @@ function stop(event: Event, action: () => void): void {
           +1 час
         </button>
         <button
+          v-if="!reminder.is_completed"
+          type="button"
+          class="lk-reminder-card__action"
+          :class="{ 'lk-reminder-card__action--toggled': isCustomSnoozeOpen }"
+          :aria-label="`Отложить на своё время: ${reminder.title}`"
+          :aria-expanded="isCustomSnoozeOpen"
+          @click="stop($event, toggleCustomSnooze)"
+        >
+          Своё время
+        </button>
+        <button
           type="button"
           class="lk-reminder-card__action"
           :aria-label="`Редактировать ${reminder.title}`"
@@ -124,6 +176,25 @@ function stop(event: Event, action: () => void): void {
           @click="stop($event, () => emit('remove', reminder.uuid))"
         >
           <LkIcon name="trash" :size="14" />
+        </button>
+      </div>
+
+      <!-- Инлайн-пикер «Своё время»: datetime-local + «Отложить» (строго будущее) -->
+      <div v-if="isCustomSnoozeOpen" class="lk-reminder-card__custom-snooze" @click.stop>
+        <input
+          v-model="customSnoozeDraft"
+          type="datetime-local"
+          class="lk-reminder-card__custom-snooze-input"
+          aria-label="Своё время откладывания"
+          @keydown.enter.prevent="submitCustomSnooze"
+        />
+        <button
+          type="button"
+          class="lk-reminder-card__custom-snooze-submit"
+          :disabled="!customSnoozeValid"
+          @click="submitCustomSnooze"
+        >
+          Отложить
         </button>
       </div>
     </div>
@@ -143,6 +214,13 @@ function stop(event: Event, action: () => void): void {
 
 .lk-reminder-card--done {
   opacity: 0.65;
+}
+
+/* Просроченное: красный акцент слева — как danger-тон карточек в МП. */
+.lk-reminder-card--overdue {
+  box-shadow:
+    inset 4px 0 0 #cf5b4a,
+    0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 .lk-reminder-card__select {
@@ -207,6 +285,11 @@ function stop(event: Event, action: () => void): void {
   color: #c98a2b;
 }
 
+.lk-reminder-card__status--overdue {
+  background: #f6dfda;
+  color: #cf5b4a;
+}
+
 .lk-reminder-card__status--done {
   background: #eef1f0;
   color: #6b716e;
@@ -233,6 +316,16 @@ function stop(event: Event, action: () => void): void {
 
 .lk-reminder-card__snoozed {
   color: #c98a2b;
+}
+
+.lk-reminder-card__icon--overdue {
+  background: #f6dfda;
+  color: #cf5b4a;
+}
+
+.lk-reminder-card__overdue-label {
+  color: #cf5b4a;
+  font-weight: 700;
 }
 
 .lk-reminder-card__notes {
@@ -271,5 +364,42 @@ function stop(event: Event, action: () => void): void {
 .lk-reminder-card__action--danger:hover {
   background: #f6dfda;
   color: #cf5b4a;
+}
+
+.lk-reminder-card__action--toggled {
+  background: #d8ebe4;
+  color: #17897a;
+}
+
+.lk-reminder-card__custom-snooze {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.lk-reminder-card__custom-snooze-input {
+  padding: 0.35rem 0.6rem;
+  border: 1.5px solid #e3e6e5;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: #1f2622;
+}
+
+.lk-reminder-card__custom-snooze-submit {
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: #17897a;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lk-reminder-card__custom-snooze-submit:disabled {
+  background: #eef1f0;
+  color: #8a938f;
+  cursor: not-allowed;
 }
 </style>

@@ -102,5 +102,18 @@ export function useReminders() {
     }
   }
 
-  return { reminders, isLoading, error, load, create, update, remove, complete, snooze }
+  /** Откладывание до своего времени (datetime-local → ISO, строго в будущем). */
+  async function snoozeUntil(uuid: string, snoozedUntilIso: string): Promise<Reminder | null> {
+    error.value = null
+    try {
+      const reminder = await remindersApi.snoozeReminderUntil(uuid, snoozedUntilIso)
+      replaceReminder(reminder)
+      return reminder
+    } catch (e) {
+      resolveError(e)
+      return null
+    }
+  }
+
+  return { reminders, isLoading, error, load, create, update, remove, complete, snooze, snoozeUntil }
 }
