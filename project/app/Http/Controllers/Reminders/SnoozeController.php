@@ -21,9 +21,13 @@ final class SnoozeController extends Controller
     {
         $this->authorize('snooze', $reminder);
 
-        $option = SnoozeOption::from($request->string('snooze')->toString());
+        // Пресет ('10m'|'1h') либо своё время snoozed_until — валидация
+        // гарантирует ровно одно из двух (см. SnoozeReminderRequest).
+        $target = $request->filled('snoozed_until')
+            ? $request->date('snoozed_until')->toImmutable()
+            : SnoozeOption::from($request->string('snooze')->toString());
 
-        $snoozed = ($this->snoozeReminder)($reminder, $option);
+        $snoozed = ($this->snoozeReminder)($reminder, $target);
 
         return ReminderResource::make($snoozed);
     }

@@ -70,6 +70,49 @@ it('snoozes a reminder for 1 hour via the API', function (): void {
     expect($reminder->fresh()->snoozed_until)->not->toBeNull();
 });
 
+it('snoozes a reminder until a custom future datetime via the API', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $reminder = Reminder::factory()->for($user)->create();
+    $until = now()->addHours(3)->startOfMinute();
+
+    $this->postJson("/api/v1/reminders/{$reminder->uuid}/snooze", [
+        'snoozed_until' => $until->toIso8601String(),
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.uuid', $reminder->uuid);
+
+    expect($reminder->fresh()->snoozed_until?->timestamp)->toBe($until->timestamp);
+});
+
+it('rejects a custom snooze datetime in the past with 422', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $reminder = Reminder::factory()->for($user)->create();
+
+    $this->postJson("/api/v1/reminders/{$reminder->uuid}/snooze", [
+        'snoozed_until' => now()->subHour()->toIso8601String(),
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['snoozed_until']);
+});
+
+it('rejects snooze preset combined with a custom datetime with 422', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $reminder = Reminder::factory()->for($user)->create();
+
+    $this->postJson("/api/v1/reminders/{$reminder->uuid}/snooze", [
+        'snooze' => '10m',
+        'snoozed_until' => now()->addHour()->toIso8601String(),
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['snooze']);
+});
+
 it('rejects an invalid snooze option with 422', function (): void {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

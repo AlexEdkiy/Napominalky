@@ -19,12 +19,20 @@ final class SnoozeReminderRequest extends FormRequest
     }
 
     /**
+     * Либо пресет `snooze` ('10m'|'1h'), либо своё время `snoozed_until`
+     * (ISO-датавремя строго в будущем) — ровно одно из двух.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'snooze' => ['required', Rule::enum(SnoozeOption::class)],
+            'snooze' => [
+                'required_without:snoozed_until',
+                'prohibits:snoozed_until',
+                Rule::enum(SnoozeOption::class),
+            ],
+            'snoozed_until' => ['required_without:snooze', 'date', 'after:now'],
         ];
     }
 }
