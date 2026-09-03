@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-08-21 (вечный спиннер синка: фикс sync_conflicts.entity_type varchar(20→40) — DEV-22; диалог закрытия повторяющегося напоминания — MOB-64)
+> Последнее обновление: 2026-08-21 (веб-напоминания до паритета с МП: сегменты просроченные/запланированные, подсветка, «Своё время» — MBE-20/WEB-47)
 > Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,21 +9,21 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 3            | architect                 |
 | DEV     | 22           | backend-developer         |
-| MBE     | 19           | mobile-backend-developer  |
+| MBE     | 20           | mobile-backend-developer  |
 | MOB     | 64           | mobile-developer          |
-| WEB     | 46           | web-developer             |
+| WEB     | 47           | web-developer             |
 | TEST    | 18           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 9            | devops-engineer           |
-| DOC     | 51           | technical-writer          |
+| DOC     | 52           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 137 |
+| Completed | 139 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -2635,5 +2635,22 @@
   - [x] Для повторяющегося напоминания диалог называет дату следующего вхождения
   - [x] Для обычного — прежнее поведение (без текста)
   - [x] tsc OK, Jest зелёный (1082)
+- **Создана:** 2026-08-21
+- **Завершена:** 2026-08-21
+
+### MBE-20 / WEB-47: Напоминания ЛК до паритета с МП — сегменты, подсветка просрочки, «Своё время»
+- **Исполнители:** mobile-backend-developer (MBE-20), web-developer (WEB-47)
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** WEB-46
+- **Блокирует:** —
+- **Стандарты:** docs/03-laravel.md, docs/07-api.md, docs/05-typescript-vue.md
+- **Описание:** (MBE-20) `POST /reminders/{uuid}/snooze` теперь принимает `snoozed_until` (ISO-датавремя, `after:now`) как альтернативу пресетам `snooze: '10m'|'1h'`; ровно одно из двух (`required_without` + `prohibits`); `SnoozeReminderAction` принимает `SnoozeOption|CarbonInterface`. (WEB-47) Страница «Напоминания» ЛК приведена к функционалу МП: фильтры-сегменты «Просроченные / Запланированные» со счётчиками (+ «Выполненные», «Все»), разбивка клиентская по `remind_at` относительно now (одна загрузка `status=all`, переключение без refetch); «Запланированные» — секциями Сегодня/Завтра/На этой неделе/Позже (порт `reminderGrouping` из МП); просроченные подсвечены danger-тоном (красная кромка, бейдж «Просрочено», подпись «просрочено на N дней», красная иконка); в карточке кнопка «Своё время» — инлайн `datetime-local` с валидацией «строго в будущем» → `snoozeUntil`.
+- **Файлы:** `project/app/Http/{Requests/Reminder/SnoozeReminderRequest,Controllers/Reminders/SnoozeController}.php`, `project/app/Actions/Reminder/SnoozeReminderAction.php` (+ CompleteSnoozeApiTest), `web/src/utils/reminderGrouping.ts` (новый, + тест), `web/src/pages/lk/reminders/RemindersView.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`, `web/src/{api/remindersApi,composables/useReminders}.ts` (+ тесты)
+- **Критерии приёмки:**
+  - [x] Сегменты «Просроченные/Запланированные» со счётчиками; секции запланированных как в МП
+  - [x] Просроченные подсвечены с подписью «просрочено на N дней»
+  - [x] «Своё время» откладывает на произвольную будущую дату (API `snoozed_until`)
+  - [x] Pest 9 passed (snooze), vue-tsc OK, Vitest зелёный (638)
 - **Создана:** 2026-08-21
 - **Завершена:** 2026-08-21
