@@ -411,6 +411,76 @@ describe('LkReminderFormDialog', () => {
     expect(wrapper.find('.lk-form-dialog__overlay--desktop').exists()).toBe(true)
     vi.unstubAllGlobals()
   })
+
+  it('своя дата из пикера добавляет «actual»-пилюлю и попадает в payload', async () => {
+    vi.mocked(remindersApi.createReminder).mockResolvedValue(makeReminder({ uuid: 'r-9' }))
+    const wrapper = mountDialog()
+    useLkForms().openReminderForm()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('input[type="date"]').setValue('2026-07-25')
+    const pillGroups = wrapper.findAll('.lk-form-dialog__pills')
+    const dateLabels = pillGroups[0]!.findAll('.lk-form-dialog__pill').map((pill) => pill.text())
+    expect(dateLabels).toContain('25 июля')
+    expect(pillGroups[0]!.find('.lk-form-dialog__pill--active').text()).toBe('25 июля')
+    expect(wrapper.find('input[type="date"]').classes()).toContain('lk-form-dialog__picker--active')
+
+    await wrapper.find('#reminder-form-title').setValue('Своя дата')
+    await pillGroups[1]!.findAll('.lk-form-dialog__pill')[0]!.trigger('click') // 09:00
+    await wrapper.find('form').trigger('submit')
+
+    const expectedIso = new Date(2026, 6, 25, 9, 0).toISOString()
+    await vi.waitFor(() =>
+      expect(remindersApi.createReminder).toHaveBeenCalledWith(
+        expect.objectContaining({ remind_at: expectedIso }),
+      ),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('своё время из пикера выбирается и попадает в payload', async () => {
+    vi.mocked(remindersApi.createReminder).mockResolvedValue(makeReminder({ uuid: 'r-9' }))
+    const wrapper = mountDialog()
+    useLkForms().openReminderForm()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('input[type="time"]').setValue('14:45')
+    const pillGroups = wrapper.findAll('.lk-form-dialog__pills')
+    // «Актуальное» время встаёт первой пилюлей и выбрано.
+    expect(pillGroups[1]!.find('.lk-form-dialog__pill--active').text()).toBe('14:45')
+
+    await wrapper.find('#reminder-form-title').setValue('Своё время')
+    await pillGroups[0]!.findAll('.lk-form-dialog__pill')[0]!.trigger('click') // Сегодня
+    await wrapper.find('form').trigger('submit')
+
+    const expectedIso = new Date(2026, 6, 9, 14, 45).toISOString()
+    await vi.waitFor(() =>
+      expect(remindersApi.createReminder).toHaveBeenCalledWith(
+        expect.objectContaining({ remind_at: expectedIso }),
+      ),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('своя дата/время, совпадающие с пресетом, выбирают пилюлю пресета без дублей', async () => {
+    const wrapper = mountDialog()
+    useLkForms().openReminderForm()
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('input[type="date"]').setValue('2026-07-09') // сегодня
+    await wrapper.find('input[type="time"]').setValue('18:00') // пресет
+
+    const pillGroups = wrapper.findAll('.lk-form-dialog__pills')
+    const dateLabels = pillGroups[0]!.findAll('.lk-form-dialog__pill').map((pill) => pill.text())
+    expect(dateLabels).toEqual(['Сегодня', 'Завтра', 'В выходные', 'Через неделю'])
+    expect(pillGroups[0]!.find('.lk-form-dialog__pill--active').text()).toBe('Сегодня')
+
+    const timeLabels = pillGroups[1]!.findAll('.lk-form-dialog__pill').map((pill) => pill.text())
+    expect(timeLabels).toEqual(['09:00', '12:00', '18:00', '21:00'])
+    expect(pillGroups[1]!.find('.lk-form-dialog__pill--active').text()).toBe('18:00')
+    vi.unstubAllGlobals()
+  })
+
 })
 
 vi.mock('@/api/remindersApi', () => ({

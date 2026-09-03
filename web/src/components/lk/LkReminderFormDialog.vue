@@ -67,6 +67,10 @@ const selectedDateKey = ref<string | null>(null)
 const actualTimeValue = ref<string | null>(null)
 const selectedTimeKey = ref<string | null>(null)
 
+/** Пикеры «своя дата» / «своё время» (input date/time, стилизованы пилюлями). */
+const customDate = ref('')
+const customTime = ref('')
+
 const isEdit = computed<boolean>(() => reminderFormReminder.value !== null)
 const title = computed<string>(() => (isEdit.value ? 'Редактирование напоминания' : 'Новое напоминание'))
 const submitLabel = computed<string>(() => (isEdit.value ? 'Сохранить' : 'Создать'))
@@ -98,6 +102,8 @@ function resetForm(): void {
   actualTimeValue.value = null
   selectedDateKey.value = null
   selectedTimeKey.value = null
+  customDate.value = ''
+  customTime.value = ''
 
   if (reminder === null) {
     return
@@ -112,6 +118,7 @@ function resetForm(): void {
   } else {
     actualDatePill.value = { key: 'actual', label: formatActualDateLabel(remindDate), date: startOfDay(remindDate) }
     selectedDateKey.value = 'actual'
+    customDate.value = toDateInputValue(remindDate)
   }
 
   const hh = String(remindDate.getHours()).padStart(2, '0')
@@ -122,7 +129,15 @@ function resetForm(): void {
   } else {
     actualTimeValue.value = timeValue
     selectedTimeKey.value = timeValue
+    customTime.value = timeValue
   }
+}
+
+/** yyyy-mm-dd для input[type=date] (локальная дата, без UTC-сдвига). */
+function toDateInputValue(date: Date): string {
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${mm}-${dd}`
 }
 
 watch(isReminderFormOpen, (open) => {
@@ -136,6 +151,45 @@ function selectDate(key: string): void {
 }
 
 function selectTime(value: string): void {
+  selectedTimeKey.value = value
+}
+
+/**
+ * Своя дата из пикера: совпадение с пресетом выбирает его пилюлю, иначе
+ * появляется/обновляется «actual»-пилюля с фактической датой и выбирается.
+ */
+function applyCustomDate(value: string): void {
+  customDate.value = value
+  if (value === '') {
+    return
+  }
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1)
+  if (Number.isNaN(date.getTime())) {
+    return
+  }
+  const matched = datePresets.value.find((preset) => isSameDate(preset.date, date))
+  if (matched) {
+    actualDatePill.value = null
+    selectedDateKey.value = matched.key
+    return
+  }
+  actualDatePill.value = { key: 'actual', label: formatActualDateLabel(date), date }
+  selectedDateKey.value = 'actual'
+}
+
+/** Своё время из пикера: пресет выбирается пилюлей, иначе — «actual»-время. */
+function applyCustomTime(value: string): void {
+  customTime.value = value
+  if (value === '') {
+    return
+  }
+  if (TIME_PRESETS.includes(value)) {
+    actualTimeValue.value = null
+    selectedTimeKey.value = value
+    return
+  }
+  actualTimeValue.value = value
   selectedTimeKey.value = value
 }
 
@@ -291,6 +345,14 @@ async function confirmDelete(): Promise<void> {
           >
             {{ pill.label }}
           </button>
+          <input
+            :value="customDate"
+            type="date"
+            class="lk-form-dialog__picker"
+            :class="{ 'lk-form-dialog__picker--active': selectedDateKey === 'actual' }"
+            aria-label="Своя дата"
+            @change="applyCustomDate(($event.target as HTMLInputElement).value)"
+          />
         </div>
         <span v-if="errors.remind_at" class="lk-form-dialog__error">{{ errors.remind_at[0] }}</span>
 
@@ -306,6 +368,14 @@ async function confirmDelete(): Promise<void> {
           >
             {{ value }}
           </button>
+          <input
+            :value="customTime"
+            type="time"
+            class="lk-form-dialog__picker lk-form-dialog__picker--amber"
+            :class="{ 'lk-form-dialog__picker--active': actualTimeValue !== null && selectedTimeKey === actualTimeValue }"
+            aria-label="Своё время"
+            @change="applyCustomTime(($event.target as HTMLInputElement).value)"
+          />
         </div>
 
         <span class="lk-form-dialog__label">Повтор</span>
@@ -477,6 +547,32 @@ async function confirmDelete(): Promise<void> {
   background: #d99a3e;
   color: #fff;
 }
+
+/* Пикеры «своя дата/время» — нативные input, стилизованные пилюлями. */
+.lk-form-dialog__picker {
+  padding: 0.45rem 0.8rem;
+  border: 1.5px solid #e3e6e5;
+  border-radius: 999px;
+  background: #eef1f0;
+  color: #6b716e;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lk-form-dialog__picker--active {
+  border-color: #17897a;
+  background: #d8ebe4;
+  color: #17897a;
+}
+
+.lk-form-dialog__picker--amber.lk-form-dialog__picker--active {
+  border-color: #c98a2b;
+  background: #f7ebd5;
+  color: #c98a2b;
+}
+
 
 .lk-form-dialog__footer {
   display: flex;
