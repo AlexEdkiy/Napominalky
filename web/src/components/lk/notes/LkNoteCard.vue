@@ -60,6 +60,7 @@ function handleRemove(event: Event): void {
       :style="note.is_pinned ? { background: color.accent, color: '#fff' } : { color: color.accent }"
       :aria-label="note.is_pinned ? `Открепить «${note.title}»` : `Закрепить «${note.title}»`"
       :aria-pressed="note.is_pinned"
+      :title="note.is_pinned ? 'Открепить' : 'Закрепить'"
       @click="handleTogglePin"
     >
       <LkIcon name="pin" :size="15" />
@@ -75,6 +76,7 @@ function handleRemove(event: Event): void {
           type="button"
           class="lk-note-card__action"
           :aria-label="note.is_archived ? `Вернуть из архива «${note.title}»` : `В архив «${note.title}»`"
+          :title="note.is_archived ? 'Вернуть из архива' : 'В архив'"
           @click="handleToggleArchive"
         >
           <LkIcon name="archive" :size="15" />

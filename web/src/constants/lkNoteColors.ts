@@ -1,3 +1,5 @@
+import type { NoteColor } from '@/types/note'
+
 /**
  * Пастельная палитра стикеров раздела «Заметки» (see `web-lk-redesign.md` /
  * `web-lk-phase4.md`): мягкие тона той же палитры, что используется для
@@ -13,15 +15,36 @@ export interface LkNoteColor {
 
 /**
  * Палитра РЕАЛЬНОГО поля `notes.color` (см. `types/note.ts#NoteColor`) —
- * бэкенд принимает только `teal | coral | amber | purple`. Тона переиспользуют
- * ту же палитру, что и `lkTagColors.ts` (teal, «Важное»/coral, amber, лиловый
- * «Звонки»/purple), чтобы визуальный язык оставался единым в приложении.
+ * единая для веба и мобилки (WEB-52): 4 именованных токена ЛК (teal, «Важное»/
+ * coral, amber, лиловый «Звонки»/purple — та же палитра, что `lkTagColors.ts`)
+ * и 4 hex-маркера мобильного приложения (розовый, песочный, зелёный, голубой),
+ * которые раньше веб не распознавал и подменял фолбэком по uuid.
  */
-export const NAMED_NOTE_COLORS: Record<'teal' | 'coral' | 'amber' | 'purple', LkNoteColor> = {
+export const NAMED_NOTE_COLORS: Record<NoteColor, LkNoteColor> = {
   teal: { bg: '#d8ebe4', accent: '#17897a' },
   coral: { bg: '#f6dfda', accent: '#cf5b4a' },
   amber: { bg: '#f7ebd5', accent: '#c98a2b' },
   purple: { bg: '#e6e1f5', accent: '#7b6bb0' },
+  '#ea899a': { bg: '#f7d3da', accent: '#c14b63' },
+  '#ffebb8': { bg: '#ffebb8', accent: '#c98a2b' },
+  '#91d177': { bg: '#d9f0cc', accent: '#4f8a34' },
+  '#afdafc': { bg: '#d6ebfb', accent: '#2f6fa8' },
+}
+
+/** Порядок свотчей в форме: сначала токены ЛК, затем маркеры мобилки. */
+export const NOTE_COLOR_OPTIONS: NoteColor[] = [
+  'teal',
+  'coral',
+  'amber',
+  'purple',
+  '#ea899a',
+  '#ffebb8',
+  '#91d177',
+  '#afdafc',
+]
+
+export function isNoteColor(value: string | null | undefined): value is NoteColor {
+  return value !== null && value !== undefined && value in NAMED_NOTE_COLORS
 }
 
 const NOTE_PALETTE: LkNoteColor[] = [
@@ -59,8 +82,8 @@ export function colorForNote(uuid: string): LkNoteColor {
  * старые заметки без цвета не «прыгали» между перерисовками.
  */
 export function colorForNoteValue(color: string | null, uuid: string): LkNoteColor {
-  if (color !== null && color in NAMED_NOTE_COLORS) {
-    return NAMED_NOTE_COLORS[color as keyof typeof NAMED_NOTE_COLORS]
+  if (isNoteColor(color)) {
+    return NAMED_NOTE_COLORS[color]
   }
   return colorForNote(uuid)
 }

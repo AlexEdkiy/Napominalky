@@ -20,7 +20,21 @@ const SEARCH_DEBOUNCE_MS = 350
  * каждое нажатие клавиши.
  */
 export function useLkNotesList() {
-  const { notes, meta, isLoading, error, load, loadMore, create, update, remove, pin, archive } = useNotes()
+  const {
+    notes,
+    meta,
+    counts,
+    isLoading,
+    error,
+    load,
+    loadMore,
+    create,
+    update,
+    remove: removeNote,
+    pin,
+    archive: archiveNote,
+    dropLocally,
+  } = useNotes()
 
   const searchQuery = ref('')
   const showArchived = ref(false)
@@ -59,6 +73,41 @@ export function useLkNotesList() {
     }
   })
 
+  function shiftCounts(activeDelta: number, archivedDelta: number): void {
+    if (counts.value === null) {
+      return
+    }
+    counts.value = {
+      active: Math.max(0, counts.value.active + activeDelta),
+      archived: Math.max(0, counts.value.archived + archivedDelta),
+    }
+  }
+
+  /**
+   * Архивирует / возвращает из архива. Заметка, чей `is_archived` больше не
+   * совпадает с текущей вкладкой, уходит из списка сразу (без refetch), а
+   * счётчики переключателя сдвигаются (WEB-52).
+   */
+  async function archive(uuid: string, isArchived: boolean): Promise<Note | null> {
+    const note = await archiveNote(uuid, isArchived)
+    if (note === null) {
+      return null
+    }
+    if (note.is_archived !== showArchived.value) {
+      dropLocally(uuid)
+      shiftCounts(note.is_archived ? -1 : 1, note.is_archived ? 1 : -1)
+    }
+    return note
+  }
+
+  async function remove(uuid: string): Promise<boolean> {
+    const ok = await removeNote(uuid)
+    if (ok) {
+      shiftCounts(showArchived.value ? 0 : -1, showArchived.value ? -1 : 0)
+    }
+    return ok
+  }
+
   const pinnedNotes = computed<Note[]>(() => notes.value.filter((note) => note.is_pinned))
   const otherNotes = computed<Note[]>(() => notes.value.filter((note) => !note.is_pinned))
   const hasMore = computed<boolean>(() => meta.value !== null && meta.value.current_page < meta.value.last_page)
@@ -67,6 +116,7 @@ export function useLkNotesList() {
     notes,
     pinnedNotes,
     otherNotes,
+    counts,
     isLoading,
     error,
     hasMore,

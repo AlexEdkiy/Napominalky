@@ -172,6 +172,62 @@ describe('LkNoteFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('pre-selects a mobile hex marker in edit mode and keeps it in the update payload', async () => {
+    const wrapper = mountDialog()
+    vi.mocked(notesApi.updateNote).mockResolvedValue({ ...note, color: '#91d177' })
+    useLkForms().openNoteForm({ ...note, color: '#91d177' })
+    await wrapper.vm.$nextTick()
+
+    const active = wrapper.find('.lk-note-form-dialog__swatch--active')
+    expect(active.attributes('aria-label')).toBe('#91d177')
+
+    await wrapper.find('form').trigger('submit')
+    await vi.waitFor(() =>
+      expect(notesApi.updateNote).toHaveBeenCalledWith('n-1', expect.objectContaining({ color: '#91d177' })),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('archives an active note from the footer, bumps the version and closes (WEB-52)', async () => {
+    const wrapper = mountDialog()
+    vi.mocked(notesApi.toggleArchive).mockResolvedValue({ ...note, is_archived: true })
+    const forms = useLkForms()
+    forms.openNoteForm(note)
+    await wrapper.vm.$nextTick()
+
+    const button = wrapper.find('.lk-note-form-dialog__archive')
+    expect(button.text()).toContain('В архив')
+    await button.trigger('click')
+
+    await vi.waitFor(() => expect(notesApi.toggleArchive).toHaveBeenCalledWith('n-1', true))
+    expect(forms.notesVersion.value).toBe(1)
+    expect(forms.isNoteFormOpen.value).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('restores an archived note from the footer («Вернуть из архива»)', async () => {
+    const wrapper = mountDialog()
+    vi.mocked(notesApi.toggleArchive).mockResolvedValue({ ...note, is_archived: false })
+    useLkForms().openNoteForm({ ...note, is_archived: true })
+    await wrapper.vm.$nextTick()
+
+    const button = wrapper.find('.lk-note-form-dialog__archive')
+    expect(button.text()).toContain('Вернуть из архива')
+    expect(button.classes()).toContain('lk-note-form-dialog__archive--restore')
+    await button.trigger('click')
+
+    await vi.waitFor(() => expect(notesApi.toggleArchive).toHaveBeenCalledWith('n-1', false))
+    vi.unstubAllGlobals()
+  })
+
+  it('hides the archive button in create mode', async () => {
+    const wrapper = mountDialog()
+    useLkForms().openNoteForm()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.lk-note-form-dialog__archive').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
   it('does not delete when the confirmation is cancelled', async () => {
     const wrapper = mountDialog()
     useLkForms().openNoteForm(note)
@@ -244,7 +300,7 @@ describe('LkNoteFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders exactly 4 color swatches in the teal/coral/amber/purple order with pastel fills', async () => {
+  it('renders 8 color swatches: teal/coral/amber/purple (бриф) + 4 hex-маркера мобилки (WEB-52)', async () => {
     const wrapper = mountDialog()
     useLkForms().openNoteForm()
     await wrapper.vm.$nextTick()
@@ -255,6 +311,10 @@ describe('LkNoteFormDialog', () => {
       'coral',
       'amber',
       'purple',
+      '#ea899a',
+      '#ffebb8',
+      '#91d177',
+      '#afdafc',
     ])
     // Пастельные фоны из NAMED_NOTE_COLORS: teal #d8ebe4 и coral #f6dfda.
     expect(swatches[0]!.attributes('style')).toContain('rgb(216, 235, 228)')
@@ -284,5 +344,6 @@ vi.mock('@/api/notesApi', () => ({
     createNote: vi.fn(),
     updateNote: vi.fn(),
     deleteNote: vi.fn(),
+    toggleArchive: vi.fn(),
   },
 }))

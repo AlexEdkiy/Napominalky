@@ -2,7 +2,7 @@ import { ref } from 'vue'
 
 import { notesApi } from '@/api/notesApi'
 import type { PaginationMeta } from '@/types/api'
-import type { CreateNotePayload, Note, NoteListParams, UpdateNotePayload } from '@/types/note'
+import type { CreateNotePayload, Note, NoteListParams, NotesCounts, UpdateNotePayload } from '@/types/note'
 
 /**
  * Инкапсулирует реактивное состояние списка заметок и операции CRUD.
@@ -11,6 +11,8 @@ import type { CreateNotePayload, Note, NoteListParams, UpdateNotePayload } from 
 export function useNotes() {
   const notes = ref<Note[]>([])
   const meta = ref<PaginationMeta | null>(null)
+  // Счётчики «Активные / Архив» по текущему поиску (meta.counts ответа списка).
+  const counts = ref<NotesCounts | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   // Запоминает фильтры (search/archived) последнего `load()`, чтобы `loadMore`
@@ -36,11 +38,17 @@ export function useNotes() {
       const response = await notesApi.fetchNotes(params)
       notes.value = response.data
       meta.value = response.meta
+      counts.value = response.meta.counts ?? null
     } catch (e) {
       resolveError(e)
     } finally {
       isLoading.value = false
     }
+  }
+
+  /** Убирает заметку из локальной коллекции без запроса к API. */
+  function dropLocally(uuid: string): void {
+    notes.value = notes.value.filter((note) => note.uuid !== uuid)
   }
 
   /**
@@ -62,6 +70,7 @@ export function useNotes() {
       })
       notes.value = [...notes.value, ...response.data]
       meta.value = response.meta
+      counts.value = response.meta.counts ?? counts.value
     } catch (e) {
       resolveError(e)
     }
@@ -127,5 +136,5 @@ export function useNotes() {
     }
   }
 
-  return { notes, meta, isLoading, error, load, loadMore, create, update, remove, pin, archive }
+  return { notes, meta, counts, isLoading, error, load, loadMore, create, update, remove, pin, archive, dropLocally }
 }

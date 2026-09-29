@@ -1,6 +1,6 @@
 import { apiClient } from '@/api/client'
-import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import type { CreateNotePayload, Note, NoteListParams, UpdateNotePayload } from '@/types/note'
+import type { ApiResponse } from '@/types/api'
+import type { CreateNotePayload, Note, NoteListParams, NotesResponse, UpdateNotePayload } from '@/types/note'
 
 function buildQueryParams(params?: NoteListParams): Record<string, string | number> {
   const query: Record<string, string | number> = {}
@@ -20,8 +20,8 @@ function buildQueryParams(params?: NoteListParams): Record<string, string | numb
 }
 
 export const notesApi = {
-  fetchNotes: async (params?: NoteListParams): Promise<PaginatedResponse<Note>> => {
-    const { data } = await apiClient.get<PaginatedResponse<Note>>('/notes', {
+  fetchNotes: async (params?: NoteListParams): Promise<NotesResponse> => {
+    const { data } = await apiClient.get<NotesResponse>('/notes', {
       params: buildQueryParams(params),
     })
     return data

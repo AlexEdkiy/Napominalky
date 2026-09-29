@@ -18,9 +18,9 @@ function makeNote(overrides: Partial<Note>): Note {
   }
 }
 
-const paginated = (data: Note[]) => ({
+const paginated = (data: Note[], counts = { active: data.length, archived: 0 }) => ({
   data,
-  meta: { current_page: 1, last_page: 1, per_page: 20, total: data.length },
+  meta: { current_page: 1, last_page: 1, per_page: 20, total: data.length, counts },
   links: { first: null, last: null, prev: null, next: null },
 })
 
@@ -110,6 +110,51 @@ describe('useLkNotesList', () => {
     const ok = await remove('n-1')
     expect(ok).toBe(true)
     expect(notes.value).toHaveLength(0)
+  })
+
+  it('archiving on the «Активные» tab drops the card and shifts the counts without a refetch (WEB-52)', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(
+      paginated([makeNote({ uuid: 'n-1' }), makeNote({ uuid: 'n-2' })], { active: 2, archived: 1 }),
+    )
+    vi.mocked(notesApi.toggleArchive).mockResolvedValue(makeNote({ uuid: 'n-1', is_archived: true }))
+
+    const { load, notes, counts, archive } = useLkNotesList()
+    await load()
+    vi.mocked(notesApi.fetchNotes).mockClear()
+
+    await archive('n-1', true)
+
+    expect(notes.value.map((note) => note.uuid)).toEqual(['n-2'])
+    expect(counts.value).toEqual({ active: 1, archived: 2 })
+    expect(notesApi.fetchNotes).not.toHaveBeenCalled()
+  })
+
+  it('restoring on the «Архив» tab drops the card and shifts the counts back', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(
+      paginated([makeNote({ uuid: 'n-1', is_archived: true })], { active: 3, archived: 1 }),
+    )
+    vi.mocked(notesApi.toggleArchive).mockResolvedValue(makeNote({ uuid: 'n-1', is_archived: false }))
+
+    const { load, notes, counts, showArchived, archive } = useLkNotesList()
+    showArchived.value = true
+    await vi.runAllTimersAsync()
+    await load()
+
+    await archive('n-1', false)
+
+    expect(notes.value).toHaveLength(0)
+    expect(counts.value).toEqual({ active: 4, archived: 0 })
+  })
+
+  it('removing a note decrements the count of the current tab', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([makeNote({ uuid: 'n-1' })], { active: 1, archived: 5 }))
+    vi.mocked(notesApi.deleteNote).mockResolvedValue(undefined)
+
+    const { load, counts, remove } = useLkNotesList()
+    await load()
+    await remove('n-1')
+
+    expect(counts.value).toEqual({ active: 0, archived: 5 })
   })
 
   it('exposes hasMore based on pagination meta', async () => {

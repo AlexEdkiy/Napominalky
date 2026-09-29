@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import LkIcon from '@/components/lk/LkIcon.vue'
+import type { NotesCounts } from '@/types/note'
+
+interface Props {
+  /** Счётчики «Активные / Архив» по текущему поиску; null — ещё не загружены. */
+  counts?: NotesCounts | null
+}
+
+withDefaults(defineProps<Props>(), { counts: null })
 
 const search = defineModel<string>('search', { required: true })
 const archived = defineModel<boolean>('archived', { required: true })
@@ -23,6 +31,7 @@ defineEmits<{ create: [] }>()
         @click="archived = false"
       >
         Активные
+        <span v-if="counts" class="lk-notes-toolbar__count" data-testid="notes-count-active">{{ counts.active }}</span>
       </button>
       <button
         type="button"
@@ -32,6 +41,7 @@ defineEmits<{ create: [] }>()
         @click="archived = true"
       >
         Архив
+        <span v-if="counts" class="lk-notes-toolbar__count" data-testid="notes-count-archived">{{ counts.archived }}</span>
       </button>
     </div>
 
@@ -96,6 +106,25 @@ defineEmits<{ create: [] }>()
 .lk-notes-toolbar__switch-btn--active {
   background: #d8ebe4;
   color: #17897a;
+}
+
+.lk-notes-toolbar__count {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  color: inherit;
+}
+
+.lk-notes-toolbar__switch-btn--active .lk-notes-toolbar__count {
+  background: #17897a;
+  color: #fff;
 }
 
 .lk-notes-toolbar__create {

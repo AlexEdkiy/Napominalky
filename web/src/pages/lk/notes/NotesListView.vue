@@ -12,6 +12,7 @@ const {
   notes,
   pinnedNotes,
   otherNotes,
+  counts,
   isLoading,
   error,
   hasMore,
@@ -57,7 +58,12 @@ onMounted(load)
 
 <template>
   <section class="notes-view">
-    <LkNotesToolbar v-model:search="searchQuery" v-model:archived="showArchived" @create="handleCreate" />
+    <LkNotesToolbar
+      v-model:search="searchQuery"
+      v-model:archived="showArchived"
+      :counts="counts"
+      @create="handleCreate"
+    />
 
     <div v-if="isLoading && notes.length === 0" class="notes-view__masonry" aria-live="polite">
       <LkNoteSkeleton v-for="n in 6" :key="n" :variant="n % 2 === 0 ? 'tall' : 'short'" />

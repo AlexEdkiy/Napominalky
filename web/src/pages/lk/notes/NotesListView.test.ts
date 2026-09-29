@@ -24,9 +24,9 @@ function makeNote(overrides: Partial<Note>): Note {
   }
 }
 
-const paginated = (data: Note[]) => ({
+const paginated = (data: Note[], counts = { active: data.length, archived: 0 }) => ({
   data,
-  meta: { current_page: 1, last_page: 1, per_page: 20, total: data.length },
+  meta: { current_page: 1, last_page: 1, per_page: 20, total: data.length, counts },
   links: { first: null, last: null, prev: null, next: null },
 })
 
@@ -214,15 +214,32 @@ describe('NotesListView', () => {
     expect(wrapper.find('.lk-note-card__pin').classes()).toContain('lk-note-card__pin--active')
   })
 
-  it('archives a note through the API', async () => {
-    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([makeNote({ uuid: 'n-1' })]))
+  it('archives a note through the API: the card leaves the «Активные» tab and the counters shift (WEB-52)', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([makeNote({ uuid: 'n-1' })], { active: 1, archived: 2 }))
     vi.mocked(notesApi.toggleArchive).mockResolvedValue(makeNote({ uuid: 'n-1', is_archived: true }))
 
     const { wrapper } = await mountNotesView()
     await vi.waitFor(() => expect(wrapper.findAll('.lk-note-skeleton')).toHaveLength(0))
+    expect(wrapper.find('[data-testid="notes-count-active"]').text()).toBe('1')
+    expect(wrapper.find('[data-testid="notes-count-archived"]').text()).toBe('2')
 
     await wrapper.find('.lk-note-card__action').trigger('click')
     await vi.waitFor(() => expect(notesApi.toggleArchive).toHaveBeenCalledWith('n-1', true))
+
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-note-card')).toHaveLength(0))
+    expect(wrapper.find('[data-testid="notes-count-active"]').text()).toBe('0')
+    expect(wrapper.find('[data-testid="notes-count-archived"]').text()).toBe('3')
+    expect(wrapper.text()).toContain('Пока нет заметок.')
+  })
+
+  it('renders the toolbar counters from meta.counts', async () => {
+    vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([makeNote({ uuid: 'n-1' })], { active: 7, archived: 4 }))
+
+    const { wrapper } = await mountNotesView()
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-note-skeleton')).toHaveLength(0))
+
+    expect(wrapper.find('[data-testid="notes-count-active"]').text()).toBe('7')
+    expect(wrapper.find('[data-testid="notes-count-archived"]').text()).toBe('4')
   })
 
   it('deletes a note through the API after confirmation', async () => {

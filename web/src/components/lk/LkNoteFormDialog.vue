@@ -7,12 +7,12 @@ import LkIcon from '@/components/lk/LkIcon.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
 import { notesApi } from '@/api/notesApi'
-import { NAMED_NOTE_COLORS } from '@/constants/lkNoteColors'
+import { NAMED_NOTE_COLORS, NOTE_COLOR_OPTIONS, isNoteColor } from '@/constants/lkNoteColors'
 import type { ValidationErrorResponse } from '@/types/api'
 import type { NoteColor } from '@/types/note'
 
-/** Порядок свотчей цвета — совпадает с брифом (teal/coral/amber/purple). */
-const COLOR_OPTIONS: NoteColor[] = ['teal', 'coral', 'amber', 'purple']
+/** Свотчи: 4 токена брифа (teal/coral/amber/purple) + 4 маркера мобилки (WEB-52). */
+const COLOR_OPTIONS: NoteColor[] = NOTE_COLOR_OPTIONS
 const DEFAULT_COLOR: NoteColor = 'teal'
 
 const { isDesktop } = useLkBreakpoint()
@@ -27,17 +27,21 @@ const errors = ref<Record<string, string[]>>({})
 const generalError = ref<string | null>(null)
 const isSubmitting = ref(false)
 const isDeleting = ref(false)
+const isArchiving = ref(false)
 const isConfirmingDelete = ref(false)
 
 const isEdit = computed<boolean>(() => noteFormNote.value !== null)
 const title = computed<string>(() => (isEdit.value ? 'Редактирование заметки' : 'Новая заметка'))
 const submitLabel = computed<string>(() => (isEdit.value ? 'Сохранить' : 'Создать'))
+const isArchived = computed<boolean>(() => noteFormNote.value?.is_archived === true)
+const archiveLabel = computed<string>(() => (isArchived.value ? 'Вернуть из архива' : 'В архив'))
 
 function resetForm(): void {
   const note = noteFormNote.value
   form.title = note?.title ?? ''
   form.body = note?.body ?? ''
-  form.color = note?.color ?? DEFAULT_COLOR
+  // Цвет из мобилки/старых записей вне палитры — не теряем, но свотч не подсветится.
+  form.color = isNoteColor(note?.color) ? note.color : DEFAULT_COLOR
   errors.value = {}
   generalError.value = null
   isConfirmingDelete.value = false
@@ -94,6 +98,30 @@ async function handleSubmit(): Promise<void> {
     applyValidation(error)
   } finally {
     isSubmitting.value = false
+  }
+}
+
+/**
+ * «В архив» / «Вернуть из архива» из формы (WEB-52): POST …/archive, затем
+ * список перечитывается через `notifyNoteSaved`, форма закрывается.
+ */
+async function handleToggleArchive(): Promise<void> {
+  const current = noteFormNote.value
+  if (current === null) {
+    return
+  }
+  generalError.value = null
+  isArchiving.value = true
+  try {
+    await notesApi.toggleArchive(current.uuid, !current.is_archived)
+    notifyNoteSaved()
+    closeForm()
+  } catch {
+    generalError.value = isArchived.value
+      ? 'Не удалось вернуть заметку из архива.'
+      : 'Не удалось отправить заметку в архив.'
+  } finally {
+    isArchiving.value = false
   }
 }
 
@@ -190,6 +218,18 @@ async function confirmDelete(): Promise<void> {
           >
             <LkIcon name="trash" :size="16" />
             Удалить
+          </button>
+          <button
+            v-if="isEdit"
+            type="button"
+            class="lk-note-form-dialog__archive"
+            :class="{ 'lk-note-form-dialog__archive--restore': isArchived }"
+            :disabled="isArchiving"
+            :aria-pressed="isArchived"
+            @click="handleToggleArchive"
+          >
+            <LkIcon name="archive" :size="16" />
+            {{ isArchiving ? '…' : archiveLabel }}
           </button>
           <span class="lk-form-dialog__spacer" />
           <button type="button" class="lk-form-dialog__cancel" @click="handleClose">Отмена</button>
@@ -318,6 +358,7 @@ async function confirmDelete(): Promise<void> {
 
 .lk-note-form-dialog__swatches {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -344,6 +385,30 @@ async function confirmDelete(): Promise<void> {
 
 .lk-form-dialog__spacer {
   flex: 1;
+}
+
+.lk-note-form-dialog__archive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 13px;
+  background: #eef1f0;
+  color: #4a5350;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lk-note-form-dialog__archive--restore {
+  background: #d8ebe4;
+  color: #17897a;
+}
+
+.lk-note-form-dialog__archive:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .lk-form-dialog__delete {

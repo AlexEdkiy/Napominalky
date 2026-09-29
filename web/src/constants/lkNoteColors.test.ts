@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { colorForNote } from './lkNoteColors'
+import { colorForNote, colorForNoteValue, isNoteColor, NAMED_NOTE_COLORS, NOTE_COLOR_OPTIONS } from './lkNoteColors'
 
 /**
  * Проверяет требование дизайн-брифа фазы 4 («Заметки»): пастельный фон
@@ -52,5 +52,20 @@ describe('colorForNote', () => {
     const backgrounds = new Set(uuids.map((uuid) => colorForNote(uuid).bg))
 
     expect(backgrounds.size).toBeGreaterThan(1)
+  })
+})
+
+describe('lkNoteColors — единая палитра веб + мобилка (WEB-52)', () => {
+  it('распознаёт 4 hex-маркера мобилки и рендерит их своим цветом, а не фолбэком по uuid', () => {
+    expect(colorForNoteValue('#ea899a', 'any-uuid')).toEqual(NAMED_NOTE_COLORS['#ea899a'])
+    expect(colorForNoteValue('#afdafc', 'any-uuid').accent).toBe('#2f6fa8')
+    expect(colorForNoteValue('#123456', 'any-uuid')).toEqual(colorForNote('any-uuid'))
+  })
+
+  it('isNoteColor принимает ровно 8 токенов', () => {
+    expect(NOTE_COLOR_OPTIONS).toHaveLength(8)
+    expect(NOTE_COLOR_OPTIONS.every(isNoteColor)).toBe(true)
+    expect(isNoteColor('red')).toBe(false)
+    expect(isNoteColor(null)).toBe(false)
   })
 })
