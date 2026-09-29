@@ -66,3 +66,28 @@ it('requires the is_checked field with 422', function (): void {
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['is_checked']);
 });
+
+it('keeps the comments thread in the check response (MBE-22: web replaced the item and lost the thread)', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $list = ShoppingList::factory()->tasks()->for($user)->create();
+    $item = ShoppingListItem::factory()->forList($list)->create(['is_checked' => false]);
+    \App\Models\ShoppingListItemComment::factory()->count(2)->for($item, 'item')->for($user)->create();
+
+    $url = "/api/v1/shopping-lists/{$list->uuid}/items/{$item->uuid}/check";
+
+    $this->postJson($url, ['is_checked' => true])
+        ->assertOk()
+        ->assertJsonPath('data.comments_count', 2)
+        ->assertJsonCount(2, 'data.comments');
+
+    $this->postJson($url, ['is_checked' => false])
+        ->assertOk()
+        ->assertJsonPath('data.comments_count', 2)
+        ->assertJsonCount(2, 'data.comments');
+
+    $this->putJson("/api/v1/shopping-lists/{$list->uuid}/items/{$item->uuid}", ['status' => 'in_progress'])
+        ->assertOk()
+        ->assertJsonCount(2, 'data.comments');
+});

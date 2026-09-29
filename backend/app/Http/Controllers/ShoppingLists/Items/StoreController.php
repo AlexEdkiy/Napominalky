@@ -33,8 +33,11 @@ final class StoreController extends Controller
 
         $item = ($this->addItem)($shoppingList, $this->toData($request), $uuid);
 
-        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта).
-        $item->loadCount('comments');
+        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта);
+        // тред comments — тоже (MBE-22): веб заменяет пункт ответом целиком, и без
+        // relation тред «пропадал» после check/update при живом счётчике.
+        $item->loadCount('comments')
+            ->load(['comments' => static fn ($query) => $query->orderBy('created_at')->orderBy('id')]);
 
         return ShoppingListItemResource::make($item)
             ->response()

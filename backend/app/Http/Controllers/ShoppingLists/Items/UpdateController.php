@@ -29,8 +29,11 @@ final class UpdateController extends Controller
 
         $updated = ($this->updateItem)($item, $this->toData($request, $item));
 
-        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта).
-        $updated->loadCount('comments');
+        // comments_count обязателен в контракте ресурса пункта (без ленивого подсчёта);
+        // тред comments — тоже (MBE-22): веб заменяет пункт ответом целиком, и без
+        // relation тред «пропадал» после check/update при живом счётчике.
+        $updated->loadCount('comments')
+            ->load(['comments' => static fn ($query) => $query->orderBy('created_at')->orderBy('id')]);
 
         return ShoppingListItemResource::make($updated);
     }

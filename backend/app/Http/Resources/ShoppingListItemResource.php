@@ -23,8 +23,9 @@ final class ShoppingListItemResource extends JsonResource
      * user_id, shopping_list_id, server_revision и deleted_at не экспонируются.
      *
      * comments_count присутствует всегда (контроллеры обязаны withCount /
-     * loadCount, fallback-подсчёт — страховка); comments встраивается только
-     * при загруженном relation (whenLoaded, хронологический ASC).
+     * loadCount, fallback-подсчёт — страховка); comments встраивается при
+     * загруженном relation (whenLoaded, хронологический ASC) — index/store/
+     * update/check обязаны его грузить: клиенты заменяют пункт ответом целиком.
      *
      * @deprecated Поле `comment` — legacy одиночный комментарий; заменено
      *             тредом `comments` (двухфазный вывод, пока отдаётся).
