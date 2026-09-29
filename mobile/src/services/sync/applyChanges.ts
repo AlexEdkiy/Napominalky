@@ -27,6 +27,15 @@ type Writer = Pick<Database, 'select' | 'insert' | 'update'>
  * deleted_at); иначе пропуск (клиент новее, его изменение уже в outbox).
  * Пишет НАПРЯМУЮ в доменную таблицу, минуя baseRepo/outbox.
  */
+/**
+ * LWW: серверная запись старее локальной? Сравнение по времени, а не по
+ * строкам: сервер отдаёт микросекунды ('…21.582043Z'), клиент пишет
+ * миллисекунды ('…21.582Z'); при строковом сравнении 'Z' > любой цифры и
+ * более новая серверная запись в той же миллисекунде считалась бы старее.
+ */
+const isOlder = (serverIso: string, localIso: string): boolean =>
+  new Date(serverIso).getTime() < new Date(localIso).getTime()
+
 const applyRecord = async <TServer extends ServerRecord>(
   writer: Writer,
   mapper: EntityMapper<TServer>,
@@ -40,7 +49,7 @@ const applyRecord = async <TServer extends ServerRecord>(
     .limit(1)
 
   const localUpdatedAt = (existing as { updatedAt: string } | undefined)?.updatedAt
-  if (localUpdatedAt !== undefined && server.updated_at < localUpdatedAt) {
+  if (localUpdatedAt !== undefined && isOlder(server.updated_at, localUpdatedAt)) {
     return
   }
 

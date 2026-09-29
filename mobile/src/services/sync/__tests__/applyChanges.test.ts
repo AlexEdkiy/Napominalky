@@ -129,6 +129,19 @@ describe('applyChanges — LWW', () => {
     expect(state.updates[0]?.values.uuid).toBe('n1')
   })
 
+  it('применяет серверную запись с микросекундами, когда она новее локальной в той же миллисекунде (REVIEW-1 / MOB-65)', async () => {
+    // Строковое сравнение дало бы '…582043Z' < '…582Z' ('Z' > '0') и пропуск.
+    const state = newState({ n1: { updatedAt: '2026-02-01T00:00:00.582Z' } })
+    const db = createFakeDb(state)
+
+    await applyChanges(
+      emptyResponse([baseNote({ uuid: 'n1', updated_at: '2026-02-01T00:00:00.582043Z' })]),
+      db as never,
+    )
+
+    expect(state.updates).toHaveLength(1)
+  })
+
   it('пропускает серверную запись, когда локальная новее (клиент победил)', async () => {
     const state = newState({ n1: { updatedAt: '2026-03-01T00:00:00Z' } })
     const db = createFakeDb(state) as never
