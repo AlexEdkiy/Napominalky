@@ -66,6 +66,14 @@ const EMPTY_TEXT: Record<ReminderViewFilter, string> = {
   all: 'Напоминаний пока нет.',
 }
 
+/**
+ * Срок хранения выполненных (WEB-53): сервер удаляет их автоматически через
+ * 7 дней после закрытия (`reminders:purge-completed`, ежечасно) — подсказка
+ * на вкладке «Выполненные», чтобы исчезновение не выглядело потерей данных.
+ */
+const COMPLETED_RETENTION_DAYS = 7
+const completedHint = `Выполненные напоминания удаляются автоматически через ${COMPLETED_RETENTION_DAYS} дней после закрытия.`
+
 // Множественный выбор для массового удаления (отдельно от «выполнить»).
 const selectedUuids = ref<Set<string>>(new Set())
 const isBulkDeleteOpen = ref(false)
@@ -187,6 +195,11 @@ onMounted(refresh)
         Новое напоминание
       </button>
     </div>
+
+    <p v-if="status === 'completed'" class="reminders-view__hint" data-testid="completed-retention-hint">
+      <LkIcon name="archive" :size="14" />
+      {{ completedHint }}
+    </p>
 
     <p v-if="isLoading && reminders.length === 0" class="reminders-view__state" aria-live="polite">Загрузка…</p>
     <p v-else-if="error" class="reminders-view__state reminders-view__state--error" role="alert">{{ error }}</p>
@@ -362,6 +375,18 @@ onMounted(refresh)
 
 .reminders-view__state--error {
   color: #cf5b4a;
+}
+
+.reminders-view__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.9rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  background: #f1f4f2;
+  color: #6b716e;
+  font-size: 0.8rem;
 }
 
 .reminders-view__empty {

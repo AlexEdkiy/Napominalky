@@ -132,6 +132,23 @@ describe('RemindersView', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('network down'))
   })
 
+  it('shows the 7-day retention hint only on the «Выполненные» tab (WEB-53)', async () => {
+    vi.mocked(remindersApi.fetchReminders).mockResolvedValue(
+      paginatedReminders([makeReminder({ uuid: 'r-done', title: 'Сделано', is_completed: true })]),
+    )
+
+    const { wrapper } = await mountView()
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Загрузка'))
+    expect(wrapper.find('[data-testid="completed-retention-hint"]').exists()).toBe(false)
+
+    const completedTab = wrapper.findAll('.reminders-view__filter').find((btn) => btn.text().includes('Выполненные'))
+    await completedTab!.trigger('click')
+
+    const hint = wrapper.find('[data-testid="completed-retention-hint"]')
+    expect(hint.exists()).toBe(true)
+    expect(hint.text()).toContain('удаляются автоматически через 7 дней')
+  })
+
   it('switches filters client-side (без refetch): Просроченные/Запланированные/Выполненные', async () => {
     const past = makeReminder({
       uuid: 'r-over',
