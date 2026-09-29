@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-29 (REVIEW-1 первое ревью: DEV-23 пункт-сирота, MBE-21 лимит батча, MOB-65 LWW по времени; бэклог WEB-49, DEV-24)
+> Последнее обновление: 2026-09-29 (MBE-22/WEB-50: тред комментариев пропадал после флажка «Выполнено» на пункте задачи в ЛК)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,21 +9,21 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 3            | architect                 |
 | DEV     | 24           | backend-developer         |
-| MBE     | 21           | mobile-backend-developer  |
+| MBE     | 22           | mobile-backend-developer  |
 | MOB     | 65           | mobile-developer          |
-| WEB     | 49           | web-developer             |
+| WEB     | 50           | web-developer             |
 | TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 10           | devops-engineer           |
-| DOC     | 55           | technical-writer          |
+| DOC     | 56           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 148 |
+| Completed | 150 |
 | In Progress | 0 |
 | Pending | 2 |
 | Blocked | 0 |
@@ -2805,3 +2805,19 @@
 - **Критерии приёмки:**
   - [ ] Одна некорректная запись не блокирует применение остальных и не блокирует pull устройства
 - **Создана:** 2026-09-29
+
+### MBE-22 / WEB-50: Тред комментариев пропадал после флажка «Выполнено» на пункте задачи (веб ЛК)
+- **Исполнители:** mobile-backend-developer (MBE-22), web-developer (WEB-50)
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** docs/03-laravel.md, docs/07-api.md, docs/05-typescript-vue.md
+- **Описание:** Жалоба: в форме задачи ЛК ставишь флажок на пункте, снимаешь — тред комментариев пуст («Комментариев пока нет») при живом счётчике 💬 4. Причина: `Items/{Check,Update,Store}Controller` делали только `loadCount('comments')`, ресурс встраивает `comments` лишь при загруженном relation (`whenLoaded`), а `useShoppingListItems.replaceItem` заменял пункт ответом целиком → `comments` становился `undefined`. Фикс с двух сторон: (MBE-22) контроллеры check/update/store грузят тред (`load(['comments' => orderBy created_at, id])`), докблок ресурса уточнён — single-item эндпоинты обязаны отдавать тред; (WEB-50) `replaceItem` сохраняет прежний `comments`, если ответ его не содержит (счётчик — из ответа). Данные не терялись — только отображение до перезагрузки формы. Прод: backend подхватил с диска, веб пересобран и выложен.
+- **Файлы:** `backend/app/Http/Controllers/ShoppingLists/Items/{CheckController,UpdateController,StoreController}.php`, `backend/app/Http/Resources/ShoppingListItemResource.php`, `backend/tests/Feature/ShoppingLists/CheckItemTest.php`, `web/src/composables/useShoppingListItems.ts` (+ тест)
+- **Критерии приёмки:**
+  - [x] Ответы check/update/store содержат `comments` (Pest ShoppingLists — 78 passed)
+  - [x] Веб не теряет тред при ответе без `comments` (Vitest 94 passed по затронутым файлам, vue-tsc OK)
+  - [x] Прод-сборка web/dist обновлена
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
