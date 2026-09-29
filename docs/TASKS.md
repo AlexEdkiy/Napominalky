@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-29 (MBE-23/WEB-52: заметки ЛК — архив/возврат, единая палитра маркеров, счётчики «Активные/Архив»; MOB-66 в бэклог)
+> Последнее обновление: 2026-09-29 (DEV-25/OPS-12/WEB-53: автоудаление выполненных напоминаний через 7 дней; MOB-67 в бэклог)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -8,24 +8,24 @@
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
 | ARCH    | 3            | architect                 |
-| DEV     | 24           | backend-developer         |
+| DEV     | 25           | backend-developer         |
 | MBE     | 23           | mobile-backend-developer  |
-| MOB     | 66           | mobile-developer          |
-| WEB     | 52           | web-developer             |
+| MOB     | 67           | mobile-developer          |
+| WEB     | 53           | web-developer             |
 | TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
-| OPS     | 11           | devops-engineer           |
-| DOC     | 58           | technical-writer          |
+| OPS     | 12           | devops-engineer           |
+| DOC     | 59           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 154 |
+| Completed | 157 |
 | In Progress | 0 |
-| Pending | 3 |
+| Pending | 4 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -2883,4 +2883,63 @@
 - **Файлы:** `mobile/src/db/repositories/notesRepo.ts`, компоненты формы/карточки заметки, тесты
 - **Критерии приёмки:**
   - [ ] Заметка с color='teal' из синка рендерится цветом, свотч подсвечен; Jest зелёный
+- **Создана:** 2026-09-29
+
+## Feature: Автоудаление выполненных напоминаний
+
+### DEV-25: PurgeCompletedRemindersAction + команда reminders:purge-completed (ежечасно)
+- **Исполнитель:** backend-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** OPS-12, WEB-53, MOB-67
+- **Стандарты:** docs/03-laravel.md
+- **Описание:** Напоминания с `is_completed` и `completed_at` старше 7 дней (`RETENTION_DAYS`) мягко удаляются. Удаление — по одной модели через Eloquent (`chunkById` по 200), а не bulk update: срабатывает `TracksSyncRevision::deleting`, tombstone получает новую ревизию и доезжает до устройств через инкрементальный pull — выполненные исчезают и в МП. Граница строгая: ровно 7 дней — ещё хранится, 7 дней + 1 с — удаляется. Команда `reminders:purge-completed` в `routes/console.php`: `hourly()->withoutOverlapping()`. Первый прогон на проде удалил 13 напоминаний.
+- **Файлы:** `backend/app/Actions/Reminder/PurgeCompletedRemindersAction.php`, `backend/app/Console/Commands/PurgeCompletedRemindersCommand.php`, `backend/routes/console.php`, `backend/tests/Feature/Reminders/PurgeCompletedTest.php`
+- **Критерии приёмки:**
+  - [x] Удаляются только выполненные старше 7 дней (все пользователи); pending и свежие — нет
+  - [x] Tombstone виден в `GET /sync/changes?since=` с новой ревизией
+  - [x] Команда в расписании ежечасно; Pest tests/Feature/Reminders — 48 passed
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### OPS-12: Планировщик Laravel в проде — cron хоста → schedule:run в reminders_serve
+- **Исполнитель:** devops-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** DEV-25
+- **Блокирует:** —
+- **Стандарты:** —
+- **Описание:** В проде планировщик не запускался вовсе (нет `schedule:work`/cron; horizon-сервис не поднят). Добавлена строка в user-crontab vselug: `* * * * * docker exec reminders_serve php artisan schedule:run >> backend/storage/logs/schedule.log 2>&1`; справочная копия — `deploy/schedule.cron`. `schedule:list` на проде показывает `reminders:purge-completed` ежечасно.
+- **Файлы:** `deploy/schedule.cron`, crontab vselug
+- **Критерии приёмки:**
+  - [x] `crontab -l` содержит schedule:run; `schedule:list` в контейнере видит команду
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### WEB-53: Подсказка о 7-дневном хранении на вкладке «Выполненные»
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** low
+- **Зависимости:** DEV-25
+- **Блокирует:** —
+- **Стандарты:** docs/05-typescript-vue.md
+- **Описание:** На `/lk/reminders` при фильтре «Выполненные» показывается плашка «Выполненные напоминания удаляются автоматически через 7 дней после закрытия», чтобы исчезновение не выглядело потерей данных. Тест: подсказка есть только на этой вкладке.
+- **Файлы:** `web/src/pages/lk/reminders/RemindersView.vue` (+ тест)
+- **Критерии приёмки:**
+  - [x] Vitest reminders — 19 passed, vue-tsc OK; прод пересобран
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### MOB-67: Локальное автоудаление выполненных напоминаний старше 7 дней (офлайн/без синка)
+- **Исполнитель:** mobile-developer
+- **Статус:** pending
+- **Приоритет:** medium
+- **Зависимости:** DEV-25
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** Для пользователей с синком серверный tombstone удалит выполненные и в МП. Для гостевого режима / выключенного синка сервер не участвует — нужна такая же локальная очистка (`remindersRepo`, при старте приложения и раз в час): soft delete через baseRepo (outbox-запись `delete`, чтобы при включении синка сервер получил tombstone) + отмена локального уведомления. Тот же порог 7 дней, та же подсказка на экране «Выполненные».
+- **Файлы:** `mobile/src/db/repositories/remindersRepo.ts`, `mobile/src/services/…`, тесты
+- **Критерии приёмки:**
+  - [ ] Выполненные > 7 дней исчезают из списка без сервера; Jest зелёный
 - **Создана:** 2026-09-29
