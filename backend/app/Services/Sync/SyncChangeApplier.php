@@ -71,6 +71,14 @@ final class SyncChangeApplier
             return null;
         }
 
+        // Пункт-сирота (REVIEW-1 / DEV-23): shopping_list_uuid отсутствует, чужой
+        // или неизвестный — shopping_list_id остался NULL при NOT NULL FK.
+        // Тот же no-op, иначе одна запись валит батч 500 и клиент бесконечно
+        // ретраит весь outbox (push и pull устройства блокируются навсегда).
+        if ($model instanceof ShoppingListItem && $model->shopping_list_id === null) {
+            return null;
+        }
+
         // created_at не входит в whitelist payload, а persist() отключает
         // авто-timestamps (ради LWW updated_at), поэтому для НОВОЙ записи
         // created_at остался бы NULL. Проставляем фолбэком клиентский updated_at.

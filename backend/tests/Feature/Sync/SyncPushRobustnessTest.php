@@ -241,3 +241,56 @@ it('applies the whole batch including a null-title note, pull returns both recor
     expect($pulledUuids)->toContain($badUuid)
         ->and($pulledUuids)->toContain($goodUuid);
 });
+
+// ---------------------------------------------------------------------------
+// Баг 3 (REVIEW-1 / DEV-23): пункт-сирота — shopping_list_uuid не резолвится
+// (чужой/неизвестный список). Раньше INSERT с shopping_list_id = NULL валил
+// всю push-транзакцию 500, и клиент бесконечно ретраил тот же outbox.
+// ---------------------------------------------------------------------------
+
+it('skips an orphan shopping_list_item (unknown parent uuid) without 500, applies the rest of the batch', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $orphanUuid = (string) Str::uuid();
+    $noteUuid = (string) Str::uuid();
+
+    $response = $this->postJson('/api/v1/sync/push', robustPushBody([
+        robustChange('shopping_list_item', $orphanUuid, [
+            'shopping_list_uuid' => (string) Str::uuid(), // на сервере такого списка нет
+            'name' => 'Orphan item',
+            'category' => 'products',
+            'is_checked' => false,
+            'position' => 0,
+        ]),
+        robustChange('note', $noteUuid, ['title' => 'Survives', 'body' => null]),
+    ]));
+
+    $response->assertOk();
+
+    expect(ShoppingListItem::query()->where('uuid', $orphanUuid)->exists())->toBeFalse()
+        ->and(Note::query()->where('uuid', $noteUuid)->exists())->toBeTrue();
+});
+
+it('skips an orphan shopping_list_item whose parent belongs to another user', function (): void {
+    $stranger = User::factory()->create();
+    $foreignList = ShoppingList::factory()->for($stranger)->create();
+
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $uuid = (string) Str::uuid();
+
+    $this->postJson('/api/v1/sync/push', robustPushBody([
+        robustChange('shopping_list_item', $uuid, [
+            'shopping_list_uuid' => $foreignList->uuid,
+            'name' => 'Sneaky',
+            'category' => 'other',
+            'is_checked' => false,
+            'position' => 0,
+        ]),
+    ]))->assertOk();
+
+    expect(ShoppingListItem::query()->where('uuid', $uuid)->exists())->toBeFalse()
+        ->and($foreignList->items()->count())->toBe(0);
+});
