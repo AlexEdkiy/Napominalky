@@ -25,9 +25,13 @@ function taskStatusPushBody(
     string $entityType,
     string $uuid,
     array $payload,
-    string $updatedAt = '2026-09-01T10:00:00Z',
+    ?string $updatedAt = null,
     string $operation = 'create',
 ): array {
+    // Дата по умолчанию — относительная (завтра): записи из фабрик имеют
+    // updated_at = now, и зашитая константа со временем проигрывает им LWW.
+    $updatedAt ??= now()->addDay()->toIso8601ZuluString();
+
     return [
         'device_uuid' => (string) Str::uuid(),
         'device_name' => 'Pixel',
