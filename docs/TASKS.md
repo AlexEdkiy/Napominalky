@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-29 (MBE-22/WEB-50: тред комментариев пропадал после флажка «Выполнено» на пункте задачи в ЛК)
+> Последнее обновление: 2026-09-29 (OPS-11/WEB-51: Заметки/Календарь не открывались на проде после пересборки — SPA-fallback отдавал index.html вместо устаревшего чанка)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -11,19 +11,19 @@
 | DEV     | 24           | backend-developer         |
 | MBE     | 22           | mobile-backend-developer  |
 | MOB     | 65           | mobile-developer          |
-| WEB     | 50           | web-developer             |
+| WEB     | 51           | web-developer             |
 | TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
-| OPS     | 10           | devops-engineer           |
-| DOC     | 56           | technical-writer          |
+| OPS     | 11           | devops-engineer           |
+| DOC     | 57           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 150 |
+| Completed | 152 |
 | In Progress | 0 |
 | Pending | 2 |
 | Blocked | 0 |
@@ -2819,5 +2819,20 @@
   - [x] Ответы check/update/store содержат `comments` (Pest ShoppingLists — 78 passed)
   - [x] Веб не теряет тред при ответе без `comments` (Vitest 94 passed по затронутым файлам, vue-tsc OK)
   - [x] Прод-сборка web/dist обновлена
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### OPS-11 / WEB-51: Заметки и Календарь не открывались на проде после пересборки веба (устаревшие чанки)
+- **Исполнители:** devops-engineer (OPS-11), web-developer (WEB-51)
+- **Статус:** completed
+- **Приоритет:** critical
+- **Зависимости:** WEB-50
+- **Блокирует:** —
+- **Стандарты:** docs/05-typescript-vue.md
+- **Описание:** Жалоба сразу после выкладки WEB-50: «на проде не открываются Заметки». В access-логе `reminders_web` браузер пользователя запрашивал `NotesListView-CGn2sWJ1.js` и `CalendarView-BtBhdMXN.js` — хэши **старой** сборки (кэшированный index.html + index-*.js от 3 сентября), а nginx через SPA-fallback `try_files … /napominalki/index.html` отдавал на них **200 с index.html (370 байт) вместо 404** — браузер получал HTML под видом модуля, ленивый роут молча не открывался. Разделы, чьи чанки уже были в кэше (Задачи), работали. (OPS-11) `deploy/reminders-web.nginx.conf`: `location /napominalki/assets/` — `try_files $uri =404` + `expires 1y`; `location /napominalki/` — `expires -1` (Cache-Control: no-cache для index.html/SPA-роутов, ревалидация по ETag). Через `expires`, а не `add_header`, чтобы не потерять security-заголовки уровня server (add_header не наследуется при наличии своего в location). (WEB-51) `src/staleChunkReload.ts`: `router.onError` + `vite:preloadError` → при ошибке загрузки чанка перезагрузка страницы не чаще раза в 10 с (sessionStorage) — свежий index.html подтягивается сам, без Ctrl+F5.
+- **Файлы:** `deploy/reminders-web.nginx.conf`, `web/src/staleChunkReload.ts` (+ тест), `web/src/main.ts`
+- **Критерии приёмки:**
+  - [x] Несуществующий чанк → 404; живой чанк → `Cache-Control: max-age=31536000`; index.html → `no-cache`; security-заголовки на месте
+  - [x] Vitest 3 passed (staleChunkReload), vue-tsc OK; прод пересобран и выложен
 - **Создана:** 2026-09-29
 - **Завершена:** 2026-09-29
