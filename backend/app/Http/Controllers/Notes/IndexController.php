@@ -19,18 +19,26 @@ final class IndexController extends Controller
     {
         $this->authorize('viewAny', Note::class);
 
-        $query = $request->user()->notes()
-            ->when($request->filled('search'), fn (Builder $q) => $q->search($request->string('search')->toString()))
+        $searched = $request->user()->notes()
+            ->when($request->filled('search'), fn (Builder $q) => $q->search($request->string('search')->toString()));
+
+        // Счётчики «Активные / Архив» (MBE-23) — по тому же поиску, но без
+        // фильтра архива: переключатель в ЛК показывает количество в обеих вкладках.
+        $counts = [
+            'active' => (clone $searched)->where('is_archived', false)->count(),
+            'archived' => (clone $searched)->where('is_archived', true)->count(),
+        ];
+
+        $notes = $searched
             ->when(
                 $request->has('filter.archived'),
                 fn (Builder $q) => $q->where('is_archived', $request->boolean('filter.archived')),
             )
             ->orderByDesc('is_pinned')
-            ->orderByDesc('updated_at');
+            ->orderByDesc('updated_at')
+            ->paginate($this->resolvePerPage($request));
 
-        $notes = $query->paginate($this->resolvePerPage($request));
-
-        return NoteResource::collection($notes);
+        return NoteResource::collection($notes)->additional(['meta' => ['counts' => $counts]]);
     }
 
     private function resolvePerPage(IndexNoteRequest $request): int

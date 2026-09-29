@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Note;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Support\NoteColor;
 use Illuminate\Validation\Rule;
 
 final class StoreNoteRequest extends FormRequest
@@ -28,7 +29,7 @@ final class StoreNoteRequest extends FormRequest
             'body' => ['nullable', 'string'],
             'is_pinned' => ['nullable', 'boolean'],
             'is_archived' => ['nullable', 'boolean'],
-            'color' => ['nullable', 'string', Rule::in(['teal', 'coral', 'amber', 'purple'])],
+            'color' => ['nullable', 'string', Rule::in(NoteColor::TOKENS)],
         ];
     }
 }
