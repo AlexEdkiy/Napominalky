@@ -66,6 +66,30 @@ describe('useShoppingListItems', () => {
     expect(items.value[0]?.is_checked).toBe(true)
   })
 
+  it('check/update keep the local comments thread when the response omits `comments` (WEB-50)', async () => {
+    const thread = [
+      { uuid: 'c-1', author_name: 'Я', body: 'первый', created_at: '2026-06-01T00:00:00Z' },
+      { uuid: 'c-2', author_name: 'Я', body: 'второй', created_at: '2026-06-02T00:00:00Z' },
+    ]
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([{ ...item, comments: thread, comments_count: 2 }])
+    const withoutThread = { ...item, is_checked: true, comments_count: 2 } as ShoppingListItem
+    delete (withoutThread as Partial<ShoppingListItem>).comments
+    vi.mocked(shoppingListsApi.checkItem).mockResolvedValue(withoutThread)
+    vi.mocked(shoppingListsApi.updateItem).mockResolvedValue({ ...withoutThread, is_checked: false })
+
+    const { items, load, check, update } = useShoppingListItems('l-1')
+    await load()
+
+    await check('i-1', true)
+    expect(items.value[0]?.is_checked).toBe(true)
+    expect(items.value[0]?.comments).toEqual(thread)
+
+    await update('i-1', { status: 'new' })
+    expect(items.value[0]?.is_checked).toBe(false)
+    expect(items.value[0]?.comments).toEqual(thread)
+    expect(items.value[0]?.comments_count).toBe(2)
+  })
+
   it('resolves the uuid getter on EACH call (reactive to route param changes)', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
     vi.mocked(shoppingListsApi.addItem).mockResolvedValue({ ...item, uuid: 'i-3', name: 'Хлеб' })

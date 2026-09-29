@@ -30,11 +30,19 @@ export function useShoppingListItems(listUuid: MaybeRefOrGetter<string>) {
     error.value = e instanceof Error ? e.message : 'Не удалось выполнить операцию'
   }
 
+  /**
+   * Заменяет пункт ответом сервера. Тред `comments` сохраняется из прежнего
+   * состояния, если ответ его не содержит (WEB-50: после check/update тред
+   * «пропадал» при живом счётчике) — счётчик при этом берётся из ответа.
+   */
   function replaceItem(updated: ShoppingListItem): void {
     const index = items.value.findIndex((item) => item.uuid === updated.uuid)
-    if (index !== -1) {
-      items.value.splice(index, 1, updated)
+    if (index === -1) {
+      return
     }
+    const previous = items.value[index]
+    const comments = (updated as Partial<ShoppingListItem>).comments ?? previous?.comments ?? []
+    items.value.splice(index, 1, { ...updated, comments })
   }
 
   async function load(): Promise<void> {
