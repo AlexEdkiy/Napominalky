@@ -1,4 +1,7 @@
 version: '3.9'
+# Имя compose-проекта закреплено: каталог переименован project→backend,
+# а тома project_postgres_data/project_redis_data и контейнеры принадлежат проекту 'project'.
+name: project
 
 services:
   app:

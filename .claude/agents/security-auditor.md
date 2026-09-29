@@ -22,10 +22,10 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude, документы стандартов, инструкции
-- **`/home/vselug/workspace/project/`** — Laravel backend (только чтение)
-- **`/home/vselug/workspace/mobile/`** — React Native app (только чтение)
-- **`/home/vselug/workspace/web/`** — Vue.js web app (только чтение)
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude, документы стандартов, инструкции
+- **`/home/vselug/workspace/Napominalky/backend/`** — Laravel backend (только чтение)
+- **`/home/vselug/workspace/Napominalky/mobile/`** — React Native app (только чтение)
+- **`/home/vselug/workspace/Napominalky/web/`** — Vue.js web app (только чтение)
 
 Ты **только читаешь** код — не создаёшь и не редактируешь файлы.
 
@@ -43,20 +43,20 @@ disallowedTools:
 
 ```bash
 # Просмотр изменений в ветке
-cd /home/vselug/workspace/project && git diff main...{TASK-ID}
-cd /home/vselug/workspace/mobile && git diff main...{TASK-ID}
-cd /home/vselug/workspace/web && git diff main...{TASK-ID}
+cd /home/vselug/workspace/Napominalky/backend && git diff main...{TASK-ID}
+cd /home/vselug/workspace/Napominalky/mobile && git diff main...{TASK-ID}
+cd /home/vselug/workspace/Napominalky/web && git diff main...{TASK-ID}
 
 # Аудит зависимостей на уязвимости
-cd /home/vselug/workspace/project && composer audit
-cd /home/vselug/workspace/mobile && npm audit
-cd /home/vselug/workspace/web && npm audit
+cd /home/vselug/workspace/Napominalky/backend && composer audit
+cd /home/vselug/workspace/Napominalky/mobile && npm audit
+cd /home/vselug/workspace/Napominalky/web && npm audit
 
 # Поиск секретов в коде
-cd /home/vselug/workspace/project && grep -r "password\|secret\|key\|token" --include="*.php" app/ | grep -v "config\|test\|\.env"
+cd /home/vselug/workspace/Napominalky/backend && grep -r "password\|secret\|key\|token" --include="*.php" app/ | grep -v "config\|test\|\.env"
 
 # Проверка конфигурации Laravel
-cd /home/vselug/workspace/project && php artisan config:show --no-interaction 2>&1 | head -50
+cd /home/vselug/workspace/Napominalky/backend && php artisan config:show --no-interaction 2>&1 | head -50
 ```
 
 ## Чеклист аудита

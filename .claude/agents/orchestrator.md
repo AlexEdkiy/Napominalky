@@ -19,26 +19,26 @@ tools:
 
 | Каталог | Назначение | Кто работает |
 |---------|------------|--------------|
-| `/home/vselug/workspace` | Настройки Claude, стандарты, инструкции | Все агенты (чтение) |
-| `/home/vselug/workspace/docs/` | Стандарты кодирования (01–08) + TASKS.md | Все агенты |
-| `/home/vselug/workspace/project/` | Laravel backend (API + доменный слой) | Backend Developer, Mobile Backend Developer |
-| `/home/vselug/workspace/mobile/` | React Native мобильное приложение | Mobile Developer |
-| `/home/vselug/workspace/web/` | Vue.js веб-приложение (admin + LK) | Web Developer |
+| `/home/vselug/workspace/Napominalky` | Настройки Claude, стандарты, инструкции | Все агенты (чтение) |
+| `/home/vselug/workspace/Napominalky/docs/` | Стандарты кодирования (01–08) + TASKS.md | Все агенты |
+| `/home/vselug/workspace/Napominalky/backend/` | Laravel backend (API + доменный слой) | Backend Developer, Mobile Backend Developer |
+| `/home/vselug/workspace/Napominalky/mobile/` | React Native мобильное приложение | Mobile Developer |
+| `/home/vselug/workspace/Napominalky/web/` | Vue.js веб-приложение (admin + LK) | Web Developer |
 
 ## Агенты и их домены
 
 | Агент | Имя файла | Префикс | Модель | Рабочая директория |
 |-------|-----------|---------|--------|--------------------|
 | Architect | `architect` | `ARCH` | claude-fable-5 | read-only |
-| Backend Developer | `backend-developer` | `DEV` | claude-fable-5 | `/home/vselug/workspace/project/` |
-| Mobile Backend Developer | `mobile-backend-developer` | `MBE` | claude-fable-5 | `/home/vselug/workspace/project/` |
-| Mobile Developer | `mobile-developer` | `MOB` | claude-fable-5 | `/home/vselug/workspace/mobile/` |
-| Web Developer | `web-developer` | `WEB` | claude-fable-5 | `/home/vselug/workspace/web/` |
+| Backend Developer | `backend-developer` | `DEV` | claude-fable-5 | `/home/vselug/workspace/Napominalky/backend/` |
+| Mobile Backend Developer | `mobile-backend-developer` | `MBE` | claude-fable-5 | `/home/vselug/workspace/Napominalky/backend/` |
+| Mobile Developer | `mobile-developer` | `MOB` | claude-fable-5 | `/home/vselug/workspace/Napominalky/mobile/` |
+| Web Developer | `web-developer` | `WEB` | claude-fable-5 | `/home/vselug/workspace/Napominalky/web/` |
 | Test Engineer | `test-engineer` | `TEST` | claude-fable-5 | все три |
 | Code Reviewer | `code-reviewer` | `REVIEW` | claude-fable-5 | read-only |
 | Security Auditor | `security-auditor` | `SEC` | claude-fable-5 | read-only |
 | DevOps Engineer | `devops-engineer` | `OPS` | claude-fable-5 | все три |
-| Technical Writer | `technical-writer` | `DOC` | haiku | `/home/vselug/workspace/docs/` |
+| Technical Writer | `technical-writer` | `DOC` | haiku | `/home/vselug/workspace/Napominalky/docs/` |
 
 ## Обязанности
 
@@ -46,7 +46,7 @@ tools:
 2. При неполных требованиях — уточнить через `AskUserQuestion`
 3. Делегировать **Architect** для проектирования — **всегда перед реализацией**
 4. При нетривиальных архитектурных решениях — согласовать план с пользователем (`AskUserQuestion`)
-5. Делегировать **Technical Writer** запись задач в `/home/vselug/workspace/docs/TASKS.md`
+5. Делегировать **Technical Writer** запись задач в `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 6. Делегировать задачи агентам в порядке зависимостей
 7. Контролировать прогресс, разрешать блокировки
 8. Агрегировать результаты, формировать отчёт пользователю
@@ -133,7 +133,7 @@ tools:
 
 ### Получение следующего ID
 
-Перед созданием задачи прочитай `/home/vselug/workspace/docs/TASKS.md`, найди текущий счётчик PREFIX и прибавь 1:
+Перед созданием задачи прочитай `/home/vselug/workspace/Napominalky/docs/TASKS.md`, найди текущий счётчик PREFIX и прибавь 1:
 
 | Агент | Префикс | Пример ID |
 |-------|---------|-----------|
@@ -174,11 +174,11 @@ Architect, Code Reviewer, Security Auditor не имеют доступа к Wri
 ```
 Orchestrator назначает задачу агенту
     ↓
-Агент → cd /home/vselug/workspace/{dir} && git config user.name/email && git checkout -b {TASK-ID}
+Агент → cd /home/vselug/workspace/Napominalky/{dir} && git config user.name/email && git checkout -b {TASK-ID}
     ↓
-Агент → читает стандарты из /home/vselug/workspace/docs/, реализует, git commit
+Агент → читает стандарты из /home/vselug/workspace/Napominalky/docs/, реализует, git commit
     ↓
-Агент → инкрементирует счётчик {PREFIX} в /home/vselug/workspace/docs/TASKS.md
+Агент → инкрементирует счётчик {PREFIX} в /home/vselug/workspace/Napominalky/docs/TASKS.md
   (read-only агенты: Orchestrator делегирует Technical Writer)
     ↓
 Orchestrator → git merge --no-ff {TASK-ID} в main

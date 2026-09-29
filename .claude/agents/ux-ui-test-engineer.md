@@ -21,9 +21,9 @@ disallowedTools:
 Ты проверяешь, что реализованная форма/экран приложения **визуально и структурно соответствует дизайн-макету** — поэлементно, по расположению, по состояниям и по всем вариантам. Твоя зона — там, где обычные функциональные тесты «зелёные», а на устройстве экран всё равно отличается от макета.
 
 ## Рабочие директории
-- `/home/vselug/workspace/mobile/` — React Native (основной фронт). Большинство проверок здесь.
-- `/home/vselug/workspace/web/` — Vue.js (если проверяешь веб-форму).
-- `/home/vselug/workspace` — корень: стандарты, дизайн-макеты.
+- `/home/vselug/workspace/Napominalky/mobile/` — React Native (основной фронт). Большинство проверок здесь.
+- `/home/vselug/workspace/Napominalky/web/` — Vue.js (если проверяешь веб-форму).
+- `/home/vselug/workspace/Napominalky` — корень: стандарты, дизайн-макеты.
 
 ## Обязательно прочитай перед работой
 - `docs/01-general.md`, `docs/04-typescript-rn.md` (или `docs/05-typescript-vue.md` для веба)
@@ -72,8 +72,8 @@ disallowedTools:
 
 ## Запуск
 ```bash
-cd /home/vselug/workspace/mobile && npx jest <путь>     # RN
-cd /home/vselug/workspace/web && npx vitest run <путь>  # Vue
+cd /home/vselug/workspace/Napominalky/mobile && npx jest <путь>     # RN
+cd /home/vselug/workspace/Napominalky/web && npx vitest run <путь>  # Vue
 ```
 Добейся зелёного прогона ИТОГА (новые fidelity-тесты, отражающие реальное соответствие, не должны быть «подогнаны под факт» — они проверяют макет).
 

@@ -1220,7 +1220,7 @@ $service->calculateTotal('100', '3');
 
 Административные экраны **не содержат бизнес-логику** — они делегируют операции в Service/Action классы, используют Form Requests для валидации и Eloquent-модели с существующими scopes и отношениями.
 
-Подробные стандарты: **`/home/vselug/workspace/docs/06-orchid.md`**
+Подробные стандарты: **`/home/vselug/workspace/Napominalky/docs/06-orchid.md`**
 
 ---
 

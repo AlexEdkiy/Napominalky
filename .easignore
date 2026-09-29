@@ -2,13 +2,13 @@
 # ВАЖНО: при наличии .easignore EAS использует ЕГО ВМЕСТО .gitignore,
 # поэтому здесь продублировано содержимое корневого .gitignore.
 #
-# Дополнительно исключены сиблинг-директории монорепо (project/ Laravel,
+# Дополнительно исключены сиблинг-директории монорепо (backend/ Laravel,
 # web/ Vue, docs/) — мобильная сборка (mobile/, самодостаточный package-lock)
 # их не использует. Это также убирает ошибку EACCES при обходе
-# project/storage/app/private/avatars (runtime-данные под root).
+# backend/storage/app/private/avatars (runtime-данные под root).
 
 # === Не нужно для мобильной сборки (монорепо) ===
-/project/
+/backend/
 /web/
 /docs/
 /.git/
@@ -20,24 +20,24 @@
 .env.*
 !.env.example
 *.pem
-project/docker/certs/*.key
-project/docker/certs/*.crt
+backend/docker/certs/*.key
+backend/docker/certs/*.crt
 
-# === PHP / Laravel (project/) ===
-project/vendor/
-project/node_modules/
-project/public/build/
-project/public/hot
-project/public/storage
-project/storage/*.key
-project/storage/framework/cache/data/*
-project/storage/framework/sessions/*
-project/storage/framework/views/*
-project/storage/logs/*
-project/bootstrap/cache/*.php
-project/.phpunit.result.cache
-project/.phpunit.cache/
-!project/storage/framework/cache/data/.gitignore
+# === PHP / Laravel (backend/) ===
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+backend/bootstrap/cache/*.php
+backend/.phpunit.result.cache
+backend/.phpunit.cache/
+!backend/storage/framework/cache/data/.gitignore
 
 # === Node / JS (mobile/, web/) ===
 node_modules/

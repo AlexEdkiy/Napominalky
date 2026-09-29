@@ -1,7 +1,7 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-03 (форма напоминания ЛК: пикеры «своя дата»/«своё время» — WEB-48)
-> Стандарт: `/home/vselug/workspace/docs/07-task-management.md`
+> Последнее обновление: 2026-09-29 (реструктуризация монорепо: корень Napominalky/, project→backend — OPS-10)
+> Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
 
@@ -16,14 +16,14 @@
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
-| OPS     | 9            | devops-engineer           |
+| OPS     | 10           | devops-engineer           |
 | DOC     | 53           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 140 |
+| Completed | 141 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -39,10 +39,10 @@
 - **Приоритет:** critical
 - **Зависимости:** нет
 - **Блокирует:** OPS-1, OPS-2, OPS-3, DEV-1, DEV-2, MOB-3
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`
 - **Описание:** Спроектировать полную архитектуру MVP, включая: локальное хранилище (expo-sqlite + Drizzle), sync-стратегию (delta + outbox + LWW + tombstones + server_revision), 10 групп фич (Auth, Notes, ShoppingLists, Reminders, Notifications, LocalFirst, Sync, Calendar, Security, Settings+Admin). Охватить все три слоя: Backend Laravel, Mobile RN+Expo, Web Vue 3.
 - **Реализация:** Прочитать требования в CLAUDE.md, проанализировать структуру проекта, определить схему БД, API-контракты, компоненты и хранилища для каждого слоя. Выделить критические решения, требующие согласования. Создать детальный план декомпозиции на задачи для остальных агентов.
-- **Файлы:** `/home/vselug/workspace/docs/architecture/mvp-architecture.md`
+- **Файлы:** `/home/vselug/workspace/Napominalky/docs/architecture/mvp-architecture.md`
 - **Критерии приёмки:**
   - [ ] Архитектурный документ содержит все 10 групп фич с деталями Backend/MBE/MOB/WEB
   - [ ] Определена полная схема БД (users, devices, notes, shopping_lists, shopping_list_items, reminders, sync_conflicts + sync_revision sequence)
@@ -58,16 +58,16 @@
 
 ## Feature: Инфраструктура (OPS)
 
-### OPS-1: Инициализировать Laravel 12 backend в project/
+### OPS-1: Инициализировать Laravel 12 backend в backend/
 - **Исполнитель:** devops-engineer
 - **Статус:** completed
 - **Приоритет:** critical
 - **Зависимости:** ARCH-1
 - **Блокирует:** DEV-1
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/03-laravel.md`
-- **Описание:** Инициализировать Laravel 12 приложение в `/home/vselug/workspace/project/` с PHP 8.5+, PostgreSQL 17+, Redis 7+, Sanctum для API-аутентификации, Pest для тестов, Docker Compose для локальной разработки. Включить конфиг для HTTPS (FR-41).
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
+- **Описание:** Инициализировать Laravel 12 приложение в `/home/vselug/workspace/Napominalky/backend/` с PHP 8.5+, PostgreSQL 17+, Redis 7+, Sanctum для API-аутентификации, Pest для тестов, Docker Compose для локальной разработки. Включить конфиг для HTTPS (FR-41).
 - **Реализация:** composer create-project laravel/laravel project "^12.0"; установить Sanctum (php artisan install:api); конфиг PostgreSQL в .env; Docker Compose с PHP/PostgreSQL/Redis/Nginx; миграции и seeds; хук pre-commit; readme с инструкциями.
-- **Файлы:** `project/.env.example`, `project/Dockerfile`, `project/docker-compose.yml`, `project/routes/api.php`, `project/.php-cs-fixer.php` (если нужен)
+- **Файлы:** `backend/.env.example`, `backend/Dockerfile`, `backend/docker-compose.yml`, `backend/routes/api.php`, `backend/.php-cs-fixer.php` (если нужен)
 - **Критерии приёмки:**
   - [x] composer install успешен (vendor/ установлен), routes/api.php с группой /api/v1
   - [x] Sanctum установлен и конфигурирован (laravel/sanctum ^4.0, миграция personal_access_tokens)
@@ -86,8 +86,8 @@
 - **Приоритет:** critical
 - **Зависимости:** ARCH-1
 - **Блокирует:** MOB-1
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
-- **Описание:** Инициализировать React Native + Expo SDK 52 приложение в `/home/vselug/workspace/mobile/` с TypeScript strict mode, Expo Router 4, TanStack Query 5, Zustand 5, Drizzle ORM, expo-sqlite, expo-notifications, expo-calendar, expo-local-authentication, expo-secure-store, axios, @react-native-community/netinfo. Включить конфиги для iOS/Android.
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
+- **Описание:** Инициализировать React Native + Expo SDK 52 приложение в `/home/vselug/workspace/Napominalky/mobile/` с TypeScript strict mode, Expo Router 4, TanStack Query 5, Zustand 5, Drizzle ORM, expo-sqlite, expo-notifications, expo-calendar, expo-local-authentication, expo-secure-store, axios, @react-native-community/netinfo. Включить конфиги для iOS/Android.
 - **Реализация:** npx create-expo-app@latest mobile --template; установить зависимости (см. выше); TypeScript strict в tsconfig.json; Expo Router в app/_layout.tsx; QueryClient setup; .env.example с API_URL. eas.json для EAS Build.
 - **Файлы:** `mobile/app.json`, `mobile/eas.json`, `mobile/tsconfig.json`, `mobile/package.json`, `mobile/.env.example`
 - **Критерии приёмки:**
@@ -108,8 +108,8 @@
 - **Приоритет:** critical
 - **Зависимости:** ARCH-1
 - **Блокирует:** WEB-1
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
-- **Описание:** Инициализировать Vue 3.5 веб-приложение в `/home/vselug/workspace/web/` с Vite 6, TypeScript strict mode, Pinia, Vue Router 4, Vitest, axios. Включить конфиг для админка и личный кабинет маршрутов.
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
+- **Описание:** Инициализировать Vue 3.5 веб-приложение в `/home/vselug/workspace/Napominalky/web/` с Vite 6, TypeScript strict mode, Pinia, Vue Router 4, Vitest, axios. Включить конфиг для админка и личный кабинет маршрутов.
 - **Реализация:** npm create vite@latest web -- --template vue-ts; установить Pinia (npm install pinia), Vue Router (npm install vue-router), axios; настроить tsconfig.json (strict: true); Vitest setup в vite.config.ts. Структура: src/{pages,components,stores,types,api}.
 - **Файлы:** `web/vite.config.ts`, `web/tsconfig.json`, `web/package.json`, `web/.env.example`, `web/src/main.ts`
 - **Критерии приёмки:**
@@ -135,10 +135,10 @@
 - **Приоритет:** critical
 - **Зависимости:** OPS-1
 - **Блокирует:** MBE-1, DEV-12
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Создать User и Device модели, миграции, DTO, Actions для базовой аутентификации. Поля User: id, uuid (unique), name (nullable), email (unique), password, sync_enabled (bool, default false), is_admin (bool, default false), soft deletes, timestamps. Поля Device: id, uuid (unique), user_id FK, name, last_synced_revision (bigint, default 0), last_synced_at (nullable), timestamps. Реализовать Actions: RegisterUserAction, IssueTokenAction, DeleteAccountAction.
 - **Реализация:** Создать миграции create_users_table, create_devices_table. User модель с HasMany(Device), методами для работы с uuid. Device модель с BelongsTo(User). DTO: RegisterData (readonly props: name, email, password), LoginData (readonly props: email, password). Actions в app/Actions/{User,Device}/*.php. Фабрики: UserFactory, DeviceFactory.
-- **Файлы:** `project/database/migrations/*_create_users_table.php`, `project/database/migrations/*_create_devices_table.php`, `project/app/Models/User.php`, `project/app/Models/Device.php`, `project/app/Data/RegisterData.php`, `project/app/Data/LoginData.php`, `project/app/Actions/User/RegisterUserAction.php`, `project/app/Actions/User/IssueTokenAction.php`, `project/app/Actions/User/DeleteAccountAction.php`, `project/database/factories/UserFactory.php`, `project/database/factories/DeviceFactory.php`
+- **Файлы:** `backend/database/migrations/*_create_users_table.php`, `backend/database/migrations/*_create_devices_table.php`, `backend/app/Models/User.php`, `backend/app/Models/Device.php`, `backend/app/Data/RegisterData.php`, `backend/app/Data/LoginData.php`, `backend/app/Actions/User/RegisterUserAction.php`, `backend/app/Actions/User/IssueTokenAction.php`, `backend/app/Actions/User/DeleteAccountAction.php`, `backend/database/factories/UserFactory.php`, `backend/database/factories/DeviceFactory.php`
 - **Критерии приёмки:**
   - [x] php artisan migrate успешна, таблицы users и devices существуют (migrate:status — все Ran)
   - [x] users: uuid UNIQUE индекс, sync_enabled/is_admin, soft deletes
@@ -158,10 +158,10 @@
 - **Приоритет:** critical
 - **Зависимости:** DEV-1
 - **Блокирует:** MOB-1, WEB-1, TEST-1
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать API контроллеры и endpoints для аутентификации: POST /api/v1/auth/register, POST /api/v1/auth/login, DELETE /api/v1/auth/logout, GET /api/v1/auth/me, DELETE /api/v1/account. Все endpoints возвращают JSON (UserResource + token). Регистрация и логин с throttle. Документировать в OpenAPI.
 - **Реализация:** RegisterController(__invoke), LoginController(__invoke), LogoutController(__invoke), MeController(__invoke), Account\DeleteAccountController(__invoke). Form Requests: RegisterRequest (name, email, password, password_confirmation), LoginRequest (email, password, device_name?). UserResource для сериализации. Маршруты в routes/api.php с префиксом /api/v1/auth и /api/v1/account. Middleware: throttle, auth:sanctum.
-- **Файлы:** `project/app/Http/Controllers/Auth/RegisterController.php`, `project/app/Http/Controllers/Auth/LoginController.php`, `project/app/Http/Controllers/Auth/LogoutController.php`, `project/app/Http/Controllers/Auth/MeController.php`, `project/app/Http/Controllers/Account/DeleteAccountController.php`, `project/app/Http/Requests/Auth/RegisterRequest.php`, `project/app/Http/Requests/Auth/LoginRequest.php`, `project/app/Http/Resources/UserResource.php`, `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/Auth/RegisterController.php`, `backend/app/Http/Controllers/Auth/LoginController.php`, `backend/app/Http/Controllers/Auth/LogoutController.php`, `backend/app/Http/Controllers/Auth/MeController.php`, `backend/app/Http/Controllers/Account/DeleteAccountController.php`, `backend/app/Http/Requests/Auth/RegisterRequest.php`, `backend/app/Http/Requests/Auth/LoginRequest.php`, `backend/app/Http/Resources/UserResource.php`, `backend/routes/api.php`
 - **Критерии приёмки:** (runtime-проверено временным feature-тестом: 2 passed, 32 assertions)
   - [x] POST /api/v1/auth/register → 201 с token и user; дубль email → 422
   - [x] POST /api/v1/auth/login → 200 с token; неверные creds → 422
@@ -182,7 +182,7 @@
 - **Приоритет:** critical
 - **Зависимости:** OPS-2, MBE-1
 - **Блокирует:** MOB-2, MOB-3
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать базовую инфраструктуру для мобильного приложения: Zustand authStore (token в expo-secure-store, user, guestMode, syncEnabled), axios HTTP client с interceptors для авторизации, constants для API endpoints и Query ключей.
 - **Реализация:** src/stores/authStore.ts (Zustand с persist, secure-store), src/api/client.ts (axios instance с interceptor для Authorization header), src/types/auth.ts (User, AuthResponse), src/types/api.ts (API response format), src/constants/QueryKeys.ts (TanStack Query ключи), src/constants/Config.ts (API_BASE_URL из .env).
 - **Файлы:** `mobile/src/stores/authStore.ts`, `mobile/src/api/client.ts`, `mobile/src/types/auth.ts`, `mobile/src/types/api.ts`, `mobile/src/constants/QueryKeys.ts`, `mobile/src/constants/Config.ts`, `mobile/src/api/authApi.ts`
@@ -204,7 +204,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать основные экраны аутентификации: login.tsx, register.tsx, onboarding/index.tsx (выбор войти/создать). Заглушка lock.tsx. Хук useAuth для управления состоянием. Навигация через Expo Router.
 - **Реализация:** app/(auth)/login.tsx, app/(auth)/register.tsx, app/(onboarding)/index.tsx. Компоненты: TextInput для email/password, Button для submit, ссылка на register/login. useAuth хук экспортирует setToken, setUser, logout, token, user. lock.tsx заглушка с текстом «App locked». Навигация через useRouter() from expo-router.
 - **Файлы:** `mobile/src/hooks/useAuth.ts`, `mobile/app/(auth)/login.tsx`, `mobile/app/(auth)/register.tsx`, `mobile/app/(onboarding)/index.tsx`, `mobile/app/lock.tsx`
@@ -225,7 +225,7 @@
 - **Приоритет:** critical
 - **Зависимости:** OPS-3, MBE-1
 - **Блокирует:** WEB-3, WEB-4, WEB-5, WEB-6, WEB-8, WEB-9
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать инфраструктуру для веб-приложения: Pinia authStore, axios client с interceptors, Vue Router guards для авторизации, страницы входа, регистрации и управления аккаунтом.
 - **Реализация:** src/stores/authStore.ts (Pinia, хранит token в localStorage, user), src/api/client.ts (axios + interceptor для 401), src/api/authApi.ts, src/router/guards.ts (requireAuth, requireGuest), src/pages/auth/LoginView.vue, src/pages/auth/RegisterView.vue, src/pages/lk/AccountView.vue. Router setup в src/router/index.ts с guards.
 - **Файлы:** `web/src/stores/authStore.ts`, `web/src/api/client.ts`, `web/src/api/authApi.ts`, `web/src/router/guards.ts`, `web/src/pages/auth/LoginView.vue`, `web/src/pages/auth/RegisterView.vue`, `web/src/pages/lk/AccountView.vue`, `web/src/router/index.ts`
@@ -246,10 +246,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Написать integration тесты для всех auth endpoints (регистрация, логин, логаут, получение профиля, удаление аккаунта) через HTTP запросы. Проверить валидацию, авторизацию, каскадное удаление. Тесты Policy для DeleteAccountPolicy.
 - **Реализация:** tests/Feature/Auth/{RegisterTest,LoginTest,LogoutTest,MeTest,DeleteAccountTest}.php. Каждый тест проверяет happy path, 422 валидация, 401 без токена, 404 неизвестный endpoint. DeleteAccountTest проверяет каскадное удаление User→Devices.
-- **Файлы:** `project/tests/Feature/Auth/RegisterTest.php`, `project/tests/Feature/Auth/LoginTest.php`, `project/tests/Feature/Auth/LogoutTest.php`, `project/tests/Feature/Auth/MeTest.php`, `project/tests/Feature/Auth/DeleteAccountTest.php`
+- **Файлы:** `backend/tests/Feature/Auth/RegisterTest.php`, `backend/tests/Feature/Auth/LoginTest.php`, `backend/tests/Feature/Auth/LogoutTest.php`, `backend/tests/Feature/Auth/MeTest.php`, `backend/tests/Feature/Auth/DeleteAccountTest.php`
 - **Критерии приёмки:** (php artisan test против PostgreSQL: 24 passed, 97 assertions)
   - [x] php artisan test — все тесты Auth зелёные (24 passed)
   - [x] Регистрация: 201 с token, 422 с дублирующимся email/невалидными
@@ -271,10 +271,10 @@
 - **Приоритет:** critical
 - **Зависимости:** OPS-1
 - **Блокирует:** DEV-9
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Создать trait TracksSyncRevision для моделей, которые синхронизируются (notes, lists, items, reminders). Trait автоматически присваивает server_revision из PostgreSQL sequence при сохранении модели. Создать миграцию для sequence `sync_revision_sequence`.
 - **Реализация:** app/Models/Concerns/TracksSyncRevision.php с boot методом, который на saving присваивает server_revision из sequence. Миграция create_sync_revision_sequence.php (CREATE SEQUENCE IF NOT EXISTS sync_revision_sequence START 1 INCREMENT 1).
-- **Файлы:** `project/app/Models/Concerns/TracksSyncRevision.php`, `project/database/migrations/*_create_sync_revision_sequence.php`
+- **Файлы:** `backend/app/Models/Concerns/TracksSyncRevision.php`, `backend/database/migrations/*_create_sync_revision_sequence.php`
 - **Критерии приёмки:**
   - [x] Trait bootTracksSyncRevision регистрирует saving-хук
   - [x] server_revision присваивается из nextval на каждое сохранение (create и update)
@@ -291,7 +291,7 @@
 - **Приоритет:** critical
 - **Зависимости:** MOB-1
 - **Блокирует:** MOB-5, MOB-7, MOB-9, MOB-13
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать базовую инфраструктуру SQLite для мобильного приложения. Инициализировать expo-sqlite БД, Drizzle ORM конфиг, схемы для служебных таблиц (sync_outbox, sync_meta), базовый репозиторий с CRUD + запись в outbox, DbProvider для передачи db в контекст.
 - **Реализация:** src/db/client.ts (openDatabaseAsync + Drizzle client), drizzle.config.ts (SQLite конфиг), src/db/schema/{index.ts, syncOutbox.ts, syncMeta.ts}, src/db/repositories/baseRepo.ts (abstract class с CRUD методами и outbox записью), src/providers/DbProvider.tsx (React context).
 - **Файлы:** `mobile/src/db/client.ts`, `mobile/drizzle.config.ts`, `mobile/src/db/schema/index.ts`, `mobile/src/db/schema/syncOutbox.ts`, `mobile/src/db/schema/syncMeta.ts`, `mobile/src/db/repositories/baseRepo.ts`, `mobile/src/providers/DbProvider.tsx`, `mobile/src/db/migrations/` (папка для drizzle миграций)
@@ -312,7 +312,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-3
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать сервис для отслеживания сетевого подключения (онлайн/офлайн) через @react-native-community/netinfo. Интегрировать в baseRepo для условной записи в outbox и попыток синхронизации при возвращении онлайн.
 - **Реализация:** src/services/netStatus.ts (useNetStatus хук, возвращает isConnected), интеграция в baseRepo: если офлайн, операция записывается только в outbox, если онлайн, можно пытаться синхронизировать.
 - **Файлы:** `mobile/src/services/netStatus.ts`, обновить `mobile/src/db/repositories/baseRepo.ts`
@@ -330,7 +330,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-3
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Unit тесты для baseRepo: проверить, что insert/update/delete пишут в sync_outbox, что offline CRUD работает.
 - **Реализация:** src/db/repositories/__tests__/baseRepo.test.ts (Jest, мок drizzle db + expo-crypto), insert/update/softDelete/findById + проверка outbox.
 - **Файлы:** `mobile/src/db/repositories/__tests__/baseRepo.test.ts`
@@ -354,10 +354,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-1, DEV-2
 - **Блокирует:** DEV-4, MBE-2
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Создать Note модель с HasUuid trait. Миграция: id, uuid, user_id, title (varchar 255), body (text nullable), is_pinned (bool default false), is_archived (bool default false), server_revision, created_at, updated_at, deleted_at. Индексы: user_id, user_id+server_revision, GIN(ts_search), частичный (user_id) WHERE is_pinned AND deleted_at IS NULL. NoteData DTO, NotePolicy, factory.
 - **Реализация:** HasUuid trait в Concerns, Note модель с scopes (pinned, archived, active, search). Миграция с индексами. NotePolicy методы: view, create, update, delete, pin, archive (owner проверка). NoteFactory.
-- **Файлы:** `project/app/Models/Concerns/HasUuid.php`, `project/app/Models/Note.php`, `project/database/migrations/*_create_notes_table.php`, `project/app/Data/NoteData.php`, `project/app/Policies/NotePolicy.php`, `project/database/factories/NoteFactory.php`
+- **Файлы:** `backend/app/Models/Concerns/HasUuid.php`, `backend/app/Models/Note.php`, `backend/database/migrations/*_create_notes_table.php`, `backend/app/Data/NoteData.php`, `backend/app/Policies/NotePolicy.php`, `backend/database/factories/NoteFactory.php`
 - **Критерии приёмки:**
   - [x] migrate успешна — таблица notes создана (Ran, 270ms), ts_search tsvector + GIN
   - [x] uuid unique; индексы user_id, user_id+server_revision, частичный pinned
@@ -375,10 +375,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-3
 - **Блокирует:** MBE-2
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Создать Actions для операций с заметками. CreateNoteAction (принимает NoteData, создаёт заметку). UpdateNoteAction (обновляет поля). DeleteNoteAction (soft delete). TogglePinAction, ToggleArchiveAction (переключают флаги).
 - **Реализация:** app/Actions/Note/{CreateNoteAction, UpdateNoteAction, DeleteNoteAction, TogglePinAction, ToggleArchiveAction}.php. Каждый Action использует inject для Authorization, вызывает policy authorize перед операцией.
-- **Файлы:** `project/app/Actions/Note/CreateNoteAction.php`, `project/app/Actions/Note/UpdateNoteAction.php`, `project/app/Actions/Note/DeleteNoteAction.php`, `project/app/Actions/Note/TogglePinAction.php`, `project/app/Actions/Note/ToggleArchiveAction.php`
+- **Файлы:** `backend/app/Actions/Note/CreateNoteAction.php`, `backend/app/Actions/Note/UpdateNoteAction.php`, `backend/app/Actions/Note/DeleteNoteAction.php`, `backend/app/Actions/Note/TogglePinAction.php`, `backend/app/Actions/Note/ToggleArchiveAction.php`
 - **Критерии приёмки:**
   - [x] CreateNoteAction создаёт заметку (uuid+server_revision проставляют трейты)
   - [x] UpdateNoteAction обновляет title/body/is_pinned/is_archived
@@ -395,10 +395,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-4
 - **Блокирует:** MOB-5, WEB-3, TEST-3
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать REST API контроллеры для Notes: Index (список + поиск + фильтр), Store (создание), Show, Update, Destroy (soft delete), Pin (POST toggle is_pinned), Archive (POST toggle is_archived). Form Requests для валидации. NoteResource для сериализации. Маршруты в /api/v1/notes.
 - **Реализация:** Notes контроллеры в app/Http/Controllers/Notes/, requests в app/Http/Requests/Note/, NoteResource. Маршруты: GET /notes (Index), POST /notes (Store), GET /notes/{uuid} (Show), PUT /notes/{uuid} (Update), DELETE /notes/{uuid} (Destroy), POST /notes/{uuid}/pin (Pin), POST /notes/{uuid}/archive (Archive).
-- **Файлы:** `project/app/Http/Controllers/Notes/IndexController.php`, `project/app/Http/Controllers/Notes/StoreController.php`, `project/app/Http/Controllers/Notes/ShowController.php`, `project/app/Http/Controllers/Notes/UpdateController.php`, `project/app/Http/Controllers/Notes/DestroyController.php`, `project/app/Http/Controllers/Notes/PinController.php`, `project/app/Http/Controllers/Notes/ArchiveController.php`, `project/app/Http/Requests/Note/StoreNoteRequest.php`, `project/app/Http/Requests/Note/UpdateNoteRequest.php`, `project/app/Http/Requests/Note/IndexNoteRequest.php`, `project/app/Http/Resources/NoteResource.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/Notes/IndexController.php`, `backend/app/Http/Controllers/Notes/StoreController.php`, `backend/app/Http/Controllers/Notes/ShowController.php`, `backend/app/Http/Controllers/Notes/UpdateController.php`, `backend/app/Http/Controllers/Notes/DestroyController.php`, `backend/app/Http/Controllers/Notes/PinController.php`, `backend/app/Http/Controllers/Notes/ArchiveController.php`, `backend/app/Http/Requests/Note/StoreNoteRequest.php`, `backend/app/Http/Requests/Note/UpdateNoteRequest.php`, `backend/app/Http/Requests/Note/IndexNoteRequest.php`, `backend/app/Http/Resources/NoteResource.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
 - (route:list подтверждён: 7 маршрутов api.v1.notes.*; авторизация runtime-проверена)
   - [x] GET /api/v1/notes → 200 paginated; фильтр archived; поиск (ts_search); сортировка pinned-first
@@ -417,7 +417,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-3, MBE-2
 - **Блокирует:** MOB-6
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать Drizzle schema для notes в SQLite (зеркаль Backend: id, uuid, user_id, title, body, is_pinned, is_archived, server_revision, created_at, updated_at, deleted_at). Создать notesRepo с методами CRUD + search + filter (archived).
 - **Реализация:** src/db/schema/notes.ts (table definition с индексами), src/db/repositories/notesRepo.ts (extends baseRepo, методы: createNote, updateNote, deleteNote, getNoteByUuid, listNotes, searchNotes, togglePin, toggleArchive).
 - **Файлы:** `mobile/src/db/schema/notes.ts`, `mobile/src/db/repositories/notesRepo.ts`
@@ -437,7 +437,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-5
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать React хук useNotes для управления состоянием заметок (TanStack Query), компоненты NoteCard и NoteForm. Экраны: (tabs)/index.tsx (список заметок на Главной), notes/new.tsx (новая заметка), notes/[uuid].tsx (редактирование).
 - **Реализация:** src/hooks/useNotes.ts (useQuery для listNotes, useMutation для create/update/delete), src/components/notes/{NoteCard.tsx, NoteForm.tsx}, app/(tabs)/index.tsx, app/notes/new.tsx, app/notes/[uuid].tsx. NoteCard показывает title, body snippet, is_pinned indicator. NoteForm имеет TextInput для title, body (autosave через debounce).
 - **Файлы:** `mobile/src/hooks/useNotes.ts`, `mobile/src/components/notes/NoteCard.tsx`, `mobile/src/components/notes/NoteForm.tsx`, `mobile/app/(tabs)/index.tsx`, `mobile/app/notes/new.tsx`, `mobile/app/notes/[uuid].tsx`
@@ -457,7 +457,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-2, WEB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать API функции для заметок, composable useNotes, Vue компоненты и страницы в личном кабинете. API: fetchNotes, createNote, updateNote, deleteNote, togglePin, toggleArchive. Composable: управление состоянием. Страницы: списки заметок, редактирование.
 - **Реализация:** src/api/notesApi.ts (fetch функции с axios), src/composables/useNotes.ts (состояние заметок), src/pages/lk/notes/NotesListView.vue (таблица/список), src/pages/lk/notes/NoteEditView.vue (форма редактирования), src/components/notes/NoteCard.vue (компонент карточки).
 - **Файлы:** `web/src/api/notesApi.ts`, `web/src/composables/useNotes.ts`, `web/src/pages/lk/notes/NotesListView.vue`, `web/src/pages/lk/notes/NoteEditView.vue`, `web/src/components/notes/NoteCard.vue`, `web/src/types/note.ts`
@@ -477,10 +477,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-2
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Написать тесты для NotePolicy (owner может view/edit/delete, другой пользователь получает 403), unit тесты для Actions, integration тесты для всех API endpoints (CRUD, pin, archive, search).
 - **Реализация:** tests/Unit/Models/NotePolicyTest.php, tests/Feature/Notes/{CreateTest, UpdateTest, DeleteTest, PinTest, ArchiveTest, SearchTest}.php.
-- **Файлы:** `project/tests/Unit/Models/NotePolicyTest.php`, `project/tests/Feature/Notes/CreateTest.php`, `project/tests/Feature/Notes/UpdateTest.php`, `project/tests/Feature/Notes/DeleteTest.php`, `project/tests/Feature/Notes/PinTest.php`, `project/tests/Feature/Notes/ArchiveTest.php`, `project/tests/Feature/Notes/SearchTest.php`
+- **Файлы:** `backend/tests/Unit/Models/NotePolicyTest.php`, `backend/tests/Feature/Notes/CreateTest.php`, `backend/tests/Feature/Notes/UpdateTest.php`, `backend/tests/Feature/Notes/DeleteTest.php`, `backend/tests/Feature/Notes/PinTest.php`, `backend/tests/Feature/Notes/ArchiveTest.php`, `backend/tests/Feature/Notes/SearchTest.php`
 - **Критерии приёмки:**
   - [x] php artisan test — 53 passed, 206 assertions (вкл. 22 Auth из TEST-1)
   - [x] NotePolicy: owner allow, чужой 403
@@ -503,10 +503,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-1, DEV-2
 - **Блокирует:** DEV-6, MBE-3
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Создать enum ShoppingCategory (products/household/pharmacy/other) с методом label(). Модели ShoppingList и ShoppingListItem с relationships. Миграции. ShoppingListData/ShoppingListItemData DTO. Policies. Factories.
 - **Реализация:** app/Enums/ShoppingCategory.php, app/Models/{ShoppingList.php, ShoppingListItem.php}, миграции create_shopping_lists_table и create_shopping_list_items_table, app/Data/{ShoppingListData.php, ShoppingListItemData.php}, app/Policies/{ShoppingListPolicy.php, ShoppingListItemPolicy.php}, factories.
-- **Файлы:** `project/app/Enums/ShoppingCategory.php`, `project/app/Models/ShoppingList.php`, `project/app/Models/ShoppingListItem.php`, `project/database/migrations/*_create_shopping_lists_table.php`, `project/database/migrations/*_create_shopping_list_items_table.php`, `project/app/Data/ShoppingListData.php`, `project/app/Data/ShoppingListItemData.php`, `project/app/Policies/ShoppingListPolicy.php`, `project/app/Policies/ShoppingListItemPolicy.php`, `project/database/factories/ShoppingListFactory.php`, `project/database/factories/ShoppingListItemFactory.php`
+- **Файлы:** `backend/app/Enums/ShoppingCategory.php`, `backend/app/Models/ShoppingList.php`, `backend/app/Models/ShoppingListItem.php`, `backend/database/migrations/*_create_shopping_lists_table.php`, `backend/database/migrations/*_create_shopping_list_items_table.php`, `backend/app/Data/ShoppingListData.php`, `backend/app/Data/ShoppingListItemData.php`, `backend/app/Policies/ShoppingListPolicy.php`, `backend/app/Policies/ShoppingListItemPolicy.php`, `backend/database/factories/ShoppingListFactory.php`, `backend/database/factories/ShoppingListItemFactory.php`
 - **Критерии приёмки:**
   - [x] php artisan migrate:fresh успешна (выполнено: migrate прошёл, shopping_lists/shopping_list_items таблицы созданы)
   - [x] ShoppingList имеет hasMany(ShoppingListItem), scope active (выполнено: созданы)
@@ -524,10 +524,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-5
 - **Блокирует:** MBE-3
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Создать Actions для операций со списками и товарами. CreateListAction, UpdateListAction, DeleteListAction. AddItemAction, UpdateItemAction, DeleteItemAction, CheckItemAction (toggle is_checked).
 - **Реализация:** app/Actions/ShoppingList/{CreateListAction, UpdateListAction, DeleteListAction}.php, app/Actions/ShoppingListItem/{AddItemAction, UpdateItemAction, DeleteItemAction, CheckItemAction}.php. Каждый Action использует inject для Authorization.
-- **Файлы:** `project/app/Actions/ShoppingList/CreateListAction.php`, `project/app/Actions/ShoppingList/UpdateListAction.php`, `project/app/Actions/ShoppingList/DeleteListAction.php`, `project/app/Actions/ShoppingListItem/AddItemAction.php`, `project/app/Actions/ShoppingListItem/UpdateItemAction.php`, `project/app/Actions/ShoppingListItem/DeleteItemAction.php`, `project/app/Actions/ShoppingListItem/CheckItemAction.php`
+- **Файлы:** `backend/app/Actions/ShoppingList/CreateListAction.php`, `backend/app/Actions/ShoppingList/UpdateListAction.php`, `backend/app/Actions/ShoppingList/DeleteListAction.php`, `backend/app/Actions/ShoppingListItem/AddItemAction.php`, `backend/app/Actions/ShoppingListItem/UpdateItemAction.php`, `backend/app/Actions/ShoppingListItem/DeleteItemAction.php`, `backend/app/Actions/ShoppingListItem/CheckItemAction.php`
 - **Критерии приёмки:**
   - [x] CreateListAction создаёт список с uuid, server_revision (выполнено: final invokable)
   - [x] AddItemAction добавляет товар с category, is_checked=false, position (выполнено: client-uuid в Create/Add)
@@ -544,10 +544,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-6
 - **Блокирует:** MBE-4, MOB-7, WEB-4, TEST-4
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать REST API контроллеры для ShoppingLists CRUD. Routes: GET /api/v1/shopping-lists, POST, GET /{uuid}, PUT /{uuid}, DELETE /{uuid}. ShoppingListResource с вложенными items и прогрессом (checked/total).
 - **Реализация:** app/Http/Controllers/ShoppingLists/{IndexController, StoreController, ShowController, UpdateController, DestroyController}.php, app/Http/Requests/ShoppingList/{StoreShoppingListRequest, UpdateShoppingListRequest}.php, app/Http/Resources/ShoppingListResource.php, routes.
-- **Файлы:** `project/app/Http/Controllers/ShoppingLists/IndexController.php`, `project/app/Http/Controllers/ShoppingLists/StoreController.php`, `project/app/Http/Controllers/ShoppingLists/ShowController.php`, `project/app/Http/Controllers/ShoppingLists/UpdateController.php`, `project/app/Http/Controllers/ShoppingLists/DestroyController.php`, `project/app/Http/Requests/ShoppingList/StoreShoppingListRequest.php`, `project/app/Http/Requests/ShoppingList/UpdateShoppingListRequest.php`, `project/app/Http/Resources/ShoppingListResource.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/ShoppingLists/IndexController.php`, `backend/app/Http/Controllers/ShoppingLists/StoreController.php`, `backend/app/Http/Controllers/ShoppingLists/ShowController.php`, `backend/app/Http/Controllers/ShoppingLists/UpdateController.php`, `backend/app/Http/Controllers/ShoppingLists/DestroyController.php`, `backend/app/Http/Requests/ShoppingList/StoreShoppingListRequest.php`, `backend/app/Http/Requests/ShoppingList/UpdateShoppingListRequest.php`, `backend/app/Http/Resources/ShoppingListResource.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
   - [x] GET /api/v1/shopping-lists возвращает 200 с paginated lists (выполнено: route:list подтвердил маршруты)
   - [x] POST /api/v1/shopping-lists создаёт список, возвращает 201 (выполнено: client-uuid)
@@ -565,10 +565,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-3
 - **Блокирует:** MOB-7, WEB-4
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать контроллеры для управления товарами в списках. Routes: GET/POST /api/v1/shopping-lists/{uuid}/items, PUT/DELETE /api/v1/shopping-lists/{uuid}/items/{itemUuid}, POST /api/v1/shopping-lists/{uuid}/items/{itemUuid}/check {is_checked}. ShoppingListItemResource.
 - **Реализация:** app/Http/Controllers/ShoppingListItems/{IndexController, StoreController, UpdateController, DestroyController, CheckController}.php, requests, app/Http/Resources/ShoppingListItemResource.php, routes.
-- **Файлы:** `project/app/Http/Controllers/ShoppingListItems/IndexController.php`, `project/app/Http/Controllers/ShoppingListItems/StoreController.php`, `project/app/Http/Controllers/ShoppingListItems/UpdateController.php`, `project/app/Http/Controllers/ShoppingListItems/DestroyController.php`, `project/app/Http/Controllers/ShoppingListItems/CheckController.php`, `project/app/Http/Requests/ShoppingListItem/StoreShoppingListItemRequest.php`, `project/app/Http/Requests/ShoppingListItem/UpdateShoppingListItemRequest.php`, `project/app/Http/Resources/ShoppingListItemResource.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/ShoppingListItems/IndexController.php`, `backend/app/Http/Controllers/ShoppingListItems/StoreController.php`, `backend/app/Http/Controllers/ShoppingListItems/UpdateController.php`, `backend/app/Http/Controllers/ShoppingListItems/DestroyController.php`, `backend/app/Http/Controllers/ShoppingListItems/CheckController.php`, `backend/app/Http/Requests/ShoppingListItem/StoreShoppingListItemRequest.php`, `backend/app/Http/Requests/ShoppingListItem/UpdateShoppingListItemRequest.php`, `backend/app/Http/Resources/ShoppingListItemResource.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
   - [x] GET /api/v1/shopping-lists/{uuid}/items возвращает 200 с items массивом (выполнено: вложенный binding scopeBindings)
   - [x] POST создаёт товар с category, is_checked, position (выполнено)
@@ -586,7 +586,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-3, MBE-4
 - **Блокирует:** MOB-8
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать Drizzle schema для shopping_lists и shopping_list_items в SQLite. Создать shoppingListsRepo с CRUD + check методами.
 - **Реализация:** src/db/schema/{shoppingLists.ts, shoppingListItems.ts}, src/db/repositories/shoppingListsRepo.ts с методами: createList, updateList, deleteList, getListByUuid, listAllLists, addItem, updateItem, deleteItem, checkItem.
 - **Файлы:** `mobile/src/db/schema/shoppingLists.ts`, `mobile/src/db/schema/shoppingListItems.ts`, `mobile/src/db/repositories/shoppingListsRepo.ts`
@@ -603,7 +603,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-7
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать hooks useShoppingLists/useShoppingListItems, компоненты ListCard/ItemRow/ProgressBar/QuickAddItem, экраны (tabs)/lists.tsx, lists/new.tsx, lists/[uuid].tsx.
 - **Реализация:** src/hooks/{useShoppingLists.ts, useShoppingListItems.ts}, src/components/lists/{ListCard.tsx, ItemRow.tsx, ProgressBar.tsx, QuickAddItem.tsx}, экраны app/(tabs)/lists.tsx, app/lists/new.tsx, app/lists/[uuid].tsx.
 - **Файлы:** `mobile/src/hooks/useShoppingLists.ts`, `mobile/src/hooks/useShoppingListItems.ts`, `mobile/src/components/lists/ListCard.tsx`, `mobile/src/components/lists/ItemRow.tsx`, `mobile/src/components/lists/ProgressBar.tsx`, `mobile/src/components/lists/QuickAddItem.tsx`, `mobile/app/(tabs)/lists.tsx`, `mobile/app/lists/new.tsx`, `mobile/app/lists/[uuid].tsx`
@@ -623,7 +623,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-4, WEB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать API функции, composable и Vue компоненты для управления списками покупок в личном кабинете.
 - **Реализация:** src/api/shoppingListsApi.ts, src/composables/useShoppingLists.ts, src/pages/lk/lists/{ListsView.vue, ListDetailView.vue}, src/components/lists/{ListCard.vue, ItemRow.vue, ProgressBar.vue}.
 - **Файлы:** `web/src/api/shoppingListsApi.ts`, `web/src/composables/useShoppingLists.ts`, `web/src/pages/lk/lists/ListsView.vue`, `web/src/pages/lk/lists/ListDetailView.vue`, `web/src/components/lists/ListCard.vue`, `web/src/components/lists/ItemRow.vue`, `web/src/components/lists/ProgressBar.vue`
@@ -641,10 +641,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-4
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Unit и integration тесты для ShoppingLists и Items.
 - **Реализация:** tests/Feature/ShoppingLists/{CreateTest, UpdateTest, DeleteTest}.php, tests/Feature/ShoppingListItems/{CreateTest, UpdateTest, DeleteTest, CheckTest}.php.
-- **Файлы:** `project/tests/Feature/ShoppingLists/CreateTest.php`, `project/tests/Feature/ShoppingLists/UpdateTest.php`, `project/tests/Feature/ShoppingLists/DeleteTest.php`, `project/tests/Feature/ShoppingListItems/CreateTest.php`, `project/tests/Feature/ShoppingListItems/UpdateTest.php`, `project/tests/Feature/ShoppingListItems/DeleteTest.php`, `project/tests/Feature/ShoppingListItems/CheckTest.php`
+- **Файлы:** `backend/tests/Feature/ShoppingLists/CreateTest.php`, `backend/tests/Feature/ShoppingLists/UpdateTest.php`, `backend/tests/Feature/ShoppingLists/DeleteTest.php`, `backend/tests/Feature/ShoppingListItems/CreateTest.php`, `backend/tests/Feature/ShoppingListItems/UpdateTest.php`, `backend/tests/Feature/ShoppingListItems/DeleteTest.php`, `backend/tests/Feature/ShoppingListItems/CheckTest.php`
 - **Критерии приёмки:**
   - [x] php artisan test все проходят (выполнено: 43 passed, 173 assertions)
   - [x] Policies: owner 200, другой 403 (выполнено: весь suite 96 passed)
@@ -663,10 +663,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-1, DEV-2
 - **Блокирует:** DEV-8, MBE-5
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Создать enums RecurrenceType (none/daily/weekly/monthly) с методом nextOccurrence(), SnoozeOption (10m/1h/...) с методом toInterval(). Модель Reminder. Миграция. ReminderData DTO. ReminderPolicy. Factory.
 - **Реализация:** app/Enums/{RecurrenceType.php, SnoozeOption.php}, app/Models/Reminder.php, миграция create_reminders_table (title, notes, remind_at, recurrence, is_completed, completed_at, snoozed_until, source_uuid, source_type + sync-контракт), app/Data/ReminderData.php, app/Policies/ReminderPolicy.php, factory.
-- **Файлы:** `project/app/Enums/RecurrenceType.php`, `project/app/Enums/SnoozeOption.php`, `project/app/Models/Reminder.php`, `project/database/migrations/*_create_reminders_table.php`, `project/app/Data/ReminderData.php`, `project/app/Policies/ReminderPolicy.php`, `project/database/factories/ReminderFactory.php`
+- **Файлы:** `backend/app/Enums/RecurrenceType.php`, `backend/app/Enums/SnoozeOption.php`, `backend/app/Models/Reminder.php`, `backend/database/migrations/*_create_reminders_table.php`, `backend/app/Data/ReminderData.php`, `backend/app/Policies/ReminderPolicy.php`, `backend/database/factories/ReminderFactory.php`
 - **Критерии приёмки:**
   - [x] php artisan migrate:fresh успешна (migrate прошёл, частичный индекс pending)
   - [x] RecurrenceType::daily()->nextOccurrence($remind_at) возвращает DateTime (реализовано)
@@ -684,10 +684,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-7
 - **Блокирует:** MBE-5
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Создать Actions для напоминаний. CreateReminderAction, UpdateReminderAction, DeleteReminderAction, CompleteReminderAction (устанавливает is_completed и completed_at), SnoozeReminderAction (устанавливает snoozed_until).
 - **Реализация:** app/Actions/Reminder/{CreateReminderAction, UpdateReminderAction, DeleteReminderAction, CompleteReminderAction, SnoozeReminderAction}.php.
-- **Файлы:** `project/app/Actions/Reminder/CreateReminderAction.php`, `project/app/Actions/Reminder/UpdateReminderAction.php`, `project/app/Actions/Reminder/DeleteReminderAction.php`, `project/app/Actions/Reminder/CompleteReminderAction.php`, `project/app/Actions/Reminder/SnoozeReminderAction.php`
+- **Файлы:** `backend/app/Actions/Reminder/CreateReminderAction.php`, `backend/app/Actions/Reminder/UpdateReminderAction.php`, `backend/app/Actions/Reminder/DeleteReminderAction.php`, `backend/app/Actions/Reminder/CompleteReminderAction.php`, `backend/app/Actions/Reminder/SnoozeReminderAction.php`
 - **Критерии приёмки:**
   - [x] CompleteReminderAction устанавливает is_completed=true, completed_at=now (реализовано: транзакционно, при recurrence создаёт следующее)
   - [x] SnoozeReminderAction устанавливает snoozed_until на +10m или +1h (реализовано)
@@ -702,10 +702,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-8
 - **Блокирует:** MOB-9, WEB-5, TEST-5
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать REST API контроллеры для Reminders CRUD + Complete/Snooze. Routes: GET /api/v1/reminders (с фильтрацией status и сортировкой), POST, GET /{uuid}, PUT /{uuid}, DELETE /{uuid}, POST /{uuid}/complete, POST /{uuid}/snooze.
 - **Реализация:** app/Http/Controllers/Reminders/{IndexController, StoreController, ShowController, UpdateController, DestroyController, CompleteController, SnoozeController}.php, requests, app/Http/Resources/ReminderResource.php, routes.
-- **Файлы:** `project/app/Http/Controllers/Reminders/IndexController.php`, `project/app/Http/Controllers/Reminders/StoreController.php`, `project/app/Http/Controllers/Reminders/ShowController.php`, `project/app/Http/Controllers/Reminders/UpdateController.php`, `project/app/Http/Controllers/Reminders/DestroyController.php`, `project/app/Http/Controllers/Reminders/CompleteController.php`, `project/app/Http/Controllers/Reminders/SnoozeController.php`, `project/app/Http/Requests/Reminder/StoreReminderRequest.php`, `project/app/Http/Requests/Reminder/UpdateReminderRequest.php`, `project/app/Http/Requests/Reminder/IndexReminderRequest.php`, `project/app/Http/Requests/Reminder/SnoozeReminderRequest.php`, `project/app/Http/Resources/ReminderResource.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/Reminders/IndexController.php`, `backend/app/Http/Controllers/Reminders/StoreController.php`, `backend/app/Http/Controllers/Reminders/ShowController.php`, `backend/app/Http/Controllers/Reminders/UpdateController.php`, `backend/app/Http/Controllers/Reminders/DestroyController.php`, `backend/app/Http/Controllers/Reminders/CompleteController.php`, `backend/app/Http/Controllers/Reminders/SnoozeController.php`, `backend/app/Http/Requests/Reminder/StoreReminderRequest.php`, `backend/app/Http/Requests/Reminder/UpdateReminderRequest.php`, `backend/app/Http/Requests/Reminder/IndexReminderRequest.php`, `backend/app/Http/Requests/Reminder/SnoozeReminderRequest.php`, `backend/app/Http/Resources/ReminderResource.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
   - [x] GET /api/v1/reminders?filter[status]=pending возвращает 200 с pending напоминаниями (route:list подтверждён: 7 маршрутов)
   - [x] POST /api/v1/reminders создаёт с uuid, remind_at, recurrence (client-uuid поддерживается)
@@ -723,7 +723,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-3, MBE-5
 - **Блокирует:** MOB-10, MOB-11, MOB-16
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать Drizzle schema для reminders в SQLite (+notification_id локальный). Создать remindersRepo с CRUD + complete/snooze. Создать utils quickTime (быстрые шаблоны времени) и recurrence (вычисление следующего напоминания).
 - **Реализация:** src/db/schema/reminders.ts, src/db/repositories/remindersRepo.ts, src/utils/{quickTime.ts, recurrence.ts}.
 - **Файлы:** `mobile/src/db/schema/reminders.ts`, `mobile/src/db/repositories/remindersRepo.ts`, `mobile/src/utils/quickTime.ts`, `mobile/src/utils/recurrence.ts`
@@ -742,7 +742,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-9
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать useReminders хук, компоненты ReminderForm/QuickTimePresets/RecurrencePicker/SnoozeSheet, экраны reminders/new.tsx, reminders/[uuid].tsx.
 - **Реализация:** src/hooks/useReminders.ts, src/components/reminders/{ReminderForm.tsx, QuickTimePresets.tsx, RecurrencePicker.tsx, SnoozeSheet.tsx}, app/reminders/{new.tsx, [uuid].tsx}.
 - **Файлы:** `mobile/src/hooks/useReminders.ts`, `mobile/src/components/reminders/ReminderForm.tsx`, `mobile/src/components/reminders/QuickTimePresets.tsx`, `mobile/src/components/reminders/RecurrencePicker.tsx`, `mobile/src/components/reminders/SnoozeSheet.tsx`, `mobile/app/reminders/new.tsx`, `mobile/app/reminders/[uuid].tsx`
@@ -760,7 +760,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-5, WEB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать API функции, composable и Vue компоненты для напоминаний в ЛК.
 - **Реализация:** src/api/remindersApi.ts, src/composables/useReminders.ts, src/pages/lk/reminders/{RemindersView.vue, ReminderEditView.vue}, src/components/reminders/ReminderCard.vue.
 - **Файлы:** `web/src/api/remindersApi.ts`, `web/src/composables/useReminders.ts`, `web/src/pages/lk/reminders/RemindersView.vue`, `web/src/pages/lk/reminders/ReminderEditView.vue`, `web/src/components/reminders/ReminderCard.vue`
@@ -777,10 +777,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-5
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Unit тесты для RecurrenceType::nextOccurrence(), SnoozeOption::toInterval(). Integration тесты для Reminder API.
 - **Реализация:** tests/Unit/Enums/{RecurrenceTypeTest.php, SnoozeOptionTest.php}, tests/Feature/Reminders/{CreateTest, CompleteTest, SnoozeTest}.php.
-- **Файлы:** `project/tests/Unit/Enums/RecurrenceTypeTest.php`, `project/tests/Unit/Enums/SnoozeOptionTest.php`, `project/tests/Feature/Reminders/CreateTest.php`, `project/tests/Feature/Reminders/CompleteTest.php`, `project/tests/Feature/Reminders/SnoozeTest.php`
+- **Файлы:** `backend/tests/Unit/Enums/RecurrenceTypeTest.php`, `backend/tests/Unit/Enums/SnoozeOptionTest.php`, `backend/tests/Feature/Reminders/CreateTest.php`, `backend/tests/Feature/Reminders/CompleteTest.php`, `backend/tests/Feature/Reminders/SnoozeTest.php`
 - **Критерии приёмки:**
   - [x] php artisan test все проходят (52 passed, 173 assertions, выявил 2 бага домена)
   - [x] RecurrenceType::daily()->nextOccurrence() возвращает следующий день в то же время (устранены в [DEV-8] fix)
@@ -798,7 +798,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-9
 - **Блокирует:** MOB-12
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать сервис уведомлений через expo-notifications. Функции scheduleReminder (создать локальное уведомление на remind_at) и cancelReminder (отменить). Интегрировать в remindersRepo при create/update/delete. Сохранять notification_id в базе.
 - **Реализация:** src/services/notifications.ts с функциями scheduleReminder(reminder) и cancelReminder(notificationId). Вызывать из remindersRepo.createReminder() и remindersRepo.deleteReminder().
 - **Файлы:** `mobile/src/services/notifications.ts`, обновить `mobile/src/db/repositories/remindersRepo.ts`
@@ -816,7 +816,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-11
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать useNotifications хук для запроса разрешений на уведомления. Добавить deep link handler в app/_layout.tsx: при нажатии на уведомление перейти на reminders/[uuid]. Реализовать логику пропущенных напоминаний при старте (remind_at < now && !is_completed → секция на Главной).
 - **Реализация:** src/hooks/useNotifications.ts, src/services/deepLinks.ts (парсинг уведомлений), обновить app/_layout.tsx (подписка на notification response).
 - **Файлы:** `mobile/src/hooks/useNotifications.ts`, `mobile/src/services/deepLinks.ts`, обновить `mobile/app/_layout.tsx`
@@ -834,7 +834,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-11
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Unit тесты для notifications.ts и deepLinks.ts с mock expo-notifications.
 - **Реализация:** tests/services/notifications.test.ts, tests/services/deepLinks.test.ts.
 - **Файлы:** `mobile/__tests__/services/notifications.test.ts`, `mobile/__tests__/services/deepLinks.test.ts`
@@ -855,10 +855,10 @@
 - **Приоритет:** critical
 - **Зависимости:** DEV-3, DEV-5, DEV-7, DEV-2
 - **Блокирует:** DEV-10, DEV-11
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Создать SyncConflict модель для хранения конфликтов. Миграция: id, uuid (unique), user_id FK, entity_type, entity_uuid, server_payload jsonb, client_payload jsonb (бэкап спорной записи), resolved_at (nullable), created_at. Создать DTO для sync операций: SyncChangeData (entity_type, uuid, operation, payload, updated_at), SyncPushResultData (applied[], conflicts[], cursor), ConflictData.
 - **Реализация:** app/Models/SyncConflict.php, миграция, app/Data/{SyncChangeData.php, SyncPushResultData.php, ConflictData.php}.
-- **Файлы:** `project/app/Models/SyncConflict.php`, `project/database/migrations/*_create_sync_conflicts_table.php`, `project/app/Data/SyncChangeData.php`, `project/app/Data/SyncPushResultData.php`, `project/app/Data/ConflictData.php`
+- **Файлы:** `backend/app/Models/SyncConflict.php`, `backend/database/migrations/*_create_sync_conflicts_table.php`, `backend/app/Data/SyncChangeData.php`, `backend/app/Data/SyncPushResultData.php`, `backend/app/Data/ConflictData.php`
 - **Критерии приёмки:**
   - [x] php artisan migrate:fresh успешна
   - [x] SyncConflict::all() работает
@@ -874,10 +874,10 @@
 - **Приоритет:** critical
 - **Зависимости:** DEV-9
 - **Блокирует:** MBE-6
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Создать SyncPullService, который собирает все изменения для пользователя со server_revision > since. Возвращает данные, сгруппированные по entity_type (notes[], shopping_lists[], shopping_list_items[], reminders[]), включая tombstones (deleted_at IS NOT NULL). Реализовать entity-to-Model mapping.
 - **Реализация:** app/Services/Sync/SyncPullService.php с методом pull($user, $since): {notes, lists, listItems, reminders, cursor, hasMore}. Использовать лимит 200 записей на запрос.
-- **Файлы:** `project/app/Services/Sync/SyncPullService.php`
+- **Файлы:** `backend/app/Services/Sync/SyncPullService.php`
 - **Критерии приёмки:**
   - [x] SyncPullService::pull() возвращает корректную структуру
   - [x] Tombstones включены (deleted_at IS NOT NULL)
@@ -893,10 +893,10 @@
 - **Приоритет:** critical
 - **Зависимости:** DEV-9
 - **Блокирует:** MBE-7
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Создать SyncPushService для обработки батча изменений от клиента. Логика: upsert по uuid, Last-Write-Wins по updated_at. При конфликте (серверная updated_at новее): сохранить в sync_conflicts, вернуть в conflicts[]. Создать ConflictResolver для реализации LWW. Создать RegisterDeviceAction для логирования последней синхронизации.
 - **Реализация:** app/Services/Sync/SyncPushService.php, app/Services/Sync/ConflictResolver.php, app/Actions/Device/RegisterDeviceAction.php.
-- **Файлы:** `project/app/Services/Sync/SyncPushService.php`, `project/app/Services/Sync/ConflictResolver.php`, `project/app/Actions/Device/RegisterDeviceAction.php`
+- **Файлы:** `backend/app/Services/Sync/SyncPushService.php`, `backend/app/Services/Sync/ConflictResolver.php`, `backend/app/Actions/Device/RegisterDeviceAction.php`
 - **Критерии приёмки:**
   - [x] SyncPushService::push($user, $changes) возвращает {applied, conflicts, cursor}
   - [x] LWW логика: если client_updated_at >= server_updated_at → apply, иначе → conflict
@@ -912,10 +912,10 @@
 - **Приоритет:** critical
 - **Зависимости:** DEV-10
 - **Блокирует:** MOB-13, WEB-6, TEST-7
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать endpoint GET /api/v1/sync/changes?since={revision}. Контроллер вызывает SyncPullService, возвращает SyncChangesResource с изменениями.
 - **Реализация:** app/Http/Controllers/Sync/ChangesController.php (__invoke), app/Http/Requests/Sync/ChangesRequest.php, app/Http/Resources/Sync/SyncChangesResource.php, routes.
-- **Файлы:** `project/app/Http/Controllers/Sync/ChangesController.php`, `project/app/Http/Requests/Sync/ChangesRequest.php`, `project/app/Http/Resources/Sync/SyncChangesResource.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/Sync/ChangesController.php`, `backend/app/Http/Requests/Sync/ChangesRequest.php`, `backend/app/Http/Resources/Sync/SyncChangesResource.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
   - [x] GET /api/v1/sync/changes?since=0 возвращает 200 с {data:{notes[],lists[],items[],reminders[]},meta:{cursor,has_more}}
   - [x] Требует auth:sanctum
@@ -930,10 +930,10 @@
 - **Приоритет:** critical
 - **Зависимости:** DEV-11
 - **Блокирует:** MOB-13, WEB-6, TEST-7
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать endpoint POST /api/v1/sync/push для отправки изменений, GET /api/v1/sync/conflicts для просмотра конфликтов. Device контроллеры: PUT /api/v1/devices/{uuid}, DELETE /api/v1/devices/{uuid}.
 - **Реализация:** app/Http/Controllers/Sync/{PushController.php, ConflictsController.php}, app/Http/Controllers/Devices/{UpdateController.php, DestroyController.php}, requests, resources, routes.
-- **Файлы:** `project/app/Http/Controllers/Sync/PushController.php`, `project/app/Http/Controllers/Sync/ConflictsController.php`, `project/app/Http/Controllers/Devices/UpdateController.php`, `project/app/Http/Controllers/Devices/DestroyController.php`, `project/app/Http/Requests/Sync/PushRequest.php`, `project/app/Http/Resources/Sync/SyncPushResultResource.php`, `project/app/Http/Resources/Sync/ConflictResource.php`, `project/app/Http/Resources/DeviceResource.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/Sync/PushController.php`, `backend/app/Http/Controllers/Sync/ConflictsController.php`, `backend/app/Http/Controllers/Devices/UpdateController.php`, `backend/app/Http/Controllers/Devices/DestroyController.php`, `backend/app/Http/Requests/Sync/PushRequest.php`, `backend/app/Http/Resources/Sync/SyncPushResultResource.php`, `backend/app/Http/Resources/Sync/ConflictResource.php`, `backend/app/Http/Resources/DeviceResource.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
   - [x] POST /api/v1/sync/push возвращает 200 с {data:{applied[],conflicts[],cursor}}
   - [x] GET /api/v1/sync/conflicts возвращает 200 с массивом конфликтов
@@ -950,7 +950,7 @@
 - **Приоритет:** critical
 - **Зависимости:** MOB-3, MBE-6, MBE-7
 - **Блокирует:** MOB-14
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать sync API функции (pullChanges, pushChanges), типы для sync операций, функцию applyChanges для применения изменений в SQLite с LWW по updated_at.
 - **Реализация:** src/api/syncApi.ts (functions: getChanges, pushChanges), src/types/sync.ts (SyncChange, SyncPushResult, Conflict), src/services/sync/applyChanges.ts (LWW логика для upsert/tombstone).
 - **Файлы:** `mobile/src/api/syncApi.ts`, `mobile/src/types/sync.ts`, `mobile/src/services/sync/applyChanges.ts`
@@ -969,7 +969,7 @@
 - **Приоритет:** critical
 - **Зависимости:** MOB-13
 - **Блокирует:** MOB-15
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Реализовать функции pushChanges (отправить outbox) и pullChanges (получить изменения). Добавить exponential backoff при ошибках сети (FR-36): 1s, 2s, 4s, 8s, макс 5 попыток.
 - **Реализация:** src/services/sync/{pushChanges.ts, pullChanges.ts, backoff.ts}. pushChanges читает sync_outbox, отправляет на сервер, очищает применённые. pullChanges вызывает applyChanges. Backoff реализован как retry-декоратор.
 - **Файлы:** `mobile/src/services/sync/pushChanges.ts`, `mobile/src/services/sync/pullChanges.ts`, `mobile/src/services/sync/backoff.ts`
@@ -988,7 +988,7 @@
 - **Приоритет:** critical
 - **Зависимости:** MOB-14
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать главный syncEngine, который управляет синхронизацией: push → pull → apply. Хук useSyncEngine для подписки на события. Триггеры: автоматич при онлайн (используя useNetStatus), ручной trigger (кнопка Sync), full pull при логине (last_pulled_revision=0).
 - **Реализация:** src/services/sync/syncEngine.ts, src/hooks/useSyncEngine.ts. syncEngine.sync() выполняет: if (sync_enabled && isOnline) { pushChanges → pullChanges → apply }. useSyncEngine подписывает на onChange событие. App.tsx/layout вызывает sync при старте с lastPulledRevision=0.
 - **Файлы:** `mobile/src/services/sync/syncEngine.ts`, `mobile/src/hooks/useSyncEngine.ts`, обновить `mobile/app/_layout.tsx` или основной App компонент
@@ -1008,7 +1008,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-6, MBE-7, WEB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать API функции для sync (pullChanges, getConflicts), composable useSync, страницу SyncView в ЛК, которая показывает статус синхронизации, список устройств и конфликты.
 - **Реализация:** src/api/syncApi.ts, src/composables/useSync.ts, src/pages/lk/sync/SyncView.vue. SyncView показывает таблицу конфликтов с сервером payload, client payload, кнопка resolve.
 - **Файлы:** `web/src/api/syncApi.ts`, `web/src/composables/useSync.ts`, `web/src/pages/lk/sync/SyncView.vue`
@@ -1025,10 +1025,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-6, MBE-7
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Unit и integration тесты для SyncPushService и ConflictResolver. Проверить LWW логику, идемпотентность (двойной push одинаковых данных), tombstones в PULL.
 - **Реализация:** tests/Unit/Services/Sync/{ConflictResolverTest.php, SyncPushServiceTest.php}, tests/Feature/Sync/{PushTest.php, PullTest.php}.
-- **Файлы:** `project/tests/Unit/Services/Sync/ConflictResolverTest.php`, `project/tests/Unit/Services/Sync/SyncPushServiceTest.php`, `project/tests/Feature/Sync/PushTest.php`, `project/tests/Feature/Sync/PullTest.php`
+- **Файлы:** `backend/tests/Unit/Services/Sync/ConflictResolverTest.php`, `backend/tests/Unit/Services/Sync/SyncPushServiceTest.php`, `backend/tests/Feature/Sync/PushTest.php`, `backend/tests/Feature/Sync/PullTest.php`
 - **Критерии приёмки:**
   - [x] php artisan test все проходят
   - [x] LWW: if client_updated_at >= server_updated_at → apply, else → conflict
@@ -1044,7 +1044,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-14
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Jest unit тесты для applyChanges, pushChanges, backoff с mock sqlite.
 - **Реализация:** tests/services/sync/{applyChanges.test.ts, pushChanges.test.ts, backoff.test.ts}.
 - **Файлы:** `mobile/__tests__/services/sync/applyChanges.test.ts`, `mobile/__tests__/services/sync/pushChanges.test.ts`, `mobile/__tests__/services/sync/backoff.test.ts`
@@ -1066,7 +1066,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-9
 - **Блокирует:** MOB-17
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать useCalendar хук для выборки напоминаний по месяцу из SQLite. Компоненты MonthGrid (месячный календарь), DayCell (ячейка дня), DayRemindersSheet (всплывающая панель с напоминаниями дня). Экран (tabs)/calendar.tsx.
 - **Реализация:** src/hooks/useCalendar.ts (getDaysInMonth, getRemindersByMonth), src/components/calendar/{MonthGrid.tsx, DayCell.tsx, DayRemindersSheet.tsx}, app/(tabs)/calendar.tsx. Используется utils/dateRange для выборки дат. Результат: dateRange utils (monthRange/getCalendarDays Пн-Вс/sameDay/ymd), useCalendar (byDay из remindersBetween), месячный экран с навигацией и списком дня → /reminders/[uuid]; tsc OK, jest 116.
 - **Файлы:** `mobile/src/hooks/useCalendar.ts`, `mobile/src/components/calendar/MonthGrid.tsx`, `mobile/src/components/calendar/DayCell.tsx`, `mobile/src/components/calendar/DayRemindersSheet.tsx`, `mobile/app/(tabs)/calendar.tsx`
@@ -1085,7 +1085,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-16
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать сервис systemCalendar для экспорта напоминания в системный календарь (iOS Calendar, Android Calendar) через expo-calendar. Добавить кнопку в ReminderForm для экспорта.
 - **Реализация:** src/services/systemCalendar.ts (requestCalendarPermissions, createEvent из reminder), обновить src/components/reminders/ReminderForm.tsx с кнопкой Export. Результат: экспорт напоминания в системный календарь (expo-calendar, кросс-платформенно, FR-38), кнопка + Alert; tsc OK, jest 137.
 - **Файлы:** `mobile/src/services/systemCalendar.ts`, обновить `mobile/src/components/reminders/ReminderForm.tsx`
@@ -1103,7 +1103,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-5
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать composable useCalendar (read-only выборка из API), компоненты MonthGrid, страницу CalendarView в ЛК.
 - **Реализация:** src/composables/useCalendar.ts, src/components/calendar/MonthGrid.vue, src/pages/lk/calendar/CalendarView.vue. Результат: read-only месячный вид в ЛК, byDay группировка, навигация, список дня → /lk/reminders/:uuid; vue-tsc OK, Vitest 44.
 - **Файлы:** `web/src/composables/useCalendar.ts`, `web/src/components/calendar/MonthGrid.vue`, `web/src/pages/lk/calendar/CalendarView.vue`
@@ -1119,7 +1119,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-16
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Jest unit тесты для dateRange utils и useCalendar выборки.
 - **Реализация:** tests/utils/dateRange.test.ts, tests/hooks/useCalendar.test.ts. Результат: dateRange.test (24) + calendarGrouping.test (6); mobile-suite 137 passed, багов нет.
 - **Файлы:** `mobile/__tests__/utils/dateRange.test.ts`, `mobile/__tests__/hooks/useCalendar.test.ts`
@@ -1140,7 +1140,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-1
 - **Блокирует:** MOB-19
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать Zustand lockStore (pinSet, isLocked, biometricEnabled). Сервис appLock с методами: setPin (хеш в expo-secure-store), verifyPin, enableBiometric, disableBiometric. Хок useAppLock.
 - **Реализация:** src/stores/lockStore.ts (Zustand + persist), src/services/appLock.ts (crypto для PIN-хеша, expo-local-authentication для биометрии), src/hooks/useAppLock.ts. Результат: lockStore (pinSet/biometricEnabled/isLocked/isHydrated + hydrate/lock/unlock), appLock (setPin с SHA256+salt, verifyPin, isPinSet, clearPin, биометрия включается через requestBiometricPermission), useAppLock; tsc OK, jest 137.
 - **Файлы:** `mobile/src/stores/lockStore.ts`, `mobile/src/services/appLock.ts`, `mobile/src/hooks/useAppLock.ts`
@@ -1162,7 +1162,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-18
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Реализовать lock.tsx с PIN-вводом и биометрией. Создать LockProvider, который подписывается на AppState (при переходе в фон → lock, при возврате → проверить PIN). Страница settings/security.tsx для установки PIN и включения биометрии.
 - **Реализация:** app/lock.tsx (PinPad component с кнопками 0-9, PinDots для визуализации, автоматич. биометрия при попытке), src/providers/LockProvider.tsx (AppState listener, скрывает экран при фоне, требует разблокировки при возврате), app/settings/security.tsx (toggles для PIN и биометрии, форма установки PIN, смена PIN). _layout.tsx оборачивает приложение в LockProvider. Результат: lock.tsx (PIN-pad + autofocus биометрия, Попытка 0), LockProvider (оверлей над children, AppState→lock, гидрация перед splash), settings/security.tsx (вкл/выкл PIN, биометрия, смена PIN); tsc OK, jest 149.
 - **Файлы:** `mobile/app/lock.tsx`, `mobile/src/providers/LockProvider.tsx`, `mobile/app/settings/security.tsx`, обновить `mobile/app/_layout.tsx`
@@ -1183,7 +1183,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-18
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Jest unit тесты для appLock с mock expo-secure-store и expo-local-authentication.
 - **Реализация:** tests/services/appLock.test.ts (19 кейсов: setPin, verifyPin, isPinSet, clearPin, биометрия enable/disable/check, ошибки). Результат: 19 unit-тестов (setPin SHA256+salt, verifyPin валидация, биометрия мокируется через jest.mock), mobile-suite 168 passed, багов нет.
 - **Файлы:** `mobile/__tests__/services/appLock.test.ts`
@@ -1209,10 +1209,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-1
 - **Блокирует:** MBE-8
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Создать ToggleSyncAction для переключения sync_enabled в профиле. AdminPolicy для проверки is_admin. Контроллеры Admin\UsersIndexController и Admin\UserShowController (read-only).
 - **Реализация:** app/Actions/User/ToggleSyncAction.php, app/Policies/AdminPolicy.php, app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}.
-- **Файлы:** `project/app/Actions/User/ToggleSyncAction.php`, `project/app/Policies/AdminPolicy.php`, `project/app/Http/Controllers/Admin/UsersIndexController.php`, `project/app/Http/Controllers/Admin/UserShowController.php`
+- **Файлы:** `backend/app/Actions/User/ToggleSyncAction.php`, `backend/app/Policies/AdminPolicy.php`, `backend/app/Http/Controllers/Admin/UsersIndexController.php`, `backend/app/Http/Controllers/Admin/UserShowController.php`
 - **Критерии приёмки:**
   - [x] ToggleSyncAction переключает users.sync_enabled
   - [x] AdminPolicy::viewAny() проверяет is_admin
@@ -1228,10 +1228,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-12
 - **Блокирует:** MOB-20, WEB-8, WEB-9, TEST-11
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать endpoints PATCH /api/v1/settings/sync {sync_enabled}, GET /api/v1/admin/users (пагинированный список), GET /api/v1/admin/users/{id}. Admin routes с middleware проверкой is_admin.
 - **Реализация:** app/Http/Controllers/Settings/ToggleSyncController.php, app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}, requests, routes.
-- **Файлы:** `project/app/Http/Controllers/Settings/ToggleSyncController.php`, обновить `project/app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}`, `project/app/Http/Requests/Settings/ToggleSyncRequest.php`, обновить `project/routes/api.php`
+- **Файлы:** `backend/app/Http/Controllers/Settings/ToggleSyncController.php`, обновить `backend/app/Http/Controllers/Admin/{UsersIndexController.php, UserShowController.php}`, `backend/app/Http/Requests/Settings/ToggleSyncRequest.php`, обновить `backend/routes/api.php`
 - **Критерии приёмки:**
   - [x] PATCH /api/v1/settings/sync {sync_enabled: true} обновляет users.sync_enabled
   - [x] GET /api/v1/admin/users требует is_admin, возвращает список (paginated)
@@ -1247,7 +1247,7 @@
 - **Приоритет:** high
 - **Зависимости:** MOB-1, MBE-8
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Создать Zustand settingsStore (notifications_enabled, sync_enabled, theme). Хук useSettings. ThemeProvider для light/dark/system темы. Экраны (tabs)/profile.tsx и app/settings/index.tsx. Компонент SettingRow.
 - **Реализация:** src/stores/settingsStore.ts (Zustand + AsyncStorage persist), src/hooks/useSettings.ts, src/providers/ThemeProvider.tsx (ColorScheme context), app/(tabs)/profile.tsx, app/settings/index.tsx, src/components/settings/SettingRow.tsx.
 - **Файлы:** `mobile/src/stores/settingsStore.ts`, `mobile/src/hooks/useSettings.ts`, `mobile/src/providers/ThemeProvider.tsx`, `mobile/app/(tabs)/profile.tsx`, `mobile/app/settings/index.tsx`, `mobile/src/components/settings/SettingRow.tsx`
@@ -1267,7 +1267,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-8, WEB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать Pinia settingsStore, composable useTheme, страницу SettingsView в ЛК для настроек (notifications, sync, theme).
 - **Реализация:** src/stores/settingsStore.ts (Pinia), src/composables/useTheme.ts, src/pages/lk/SettingsView.vue.
 - **Файлы:** `web/src/stores/settingsStore.ts`, `web/src/composables/useTheme.ts`, `web/src/pages/lk/SettingsView.vue`
@@ -1284,7 +1284,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-8, WEB-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать админку на Vue: DashboardView (статистика), UsersListView (таблица пользователей), UserDetailView (детали пользователя). Router guard для проверки is_admin.
 - **Реализация:** src/pages/admin/{DashboardView.vue, UsersListView.vue, UserDetailView.vue}, src/router/guards.ts (добавить requireAdmin guard).
 - **Файлы:** `web/src/pages/admin/DashboardView.vue`, `web/src/pages/admin/UsersListView.vue`, `web/src/pages/admin/UserDetailView.vue`, обновить `web/src/router/guards.ts` и `web/src/router/index.ts`
@@ -1303,10 +1303,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-8
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Unit тесты для ToggleSyncAction, AdminPolicy, integration тесты для endpoints.
 - **Реализация:** tests/Unit/Models/AdminPolicyTest.php, tests/Feature/Settings/ToggleSyncTest.php, tests/Feature/Admin/{UsersIndexTest.php, UserShowTest.php}.
-- **Файлы:** `project/tests/Unit/Models/AdminPolicyTest.php`, `project/tests/Feature/Settings/ToggleSyncTest.php`, `project/tests/Feature/Admin/UsersIndexTest.php`, `project/tests/Feature/Admin/UserShowTest.php`
+- **Файлы:** `backend/tests/Unit/Models/AdminPolicyTest.php`, `backend/tests/Feature/Settings/ToggleSyncTest.php`, `backend/tests/Feature/Admin/UsersIndexTest.php`, `backend/tests/Feature/Admin/UserShowTest.php`
 - **Критерии приёмки:**
   - [x] php artisan test все проходят (219 passed — все тесты backend)
   - [x] AdminPolicy: is_admin=true 200, false 403
@@ -1325,10 +1325,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-1
 - **Блокирует:** MBE-9
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Добавить флаги is_super_admin (bool, default false) и is_active (bool, default true) в миграцию users. Реализовать методы модели User: isSuperAdmin(), isActive(), revokeTokens(). Создать Actions: SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction (assign/revoke админской роли), DeleteUserAction. Реализовать блокировку входа неактивного пользователя в LoginController. Создать seeder с суперадмин пользователем admin@demo.local.
 - **Реализация:** Миграция ALTER users ADD is_super_admin/is_active. User модель с методами и casts. Actions в app/Actions/{User,Admin}/ (SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction, DeleteUserAction), каждый invokable. LoginController проверка !user.isActive() → 403. DatabaseSeeder с create admin@demo.local → is_super_admin=true, is_active=true.
-- **Файлы:** `project/database/migrations/*_add_super_admin_fields_to_users_table.php`, `project/app/Models/User.php` (обновить), `project/app/Actions/Admin/SetUserActiveAction.php`, `project/app/Actions/Admin/ChangeUserPasswordAction.php`, `project/app/Actions/Admin/SetUserRolesAction.php`, `project/app/Actions/Admin/DeleteUserAction.php`, `project/app/Http/Controllers/Auth/LoginController.php` (обновить), `project/database/seeders/DatabaseSeeder.php` (обновить)
+- **Файлы:** `backend/database/migrations/*_add_super_admin_fields_to_users_table.php`, `backend/app/Models/User.php` (обновить), `backend/app/Actions/Admin/SetUserActiveAction.php`, `backend/app/Actions/Admin/ChangeUserPasswordAction.php`, `backend/app/Actions/Admin/SetUserRolesAction.php`, `backend/app/Actions/Admin/DeleteUserAction.php`, `backend/app/Http/Controllers/Auth/LoginController.php` (обновить), `backend/database/seeders/DatabaseSeeder.php` (обновить)
 - **Критерии приёмки:**
   - [x] php artisan migrate успешна: users.is_super_admin, users.is_active (BOOLEAN типы)
   - [x] User::isSuperAdmin() возвращает is_super_admin
@@ -1351,10 +1351,10 @@
 - **Приоритет:** high
 - **Зависимости:** DEV-13
 - **Блокирует:** WEB-10, TEST-12
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Создать middleware EnsureSuperAdmin (alias superadmin) для проверки is_super_admin=true (403 иначе). Реализовать контроллеры для управления пользователями: UserSetStatusController (PATCH {uuid}/status), UserPasswordController (PATCH {uuid}/password), UserRolesController (PATCH {uuid}/roles), UserDestroyController (DELETE {uuid}). Form Requests с guard'ами: нельзя менять статус/пароль/удалить самого себя, нельзя отозвать последнего активного суперадмина. Расширить UserResource полями is_super_admin, is_active. Создать AdminUserResource для списков. Маршруты под /api/v1/admin/users с middleware superadmin.
 - **Реализация:** app/Http/Middleware/EnsureSuperAdmin.php → check auth()->user()->isSuperAdmin(). Контроллеры в app/Http/Controllers/Admin/{UserSetStatusController, UserPasswordController, UserRolesController, UserDestroyController}.php (invokable). Form Requests: SetUserStatusRequest, ChangeUserPasswordRequest, SetUserRolesRequest, DestroyUserRequest с authorize() методами (self-check, last-active-superadmin-check). Resources: AdminUserResource, обновить UserResource. Routes в routes/api.php: PATCH {user:uuid}/status|password|roles, DELETE {uuid}, все под middleware superadmin.
-- **Файлы:** `project/app/Http/Middleware/EnsureSuperAdmin.php`, `project/app/Http/Controllers/Admin/UserSetStatusController.php`, `project/app/Http/Controllers/Admin/UserPasswordController.php`, `project/app/Http/Controllers/Admin/UserRolesController.php`, `project/app/Http/Controllers/Admin/UserDestroyController.php`, `project/app/Http/Requests/Admin/SetUserStatusRequest.php`, `project/app/Http/Requests/Admin/ChangeUserPasswordRequest.php`, `project/app/Http/Requests/Admin/SetUserRolesRequest.php`, `project/app/Http/Requests/Admin/DestroyUserRequest.php`, `project/app/Http/Resources/AdminUserResource.php`, `project/app/Http/Resources/UserResource.php` (обновить), `project/routes/api.php` (обновить)
+- **Файлы:** `backend/app/Http/Middleware/EnsureSuperAdmin.php`, `backend/app/Http/Controllers/Admin/UserSetStatusController.php`, `backend/app/Http/Controllers/Admin/UserPasswordController.php`, `backend/app/Http/Controllers/Admin/UserRolesController.php`, `backend/app/Http/Controllers/Admin/UserDestroyController.php`, `backend/app/Http/Requests/Admin/SetUserStatusRequest.php`, `backend/app/Http/Requests/Admin/ChangeUserPasswordRequest.php`, `backend/app/Http/Requests/Admin/SetUserRolesRequest.php`, `backend/app/Http/Requests/Admin/DestroyUserRequest.php`, `backend/app/Http/Resources/AdminUserResource.php`, `backend/app/Http/Resources/UserResource.php` (обновить), `backend/routes/api.php` (обновить)
 - **Критерии приёмки:**
   - [x] Middleware EnsureSuperAdmin проверяет is_super_admin → 403 иначе
   - [x] PATCH /api/v1/admin/users/{uuid}/status → 200, обновляет is_active (guard: не self)
@@ -1375,7 +1375,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-9, WEB-1
 - **Блокирует:** TEST-12
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Создать API функции для управления пользователями в суперадмин панели. Composable useUsers для управления состоянием. Страницы: UsersListView (таблица пользователей со статусом, ролями, действиями), UserDetailView (детальный просмотр + редактирование). Добавить guard в router для проверки is_super_admin. При заблокированном входе показать сообщение на LoginView.
 - **Реализация:** src/api/usersApi.ts (fetchUsers, fetchUser, setUserStatus, changeUserPassword, setUserRoles, deleteUser). src/composables/useUsers.ts (состояние пользователей). src/pages/admin/UsersListView.vue (таблица со статусом/ролями, кнопки действий — блокировка, смена пароля, права, удаление). src/pages/admin/UserDetailView.vue (форма редактирования). src/router/guards.ts + requireSuperAdmin. src/pages/auth/LoginView.vue (обновить — сообщение если account blocked).
 - **Файлы:** `web/src/api/usersApi.ts`, `web/src/composables/useUsers.ts`, `web/src/pages/admin/UsersListView.vue`, `web/src/pages/admin/UserDetailView.vue`, `web/src/router/guards.ts` (обновить), `web/src/pages/auth/LoginView.vue` (обновить), `web/src/types/admin.ts`
@@ -1399,10 +1399,10 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-9
 - **Блокирует:** нет
-- **Стандарты:** `/home/vselug/workspace/docs/01-general.md`, `/home/vselug/workspace/docs/02-php.md`, `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/01-general.md`, `/home/vselug/workspace/Napominalky/docs/02-php.md`, `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** Написать 35 Pest-тестов для фичи суперадмин: Actions unit (SetUserActiveAction, ChangeUserPasswordAction, SetUserRolesAction, DeleteUserAction), form guard'ы (self-check, last-active-superadmin-check), API endpoints (PATCH/DELETE статус/пароль/роли/удаление), авторизация (только суперадмин, только на других юзеров). Проверить всю функциональность end-to-end.
 - **Реализация:** tests/Feature/Admin/SuperAdminUserManagementTest.php с 35 кейсами: SetUserActive (active/inactive), ChangePassword (valid/invalid), SetRoles (assign/revoke admin), DeleteUser (soft delete). Form guards: нельзя над собой, нельзя отозвать последнего активного суперадмина. API: 200 на success, 403 на non-superadmin, 404 на юзер не найден, 422 на валидация. Все тесты против PostgreSQL (RefreshDatabase).
-- **Файлы:** `project/tests/Feature/Admin/SuperAdminUserManagementTest.php`
+- **Файлы:** `backend/tests/Feature/Admin/SuperAdminUserManagementTest.php`
 - **Критерии приёмки:**
   - [x] php artisan test — все 35 тестов зелёные (254 passed всего, 911 assertions)
   - [x] SetUserActiveAction unit: активирует/деактивирует, возвращает User
@@ -1430,10 +1430,10 @@
 - **Приоритет:** critical
 - **Зависимости:** ARCH-1
 - **Блокирует:** нет (параллельно с остальными)
-- **Стандарты:** `/home/vselug/workspace/docs/07-task-management.md`
-- **Описание:** Зафиксировать архитектурный план ARCH-1 в `/home/vselug/workspace/docs/architecture/mvp-architecture.md`. Заполнить реестр задач `/home/vselug/workspace/docs/TASKS.md`: обновить счётчики, добавить все 66 задач с описаниями, критериями приёмки и зависимостями.
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
+- **Описание:** Зафиксировать архитектурный план ARCH-1 в `/home/vselug/workspace/Napominalky/docs/architecture/mvp-architecture.md`. Заполнить реестр задач `/home/vselug/workspace/Napominalky/docs/TASKS.md`: обновить счётчики, добавить все 66 задач с описаниями, критериями приёмки и зависимостями.
 - **Реализация:** Создать архитектурный документ со статусом «Согласовано» (6 согласованных решений). Сгруппировать задачи по фичам в TASKS.md. Счётчики: ARCH=1, OPS=3, DEV=12, MBE=10, MOB=20, WEB=9, TEST=11, REVIEW=0, SEC=0, DOC=1. Сводка: Completed=1, Pending=65.
-- **Файлы:** `/home/vselug/workspace/docs/architecture/mvp-architecture.md`, `/home/vselug/workspace/docs/TASKS.md`
+- **Файлы:** `/home/vselug/workspace/Napominalky/docs/architecture/mvp-architecture.md`, `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 - **Критерии приёмки:**
   - [ ] Архитектурный документ содержит все 10 групп фич и 3 слоя
   - [ ] TASKS.md содержит все 66 задач (1 completed + 65 pending)
@@ -1457,7 +1457,7 @@
 - **Приоритет:** high
 - **Зависимости:** —
 - **Блокирует:** WEB-14
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Переписана оболочка `LkLayout.vue` под адаптивный дизайн: десктоп-сайдбар (бренд, навигация Обзор/Задачи и списки/Календарь/Заметки с бейджами, кнопка «Создать», метр синхронизации, строка пользователя, сворачивание до ~84px) + topbar (бургер, заголовок/подзаголовок по разделу, поиск, колокол); мобайл — зелёная шапка с раскрывающимся поиском + нижняя навигация с центральным «+». Раздел «Обзор» на реальных данных: 4 стат-карточки, «Задачи на сегодня» (чекбокс), «Ближайшие напоминания», состояния loading/empty/error.
 - **Файлы:** `web/src/layouts/LkLayout.vue`, `web/src/components/lk/{LkSidebar,LkTopbar,LkMobileHeader,LkBottomNav,LkIcon,LkStatCard,LkOverviewReminderItem}.vue`, `web/src/composables/{useLkBreakpoint,useLkNavCounts,useLkDashboard}.ts`, `web/src/constants/lkNav.ts`, `web/src/pages/lk/DashboardView.vue`, `web/src/router/index.ts`
 - **Критерии приёмки:**
@@ -1474,7 +1474,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-13
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Поэлементная сверка оболочки и «Обзора» с дизайн-брифом (структура сайдбара/таббара, токены цветов, сворачивание, стат-карточки, заголовки разделов). Найдено и исправлено minor-расхождение (регистр буквы в приветствии). Усилены fidelity-тесты.
 - **Файлы:** `web/src/layouts/LkLayout.vue` (правка), `web/src/layouts/LkLayout.test.ts`, `web/src/components/lk/{LkStatCard,LkOverviewReminderItem,LkBottomNav}.test.ts`, `web/src/pages/lk/DashboardView.test.ts`
 - **Критерии приёмки:**
@@ -1490,7 +1490,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-13
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Раздел «Задачи и списки» (`/lk/tasks`): десктоп — карточки списков (тип Купить/Сделать, теги, прогресс, дата, действия) + тулбар (поиск/сортировка/фильтры по завершённости/типу/тегу) + right-rail (мини-календарь с отметками напоминаний + ближайшие напоминания) на ≥1280px; мобайл — карточки в колонку. Хлебные крошки во всех разделах (кликабельная цепочка возврата, динамический хвост из загруженной сущности). Домаппинг реальных полей бэкенда: `type`/`tags` списков; `quantity`/`deadline`/`reminder_at`/`link`/`comment`/`tags` пунктов (в деталях списка); теги парсятся из JSON-строки в API-слое. Детали списка приведены в новый стиль.
 - **Файлы:** `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/{LkShoppingListCard,LkTasksFilterBar,LkTasksRightRail,LkMiniCalendar,LkListItemRow}.vue`, `web/src/components/lk/{LkBreadcrumbs,LkTagPill,LkCategoryPill}.vue`, `web/src/composables/{useLkTasksList,useLkUpcomingReminders,useLkBreadcrumbTail,useShoppingList}.ts`, `web/src/constants/{lkBreadcrumbs,lkTagColors,lkCategoryColors}.ts`, `web/src/utils/tags.ts`, `web/src/api/shoppingListsApi.ts`, `web/src/types/shoppingList.ts`, `web/src/pages/lk/lists/ListDetailView.vue`
 - **Критерии приёмки:**
@@ -1508,7 +1508,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-14
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Сверка фазы 2 (крошки, «Задачи и списки», палитра тегов, метаданные пунктов, адаптив right-rail) с дизайн-брифом. Найден и исправлен HIGH-дефект: пункт меню «Создать → Новый список покупок» вёл на старую нередизайненную страницу `lk-lists` — переключён на редизайненный `lk-tasks`.
 - **Файлы:** `web/src/layouts/LkLayout.vue` (фикс маршрута), `web/src/layouts/LkLayout.test.ts`, `web/src/utils/shoppingList.ts`
 - **Критерии приёмки:**
@@ -1524,7 +1524,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-14
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Раздел «Календарь» (`/lk/calendar`) в новом стиле: сетка месяца 6×7 (навигация ‹/›/«Сегодня», состояния сегодня/выбран/вне месяца, цветные чипы событий + «+N», на мобайле — точки-индикаторы) и панель выбранного дня (right-rail ≥1280px или секция ниже) со списком событий (метка типа, время/«весь день», клик → источник). Унифицированная модель `LkCalendarEvent` агрегирует события из напоминаний (`remind_at`) и пунктов списков с `deadline`/`reminder_at`; тип и цвет по источнику: списки teal, напоминания amber, дела blue (+легенда). Устойчивость: падение загрузки пунктов не рушит календарь (напоминания остаются). Date-range фильтра у API нет — пул тянется и группируется на клиенте.
 - **Реализация:** `useLkCalendar.ts` (агрегация/состояние месяца/byDay/устойчивость), компоненты `LkCalendarGrid`/`LkCalendarDayPanel`/`LkCalendarEventRow`/`LkCalendarLegend`, тип `types/lkCalendar.ts`, цвета `constants/lkCalendarColors.ts`. Реюз `utils/calendar.ts` (getCalendarDays/ymd/sameDay). Старый `MonthGrid.vue` удалён; `useCalendar.ts` сохранён (используется мини-календарём right-rail «Задач»).
 - **Файлы:** `web/src/composables/useLkCalendar.ts`, `web/src/components/lk/calendar/{LkCalendarGrid,LkCalendarDayPanel,LkCalendarEventRow,LkCalendarLegend}.vue`, `web/src/types/lkCalendar.ts`, `web/src/constants/lkCalendarColors.ts`, `web/src/pages/lk/calendar/CalendarView.vue`
@@ -1543,7 +1543,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-15
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Сверка фазы 3 (агрегация событий, сетка/чипы/точки, панель дня, легенда/цвета, навигация месяца, состояния) с дизайн-брифом. Позиция панели дня переведена с CSS-only `@media` на JS-управление (`useLkWideDesktop` + классы) для единообразия с фазой 2 и тестируемости; добавлен сквозной тест агрегации 3 типов событий. Отмечена low-находка: `deadline` парсится через `new Date('YYYY-MM-DD')` (UTC-полночь) — для МSK не проявляется, рекомендовано DEV/ARCH.
 - **Файлы:** `web/src/pages/lk/calendar/CalendarView.vue`, `web/src/pages/lk/calendar/CalendarView.test.ts`
 - **Критерии приёмки:**
@@ -1560,7 +1560,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-15
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Календарь (`useLkCalendar`) и мини-календарь right-rail «Задач» (`useCalendar`) запрашивали напоминания с `per_page=200`, тогда как валидация API `IndexReminderRequest` разрешает `max:100` → HTTP 422 на загрузке (у пользователя — «Request failed with status code 422»). Снижено до 100 (максимум API). Также чинило молчаливый сбой мини-календаря в разделе «Задачи и списки».
 - **Файлы:** `web/src/composables/useLkCalendar.ts`, `web/src/composables/useCalendar.ts` (+тесты)
 - **Критерии приёмки:**
@@ -1576,7 +1576,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-14
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Раздел «Заметки» (`/lk/notes`) в новом стиле: masonry-стикеры через CSS `columns` (адаптив 1→2→3→4 + `break-inside:avoid`), пастельный фон карточки детерминированно по uuid, заголовок/превью тела (обрезка), пин/архив/удаление (оптимистично, удаление с подтверждением), группа «Закреплённые» над «Остальные», поиск с дебаунсом, переключатель архива, «Загрузить ещё» (`per_page=20 ≤ 100`), состояния скелет/пусто/ошибка. Форма заметки (`NoteEditView`) в новом стиле: заголовок, textarea авто-высоты, тумблеры «Закрепить»/«В архив», Сохранить/Удалить, крошка-хвост = заголовок; ошибки сохранения (в т.ч. 422) теперь всплывают в UI (ранее `useNotes` их проглатывал). Favicon вкладки браузера: бренд-колокол в amber-квадрате (`public/favicon.svg`, `%BASE_URL%` под `/napominalki/`), title «Напоминалки».
 - **Файлы:** `web/src/pages/lk/notes/{NotesListView,NoteEditView}.vue`, `web/src/components/lk/notes/{LkNoteCard,LkNotesToolbar,LkNoteSkeleton}.vue`, `web/src/composables/{useLkNotesList,useNotes}.ts`, `web/src/constants/lkNoteColors.ts`, `web/src/components/lk/LkIcon.vue` (иконки pin/archive), `web/index.html`, `web/public/favicon.svg`
 - **Критерии приёмки:**
@@ -1594,7 +1594,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-17
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Сверка фазы 4 (masonry/стикеры, детерминизм цвета, пин/архив/удаление, группировка, форма, состояния, favicon/title) с дизайн-брифом. Расхождений, требующих правок кода, не найдено; усилено покрытие (детерминизм цвета стикера, карточка). Статически подтверждён favicon (резолв под `/napominalki/`, копия в dist). Отмечена информационная находка (не дефект фазы): ошибки точечных действий pin/archive/delete заменяют весь контент блоком ошибки — общий паттерн приложения; рекомендован toast-подход отдельной задачей.
 - **Файлы:** `web/src/constants/lkNoteColors.test.ts`, `web/src/components/lk/notes/LkNoteCard.test.ts`
 - **Критерии приёмки:**
@@ -1614,7 +1614,7 @@
 - **Приоритет:** high
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/mobile/AGENTS.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/mobile/AGENTS.md`
 - **Описание:** Жалоба: локальные уведомления на Android срабатывали не по установленному времени, а в момент открытия/активации приложения. Причина: `expo-notifications` (`ExpoSchedulingDelegate.kt`) на Android 12+/API 31+ планирует точный будильник (`setExactAndAllowWhileIdle`) только при `alarmManager.canScheduleExactAlarms()==true`, иначе откатывается на неточный (`setAndAllowWhileIdle`) — ОС батчит и откладывает доставку до пробуждения/foreground. Разрешений exact-alarm в манифесте не было. Добавлены `SCHEDULE_EXACT_ALARM` (API 31–32) и `USE_EXACT_ALARM` (API 33+) в `app.json` android.permissions → `canScheduleExactAlarms()` истинно → доставка точно по времени даже при закрытом приложении. Предыдущий фикс (Android-канал + reschedule-on-start + маппинг reminder_at) устранял только foreground-показ, но не точность доставки. Требует пересборки APK (нативный манифест), versionCode 29.
 - **Файлы:** `mobile/app.json` (android.permissions), `mobile/src/services/notifications.ts` (пояснительный комментарий — не удалять разрешения)
 - **Критерии приёмки:**
@@ -1634,7 +1634,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-17
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Финал редизайна ЛК. Единое меню «Создать» (`LkCreateMenu`): desktop-поповер у кнопки «Создать» (привязка к её координатам, закрытие вне/Esc) / mobile action-sheet от центральной «+»; 3 пункта — Заметка(teal)/Напоминание(amber)/Список(blue). Полноценная форма создания списка (`LkCreateListDialog`, модалка desktop / нижний лист mobile): название + тип Купить/Сделать (goods/tasks) + теги-чипы; `CreateShoppingListPayload`/`UpdateShoppingListPayload` расширены `type`/`tags`, теги сериализуются в JSON-строку (`serializeTagsPayload`, симметрично `parseTags`); заменила старую инлайн-форму в `TasksView` (единый путь создания из меню и «+ Новый список»). `ReminderEditView` переведён в новый стиль (карточка, повтор-пиллы, textarea авто-высоты, крошка-хвост, прямые вызовы remindersApi → ошибки 422 видны). `RemindersView` в новом стиле (карточки `LkReminderCard`: статус/повтор-бейджи, выполнить/+10м/+1ч/редакт/удалить, фильтр-пиллы, per_page=100).
 - **Файлы:** `web/src/components/lk/{LkCreateMenu,LkCreateListDialog}.vue`, `web/src/layouts/LkLayout.vue`, `web/src/components/lk/LkSidebar.vue`, `web/src/pages/lk/tasks/TasksView.vue`, `web/src/pages/lk/reminders/{ReminderEditView,RemindersView}.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`, `web/src/api/shoppingListsApi.ts`, `web/src/types/shoppingList.ts`
 - **Критерии приёмки:**
@@ -1652,7 +1652,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-18
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Сверка фазы 5 (меню «Создать», форма списка, формы напоминаний, RemindersView) с брифом. Найден и исправлен MEDIUM-дефект: desktop-поповер «Создать» позиционировался у нижнего угла экрана вместо кнопки — привязан к её `getBoundingClientRect()` с клэмпом по вьюпорту. Добавлен fidelity-тест на anchoring.
 - **Файлы:** `web/src/layouts/LkLayout.vue`, `web/src/components/lk/LkSidebar.vue`, `web/src/layouts/LkLayout.test.ts`
 - **Критерии приёмки:**
@@ -1672,7 +1672,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-13
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Доработки раздела «Обзор» по замечаниям пользователя: (1) стат-плашки кликабельны — «Активных задач»→`lk-tasks`, «Напоминаний сегодня»→`lk-reminders`, «Заметок»→`lk-notes` (карточка «Выполнено за неделю» — метрика, без ссылки); `LkStatCard` получил опц. prop `to` (RouterLink + hover/focus). (2) Чекбокс «Задачи на сегодня» открывает стилизованный попап подтверждения `LkConfirmDialog` («Подтвердите выполнение задачи», Да/Отмена, Esc/клик-вне/фокус на «Да»); выполнение только по «Да». (3/4) Клик по строке «Задачи на сегодня»/«Ближайшие напоминания» ведёт в форму `lk-reminder-edit` (чекбокс `@click.stop`). (5) Метр «Синхронизация с сервером» — реальный статус через синглтон `useSyncMeter` (+`syncApi.fetchChanges`), индетерминированная анимация во время синхронизации, клик запускает пул, один запуск при монтировании оболочки, защита от overlap. Примечание: «Задачи на сегодня»/«Ближайшие напоминания» — это напоминания (Reminder), поэтому форма элемента = `lk-reminder-edit`.
 - **Файлы:** `web/src/pages/lk/DashboardView.vue`, `web/src/components/lk/{LkStatCard,LkOverviewReminderItem,LkConfirmDialog}.vue`, `web/src/composables/{useLkDashboard,useSyncMeter}.ts`, `web/src/components/lk/LkSidebar.vue`, `web/src/layouts/LkLayout.vue`
 - **Критерии приёмки:**
@@ -1690,7 +1690,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-19
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Поэлементная сверка 5 доработок «Обзора» с требованиями и палитрой ЛК. Расхождений не найдено; закрыт пробел покрытия — добавлен тест фокуса на кнопке «Да» при открытии попапа подтверждения.
 - **Файлы:** `web/src/components/lk/LkConfirmDialog.test.ts`
 - **Критерии приёмки:**
@@ -1712,7 +1712,7 @@
 - **Блокирует:** вход в аккаунт (веб+МП)
 - **Стандарты:** —
 - **Описание:** Вход падал с `READONLY You can't write against a read only replica ... @user_script:1`. Причина: контейнер `reminders_serve` был подключён к двум docker-сетям — своей `project_reminders` (master `reminders_redis`, алиас `redis`) и чужой `insure-platform_default` (`insure_redis` = read-only slave, тоже алиас `redis`); DNS-коллизия резолвила `redis` в чужую реплику → запись сессии/throttle (Lua EVAL) отклонялась. Фикс: (1) `docker network disconnect insure-platform_default reminders_serve`; (2) `.env` `REDIS_HOST=redis`→`reminders_redis` (уникальный алиас) + `config:clear` + рестарт. Проверка: `Cache::put` ок, `POST /api/v1/auth/login` → 422 вместо 500.
-- **Файлы:** `project/.env` (REDIS_HOST; gitignored, не в репозитории), docker-сеть reminders_serve
+- **Файлы:** `backend/.env` (REDIS_HOST; gitignored, не в репозитории), docker-сеть reminders_serve
 - **Критерии приёмки:**
   - [x] backend пишет в master-Redis (не в read-only реплику)
   - [x] Логин возвращает корректную 422/401 вместо 500 READONLY (веб и МП)
@@ -1725,7 +1725,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-18
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** По замечаниям: (1) после создания списка сразу переход на его детали (`lk-list-detail`) — из меню «Создать» и из TasksView. (2) Статус «Новый» (нет выполненных пунктов) — `shoppingListStatus` new/active/done, в карточке. (3) Акцент по типу списка: покупки (goods) — teal `#17897a`, задачи (tasks) — amber `#c98a2b`; helper `shoppingListAccent`, применён к прогресс-бару (карточка+детали), статус-плашкам, кнопке «Добавить», цвету чекбоксов пунктов. (4) Логин (`LoginView`): предзаполнение email из localStorage + чекбокс «Запомнить меня» (дефолт вкл, пароль не сохраняется); показ пароля по кнопке-«глазу» (иконки eye/eye-off в LkIcon).
 - **Файлы:** `web/src/utils/shoppingList.ts`, `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/{LkShoppingListCard,LkListItemRow}.vue`, `web/src/pages/lk/lists/ListDetailView.vue`, `web/src/pages/auth/LoginView.vue`, `web/src/components/lk/LkIcon.vue`, `web/src/types/lkIcon.ts`
 - **Критерии приёмки:**
@@ -1743,7 +1743,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-20
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Сверка 4 доработок с требованиями и палитрой ЛК. Расхождений нет; усилены fidelity-тесты (точные HEX акцента по типу — статус-плашка и кнопка «Добавить»). Замечено (вне скоупа): кнопка «Новый список» в TasksView использует `#e9a63c` вместо токена `#c98a2b` — не привязана к типу, оставлено.
 - **Файлы:** `web/src/components/lk/tasks/LkShoppingListCard.test.ts`, `web/src/pages/lk/lists/ListDetailView.test.ts`
 - **Критерии приёмки:**
@@ -1759,7 +1759,7 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/mobile/AGENTS.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/mobile/AGENTS.md`
 - **Описание:** Экран входа МП (`app/(auth)/login.tsx`): (1) показ пароля по кнопке-«глазу» — в `BaseInput` добавлен prop `passwordToggle` (Ionicons eye/eye-off справа в поле, переключает `secureTextEntry`, accessibilityLabel «Показать/Скрыть пароль»); (2) запоминание email через `expo-secure-store` (ключ `lk_last_email`): предзаполнение при монтировании + переключатель «Запомнить меня» (RN Switch, дефолт вкл), сохранение/очистка после успешного входа; пароль не сохраняется. Ошибка входа READONLY была устранена ранее на бэкенде (OPS-6), мобильный код логина не менялся. Требует пересборки APK (versionCode 30).
 - **Файлы:** `mobile/app/(auth)/login.tsx`, `mobile/src/components/common/BaseInput.tsx` (+тесты)
 - **Критерии приёмки:**
@@ -1780,7 +1780,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-18
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** 3 формы (задача/список, заметка, напоминание) в состояниях new/edit = 6 форм приведены к десктоп-макету и переведены в центральные модалки поверх раздела. Единый синглтон `useLkForms` (openTaskForm/openNoteForm/openReminderForm/closeForm), 3 модалки рендерятся один раз в `LkLayout`. Задача-форма создаёт/редактирует список (Название, Тип goods/tasks, теги-пресеты; после создания — открытие в lk-list-detail). Заметка-форма: Заголовок, Текст, выбор цвета стикера (реальное поле `color`: teal/coral/amber/purple), без тега/тумблеров; `LkNoteCard` красит по реальному color с uuid-фолбэком. Напоминание-форма: пилюли Дата (Сегодня/Завтра/Выходные/Через неделю) + Время (amber) + Повтор → сборка remind_at (локально→ISO). Старые страницы NoteEditView/ReminderEditView и LkCreateListDialog удалены; deep-link-маршруты → тонкие redirect-view. Стиль модалок точно по макету (scrim, 580px, лейблы, инпуты, пилюли, футер Удалить/Отмена/Сохранить), адаптив на мобайле.
 - **Отклонения (по решению/ограничениям):** задача-форма без Описания/Даты/Напоминания (список — контейнер пунктов); заметка — 4 цвета вместо 6 (лимит бэкенда notes.color); тег заметки отсутствует (нет в модели).
 - **Файлы:** `web/src/composables/useLkForms.ts`, `web/src/components/lk/{LkTaskFormDialog,LkNoteFormDialog,LkReminderFormDialog}.vue`, `web/src/layouts/LkLayout.vue`, `web/src/pages/lk/{tasks/TasksView,notes/NotesListView,reminders/RemindersView,DashboardView,lists/ListDetailView}.vue`, `web/src/components/lk/{notes/LkNoteCard,tasks/LkTasksRightRail}.vue`, `web/src/pages/lk/{notes/NoteFormRedirectView,reminders/ReminderFormRedirectView}.vue`, `web/src/types/note.ts`, `web/src/router/index.ts`, `web/src/constants/lkNoteColors.ts`
@@ -1798,7 +1798,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-21
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Поэлементная сверка 6 форм и стиля модалок с макетом (scrim/размеры/лейблы/инпуты/пилюли/чипы/футер/закрытие; поля и точки входа каждой формы; сборка remind_at, запись color). High/med расхождений не найдено; добавлено 11 fidelity-тестов (лейблы/placeholder/пилюли/свотчи; remind_at «В выходные»=ближайшая суббота, «Через неделю»=+7 через fake timers). Low-замечания зафиксированы без правок.
 - **Файлы:** `web/src/components/lk/{LkTaskFormDialog,LkNoteFormDialog,LkReminderFormDialog}.test.ts`
 - **Критерии приёмки:**
@@ -1814,7 +1814,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-21
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) Баг: при создании нового (пустого) списка, находясь на детали другого списка, открывался старый список — `ListDetailView` фиксировал `route.params.uuid` один раз, а `useShoppingList`/`useShoppingListItems` замыкались на снимок; при переходе lk-list-detail→lk-list-detail Vue переиспользует компонент (setup не перезапускается). Фикс: композаблы принимают `MaybeRefOrGetter<string>` и резолвят uuid через `toValue` внутри каждого метода; `ListDetailView` передаёт геттер + `watch(route.params.uuid)` перезагружает список/пункты и сбрасывает форму. (2) Крошки по макету: первая метка «Личный кабинет»→«Главная», текущая крошка teal `#17897a`/700, ссылки `#8a938f`, разделитель-шеврон; при открытой форме-модалке добавляется крошка формы («Новая задача / покупка» и т.п.) через `useLkForms`. (3) Карточка заметки: цветная верхняя граница `4px solid accent` + тень `0 6px 16px rgba(0,0,0,.06)` как в макете.
 - **Файлы:** `web/src/composables/{useShoppingList,useShoppingListItems}.ts`, `web/src/pages/lk/lists/ListDetailView.vue`, `web/src/constants/lkBreadcrumbs.ts`, `web/src/components/lk/LkBreadcrumbs.vue`, `web/src/components/lk/notes/LkNoteCard.vue`
 - **Критерии приёмки:**
@@ -1831,7 +1831,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-21
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Поэлементная сверка topbar с макетом и приведение «хрома»: хедер height 78px/padding 0 30px/border #e6e9e7; бургер — иконка-тоггл сайдбара (новая `sidebar` в LkIcon) в чипе 44×44 `#f2f4f3` r12 (была гамбургер без фона); заголовок H1 22px/900; поиск и колокол — чипы `#f2f4f3` r12 (были #eef1f0 r10), колокол 44×44, точка-индикатор 8×8 `#e2685f` с рамкой. Подзаголовок оставлен (осознанное отклонение — в макетном topbar его нет). Крошки не трогались (приведены ранее).
 - **Файлы:** `web/src/components/lk/LkTopbar.vue`, `web/src/components/lk/LkIcon.vue`, `web/src/types/lkIcon.ts`, `web/src/components/lk/LkTopbar.test.ts`
 - **Критерии приёмки:**
@@ -1847,7 +1847,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-23
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** По замечанию: в десктоп-макете topbar рендерит только заголовок, подзаголовка нет ни на одном разделе (ранее ошибочно оставлен как «отклонение»). Удалён подзаголовок и его проп из `LkTopbar`; `LkLayout` больше не передаёт subtitle в topbar. Подзаголовок остаётся в мобильной шапке (`LkMobileHeader`) — там мобильный макет его предусматривает; приветствие дашборда и подзаголовки разделов теперь проверяются на мобильной шапке.
 - **Файлы:** `web/src/components/lk/LkTopbar.vue`, `web/src/layouts/LkLayout.vue`, `web/src/components/lk/LkTopbar.test.ts`, `web/src/layouts/LkLayout.test.ts`
 - **Критерии приёмки:**
@@ -1867,9 +1867,9 @@
 - **Приоритет:** high
 - **Зависимости:** —
 - **Блокирует:** WEB-25
-- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/04-database.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/04-database.md`
 - **Описание:** Добавлен булев флаг `is_completed` спискам покупок (независимо от отметок пунктов) — для чекбокса/фильтра «Выполненные»/зачёркивания в таблице. Миграция (boolean default false), модель (fillable+cast), `ShoppingListResource`, валидация Store/Update, прокидка через DTO `ShoppingListData` + Create/UpdateListAction + контроллеры. Миграция применена к основной и тестовой БД. Pest: default false, PUT сохраняет, PUT без поля не сбрасывает, не-boolean → 422. Полный прогон 285 зелёных.
-- **Файлы:** `project/database/migrations/2026_07_10_100000_add_is_completed_to_shopping_lists_table.php`, `project/app/Models/ShoppingList.php`, `project/app/Http/Resources/ShoppingListResource.php`, `project/app/Http/Requests/ShoppingList/{Store,Update}ListRequest.php`, `project/app/Data/ShoppingListData.php`, `project/app/Actions/ShoppingList/{Create,Update}ListAction.php`, контроллеры Store/Update, `project/tests/Feature/ShoppingLists/ListCompletedFlagTest.php`
+- **Файлы:** `backend/database/migrations/2026_07_10_100000_add_is_completed_to_shopping_lists_table.php`, `backend/app/Models/ShoppingList.php`, `backend/app/Http/Resources/ShoppingListResource.php`, `backend/app/Http/Requests/ShoppingList/{Store,Update}ListRequest.php`, `backend/app/Data/ShoppingListData.php`, `backend/app/Actions/ShoppingList/{Create,Update}ListAction.php`, контроллеры Store/Update, `backend/tests/Feature/ShoppingLists/ListCompletedFlagTest.php`
 - **Критерии приёмки:**
   - [x] Миграция is_completed (default false), применена к обеим БД
   - [x] Ресурс отдаёт, Store/Update принимают, PUT без поля не сбрасывает
@@ -1883,7 +1883,7 @@
 - **Приоритет:** high
 - **Зависимости:** MBE-12, WEB-21
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Раздел «Задачи и списки» переведён из сетки карточек в плоскую таблицу по вёрстке: тулбар (вкладки Все/Активные/Выполненные по `is_completed`, «+ Новая задача»), сортируемые колонки ЗАДАЧА(чекбокс→is_completed + «N пунктов · M куплено»)/ТЕГИ/ДАТА/НАПОМИНАНИЕ, зачёркивание выполненных, клик по строке → форма edit, строка «+ Добавить задачу». Колонки Дата/Напоминание — производные от `deadline`/`reminder_at` ПУНКТОВ (параллельный fetchItems, read-only; у списка своих date/reminder нет — по решению пользователя «без бэкенда»). Форма задачи (`LkTaskFormDialog`) переработана в редактор списка: шапка+прогресс M/N, тумблер Купить(teal)/Сделать(amber), инлайн-добавление/чек/удаление пунктов, теги-пресеты + «Свой тег», футер Удалить/Отмена/Сохранить; new-режим создаёт список только при первом действии (пустые не плодятся). `ListDetailView` заменён модалкой; `lk-list-detail` → тонкий redirect. Тип `ShoppingList` + `is_completed`.
 - **Файлы:** `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/LkTaskTableRow.vue`, `web/src/composables/useLkTasksTable.ts`, `web/src/components/lk/LkTaskFormDialog.vue`, `web/src/pages/lk/lists/ListFormRedirectView.vue`, `web/src/utils/shoppingList.ts`, `web/src/types/shoppingList.ts`, `web/src/router/index.ts`, `web/src/components/lk/LkIcon.vue` (cart)
 - **Отклонения (по решению пользователя «без бэкенда»):** форма без секций Дата/Напоминание; в таблице Дата/Напоминание производные от пунктов (у списков без датированных пунктов — «—», отличается от скринов, где даты заполнены).
@@ -1901,7 +1901,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-25
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Поэлементная сверка таблицы (вкладки/сортировка/чекбокс/колонки/derive/строка→модалка) и формы (тумблер типа/пункты/теги/футер/new-логика без пустых списков) с 3 скриншотами. High/med расхождений нет. Добавлено 13 fidelity-assertions (активная вкладка/aria, реверс стрелки, «⏰ HH:MM», прочерки, прогресс/цвета формы). Low-замечания зафиксированы (derive «—», один поиск не подключён — брифом допущено).
 - **Файлы:** `web/src/pages/lk/tasks/TasksView.test.ts`, `web/src/components/lk/LkTaskFormDialog.test.ts`
 - **Критерии приёмки:**
@@ -1951,9 +1951,9 @@
 - **Приоритет:** medium
 - **Зависимости:** SEC-1
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/03-laravel.md`
 - **Описание:** `config/sanctum.php` `expiration` переведён с хардкод `null` на `env('SANCTUM_EXPIRATION', 43200)`; в прод-`.env` задан `SANCTUM_EXPIRATION=43200` (30 дней) — украденный токен перестаёт быть вечным. Проверено: рантайм `config('sanctum.expiration')=43200`; auth Pest (64) зелёные.
-- **Файлы:** `project/config/sanctum.php`, `project/.env` (gitignored)
+- **Файлы:** `backend/config/sanctum.php`, `backend/.env` (gitignored)
 - **Критерии приёмки:**
   - [x] expiration env-driven, значение активно в рантайме
   - [x] Auth-тесты зелёные (64)
@@ -1966,7 +1966,7 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Вход/Регистрация/Восстановление/Сброс пароля приведены к стилю бренда «Напоминалки»: сплит-карточка (`AuthCard` — зелёная брендовая панель с колоколом + «Напоминалки» на широких, карточка на узких), стилизованные поля, первичная teal-кнопка, показ пароля по «глазу» на всех парольных полях (`AuthPasswordField`, добавлен и в регистрацию/сброс). Вся логика/валидация/обработка ошибок (422/401/403)/запоминание email/редиректы сохранены; тесты не менялись.
 - **Файлы:** `web/src/components/auth/{AuthCard,AuthPasswordField}.vue`, `web/src/pages/auth/{LoginView,RegisterView,ForgotPasswordView,ResetPasswordView}.vue`
 - **Критерии приёмки:**
@@ -1983,7 +1983,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-13
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** По замечанию «аккаунт открывается, но без стиля»: страницы `AccountView`/`SettingsView`/`SyncView` оставались в старом голом виде внутри нового ЛК (в фазах 1–5 не редизайнились). Приведены к стилю бренда: белые карточки radius 18/тень, аватар-инициал в шапке аккаунта, строки профиля (Имя/Email/Синхронизация как бейдж), кнопки ЛК (Выйти нейтральная / Удалить аккаунт coral с подтверждением), состояния loading/error; Настройки — секции-карточки (тема/синк/уведомления) с teal accent-color; Синхронизация — карточки статуса/конфликтов. Диагностика подтвердила: бэкенд/данные/вход исправны (в логах дашборд и `/auth/me` → 200), проблема была только в неотредизайненной вёрстке. Вся логика (fetchMe/logout/deleteAccount/settings/sync) сохранена.
 - **Файлы:** `web/src/pages/lk/AccountView.vue`, `web/src/pages/lk/SettingsView.vue`, `web/src/pages/lk/sync/SyncView.vue`
 - **Критерии приёмки:**
@@ -1999,7 +1999,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-25
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) Баг: в таблице «Задачи и списки» показывалось фантомное напоминание/дата — `nearestIso` при отсутствии будущих значений откатывалась на прошедшие, поэтому просроченное `reminder_at` пункта (напр. 07-03) отображалось как активное. Убран откат на прошлое (`return bestFuture?.iso ?? null`); прошедшие → «—», реальный дедлайн сегодня/в будущем остаётся. (2) На «Обзоре» в блок «Ближайшие напоминания» добавлена ссылка «Открыть все →» на `lk-reminders`. (3) На странице всех напоминаний (`RemindersView`) добавлены чекбоксы выбора + «Выделить все» (с indeterminate) + «Удалить выделенные» (подтверждение через `LkConfirmDialog`, параллельное удаление, обработка частичных ошибок); select-чекбокс не открывает форму.
 - **Файлы:** `web/src/composables/useLkTasksTable.ts`, `web/src/pages/lk/DashboardView.vue`, `web/src/pages/lk/reminders/RemindersView.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`
 - **Критерии приёмки:**
@@ -2016,7 +2016,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-15
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** В сетке месяца чипы событий были некликабельны (нельзя открыть объект из календаря). Добавлен двойной клик по чипу события (`LkCalendarGrid`, `@dblclick.stop` → emit `openEvent`) → `CalendarView` делает `router.push(event.route)` → открывается форма-модалка объекта (напоминание/список) через redirect-view. Одиночный клик по-прежнему выбирает день; панель дня (одиночный клик по строке) не менялась. Compact-режим (точки) тоже открывает по двойному тапу.
 - **Файлы:** `web/src/components/lk/calendar/LkCalendarGrid.vue`, `web/src/pages/lk/calendar/CalendarView.vue`
 - **Критерии приёмки:**
@@ -2031,7 +2031,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-19, WEB-25
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Диагностика жалобы «разный набор списков в МП и вебе»: сервер/REST отдают данные корректно (список «Тестовая» есть, мобилка показывает верно), но веб-раздел перечитывался только при монтировании/F5, а метр «Синхронизация» (`runSync`) делал лишь `fetchChanges(0)` и данные разделов не обновлял → изменения из мобилки не появлялись. Фикс: `useSyncMeter.runSync` после успешного `fetchChanges` бампит `tasksVersion/notesVersion/remindersVersion` (через `notifyTaskSaved/notifyNoteSaved/notifyReminderSaved`) → открытый раздел перечитывает REST. Плюс новый `useLkAutoRefresh` (в LkLayout): при возврате фокуса на вкладку (`visibilitychange='visible'`, троттлинг 30с) вызывает `runSync` → веб подхватывает изменения без F5. Это UX-фикс, не рассинхрон на сервере.
 - **Файлы:** `web/src/composables/useSyncMeter.ts`, `web/src/composables/useLkAutoRefresh.ts`, `web/src/layouts/LkLayout.vue`
 - **Критерии приёмки:**
@@ -2051,9 +2051,9 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** WEB-31
-- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** Эндпоинты профиля: `PATCH /auth/me` (обновление name; email не принимается), `POST /auth/me/avatar` (multipart, image mimes jpeg/png/webp ≤512КБ, хранение на приватном диске `local` `avatars/{uuid}.ext`, замена прежнего файла), `DELETE /auth/me/avatar` (идемпотентно). Миграция `users.avatar_path` (обе БД). `UserResource.avatar` = data-URI (`data:image/…;base64,…`) или null; сырой `avatar_path` в `$hidden`. Решение data-URI выбрано из-за схемы деплоя (serve только /api, нет storage:link) — CSP `img-src 'self' data:` уже разрешает. `AvatarService` (store/delete/toDataUri); DeleteAccount чистит файл аватара. GD в контейнере нет → серверный ресайз невозможен (ресайз на клиенте). Живой smoke на проде: upload→data-URI→delete→чисто.
-- **Файлы:** `project/database/migrations/2026_07_15_100000_add_avatar_path_to_users_table.php`, `project/app/Http/Controllers/Auth/{UpdateProfile,UploadAvatar,DeleteAvatar}Controller.php`, `project/app/Http/Requests/Auth/{UpdateProfile,UploadAvatar}Request.php`, `project/app/Services/AvatarService.php`, `project/app/Actions/User/{UpdateProfile,UploadAvatar,DeleteAvatar}Action.php`, `project/app/Data/ProfileData.php`, `project/app/Http/Resources/UserResource.php`, `project/app/Models/User.php`, `project/routes/api.php`, `project/tests/Feature/Auth/ProfileTest.php`
+- **Файлы:** `backend/database/migrations/2026_07_15_100000_add_avatar_path_to_users_table.php`, `backend/app/Http/Controllers/Auth/{UpdateProfile,UploadAvatar,DeleteAvatar}Controller.php`, `backend/app/Http/Requests/Auth/{UpdateProfile,UploadAvatar}Request.php`, `backend/app/Services/AvatarService.php`, `backend/app/Actions/User/{UpdateProfile,UploadAvatar,DeleteAvatar}Action.php`, `backend/app/Data/ProfileData.php`, `backend/app/Http/Resources/UserResource.php`, `backend/app/Models/User.php`, `backend/routes/api.php`, `backend/tests/Feature/Auth/ProfileTest.php`
 - **Критерии приёмки:**
   - [x] PATCH имя, POST/DELETE аватар, миграция в обе БД
   - [x] UserResource отдаёт avatar как data-URI/null, avatar_path скрыт
@@ -2067,7 +2067,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MBE-14, WEB-27
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** На `AccountView`: режим редактирования имени (PATCH /auth/me, валидация/422), загрузка фото (скрытый file-input → клиентский ресайз `resizeImageToBlob` canvas→256px JPEG ≤512КБ → превью → POST) и удаление фото (DELETE); email только просмотр. `authApi` (updateProfile/uploadAvatar(FormData)/deleteAvatar), `User.avatar: string|null`, authStore пишет ответ в user. Аватар (data-URI) показывается вместо инициала в `LkSidebar` и `LkMobileHeader`. CSP не менялся (data-URI разрешён). Клиентский ресайз обязателен (сервер без GD).
 - **Файлы:** `web/src/pages/lk/AccountView.vue`, `web/src/utils/image.ts`, `web/src/api/authApi.ts`, `web/src/stores/authStore.ts`, `web/src/types/auth.ts`, `web/src/components/lk/{LkSidebar,LkMobileHeader}.vue`
 - **Критерии приёмки:**
@@ -2084,9 +2084,9 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** `SyncSerializer::shoppingList()` отдавал только `uuid/title/timestamps` — `type`/`tags` списка не уходили в мобилку (тип/теги, заданные в вебе, в МП не появлялись). Добавлены `type` и `tags` (raw JSON-строка, как в sync-whitelist `SyncEntities`). Мобильная сторона уже готова — `ServerShoppingList` содержит `type`/`tags`, `shoppingListMapper` их мапит в локальную БД, поэтому изменений в мобильном приложении и пересборки APK НЕ требуется. Проверено: Sync Pest 59 зелёных + новый тест на type/tags в pull; живой `/sync/changes` отдаёт списки с type/tags. Нюанс: существующие неизменённые списки back-fill'ят type/tags на мобилке при следующем изменении (server_revision bump) или полном ре-sync — incremental sync отдаёт только изменённые записи.
-- **Файлы:** `project/app/Services/Sync/SyncSerializer.php`, `project/tests/Feature/Sync/ChangesEndpointTest.php`
+- **Файлы:** `backend/app/Services/Sync/SyncSerializer.php`, `backend/tests/Feature/Sync/ChangesEndpointTest.php`
 - **Критерии приёмки:**
   - [x] Sync pull отдаёт type/tags списка; мобилка их принимает (маппер готов)
   - [x] Sync Pest зелёный (+тест на type/tags); живая проверка /sync/changes
@@ -2114,7 +2114,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-31
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Загрузка аватара падала с 422 «The avatar field is required»: у `apiClient` глобальный дефолт `Content-Type: application/json`, который axios НЕ перезаписывает для FormData → multipart уходил с JSON-заголовком, сервер не распознавал файл. Фикс в axios-request-интерцепторе (`client.ts`): если `config.data instanceof FormData` — `config.headers.delete('Content-Type')`, чтобы браузер выставил `multipart/form-data; boundary`. Глобально для всех multipart-загрузок; тест `uploadAvatar` не затронут. Бэкенд был исправен (проверялся `curl -F`).
 - **Файлы:** `web/src/api/client.ts`
 - **Критерии приёмки:**
@@ -2130,9 +2130,9 @@
 - **Приоритет:** medium
 - **Зависимости:** MBE-14
 - **Блокирует:** WEB-33
-- **Стандарты:** `/home/vselug/workspace/docs/03-laravel.md`, `/home/vselug/workspace/docs/07-api.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/03-laravel.md`, `/home/vselug/workspace/Napominalky/docs/07-api.md`
 - **Описание:** `PATCH /auth/me` теперь принимает `email` (required|email|max:255|unique:users кроме себя) наряду с `name`. `UpdateProfileRequest`/`ProfileData`/`UpdateProfileController`/`UpdateProfileAction` обновлены; при фактической смене email сбрасывается `email_verified_at` (verification-флоу в проекте нет). Контракт изменился: `email` стал обязателен в PATCH /auth/me (веб обновлён — WEB-33; мобилка этот эндпоинт не вызывает — он добавлен в MBE-14). Pest: смена email → 200 + verified_at сброшен, свой email → 200, чужой/невалидный/пустой → 422. Профиль-тесты 19, весь Auth 59 зелёные. **Security (принято по требованию):** смена email без подтверждения текущим паролем/ре-верификации — при желании усилить позже.
-- **Файлы:** `project/app/Http/Requests/Auth/UpdateProfileRequest.php`, `project/app/Data/ProfileData.php`, `project/app/Http/Controllers/Auth/UpdateProfileController.php`, `project/app/Actions/User/UpdateProfileAction.php`, `project/tests/Feature/Auth/ProfileTest.php`
+- **Файлы:** `backend/app/Http/Requests/Auth/UpdateProfileRequest.php`, `backend/app/Data/ProfileData.php`, `backend/app/Http/Controllers/Auth/UpdateProfileController.php`, `backend/app/Actions/User/UpdateProfileAction.php`, `backend/tests/Feature/Auth/ProfileTest.php`
 - **Критерии приёмки:**
   - [x] PATCH /auth/me меняет email с валидацией unique(кроме себя)
   - [x] email_verified_at сбрасывается при смене
@@ -2146,7 +2146,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MBE-16, WEB-31
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** На `AccountView` режим «Редактировать» теперь правит имя И e-mail (оба предзаполнены; `updateProfile(name,email)` шлёт оба — новый контракт; клиентская валидация + 422 `errors.name`/`errors.email` под полями). Поле «Синхронизация» из read-only-бейджа стало рабочим переключателем (checkbox `role=switch`, teal), подключённым к готовому `useSettings().toggleSync` (`PATCH /settings/sync`) — обновляет `authStore.user.sync_enabled`, индикатор загрузки, откат состояния при ошибке. `authApi.updateProfile`/`authStore.updateProfile` — сигнатура `(name, email)`.
 - **Файлы:** `web/src/pages/lk/AccountView.vue`, `web/src/api/authApi.ts`, `web/src/stores/authStore.ts`
 - **Критерии приёмки:**
@@ -2162,7 +2162,7 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Раздел «Задачи и списки» приведён к логике мобильного приложения по типу списка (`goods`=покупки / `tasks`=задачи). (1) Подпись строки таблицы стала типозависимой: покупки → «N пунктов · M **куплено**», задачи → «N пунктов · M **сделано**» (`checkedWord` в `LkTaskTableRow`). (2) В тулбар таблицы добавлен второй сегмент-фильтр по типу — **Все / Покупки / Задачи** (`typeFilter` в `useLkTasksTable`, `role=group`), комбинируется по AND со статус-вкладками (Все/Активные/Выполненные); сортировка/поиск/пагинация не затронуты. (3) Тумблер типа «Купить/Сделать» в `LkTaskFormDialog` показывается только при СОЗДАНИИ; в режиме редактирования (`isTypeLocked = taskFormList !== null`) скрыт, при сохранении исходный `type` не затирается. Акценты edit (teal/amber) — по фактическому типу списка.
 - **Файлы:** `web/src/components/lk/tasks/LkTaskTableRow.vue`, `web/src/composables/useLkTasksTable.ts`, `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/LkTaskFormDialog.vue` (+ тесты)
 - **Критерии приёмки:**
@@ -2179,7 +2179,7 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) На Главной ЛК добавлена панель «Задачи» (`LkOverviewTasksPanel`) на данных `taskLists` из `useLkDashboard` (тот же `shoppingListsApi.fetchLists`, что питает раздел `lk-tasks`, без доп. запроса; активные `!is_completed`). Число видимых строк рассчитывается по высоте экрана — `useLkVisibleCount` (`window.innerHeight − rect.top − reservedBottom` ÷ 48px, clamp [3..8], дебаунс 150 мс на resize + ResizeObserver; мобилка — фикс. 4 строки). Ссылка «Все задачи →» (`lk-tasks`) показывается только при переполнении. Клик по строке открывает модалку задачи. (2) Устранён дубль ссылок: у старой панели «Задачи на сегодня» (Reminder'ы) ссылка стала «Все напоминания →» (`lk-reminders`). (3) Починен скролл модалки задачи `LkTaskFormDialog`: панель — flex-колонка `overflow:hidden`, скроллится только тело (`.lk-form-dialog__body`, тонкий стилизованный скроллбар внутри правого паддинга между фиксированными шапкой и футером) — скроллбар больше не режется скруглённым углом и не наезжает на контент/кнопки.
 - **Файлы:** `web/src/components/lk/LkOverviewTasksPanel.vue` (new), `web/src/composables/useLkVisibleCount.ts` (new), `web/src/pages/lk/DashboardView.vue`, `web/src/components/lk/LkTaskFormDialog.vue` (+ тесты)
 - **Критерии приёмки:**
@@ -2196,7 +2196,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-35
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) Под стат-карточками Главной — двухколоночная раскладка `grid-template-columns: minmax(0,2fr) minmax(0,1fr)`: слева широкая панель «Задачи» (~2/3), справа узкая «Ближайшие напоминания» (~1/3); при ≤900px складываются в одну колонку (сначала Задачи). (2) Блок «Задачи на сегодня» (Reminder'ы на сегодня, ссылка «Все напоминания →», `LkConfirmDialog`) полностью удалён; из `useLkDashboard` убраны `todaysReminders`/`pendingCompleteUuid`/`completeTodayReminder`/`requestComplete`/`confirmComplete`/`cancelComplete` (счётчик `remindersTodayCount` сохранён через `splitByToday`). (3) В панель «Задачи» добавлен чип-тумблер «Сделать сегодня» — показывает только задачи с датой = сегодня. Правило «Сегодня» — новая `isLkDateToday(iso, now)` в `useLkTasksTable` (общий `dayDiff` с `lkTableDateLabel`, метка «Сегодня» гарантированно совпадает с колонкой раздела задач); производные даты пунктов грузятся фоном через переиспользованную `fetchListsDerivedDates`. Пустое состояние «На сегодня задач нет.»; лимит видимых строк и «Все задачи → lk-tasks» — по отфильтрованному набору.
 - **Файлы:** `web/src/pages/lk/DashboardView.vue`, `web/src/components/lk/LkOverviewTasksPanel.vue`, `web/src/composables/useLkDashboard.ts`, `web/src/composables/useLkTasksTable.ts` (+ тесты)
 - **Критерии приёмки:**
@@ -2213,7 +2213,7 @@
 - **Приоритет:** medium
 - **Зависимости:** WEB-34
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** Причина «дёргания» на странице «Задачи и списки»: таблица имела `table-layout: auto`, а производные даты пунктов (`derivedFor`) грузятся фоном — при подмене «—»→«17 августа»/«⏰ 14:00» колонки ДАТА/НАПОМИНАНИЕ расширялись и толкали ЗАДАЧА/ТЕГИ (теги приходят сразу в `fetchLists`, лишь смещались). Фикс: `table-layout: fixed` + `<colgroup>` (из массива `COLUMNS`) с явными ширинами — ТЕГИ 180px, ДАТА 130px, НАПОМИНАНИЕ 150px, ЗАДАЧА гибкая (остаток). Ячейкам ДАТА/НАПОМИНАНИЕ — `overflow:hidden; text-overflow:ellipsis; nowrap`; плейсхолдеру «—» заданы метрики значения — подмена не меняет геометрию строки. Иконка ⏰ появляется атомарно с временем в фикс. колонке, соседей не двигает. Главная (`LkOverviewTasksPanel`) не затронута — в строках панели дат нет, геометрия уже фиксирована. Сортировка/вкладки/фильтр/подписи WEB-34 не тронуты.
 - **Файлы:** `web/src/pages/lk/tasks/TasksView.vue`, `web/src/components/lk/tasks/LkTaskTableRow.vue` (+ тесты)
 - **Критерии приёмки:**
@@ -2230,7 +2230,7 @@
 - **Приоритет:** high
 - **Зависимости:** WEB-34, WEB-35
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) В `LK_NAV_ITEMS` добавлен пункт «Напоминания» (`lk-reminders`, related — create/edit, иконка `bell`) после «Задачи и списки»; reminder-маршруты убраны из `relatedNames` у `lk-tasks` (нет двойной подсветки); добавлены `LK_SECTION_META` для reminder-маршрутов (раньше топбар показывал дефолт). `LkBottomNav`: деление вокруг центральной «+» — `Math.ceil(len/2)` (3+«+»+2), подпись «Напомин.», `min-width:0`+ellipsis против переполнения. (2) Реализована работа с доп. атрибутами ПУНКТА списка по образцу МП: `web/src/utils/itemAttributes.ts` (чистые утилиты — `ItemAttribute`, `ATTRIBUTE_ORDER/LABELS/ICONS`, `isAttributeSet`, форматтеры токенов с инъекцией `now`), `LkTaskItemRow.vue` (строка: чекбокс, название, компактная мета-строка — чип ×N для goods, теги, чип дедлайна для tasks, иконки-индикаторы напоминания/комментария/ссылки; chevron `aria-expanded`), `LkItemAttributes.vue` (панель: степпер «Количество» для goods, токены заданных атрибутов с «×» + чипсы незаданных). Вместо шторки МП — инлайн-редактор в панели (date / datetime-local / url с валидацией / textarea / тег-редактор с предложениями). Сохранение — `PUT items/{uuid}` через `useShoppingListItems.update`, состояние заменяется ответом сервера; ошибки — `role="alert"`. Поля сверены с `Store/UpdateItemRequest`: `quantity` (min:1, не nullable), `deadline`, `reminder_at`, `link`, `comment` (nullable), `tags` (JSON-строка). Бэкенд НЕ менялся.
 - **Файлы:** `web/src/constants/lkNav.ts`, `web/src/components/lk/LkBottomNav.vue`, `web/src/utils/itemAttributes.ts` (new), `web/src/components/lk/LkTaskItemRow.vue` (new), `web/src/components/lk/LkItemAttributes.vue` (new), `web/src/components/lk/LkTaskFormDialog.vue`, `web/src/api/shoppingListsApi.ts`, `web/src/types/{shoppingList,lkIcon}.ts`, `web/src/components/lk/LkIcon.vue` (+ тесты)
 - **Критерии приёмки:**
@@ -2248,7 +2248,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-38
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) Кнопка-«крестик» удаления пункта убрана из строки — удаление переехало в раскрывающуюся область атрибутов красной текстовой кнопкой «Удалить строку» (`LkItemAttributes` эмитит `remove`, `LkTaskItemRow` пробрасывает наверх; осиротевший стиль `.lk-form-dialog__item-remove` удалён). Строка стала чище, деструктивное действие требует раскрытия. (2) `TAG_PRESETS` в `LkTaskFormDialog`: убраны «Звонки» и «Счета», добавлена «Работа». Цвета «Звонки»/«Счета» сохранены в `NAMED_TAG_COLORS` — теги могли остаться в данных пользователя; «Работа» получила lilac-тон палитры.
 - **Файлы:** `web/src/components/lk/LkItemAttributes.vue`, `web/src/components/lk/LkTaskItemRow.vue`, `web/src/components/lk/LkTaskFormDialog.vue`, `web/src/constants/lkTagColors.ts` (+ тесты)
 - **Критерии приёмки:**
@@ -2264,7 +2264,7 @@
 - **Приоритет:** low
 - **Зависимости:** WEB-39
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/05-typescript-vue.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/05-typescript-vue.md`
 - **Описание:** (1) Доступ к комментарию пункта вынесен из чипсов раскрытой области в основную строку: в `LkTaskItemRow` рядом с chevron (левее) — кнопка-иконка `comment`, `@click.stop`. Клик раскрывает строку (emit `toggleExpand`, если свёрнута) и авто-открывает редактор комментария через сигнал `autoOpenAttribute` (проп в `LkItemAttributes`, `watch immediate` → `openEditor('comment')`, эмит `autoOpened` сбрасывает сигнал — повторный клик срабатывает). Когда комментарий задан — кнопка активна (accent-заливка), служит индикатором; отдельный индикатор `comment` убран из свёрнутой мета-строки (bell/link остались). «Комментарий» отфильтрован из чипсов/токенов панели (`CHIP_ATTRIBUTES = ATTRIBUTE_ORDER без comment`); утилиты `itemAttributes.ts` не тронуты. (2) «Удалить строку» перенесена из низа панели в верхний тулбар `.lk-item-attrs__toolbar` (первый ребёнок): для goods — в одну строку со степпером количества справа (`margin-left:auto`), для tasks — компактной строкой сверху справа; вертикаль не занимает лишнего. Поведение `remove`→API не менялось.
 - **Файлы:** `web/src/components/lk/LkTaskItemRow.vue`, `web/src/components/lk/LkItemAttributes.vue` (+ тесты LkTaskItemRow/LkTaskFormDialog)
 - **Критерии приёмки:**
@@ -2281,7 +2281,7 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Доработки `ReminderForm` (RN + Expo, SDK 54 / expo-router 6 / react-navigation 7). (1) Уменьшен зазор между заголовком-хедером и первой секцией «О чём напомнить»: `header.paddingBottom` 18→6, `content` `padding:18`→`paddingHorizontal:18,paddingTop:8,paddingBottom:8,gap:18` (~36→~14, зазоры между секциями не тронуты). (2) «Повтор» — из 2-колоночной сетки чипсов в ОДНУ строку из 4 радиокнопок (`accessibilityRole="radiogroup"`, `flexDirection:row`, `flex:1`; радио-кружок 20px + подпись `fontSize:12` `numberOfLines={2}` — длинные лейблы переносятся внутри ячейки, ряд один). (3) «Экспорт в календарь» из мгновенной кнопки → чекбокс «Добавить в календарь»: `ReminderFormValues` расширен `exportToCalendar:boolean`; экспорт (`exportReminderToCalendar`) выполняется в `onSuccess` мутации в экранах `new.tsx`/`[uuid].tsx` — только ПОСЛЕ сохранения, с Alert-результатом (в new — `router.back()` по «OK»). (4) Диалог «Сохранить изменения?» при уходе с несохранёнными правками через `usePreventRemove(isDirty, …)` (react-navigation v7) — ловит хедерную «Назад», аппаратный Back, свайп; кнопки Отмена/Не сохранять/Сохранить (последняя только при валидных данных); dirty сбрасывается в `handleSubmit` (уход после сохранения не спрашивает). Бэкенд/sync не затронуты.
 - **Файлы:** `mobile/src/components/reminders/ReminderForm.tsx`, `mobile/app/reminders/new.tsx`, `mobile/app/reminders/[uuid].tsx` (+ тесты ReminderForm/new/uuid)
 - **Критерии приёмки:**
@@ -2300,12 +2300,12 @@
 - **Приоритет:** medium
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/08-git-workflow.md`
-- **Описание:** `eas build --platform android --profile preview` падал на этапе «Compressing project files» с `EACCES: permission denied, scandir project/storage/app/private/avatars`: EAS архивирует весь git-репозиторий монорепо от корня, а папка аватаров (runtime-данные) создана backend-контейнером под root (700). Добавлен `/.easignore`, исключающий из архива сиблинг-директории `project/`, `web/`, `docs/`, `deploy/`, `.git/` (мобильной сборке не нужны — `mobile/` самодостаточен, свой `package-lock.json`, root-workspace нет). Поскольку EAS при наличии `.easignore` использует его ВМЕСТО `.gitignore`, содержимое корневого `.gitignore` продублировано. После фикса архив ~1.8 МБ, загрузка проходит, сборка встаёт в очередь.
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/08-git-workflow.md`
+- **Описание:** `eas build --platform android --profile preview` падал на этапе «Compressing project files» с `EACCES: permission denied, scandir backend/storage/app/private/avatars`: EAS архивирует весь git-репозиторий монорепо от корня, а папка аватаров (runtime-данные) создана backend-контейнером под root (700). Добавлен `/.easignore`, исключающий из архива сиблинг-директории `backend/`, `web/`, `docs/`, `deploy/`, `.git/` (мобильной сборке не нужны — `mobile/` самодостаточен, свой `package-lock.json`, root-workspace нет). Поскольку EAS при наличии `.easignore` использует его ВМЕСТО `.gitignore`, содержимое корневого `.gitignore` продублировано. После фикса архив ~1.8 МБ, загрузка проходит, сборка встаёт в очередь.
 - **Файлы:** `.easignore`
 - **Критерии приёмки:**
   - [x] `eas build` проходит этап упаковки без EACCES
-  - [x] Архив не содержит project/web/docs (сборка mobile самодостаточна)
+  - [x] Архив не содержит backend/web/docs (сборка mobile самодостаточна)
 - **Создана:** 2026-07-24
 - **Завершена:** 2026-07-24
 
@@ -2315,7 +2315,7 @@
 - **Приоритет:** high
 - **Зависимости:** —
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Раздел «Календарь» переработан в «Напоминания» по дизайн-макету. (1) Таб-бар: вкладка `calendar` → `reminders-tab` (title «Напоминания», иконка `alarm`/`alarm-outline`), порядок сохранён. (2) Новый экран `app/(tabs)/reminders-tab/index.tsx`: `DarkHeader` «Напоминания» (поиск, аватар→профиль), карточка-ссылка «Открыть календарь ›», сегмент `ReminderSegmentedFilter` «Просроченные N / Запланированные M» (красный бейдж у просроченных), `SectionList`. Данные — единый `useReminders({status:'pending'})` + `splitByOverdue(now)` (консистентные счётчики). Карточка `ReminderListItem`: круг с будильником, заголовок, чип «7 авг 2026, 10:00», красная «просрочено на N дней» (склонение), кнопка-галочка→`completeReminder`, тап→`/reminders/{uuid}`; бейджа источника нет (решение пользователя — у напоминаний нет тегов/категории). Запланированные сгруппированы Сегодня/Завтра/На этой неделе/Позже (`reminderGrouping.ts`, чистая, инъекция `now`). (3) Календарь (прежний вид) перемещён `git mv` в `app/(tabs)/reminders-tab/calendar.tsx` — вложенный Stack во вкладке: открывается по ссылке, таб-бар виден, вкладка «Напоминания» активна. Удалены мёртвые `app/reminders/index.tsx` + `ReminderCard.tsx`. `CreateButton` ROUTE_MAP дополнен новыми путями. UITEST-10: сверка с макетом — исправлены лейбл секции «Просроченные», a11y-роль сегмента `tab`, фон счётчика-бейджа неактивной пилюли (контраст).
 - **Файлы:** `mobile/app/(tabs)/_layout.tsx`, `mobile/app/(tabs)/reminders-tab/{_layout,index,calendar}.tsx`, `mobile/src/components/reminders/{ReminderSegmentedFilter,ReminderListItem}.tsx`, `mobile/src/utils/{reminderGrouping,pluralize,datetime}.ts`, `mobile/src/components/tabs/CreateButton.tsx` (+ тесты; удалены reminders/index.tsx, ReminderCard.tsx)
 - **Критерии приёмки:**
@@ -2335,7 +2335,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-54
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** Семь правок по замечаниям к экрану «Напоминания». (1) Подпись вкладки таб-бара «Напоминания»→«Напомнить» (обрезалась); заголовок экрана остался «Напоминания». (2) Карточки «Запланированные» — в amber-тоне (`colors.amber`/`amberBg`, общие с FeedCard/задачами главной): фон иконки будильника и чип даты; просроченные — danger-тон. Проп `tone: 'overdue'|'planned'` в `ReminderListItem`. (3) Переход «Открыть календарь» перенесён из плашки в теле в тёмно-зелёную шапку `DarkHeader` (новый проп `onCalendarPress` — кнопка-иконка). (4) Календарь открывается свёрнутым (`collapsed` default true) + хлебная крошка «‹ Календарь» (новый проп `DarkHeader.onBack` → `router.back()`). (5) Флаг выполнения — скруглённый квадрат (borderRadius 15→9) вместо круга. (6) Подтверждение «Закрыть напоминание?» (helper `confirmCloseReminder`, Alert Отмена/Закрыть) перед выполнением — и из списка (галочка), и с формы (кнопка «Выполнить»). (7) Убрана кнопка «Отложить» с формы `[uuid].tsx` + удалён `SnoozeSheet` (домен snooze в repo/hook/utils оставлен). Пропы `DarkHeader`: +`onBack`, +`onCalendarPress`.
 - **Файлы:** `mobile/app/(tabs)/_layout.tsx`, `mobile/app/(tabs)/reminders-tab/{index,calendar}.tsx`, `mobile/src/components/ui/DarkHeader.tsx`, `mobile/src/components/reminders/ReminderListItem.tsx`, `mobile/src/utils/confirmCloseReminder.ts` (new), `mobile/app/reminders/[uuid].tsx` (+ тесты; удалён `SnoozeSheet.tsx`)
 - **Критерии приёмки:**
@@ -2353,7 +2353,7 @@
 - **Приоритет:** medium
 - **Зависимости:** MOB-53, MOB-55
 - **Блокирует:** —
-- **Стандарты:** `/home/vselug/workspace/docs/04-typescript-rn.md`
+- **Стандарты:** `/home/vselug/workspace/Napominalky/docs/04-typescript-rn.md`
 - **Описание:** (1) Карточки-«плашки» формы напоминания приведены к виду карточек главного экрана (`FeedCard`): `styles.card` в `ReminderForm` и `ReminderDateCard` — тонкая рамка `borderWidth:1`/`borderColor:borderSubtle`, `padding:13`, `borderRadius:16`, тень убрана (было `paddingHorizontal:16` + shadow); вертикальный ритм перенесён на `divider.marginVertical`. (2) Если напоминание уже экспортировано в системный календарь — на форме вместо чекбокса «Добавить в календарь» статичный блок «В календаре». Реализовано хранение факта экспорта: локальное поле `calendar_event_id` (`text`, nullable) в схеме `reminders` + миграция `0009_reminder_calendar_event_id.sql` (journal/snapshot/migrations.js). Поле НЕ синхронизируется — пишется методом `RemindersRepository.setCalendarEventId()` мимо outbox (аналог `notificationId`), в pull-маппере отсутствует. `eventId` от `exportReminderToCalendar` сохраняется в напоминание после успешного экспорта в `new.tsx` (uuid из onSuccess) и `[uuid].tsx`. UI — новый `ExportCalendarRow.tsx`: `exported` (из `calendarEventId != null`) → некликабельный статус «В календаре», иначе чекбокс; повторный экспорт исключён (submit шлёт `exportToCalendar:false`, если уже в календаре).
 - **Файлы:** `mobile/src/components/reminders/{ReminderForm,ReminderDateCard,ExportCalendarRow}.tsx`, `mobile/src/db/schema/reminders.ts`, `mobile/src/db/migrations/0009_*` (+meta), `mobile/src/db/repositories/remindersRepo.ts`, `mobile/src/hooks/useReminders.ts`, `mobile/src/services/sync/mappers.ts`, `mobile/app/reminders/{new,[uuid]}.tsx` (+ тесты)
 - **Критерии приёмки:**
@@ -2392,7 +2392,7 @@
 - **Блокирует:** —
 - **Стандарты:** docs/07-api.md, 03-laravel.md
 - **Описание:** Смена статуса задачи из таблицы (`changeStatus` → `PUT { status }` / `{ status_is_manual:false }` без title) падала с **422**: `UpdateListRequest.title` был `required`, а контроллер всегда брал `title` из запроса (затёр бы название пустой строкой). Исправлено: `title` → `['sometimes','required','string','max:255']`; `UpdateController` берёт `title` из запроса только при наличии, иначе — существующий `$shoppingList->title` (по образцу рабочего item-контроллера, где `name` уже sometimes). Смена статуса СТРОКИ уже работала (name sometimes). Добавлен регресс-тест partial PUT (только status/только status_is_manual → 200, title сохранён). Backend применён live (bind-mount + optimize:clear).
-- **Файлы:** `project/app/Http/Controllers/ShoppingLists/UpdateController.php`, `project/app/Http/Requests/ShoppingList/UpdateListRequest.php`, `project/tests/Feature/ShoppingLists/TaskStatusApiContractTest.php`
+- **Файлы:** `backend/app/Http/Controllers/ShoppingLists/UpdateController.php`, `backend/app/Http/Requests/ShoppingList/UpdateListRequest.php`, `backend/tests/Feature/ShoppingLists/TaskStatusApiContractTest.php`
 - **Критерии приёмки:**
   - [x] PUT списка только со status → 200, title не затёрт, статус закреплён
   - [x] «Авто»-сброс partial → 200; Pest зелёный
@@ -2615,7 +2615,7 @@
 - **Блокирует:** —
 - **Стандарты:** docs/03-laravel.md, docs/04-database.md
 - **Описание:** Симптом (прод, МП): бесконечный спиннер RefreshControl «обновление с сервером» на Главной; в логах сервера — шквал `POST /sync/push` с интервалами бэкоффа 1-2-4-8 с. Причина: `sync_conflicts.entity_type` — `varchar(20)`, а `shopping_list_item_comment` — 26 символов; запись конфликта комментария (LWW) валила INSERT `SQLSTATE[22001]` → весь push 500 → `clearOutbox` не выполнялся → клиент ретраил те же изменения вечно (у пользователя — с 18.08). Фикс: миграция `widen_sync_conflicts_entity_type` (varchar(20)→40, с down). (TEST-18) Заодно устранён flaky в `SyncPushServiceTest`: тест whitelisted-полей пушил `id => 42`, а автоинкремент тестовой БД дошёл до 42 — ложное срабатывание; заменено на заведомо недостижимый 424242424.
-- **Файлы:** `project/database/migrations/2026_08_21_140000_widen_sync_conflicts_entity_type.php`, `project/tests/Feature/Sync/SyncPushServiceTest.php`
+- **Файлы:** `backend/database/migrations/2026_08_21_140000_widen_sync_conflicts_entity_type.php`, `backend/tests/Feature/Sync/SyncPushServiceTest.php`
 - **Критерии приёмки:**
   - [x] Миграция применена к тестовой БД; Pest Sync — 81 passed
   - [ ] Миграция применена к продовой БД (`docker exec reminders_serve php artisan migrate --force`)
@@ -2646,7 +2646,7 @@
 - **Блокирует:** —
 - **Стандарты:** docs/03-laravel.md, docs/07-api.md, docs/05-typescript-vue.md
 - **Описание:** (MBE-20) `POST /reminders/{uuid}/snooze` теперь принимает `snoozed_until` (ISO-датавремя, `after:now`) как альтернативу пресетам `snooze: '10m'|'1h'`; ровно одно из двух (`required_without` + `prohibits`); `SnoozeReminderAction` принимает `SnoozeOption|CarbonInterface`. (WEB-47) Страница «Напоминания» ЛК приведена к функционалу МП: фильтры-сегменты «Просроченные / Запланированные» со счётчиками (+ «Выполненные», «Все»), разбивка клиентская по `remind_at` относительно now (одна загрузка `status=all`, переключение без refetch); «Запланированные» — секциями Сегодня/Завтра/На этой неделе/Позже (порт `reminderGrouping` из МП); просроченные подсвечены danger-тоном (красная кромка, бейдж «Просрочено», подпись «просрочено на N дней», красная иконка); в карточке кнопка «Своё время» — инлайн `datetime-local` с валидацией «строго в будущем» → `snoozeUntil`.
-- **Файлы:** `project/app/Http/{Requests/Reminder/SnoozeReminderRequest,Controllers/Reminders/SnoozeController}.php`, `project/app/Actions/Reminder/SnoozeReminderAction.php` (+ CompleteSnoozeApiTest), `web/src/utils/reminderGrouping.ts` (новый, + тест), `web/src/pages/lk/reminders/RemindersView.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`, `web/src/{api/remindersApi,composables/useReminders}.ts` (+ тесты)
+- **Файлы:** `backend/app/Http/{Requests/Reminder/SnoozeReminderRequest,Controllers/Reminders/SnoozeController}.php`, `backend/app/Actions/Reminder/SnoozeReminderAction.php` (+ CompleteSnoozeApiTest), `web/src/utils/reminderGrouping.ts` (новый, + тест), `web/src/pages/lk/reminders/RemindersView.vue`, `web/src/components/lk/reminders/LkReminderCard.vue`, `web/src/{api/remindersApi,composables/useReminders}.ts` (+ тесты)
 - **Критерии приёмки:**
   - [x] Сегменты «Просроченные/Запланированные» со счётчиками; секции запланированных как в МП
   - [x] Просроченные подсвечены с подписью «просрочено на N дней»
@@ -2670,3 +2670,22 @@
   - [x] vue-tsc OK, Vitest зелёный (641)
 - **Создана:** 2026-09-03
 - **Завершена:** 2026-09-03
+
+### OPS-10: Реструктуризация монорепо — корневой каталог Napominalky/, project→backend
+- **Исполнитель:** devops-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** docs/01-general.md, docs/08-git-workflow.md
+- **Описание:** Репозиторий (вместе с `.git`, история цела) перенесён из корня `/home/vselug/workspace/` в `/home/vselug/workspace/Napominalky/`; каталог `project/` переименован в `backend/` (`git mv`, 319 переименований). Итоговая структура: `backend/ mobile/ web/ docs/ deploy/ .claude/agents/ CLAUDE.md`. Посторонние каталоги (docs/Strategy, docs/presentations, docs/home, land-parcel-178, trading-agent) остались вне репозитория. Абсолютные пути `/home/vselug/workspace/...` и относительные `project/` обновлены в CLAUDE.md, конфигах 12 агентов, стандартах docs/*, реестре, `.gitignore`/`.easignore`. Прод не трогался: контейнеры reminders_* смонтированы на старые абсолютные пути — на них оставлены симлинки `workspace/{project,web,deploy}`; в `backend/docker-compose.yml` закреплено `name: project`, чтобы тома `project_postgres_data`/`project_redis_data` и имена контейнеров не сменились после переименования каталога.
+- **Файлы:** `CLAUDE.md`, `.gitignore`, `.easignore`, `.claude/agents/*.md`, `docs/*.md`, `docs/architecture/mvp-architecture.md`, `backend/docker-compose.yml`, `backend/**` (переименование)
+- **Критерии приёмки:**
+  - [x] `git status` — только переименования project→backend и правки путей; история сохранена
+  - [x] Прод жив: API `/auth/login` → 422, веб → 200, bind-mount'ы контейнеров читают файлы через симлинки
+  - [x] `docker compose config` в backend/ отдаёт name: project
+  - [x] Pest (docker exec), Vitest, Jest запускаются с нового расположения
+  - [ ] Пересоздать контейнеры на новые пути и убрать симлинки (отдельно, с коротким простоем)
+  - [ ] Удалить сломанные `workspace/.claude/worktrees/*` + ветки `worktree-agent-*` (вручную)
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29

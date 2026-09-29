@@ -22,11 +22,11 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude, документы стандартов, инструкции
-- **`/home/vselug/workspace/docs/`** — документы стандартов и реестр задач (`TASKS.md`). **Основное место работы.**
-- **`/home/vselug/workspace/project/`** — Laravel backend (читай для документирования API)
-- **`/home/vselug/workspace/mobile/`** — React Native app (читай для документирования)
-- **`/home/vselug/workspace/web/`** — Vue.js web app (читай для документирования)
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude, документы стандартов, инструкции
+- **`/home/vselug/workspace/Napominalky/docs/`** — документы стандартов и реестр задач (`TASKS.md`). **Основное место работы.**
+- **`/home/vselug/workspace/Napominalky/backend/`** — Laravel backend (читай для документирования API)
+- **`/home/vselug/workspace/Napominalky/mobile/`** — React Native app (читай для документирования)
+- **`/home/vselug/workspace/Napominalky/web/`** — Vue.js web app (читай для документирования)
 
 ## Обязанности
 
@@ -48,7 +48,7 @@ disallowedTools:
 
 ### Запись задач
 
-При получении от Orchestrator списка задач для новой фичи записывай их в `/home/vselug/workspace/docs/TASKS.md`:
+При получении от Orchestrator списка задач для новой фичи записывай их в `/home/vselug/workspace/Napominalky/docs/TASKS.md`:
 
 ```markdown
 ## {TASK-ID}: {название задачи}
@@ -72,7 +72,7 @@ disallowedTools:
 
 При получении от Orchestrator запроса инкрементировать счётчик read-only агента:
 
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди таблицу «Счётчики»
 3. Найди строку с нужным префиксом (`ARCH`, `REVIEW` или `SEC`)
 4. Увеличь «Последний ID» на 1
@@ -154,7 +154,7 @@ paths:
 
 ## README
 
-Обновляй `/home/vselug/workspace/README.md` при изменении:
+Обновляй `/home/vselug/workspace/Napominalky/README.md` при изменении:
 - Требований к окружению (PHP, Node, Expo версии)
 - Шагов установки (`composer install`, `npm install`, `php artisan migrate`)
 - Команд запуска (Docker, `php artisan serve`, `npx expo start`, `npm run dev`)
@@ -179,10 +179,10 @@ paths:
 
 ## Обновление счётчика задач
 
-После завершения задачи DOC **обязательно** обнови собственный счётчик в `/home/vselug/workspace/docs/TASKS.md`.
+После завершения задачи DOC **обязательно** обнови собственный счётчик в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 **Порядок:**
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди строку с префиксом `DOC` в таблице «Счётчики»
 3. Увеличь значение «Последний ID» на 1
 4. Сохрани файл

@@ -22,10 +22,10 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude (`.claude/`), документы стандартов (`docs/`), основные инструкции (`CLAUDE.md`)
-- **`/home/vselug/workspace/project`** — каталог проекта Laravel. **Весь код и все файловые операции — только здесь.**
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude (`.claude/`), документы стандартов (`docs/`), основные инструкции (`CLAUDE.md`)
+- **`/home/vselug/workspace/Napominalky/backend`** — каталог проекта Laravel. **Весь код и все файловые операции — только здесь.**
 
-**Перед началом работы выполни `cd /home/vselug/workspace/project`.** Стандарты проекта: `/home/vselug/workspace/docs/`. Все относительные пути к коду (`app/Http/`, `routes/api.php`) отсчитываются от `/home/vselug/workspace/project/`.
+**Перед началом работы выполни `cd /home/vselug/workspace/Napominalky/backend`.** Стандарты проекта: `/home/vselug/workspace/Napominalky/docs/`. Все относительные пути к коду (`app/Http/`, `routes/api.php`) отсчитываются от `/home/vselug/workspace/Napominalky/backend/`.
 
 ## Обязательные стандарты
 
@@ -196,10 +196,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
 ## Обновление счётчика задач
 
-После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`.
+После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 **Порядок:**
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди строку с префиксом `MBE` в таблице «Счётчики»
 3. Увеличь значение «Последний ID» на 1 (например: `0` → `1`)
 4. Сохрани файл
@@ -211,7 +211,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
 **Важно:**
 - Обновляй счётчик **после** успешного коммита, **перед** возвратом результата оркестратору
-- Файл `/home/vselug/workspace/docs/TASKS.md` находится **вне** `/home/vselug/workspace/project/` — он доступен напрямую по абсолютному пути
+- Файл `/home/vselug/workspace/Napominalky/docs/TASKS.md` находится **вне** `/home/vselug/workspace/Napominalky/backend/` — он доступен напрямую по абсолютному пути
 - Обновляй **только** строку со своим префиксом `MBE`
 
 ## Тестирование
@@ -256,4 +256,4 @@ Laravel Sanctum, Horizon — доверенные вендоры. Дополни
 - [ ] `declare(strict_types=1)` в каждом файле
 - [ ] Код проходит `php artisan route:list`
 - [ ] Нет хардкода конфигурации
-- [ ] Счётчик `MBE` в `/home/vselug/workspace/docs/TASKS.md` инкрементирован
+- [ ] Счётчик `MBE` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` инкрементирован

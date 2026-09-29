@@ -22,10 +22,10 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude, документы стандартов, инструкции
-- **`/home/vselug/workspace/project/`** — Laravel backend. PHP-тесты здесь.
-- **`/home/vselug/workspace/mobile/`** — React Native приложение. JS/TS тесты здесь.
-- **`/home/vselug/workspace/web/`** — Vue.js веб-приложение. Vitest тесты здесь.
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude, документы стандартов, инструкции
+- **`/home/vselug/workspace/Napominalky/backend/`** — Laravel backend. PHP-тесты здесь.
+- **`/home/vselug/workspace/Napominalky/mobile/`** — React Native приложение. JS/TS тесты здесь.
+- **`/home/vselug/workspace/Napominalky/web/`** — Vue.js веб-приложение. Vitest тесты здесь.
 
 **Перед началом работы** определи, какой слой тестируешь, и перейди в нужную директорию.
 
@@ -57,10 +57,10 @@ disallowedTools:
 | Mobile (RN) | Jest + React Native Testing Library | `npx jest`, `npx jest --coverage` |
 | Web (Vue) | Vitest + Vue Test Utils | `npx vitest run`, `npx vitest --coverage` |
 
-## Backend-тесты (Pest PHP) — `/home/vselug/workspace/project/`
+## Backend-тесты (Pest PHP) — `/home/vselug/workspace/Napominalky/backend/`
 
 ```bash
-cd /home/vselug/workspace/project
+cd /home/vselug/workspace/Napominalky/backend
 php artisan test                              # все тесты
 php artisan test --filter=ReminderTest        # один класс
 php artisan test --filter="it creates reminder"  # один тест
@@ -161,10 +161,10 @@ it('scopes reminders to authenticated user', function (): void {
 | Каждый Policy | Integration | allow + deny |
 | Каждый Scope | Integration | с данными + без данных |
 
-## Mobile-тесты (Jest + RNTL) — `/home/vselug/workspace/mobile/`
+## Mobile-тесты (Jest + RNTL) — `/home/vselug/workspace/Napominalky/mobile/`
 
 ```bash
-cd /home/vselug/workspace/mobile
+cd /home/vselug/workspace/Napominalky/mobile
 npx jest                              # все тесты
 npx jest src/components/              # директория
 npx jest --coverage                   # с покрытием
@@ -237,10 +237,10 @@ it('fetches reminders list', async () => {
 | Экраны с данными | Integration | loading + success + error + empty |
 | Форма/экран по дизайн-макету | UI-соответствие | наличие + текст + порядок + состояние каждого элемента макета |
 
-## Web-тесты (Vitest + Vue Test Utils) — `/home/vselug/workspace/web/`
+## Web-тесты (Vitest + Vue Test Utils) — `/home/vselug/workspace/Napominalky/web/`
 
 ```bash
-cd /home/vselug/workspace/web
+cd /home/vselug/workspace/Napominalky/web
 npx vitest run                          # все тесты (CI)
 npx vitest                              # watch mode
 npx vitest run --coverage               # с покрытием
@@ -401,10 +401,10 @@ expect(labels).toEqual(['НАЗВАНИЕ', 'ВИД СПИСКА'])
 
 ## Обновление счётчика задач
 
-После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`.
+После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 **Порядок:**
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди строку с префиксом `TEST` в таблице «Счётчики»
 3. Увеличь значение «Последний ID» на 1 (например: `0` → `1`)
 4. Сохрани файл
@@ -424,4 +424,4 @@ expect(labels).toEqual(['НАЗВАНИЕ', 'ВИД СПИСКА'])
 - [ ] Каждый хук/composable с мутацией: happy path + error case
 - [ ] Нет тестов с `any` в типизации
 - [ ] Мок API через msw или jest.mock — не хардкод данных напрямую
-- [ ] Счётчик `TEST` в `/home/vselug/workspace/docs/TASKS.md` инкрементирован
+- [ ] Счётчик `TEST` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` инкрементирован

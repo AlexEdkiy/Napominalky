@@ -12,7 +12,7 @@
 | **EditScreen** | Создание и редактирование | Один экран для create/update, валидация через FormRequest |
 | **ViewScreen** | Детальный просмотр | Все поля, связанные данные, кнопки перехода |
 
-Все admin-экраны строятся **только** через Orchid Platform (`orchid/platform` — доверенный вендор, см. `/home/vselug/workspace/docs/01-general.md`).
+Все admin-экраны строятся **только** через Orchid Platform (`orchid/platform` — доверенный вендор, см. `/home/vselug/workspace/Napominalky/docs/01-general.md`).
 
 ---
 

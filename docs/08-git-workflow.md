@@ -25,7 +25,7 @@
 
 ### Правило
 
-Для каждой задачи создаётся **отдельная ветка** с именем, равным **ID задачи** (из `/home/vselug/workspace/docs/07-task-management.md`).
+Для каждой задачи создаётся **отдельная ветка** с именем, равным **ID задачи** (из `/home/vselug/workspace/Napominalky/docs/07-task-management.md`).
 
 ```
 main
@@ -56,17 +56,17 @@ main
 
 ### Жизненный цикл ветки
 
-Все git-операции выполняются в `/home/vselug/workspace/project/` (корень репозитория).
+Все git-операции выполняются в `/home/vselug/workspace/Napominalky/backend/` (корень репозитория).
 
 ```
-1. cd /home/vselug/workspace/project
+1. cd /home/vselug/workspace/Napominalky/backend
 2. git checkout main
 3. git pull origin main
 4. git checkout -b {TASK-ID}        # создать ветку
 5. ... реализация ...
 6. git add {files}
 7. git commit                       # по формату ниже
-8. Edit /home/vselug/workspace/docs/TASKS.md    # инкрементировать счётчик {PREFIX}
+8. Edit /home/vselug/workspace/Napominalky/docs/TASKS.md    # инкрементировать счётчик {PREFIX}
 9. ... тестирование (для backend — обязательно) ...
 10. git checkout main
 11. git merge --no-ff {TASK-ID}     # слияние с сохранением истории
@@ -75,7 +75,7 @@ main
 
 ### Worktree-изоляция
 
-Агенты с `isolation: worktree` (Backend Dev, Admin Dev, Frontend Dev, Database Eng, Test Eng) автоматически работают в изолированных git worktree внутри `/home/vselug/workspace/project/`. Ветка worktree должна именоваться по ID задачи.
+Агенты с `isolation: worktree` (Backend Dev, Admin Dev, Frontend Dev, Database Eng, Test Eng) автоматически работают в изолированных git worktree внутри `/home/vselug/workspace/Napominalky/backend/`. Ветка worktree должна именоваться по ID задачи.
 
 ---
 
@@ -148,10 +148,10 @@ Pinia store для управления состоянием аутентифи�
 
 ### Настройка в рамках задачи
 
-Перед первым коммитом в ветке агент устанавливает идентификацию в `/home/vselug/workspace/project/`:
+Перед первым коммитом в ветке агент устанавливает идентификацию в `/home/vselug/workspace/Napominalky/backend/`:
 
 ```bash
-cd /home/vselug/workspace/project
+cd /home/vselug/workspace/Napominalky/backend
 git config user.name "Backend Developer"
 git config user.email "backend-developer@agent"
 ```
@@ -215,8 +215,8 @@ git config user.email "backend-developer@agent"
 ### Порядок работы backend-разработчика
 
 ```
-1. cd /home/vselug/workspace/project
-2. Прочитать задачу и стандарты из /home/vselug/workspace/docs/
+1. cd /home/vselug/workspace/Napominalky/backend
+2. Прочитать задачу и стандарты из /home/vselug/workspace/Napominalky/docs/
 3. Создать ветку {TASK-ID}
 4. [Design] Определить структуру классов и методов
 5. [Test] Написать тесты:
@@ -242,7 +242,7 @@ git config user.email "backend-developer@agent"
 
 ### Правило
 
-Код Orchid-экранов (`/home/vselug/workspace/project/app/Orchid/`) **НЕ покрывается unit/integration тестами**.
+Код Orchid-экранов (`/home/vselug/workspace/Napominalky/backend/app/Orchid/`) **НЕ покрывается unit/integration тестами**.
 
 Однако **ролевая модель** (permissions, доступ к экранам) **обязательно тестируется**.
 
@@ -316,23 +316,23 @@ describe('Article Admin Screens', function () {
 └──────┬──────┘
        │
 ┌──────▼──────┐
-│   Агент      │ cd /home/vselug/workspace/project
-│              │ прочитать стандарты из /home/vselug/workspace/docs/
+│   Агент      │ cd /home/vselug/workspace/Napominalky/backend
+│              │ прочитать стандарты из /home/vselug/workspace/Napominalky/docs/
 │              │ git checkout -b {TASK-ID}
 │              │ git config user.name "{Role}"
 │              │ ... реализация (DTT для backend) ...
 │              │ git add / git commit
-│              │ обновить счётчик в /home/vselug/workspace/docs/TASKS.md
+│              │ обновить счётчик в /home/vselug/workspace/Napominalky/docs/TASKS.md
 └──────┬──────┘
        │
 ┌──────▼──────┐
-│ Test Eng.    │ cd /home/vselug/workspace/project
+│ Test Eng.    │ cd /home/vselug/workspace/Napominalky/backend
 │              │ тесты (unit + integration для backend)
 │              │ тесты ролевой модели (для admin)
 └──────┬──────┘
        │
 ┌──────▼──────┐
-│ Orchestrator │ cd /home/vselug/workspace/project
+│ Orchestrator │ cd /home/vselug/workspace/Napominalky/backend
 │              │ git checkout main
 │              │ git merge --no-ff {TASK-ID}
 │              │ git branch -d {TASK-ID}

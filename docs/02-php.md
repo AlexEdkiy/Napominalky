@@ -42,7 +42,7 @@
 
 ## Composer-зависимости
 
-Правила добавления внешних пакетов описаны в `/home/vselug/workspace/docs/01-general.md` (раздел «Внешние зависимости»).
+Правила добавления внешних пакетов описаны в `/home/vselug/workspace/Napominalky/docs/01-general.md` (раздел «Внешние зависимости»).
 
 Ключевые правила для PHP:
 - Допускаются пакеты от **доверенных вендоров** (`spatie/*`, `symfony/*`, `orchid/*`, `abstechnology/*`, `dskripchenko/*`, `hflabs/*`, `opcodesio/*`) или пакеты с **≥ 400k скачиваний** на Packagist при активном жизненном цикле

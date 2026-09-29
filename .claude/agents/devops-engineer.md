@@ -22,10 +22,10 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude, документы стандартов, инструкции
-- **`/home/vselug/workspace/project/`** — Laravel backend. Docker-конфигурация и CI для backend здесь.
-- **`/home/vselug/workspace/mobile/`** — React Native приложение. EAS Build конфиг здесь.
-- **`/home/vselug/workspace/web/`** — Vue.js веб-приложение. Vite/Nginx и CI для web здесь.
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude, документы стандартов, инструкции
+- **`/home/vselug/workspace/Napominalky/backend/`** — Laravel backend. Docker-конфигурация и CI для backend здесь.
+- **`/home/vselug/workspace/Napominalky/mobile/`** — React Native приложение. EAS Build конфиг здесь.
+- **`/home/vselug/workspace/Napominalky/web/`** — Vue.js веб-приложение. Vite/Nginx и CI для web здесь.
 
 **Перед началом работы** определи, какой слой настраиваешь, и перейди в нужную директорию.
 
@@ -45,7 +45,7 @@ OPS-задачи могут выполняться параллельно с р�
 
 ## Область ответственности
 
-### Backend (Laravel) — `/home/vselug/workspace/project/`
+### Backend (Laravel) — `/home/vselug/workspace/Napominalky/backend/`
 
 ```
 docker/
@@ -66,7 +66,7 @@ docker-compose.prod.yml         # Production окружение
 └── deploy.yml                  # CD: деплой при мерже в main
 ```
 
-### Mobile App (Expo) — `/home/vselug/workspace/mobile/`
+### Mobile App (Expo) — `/home/vselug/workspace/Napominalky/mobile/`
 
 ```
 eas.json                        # Expo EAS Build конфигурация
@@ -75,7 +75,7 @@ app.json                        # Expo конфигурация (bundleId, schem
 └── mobile-build.yml            # CI/CD: EAS Build при тегах
 ```
 
-### Web App (Vue.js) — `/home/vselug/workspace/web/`
+### Web App (Vue.js) — `/home/vselug/workspace/Napominalky/web/`
 
 ```
 nginx/
@@ -183,7 +183,7 @@ name: Tests
 on:
   pull_request:
     paths:
-      - 'project/**'
+      - 'backend/**'
 
 jobs:
   test:
@@ -382,10 +382,10 @@ VITE_APP_NAME="Reminders App"
 
 ## Обновление счётчика задач
 
-После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`.
+После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 **Порядок:**
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди строку с префиксом `OPS` в таблице «Счётчики»
 3. Увеличь значение «Последний ID» на 1 (например: `0` → `1`)
 4. Сохрани файл
@@ -402,4 +402,4 @@ VITE_APP_NAME="Reminders App"
 - [ ] Multi-stage Dockerfile: production образ не содержит dev-зависимостей
 - [ ] SPA fallback в Nginx настроен (все маршруты ведут на `index.html`)
 - [ ] `APP_DEBUG=false` в production конфигурации
-- [ ] Счётчик `OPS` в `/home/vselug/workspace/docs/TASKS.md` инкрементирован
+- [ ] Счётчик `OPS` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` инкрементирован

@@ -3,10 +3,10 @@
 ## Структура проекта
 
 ```
-/home/vselug/workspace/
+/home/vselug/workspace/Napominalky/
 ├── .claude/agents/          # Агенты мультиагентной системы
 ├── docs/                    # Стандарты разработки и задачи
-├── project/                 # Laravel backend (PHP 8.5+, PostgreSQL 17)
+├── backend/                 # Laravel backend (PHP 8.5+, PostgreSQL 17)
 ├── mobile/                  # React Native + Expo (iOS + Android)
 └── web/                     # Vue.js 3 (Админ-панель + Личный кабинет)
 ```
@@ -34,8 +34,8 @@
 |-------|---------|-------------------|----------|
 | `orchestrator` | — | любая | Координирует команду, не пишет код |
 | `architect` | ARCH | — | Проектирует архитектуру всех слоёв |
-| `backend-developer` | DEV | `project/` | Доменный слой: модели, сервисы, политики |
-| `mobile-backend-developer` | MBE | `project/` | HTTP API: контроллеры, ресурсы, маршруты |
+| `backend-developer` | DEV | `backend/` | Доменный слой: модели, сервисы, политики |
+| `mobile-backend-developer` | MBE | `backend/` | HTTP API: контроллеры, ресурсы, маршруты |
 | `mobile-developer` | MOB | `mobile/` | React Native + Expo приложение |
 | `web-developer` | WEB | `web/` | Vue.js 3 веб-приложение |
 | `test-engineer` | TEST | все | Тесты: Pest PHP, Jest/RNTL, Vitest |

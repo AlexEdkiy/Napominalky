@@ -5,13 +5,13 @@
 ## Рабочие директории
 
 ```
-/home/vselug/workspace/                        # Корневой каталог — отправная точка для всех агентов
+/home/vselug/workspace/Napominalky/                        # Корневой каталог — отправная точка для всех агентов
 ├── .claude/                       # Настройки Claude Code
 │   ├── agents/*.md                # Конфигурации 11 агентов
 │   └── settings.local.json        # Локальные разрешения
 ├── docs/                          # Обязательные стандарты (01-general..08-git-workflow)
 ├── CLAUDE.md                      # Основные инструкции проекта
-└── project/                       # Исходный код Laravel-приложения
+└── backend/                       # Исходный код Laravel-приложения
     ├── app/                       # PHP-код (Controllers, Models, Services, Actions...)
     ├── resources/js/              # Vue.js 3 frontend
     ├── routes/                    # Маршруты (api.php, web.php, platform.php)
@@ -24,15 +24,15 @@
 | Каталог | Назначение | Кто использует |
 |---------|------------|----------------|
 | `/workspace` | Настройки Claude, документы стандартов, инструкции | Все агенты (чтение) |
-| `/home/vselug/workspace/docs/` | 8 обязательных стандартов кодирования | Все агенты (чтение) |
-| `/home/vselug/workspace/.claude/agents/` | Конфигурации ролей агентов | Orchestrator |
-| `/home/vselug/workspace/project/` | **Исходный код проекта — единственное место для операций с кодом** | Все агенты |
+| `/home/vselug/workspace/Napominalky/docs/` | 8 обязательных стандартов кодирования | Все агенты (чтение) |
+| `/home/vselug/workspace/Napominalky/.claude/agents/` | Конфигурации ролей агентов | Orchestrator |
+| `/home/vselug/workspace/Napominalky/backend/` | **Исходный код проекта — единственное место для операций с кодом** | Все агенты |
 
 **Правила:**
-- Все операции с кодом (чтение, запись, запуск команд) — **только** в `/home/vselug/workspace/project/`
-- Стандарты проекта читаются из `/home/vselug/workspace/docs/`
-- Все относительные пути к коду (`app/`, `resources/`, `routes/`, `tests/`) отсчитываются от `/home/vselug/workspace/project/`
-- Агенты с Bash-инструментами выполняют `cd /home/vselug/workspace/project` перед началом работы
+- Все операции с кодом (чтение, запись, запуск команд) — **только** в `/home/vselug/workspace/Napominalky/backend/`
+- Стандарты проекта читаются из `/home/vselug/workspace/Napominalky/docs/`
+- Все относительные пути к коду (`app/`, `resources/`, `routes/`, `tests/`) отсчитываются от `/home/vselug/workspace/Napominalky/backend/`
+- Агенты с Bash-инструментами выполняют `cd /home/vselug/workspace/Napominalky/backend` перед началом работы
 
 ---
 
@@ -86,11 +86,11 @@
 
 ### Ключевые принципы
 
-- **Разделение workspace/project** — настройки и стандарты в `/home/vselug/workspace/`, код проекта в `/home/vselug/workspace/project/`. Агенты работают с кодом **только** в `/home/vselug/workspace/project/`
-- **Единые стандарты** — все агенты обязаны читать и соблюдать стандарты из `/home/vselug/workspace/docs/` (01-general, 02-php, 03-laravel, 04-database, 05-typescript-vue, 06-orchid). Оркестратор указывает каждому агенту, какие docs/ читать
+- **Разделение workspace/project** — настройки и стандарты в `/home/vselug/workspace/Napominalky/`, код проекта в `/home/vselug/workspace/Napominalky/backend/`. Агенты работают с кодом **только** в `/home/vselug/workspace/Napominalky/backend/`
+- **Единые стандарты** — все агенты обязаны читать и соблюдать стандарты из `/home/vselug/workspace/Napominalky/docs/` (01-general, 02-php, 03-laravel, 04-database, 05-typescript-vue, 06-orchid). Оркестратор указывает каждому агенту, какие docs/ читать
 - **Изоляция контекста** — каждый агент получает собственное окно контекста (200k токенов), что предотвращает деградацию рассуждений при большом объёме информации
 - **Ограничение инструментов** — read-only агенты (Architect, Reviewer, Auditor) не могут случайно модифицировать код; write-агенты ограничены своей зоной ответственности
-- **Worktree-изоляция** — агенты, пишущие код параллельно (Backend, Frontend), работают в изолированных git worktree внутри `/home/vselug/workspace/project/`, исключая конфликты файловой системы
+- **Worktree-изоляция** — агенты, пишущие код параллельно (Backend, Frontend), работают в изолированных git worktree внутри `/home/vselug/workspace/Napominalky/backend/`, исключая конфликты файловой системы
 - **Файловая координация** — прогресс фиксируется через git-коммиты и файлы прогресса, обеспечивая устойчивость между сессиями
 
 ---
@@ -200,7 +200,7 @@
 7. Регистрирует маршруты в `routes/platform.php` и permissions в `PlatformProvider`
 8. Делегирует бизнес-логику в существующие Service/Action классы
 
-**Область ответственности — только файлы Orchid (в `/home/vselug/workspace/project/`):**
+**Область ответственности — только файлы Orchid (в `/home/vselug/workspace/Napominalky/backend/`):**
 - `app/Orchid/Screens/{Entity}/` — экраны
 - `app/Orchid/Layouts/{Entity}/` — макеты
 - `app/Orchid/Filters/` — фильтры
@@ -212,7 +212,7 @@
 
 **Стандарты:**
 - PHP 8.5+, Laravel 12+, Orchid Platform
-- Обязательные стандарты: `/home/vselug/workspace/docs/01-general.md`, `02-php.md`, `03-laravel.md`, `06-orchid.md`
+- Обязательные стандарты: `/home/vselug/workspace/Napominalky/docs/01-general.md`, `02-php.md`, `03-laravel.md`, `06-orchid.md`
 
 ---
 
@@ -419,7 +419,7 @@ npx vitest --coverage                     # с покрытием
 4. Документирует конфигурацию окружений и переменные .env
 5. Создаёт CHANGELOG.md при выпуске новых версий
 6. Описывает сложные бизнес-процессы и потоки данных
-7. Обновляет счётчики задач в `/home/vselug/workspace/docs/TASKS.md` по делегации от Orchestrator (для read-only агентов: `ARCH`, `REVIEW`, `SEC`)
+7. Обновляет счётчики задач в `/home/vselug/workspace/Napominalky/docs/TASKS.md` по делегации от Orchestrator (для read-only агентов: `ARCH`, `REVIEW`, `SEC`)
 
 ---
 
@@ -493,7 +493,7 @@ npx vitest --coverage                     # с покрытием
 
 ## Матрица стандартов
 
-Каждый агент **обязан** прочитать и соблюдать стандарты из `/home/vselug/workspace/docs/` перед началом работы:
+Каждый агент **обязан** прочитать и соблюдать стандарты из `/home/vselug/workspace/Napominalky/docs/` перед началом работы:
 
 | Роль | 01-general | 02-php | 03-laravel | 04-database | 05-ts-vue | 06-orchid | 07-tasks | 08-git | TASKS.md |
 |------|-----------|--------|------------|-------------|-----------|-----------|----------|--------|----------|
@@ -515,7 +515,7 @@ npx vitest --coverage                     # с покрытием
 
 ## Управление задачами
 
-Все задачи управляются по стандарту `/home/vselug/workspace/docs/07-task-management.md`. Реестр задач хранится в `/home/vselug/workspace/docs/TASKS.md`.
+Все задачи управляются по стандарту `/home/vselug/workspace/Napominalky/docs/07-task-management.md`. Реестр задач хранится в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 ### ID-конвенция
 
@@ -527,12 +527,12 @@ npx vitest --coverage                     # с покрытием
 
 1. **Architect** → проектирует план с секцией «Рекомендуемая декомпозиция на задачи»
 2. **Orchestrator** → формализует задачи через `TaskCreate` с уникальными ID
-3. **Orchestrator** → делегирует `technical-writer` запись задач в `/home/vselug/workspace/docs/TASKS.md`
-4. **Orchestrator** → делегирует задачи агентам-исполнителям в порядке зависимостей (рабочая директория: `/home/vselug/workspace/project`)
-5. **Агент** → выполняет задачу, инкрементирует счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`
+3. **Orchestrator** → делегирует `technical-writer` запись задач в `/home/vselug/workspace/Napominalky/docs/TASKS.md`
+4. **Orchestrator** → делегирует задачи агентам-исполнителям в порядке зависимостей (рабочая директория: `/home/vselug/workspace/Napominalky/backend`)
+5. **Агент** → выполняет задачу, инкрементирует счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`
    *(для read-only агентов: Orchestrator делегирует инкремент `technical-writer`)*
 6. **Orchestrator** → обновляет статусы через `TaskUpdate`
-7. **Orchestrator** → при завершении фазы делегирует обновление `/home/vselug/workspace/docs/TASKS.md`
+7. **Orchestrator** → при завершении фазы делегирует обновление `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 
 ### Требования к задачам
 
@@ -544,7 +544,7 @@ npx vitest --coverage                     # с покрытием
 
 ### Обновление счётчиков задач
 
-После завершения задачи исполнитель **обязан** инкрементировать счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`. Это гарантирует, что следующая задача получит корректный ID, а ветка git — соответствующее имя.
+После завершения задачи исполнитель **обязан** инкрементировать счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`. Это гарантирует, что следующая задача получит корректный ID, а ветка git — соответствующее имя.
 
 **Самостоятельное обновление** (агенты с Write/Edit):
 
@@ -566,13 +566,13 @@ npx vitest --coverage                     # с покрытием
 | Code Reviewer | `REVIEW` | Orchestrator → Technical Writer |
 | Security Auditor | `SEC` | Orchestrator → Technical Writer |
 
-**Пример:** Backend Developer завершил `DEV-1` → обновляет строку `| DEV | 0 |` → `| DEV | 1 |` в `/home/vselug/workspace/docs/TASKS.md` → следующая задача получит ID `DEV-2`, ветка `DEV-2`.
+**Пример:** Backend Developer завершил `DEV-1` → обновляет строку `| DEV | 0 |` → `| DEV | 1 |` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` → следующая задача получит ID `DEV-2`, ветка `DEV-2`.
 
 ---
 
 ## Git Workflow
 
-Все агенты работают по стандарту `/home/vselug/workspace/docs/08-git-workflow.md`. Git-репозиторий находится в `/home/vselug/workspace/project/`.
+Все агенты работают по стандарту `/home/vselug/workspace/Napominalky/docs/08-git-workflow.md`. Git-репозиторий находится в `/home/vselug/workspace/Napominalky/backend/`.
 
 ### Ключевые правила
 
@@ -605,14 +605,14 @@ Backend Developer работает строго по **Design → Test → Type*
 ```
 Orchestrator → создаёт задачу, назначает агента
     ↓
-Агент → cd /home/vselug/workspace/project && git checkout -b {TASK-ID}
+Агент → cd /home/vselug/workspace/Napominalky/backend && git checkout -b {TASK-ID}
     ↓
-Агент → читает стандарты из /home/vselug/workspace/docs/, реализация (DTT для backend), git commit
+Агент → читает стандарты из /home/vselug/workspace/Napominalky/docs/, реализация (DTT для backend), git commit
     ↓
-Агент → инкрементирует счётчик {PREFIX} в /home/vselug/workspace/docs/TASKS.md
+Агент → инкрементирует счётчик {PREFIX} в /home/vselug/workspace/Napominalky/docs/TASKS.md
     (для read-only агентов: Orchestrator делегирует Technical Writer)
     ↓
-Test Engineer → cd /home/vselug/workspace/project && тесты (unit/integration для backend, ролевая модель для admin)
+Test Engineer → cd /home/vselug/workspace/Napominalky/backend && тесты (unit/integration для backend, ролевая модель для admin)
     ↓
 Orchestrator → git merge --no-ff {TASK-ID} в main, удалить ветку
 ```

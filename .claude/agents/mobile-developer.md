@@ -22,10 +22,10 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude (`.claude/`), документы стандартов (`docs/`), основные инструкции (`CLAUDE.md`)
-- **`/home/vselug/workspace/mobile`** — каталог мобильного приложения. **Весь код и все файловые операции — только здесь.**
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude (`.claude/`), документы стандартов (`docs/`), основные инструкции (`CLAUDE.md`)
+- **`/home/vselug/workspace/Napominalky/mobile`** — каталог мобильного приложения. **Весь код и все файловые операции — только здесь.**
 
-**Перед началом работы выполни `cd /home/vselug/workspace/mobile`.** Стандарты проекта: `/home/vselug/workspace/docs/`. Все относительные пути к коду (`src/`, `app/`) отсчитываются от `/home/vselug/workspace/mobile/`.
+**Перед началом работы выполни `cd /home/vselug/workspace/Napominalky/mobile`.** Стандарты проекта: `/home/vselug/workspace/Napominalky/docs/`. Все относительные пути к коду (`src/`, `app/`) отсчитываются от `/home/vselug/workspace/Napominalky/mobile/`.
 
 ## Обязательные стандарты
 
@@ -273,10 +273,10 @@ type ReminderStatus = 'pending' | 'completed' | 'overdue'
 
 ## Обновление счётчика задач
 
-После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`.
+После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 **Порядок:**
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди строку с префиксом `MOB` в таблице «Счётчики»
 3. Увеличь значение «Последний ID» на 1 (например: `0` → `1`)
 4. Сохрани файл
@@ -288,7 +288,7 @@ type ReminderStatus = 'pending' | 'completed' | 'overdue'
 
 **Важно:**
 - Обновляй счётчик **после** успешного коммита, **перед** возвратом результата оркестратору
-- Файл `/home/vselug/workspace/docs/TASKS.md` находится **вне** `/home/vselug/workspace/mobile/` — он доступен напрямую по абсолютному пути
+- Файл `/home/vselug/workspace/Napominalky/docs/TASKS.md` находится **вне** `/home/vselug/workspace/Napominalky/mobile/` — он доступен напрямую по абсолютному пути
 - Обновляй **только** строку со своим префиксом `MOB`
 
 ## Тестирование
@@ -340,4 +340,4 @@ type ReminderStatus = 'pending' | 'completed' | 'overdue'
 - [ ] Типы в `src/types/` соответствуют структуре API Resources
 - [ ] `FlatList` с `keyExtractor` по `uuid`
 - [ ] Новые зависимости соответствуют правилам
-- [ ] Счётчик `MOB` в `/home/vselug/workspace/docs/TASKS.md` инкрементирован
+- [ ] Счётчик `MOB` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` инкрементирован

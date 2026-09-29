@@ -11,7 +11,7 @@
 
 ## npm-зависимости
 
-Правила добавления внешних пакетов описаны в `/home/vselug/workspace/docs/01-general.md` (раздел «Внешние зависимости»).
+Правила добавления внешних пакетов описаны в `/home/vselug/workspace/Napominalky/docs/01-general.md` (раздел «Внешние зависимости»).
 
 Ключевые правила для JS/TS:
 - Допускаются пакеты от **доверенных вендоров** (`vue`, `@vue/*`, `@vitejs/*`, `pinia`, `vue-router`, `vitest`, `@vueuse/*`, `tailwindcss`) или пакеты с **≥ 400k weekly downloads** на npmjs при активном жизненном цикле

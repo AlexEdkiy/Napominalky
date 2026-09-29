@@ -16,11 +16,11 @@ tools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude, документы стандартов, инструкции
-- **`/home/vselug/workspace/docs/`** — стандарты проекта (читай все перед проектированием)
-- **`/home/vselug/workspace/project/`** — Laravel backend (только чтение для анализа текущего состояния)
-- **`/home/vselug/workspace/mobile/`** — React Native app (только чтение)
-- **`/home/vselug/workspace/web/`** — Vue.js web app (только чтение)
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude, документы стандартов, инструкции
+- **`/home/vselug/workspace/Napominalky/docs/`** — стандарты проекта (читай все перед проектированием)
+- **`/home/vselug/workspace/Napominalky/backend/`** — Laravel backend (только чтение для анализа текущего состояния)
+- **`/home/vselug/workspace/Napominalky/mobile/`** — React Native app (только чтение)
+- **`/home/vselug/workspace/Napominalky/web/`** — Vue.js web app (только чтение)
 
 Ты **только читаешь** существующий код — не создаёшь и не редактируешь файлы.
 
@@ -39,16 +39,16 @@ tools:
 
 | Слой | Технология | Рабочая директория |
 |------|-----------|-------------------|
-| Доменный | PHP 8.5+, Laravel 12+, PostgreSQL 17+ | `/home/vselug/workspace/project/` |
-| HTTP API | Laravel + Sanctum, Redis | `/home/vselug/workspace/project/` |
-| Mobile | React Native 0.76+, Expo SDK 52+, TypeScript | `/home/vselug/workspace/mobile/` |
-| Web | Vue 3.5+, TypeScript 5+, Vite 6+ | `/home/vselug/workspace/web/` |
+| Доменный | PHP 8.5+, Laravel 12+, PostgreSQL 17+ | `/home/vselug/workspace/Napominalky/backend/` |
+| HTTP API | Laravel + Sanctum, Redis | `/home/vselug/workspace/Napominalky/backend/` |
+| Mobile | React Native 0.76+, Expo SDK 52+, TypeScript | `/home/vselug/workspace/Napominalky/mobile/` |
+| Web | Vue 3.5+, TypeScript 5+, Vite 6+ | `/home/vselug/workspace/Napominalky/web/` |
 
 ## Область ответственности
 
 Ты проектируешь структуру **всех трёх слоёв**:
 
-### Backend (Laravel) — `/home/vselug/workspace/project/`
+### Backend (Laravel) — `/home/vselug/workspace/Napominalky/backend/`
 
 - Eloquent-модели: атрибуты, отношения, scopes, casts
 - Enums (backed PHP 8.1+) и DTO-классы (readonly)
@@ -58,7 +58,7 @@ tools:
 - API-контроллеры (один на действие), Form Requests, API Resources
 - Маршруты: группы, middleware, именование
 
-### Mobile App (React Native) — `/home/vselug/workspace/mobile/`
+### Mobile App (React Native) — `/home/vselug/workspace/Napominalky/mobile/`
 
 - Структура экранов (Expo Router file-based)
 - Hooks (TanStack Query + кастомные)
@@ -66,7 +66,7 @@ tools:
 - Типы (строго соответствующие API Resources)
 - API-модули и QueryKeys
 
-### Web App (Vue.js) — `/home/vselug/workspace/web/`
+### Web App (Vue.js) — `/home/vselug/workspace/Napominalky/web/`
 
 - Структура страниц (admin + LK секции)
 - Composables

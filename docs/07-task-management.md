@@ -8,7 +8,7 @@
 - Каждая задача декомпозирована и выполнима одним агентом за одну сессию
 - Каждая задача имеет чёткое описание ЧТО, ЗАЧЕМ и КАК
 - Каждая задача имеет уникальный инкрементный ID
-- Все задачи фиксируются в `/home/vselug/workspace/docs/TASKS.md`
+- Все задачи фиксируются в `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 
 ---
 
@@ -34,8 +34,8 @@
 - ID глобально уникальны и **никогда не переиспользуются**
 - Счётчики инкрементируются независимо для каждого префикса
 - Удалённые/отменённые задачи сохраняют свои ID
-- Текущие значения счётчиков хранятся в `/home/vselug/workspace/docs/TASKS.md` (таблица «Счётчики»)
-- Перед созданием задач Orchestrator **обязан** прочитать `/home/vselug/workspace/docs/TASKS.md` для актуальных счётчиков
+- Текущие значения счётчиков хранятся в `/home/vselug/workspace/Napominalky/docs/TASKS.md` (таблица «Счётчики»)
+- Перед созданием задач Orchestrator **обязан** прочитать `/home/vselug/workspace/Napominalky/docs/TASKS.md` для актуальных счётчиков
 
 ---
 
@@ -54,7 +54,7 @@
 | **Implementation Notes** | да | КАК делать: подход, паттерны, конкретные шаги |
 | **Dependencies** | да | Список ID задач, которые должны быть выполнены до начала (может быть пустым) |
 | **Blocks** | да | Список ID задач, которые зависят от этой (может быть пустым) |
-| **Standards** | да | Список `/home/vselug/workspace/docs/` файлов, которые исполнитель обязан прочитать |
+| **Standards** | да | Список `/home/vselug/workspace/Napominalky/docs/` файлов, которые исполнитель обязан прочитать |
 | **Acceptance Criteria** | да | Верифицируемые условия завершения (чеклист `[ ]`) |
 | **Files** | рекомендуется | Файлы для создания/изменения (полные пути) |
 | **Feature** | рекомендуется | Название фичи/эпика, к которому относится задача |
@@ -105,9 +105,9 @@ high
 
 ## Стандарты
 Прочитать перед началом:
-- /home/vselug/workspace/docs/01-general.md
-- /home/vselug/workspace/docs/02-php.md
-- /home/vselug/workspace/docs/03-laravel.md
+- /home/vselug/workspace/Napominalky/docs/01-general.md
+- /home/vselug/workspace/Napominalky/docs/02-php.md
+- /home/vselug/workspace/Napominalky/docs/03-laravel.md
 
 ## Файлы
 Создать:
@@ -149,13 +149,13 @@ high
 
 - Указаны **полные пути** файлов для создания/изменения
 - Указаны **паттерны** для следования (например: «следуй паттерну из app/Actions/Order/CreateOrderAction.php»)
-- Указаны **`/home/vselug/workspace/docs/` стандарты** для прочтения
+- Указаны **`/home/vselug/workspace/Napominalky/docs/` стандарты** для прочтения
 
 ### 4. Верифицируемые критерии приёмки
 
 - Каждый критерий — **бинарная проверка** (да/нет)
 - Критерии описывают **наблюдаемое поведение** (HTTP-коды, состояние БД, существование файлов)
-- **Нет размытых критериев** типа «код чистый» — вместо этого: «класс < 300 строк (`/home/vselug/workspace/docs/01-general.md`)»
+- **Нет размытых критериев** типа «код чистый» — вместо этого: «класс < 300 строк (`/home/vselug/workspace/Napominalky/docs/01-general.md`)»
 
 ### 5. Корректные зависимости
 
@@ -172,7 +172,7 @@ high
 | **Размытая задача** | «Реализовать управление пользователями» | Разбить на конкретные CRUD-операции: endpoint регистрации, endpoint обновления профиля и т.д. |
 | **Слишком широкая** | «Построить весь frontend для заказов» | Декомпозировать на компоненты: форма заказа, список заказов, страница деталей |
 | **Без HOW** | «Создать миграцию» без указания таблицы, полей, типов, индексов | Указать имя таблицы, все столбцы с типами, индексы, constraints |
-| **Без стандартов** | Задача без ссылок на `/home/vselug/workspace/docs/` | Каждая задача обязана содержать список `/home/vselug/workspace/docs/` для исполнителя |
+| **Без стандартов** | Задача без ссылок на `/home/vselug/workspace/Napominalky/docs/` | Каждая задача обязана содержать список `/home/vselug/workspace/Napominalky/docs/` для исполнителя |
 | **Неявные зависимости** | «После бэкенда сделать фронтенд» | Указать конкретные ID: `Dependencies: [DEV-3, DEV-4]` |
 | **Нет критериев** | «Сделать, чтобы работало» | Перечислить конкретные проверки: HTTP-коды, валидация, структура ответа |
 
@@ -207,7 +207,7 @@ high
 
 ## Обновление счётчиков
 
-После завершения задачи исполнитель **обязан** инкрементировать счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`.
+После завершения задачи исполнитель **обязан** инкрементировать счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 ### Правила
 
@@ -215,7 +215,7 @@ high
 |---------|----------|
 | **Когда** | После успешного коммита (для code-агентов) или после завершения задачи (для non-code агентов) |
 | **Что** | Увеличить значение «Последний ID» для своего префикса на 1 |
-| **Где** | Таблица «Счётчики» в `/home/vselug/workspace/docs/TASKS.md` |
+| **Где** | Таблица «Счётчики» в `/home/vselug/workspace/Napominalky/docs/TASKS.md` |
 | **Кто** | Агент-исполнитель (Write/Edit) или `technical-writer` по делегации от Orchestrator (для read-only агентов) |
 
 ### Агенты с прямым обновлением
@@ -244,7 +244,7 @@ high
 | DEV     | 2            |
 ```
 
-Backend-developer выполняет Edit на `/home/vselug/workspace/docs/TASKS.md`, изменяя строку:
+Backend-developer выполняет Edit на `/home/vselug/workspace/Napominalky/docs/TASKS.md`, изменяя строку:
 
 ```
 | DEV     | 3            |
@@ -262,9 +262,9 @@ Backend-developer выполняет Edit на `/home/vselug/workspace/docs/TASK
 ## Задача: [{ID}] {Title}
 
 ### Стандарты (прочитай перед началом)
-- /home/vselug/workspace/docs/01-general.md
-- /home/vselug/workspace/docs/02-php.md
-- /home/vselug/workspace/docs/03-laravel.md
+- /home/vselug/workspace/Napominalky/docs/01-general.md
+- /home/vselug/workspace/Napominalky/docs/02-php.md
+- /home/vselug/workspace/Napominalky/docs/03-laravel.md
 
 ### Контекст
 [Краткий контекст фичи и место задачи в pipeline]
@@ -341,13 +341,13 @@ Architect использует `{next}` как placeholder — Orchestrator по
 
 ---
 
-## Реестр задач (`/home/vselug/workspace/docs/TASKS.md`)
+## Реестр задач (`/home/vselug/workspace/Napominalky/docs/TASKS.md`)
 
-Все задачи фиксируются в файле `/home/vselug/workspace/docs/TASKS.md`. Этот файл — **кросс-сессионный источник истины**.
+Все задачи фиксируются в файле `/home/vselug/workspace/Napominalky/docs/TASKS.md`. Этот файл — **кросс-сессионный источник истины**.
 
 ### Кто обновляет
 
-Orchestrator **не может** писать файлы (Write/Edit запрещены). После создания блока задач Orchestrator **делегирует** обновление `/home/vselug/workspace/docs/TASKS.md` агенту `technical-writer` через `Task` tool с полным текстом задач.
+Orchestrator **не может** писать файлы (Write/Edit запрещены). После создания блока задач Orchestrator **делегирует** обновление `/home/vselug/workspace/Napominalky/docs/TASKS.md` агенту `technical-writer` через `Task` tool с полным текстом задач.
 
 Кроме того, каждый агент с Write/Edit обновляет **счётчик своего префикса** в таблице «Счётчики» после завершения задачи. Read-only агенты (`architect`, `code-reviewer`, `security-auditor`) не могут писать файлы — для них Orchestrator делегирует обновление счётчика `technical-writer`.
 
@@ -368,7 +368,7 @@ Orchestrator **не может** писать файлы (Write/Edit запре�
 - **Приоритет:** {priority}
 - **Зависимости:** {IDs или «нет»}
 - **Блокирует:** {IDs или «нет»}
-- **Стандарты:** {/home/vselug/workspace/docs/ файлы}
+- **Стандарты:** {/home/vselug/workspace/Napominalky/docs/ файлы}
 - **Описание:** {description}
 - **Реализация:** {implementation notes}
 - **Файлы:** {create/modify paths}
@@ -383,7 +383,7 @@ Orchestrator **не может** писать файлы (Write/Edit запре�
 
 ## Git-интеграция
 
-Каждая задача связана с Git через ветку и коммит. Полные правила — в `/home/vselug/workspace/docs/08-git-workflow.md`.
+Каждая задача связана с Git через ветку и коммит. Полные правила — в `/home/vselug/workspace/Napominalky/docs/08-git-workflow.md`.
 
 ### Ветка
 
@@ -403,7 +403,7 @@ Orchestrator **не может** писать файлы (Write/Edit запре�
 
 ### Git-идентификация
 
-Агент коммитит под именем своей роли (см. `/home/vselug/workspace/docs/08-git-workflow.md`):
+Агент коммитит под именем своей роли (см. `/home/vselug/workspace/Napominalky/docs/08-git-workflow.md`):
 ```bash
 git config user.name "{Role Name}"
 git config user.email "{role}@agent"
@@ -414,12 +414,12 @@ git config user.email "{role}@agent"
 ## Workflow: полный цикл
 
 1. **Пользователь** → запрос к Orchestrator
-2. **Orchestrator** → читает `/home/vselug/workspace/docs/TASKS.md` (счётчики), делегирует Architect
+2. **Orchestrator** → читает `/home/vselug/workspace/Napominalky/docs/TASKS.md` (счётчики), делегирует Architect
 3. **Architect** → анализирует код, возвращает план с «Рекомендуемая декомпозиция на задачи»
 4. **Orchestrator** → формализует задачи через `TaskCreate` с реальными ID
-5. **Orchestrator** → делегирует `technical-writer` обновление `/home/vselug/workspace/docs/TASKS.md`
+5. **Orchestrator** → делегирует `technical-writer` обновление `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 6. **Orchestrator** → делегирует задачи агентам-исполнителям в порядке зависимостей
-7. **Агент** → выполняет задачу, инкрементирует счётчик в `/home/vselug/workspace/docs/TASKS.md`, результат возвращается Orchestrator
+7. **Агент** → выполняет задачу, инкрементирует счётчик в `/home/vselug/workspace/Napominalky/docs/TASKS.md`, результат возвращается Orchestrator
 7a. *(Для read-only агентов)* **Orchestrator** → делегирует `technical-writer` инкремент счётчика
-8. **Orchestrator** → обновляет статус через `TaskUpdate`, при необходимости обновляет `/home/vselug/workspace/docs/TASKS.md`
+8. **Orchestrator** → обновляет статус через `TaskUpdate`, при необходимости обновляет `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 9. **Orchestrator** → при завершении фичи формирует итоговый отчёт

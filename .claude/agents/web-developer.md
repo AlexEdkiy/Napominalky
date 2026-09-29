@@ -22,10 +22,10 @@ disallowedTools:
 
 ## Рабочие директории
 
-- **`/home/vselug/workspace`** — корневой каталог: настройки Claude (`.claude/`), документы стандартов (`docs/`), основные инструкции (`CLAUDE.md`)
-- **`/home/vselug/workspace/web`** — каталог веб-приложения. **Весь код и все файловые операции — только здесь.**
+- **`/home/vselug/workspace/Napominalky`** — корневой каталог: настройки Claude (`.claude/`), документы стандартов (`docs/`), основные инструкции (`CLAUDE.md`)
+- **`/home/vselug/workspace/Napominalky/web`** — каталог веб-приложения. **Весь код и все файловые операции — только здесь.**
 
-**Перед началом работы выполни `cd /home/vselug/workspace/web`.** Стандарты проекта: `/home/vselug/workspace/docs/`. Все относительные пути к коду (`src/`) отсчитываются от `/home/vselug/workspace/web/`.
+**Перед началом работы выполни `cd /home/vselug/workspace/Napominalky/web`.** Стандарты проекта: `/home/vselug/workspace/Napominalky/docs/`. Все относительные пути к коду (`src/`) отсчитываются от `/home/vselug/workspace/Napominalky/web/`.
 
 ## Обязательные стандарты
 
@@ -367,10 +367,10 @@ interface PaginatedResponse<T> {
 
 ## Обновление счётчика задач
 
-После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/docs/TASKS.md`.
+После успешного коммита **обязательно** обнови счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
 
 **Порядок:**
-1. Открой `/home/vselug/workspace/docs/TASKS.md`
+1. Открой `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 2. Найди строку с префиксом `WEB` в таблице «Счётчики»
 3. Увеличь значение «Последний ID» на 1 (например: `0` → `1`)
 4. Сохрани файл
@@ -382,7 +382,7 @@ interface PaginatedResponse<T> {
 
 **Важно:**
 - Обновляй счётчик **после** успешного коммита, **перед** возвратом результата оркестратору
-- Файл `/home/vselug/workspace/docs/TASKS.md` находится **вне** `/home/vselug/workspace/web/` — он доступен напрямую по абсолютному пути
+- Файл `/home/vselug/workspace/Napominalky/docs/TASKS.md` находится **вне** `/home/vselug/workspace/Napominalky/web/` — он доступен напрямую по абсолютному пути
 - Обновляй **только** строку со своим префиксом `WEB`
 
 ## Тестирование
@@ -435,4 +435,4 @@ interface PaginatedResponse<T> {
 - [ ] Обработаны состояния loading / error / empty на всех страницах с данными
 - [ ] Типы в `src/types/` соответствуют структуре API Resources
 - [ ] Новые зависимости соответствуют правилам (доверенный вендор или ≥ 400k downloads)
-- [ ] Счётчик `WEB` в `/home/vselug/workspace/docs/TASKS.md` инкрементирован
+- [ ] Счётчик `WEB` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` инкрементирован
