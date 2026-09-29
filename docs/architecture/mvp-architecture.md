@@ -48,6 +48,8 @@ JSON-поля — `snake_case` (по docs/07-api.md и примерам RN-ти�
 docs/07-api.md описывал FCM/серверный push — для MVP исключён. Используем `expo-notifications` (планирование на устройстве, офлайн, FR-26). Эндпоинт `devices` переосмыслен под мульти-девайс sync (`device_uuid`, `name`, `last_synced_revision`), не FCM.
 
 ### 0.6. Версии стека
+> Факт на 2026-09-29: backend PHP 8.5.6 / Laravel 12 / PostgreSQL 17; mobile обновлён до **Expo SDK 54, RN 0.81, Expo Router 6** (планировался SDK 52); web Vue 3.5 / Vite 6. Каталог backend — `backend/` (бывший `project/`, OPS-10).
+
 PHP 8.5+, Laravel 12+, PostgreSQL 17+, Sanctum, Redis 7+, Pest. RN 0.76+, Expo SDK 52+, Expo Router 4+, TanStack Query 5+, Zustand 5+, expo-sqlite + Drizzle, expo-notifications, expo-calendar, expo-local-authentication, expo-secure-store. Vue 3.5+, TS 5+, Vite 6+, Pinia, Vue Router 4, Vitest.
 
 ### 0.7. Общий sync-контракт таблиц

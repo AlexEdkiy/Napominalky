@@ -1,618 +1,168 @@
 # Мультиагентный режим разработки
 
-Конфигурация ролей агентов для проекта на стеке **PHP Laravel + PostgreSQL + Vue.js 3 + TypeScript**.
+Роли агентов проекта «Напоминалки» — local-first приложение (заметки, задачи/списки покупок, напоминания, календарь) на стеке **Laravel 12 + PostgreSQL 17** (backend), **React Native + Expo** (mobile), **Vue 3 + TypeScript** (web). Конфигурации агентов — `/home/vselug/workspace/Napominalky/.claude/agents/*.md`; этот документ — обзор, источник истины по каждой роли — её файл.
 
-## Рабочие директории
-
-```
-/home/vselug/workspace/Napominalky/                        # Корневой каталог — отправная точка для всех агентов
-├── .claude/                       # Настройки Claude Code
-│   ├── agents/*.md                # Конфигурации 11 агентов
-│   └── settings.local.json        # Локальные разрешения
-├── docs/                          # Обязательные стандарты (01-general..08-git-workflow)
-├── CLAUDE.md                      # Основные инструкции проекта
-└── backend/                       # Исходный код Laravel-приложения
-    ├── app/                       # PHP-код (Controllers, Models, Services, Actions...)
-    ├── resources/js/              # Vue.js 3 frontend
-    ├── routes/                    # Маршруты (api.php, web.php, platform.php)
-    ├── database/migrations/       # Миграции PostgreSQL
-    ├── tests/                     # Pest PHP тесты
-    ├── docker-compose.yml         # Конфигурация Docker
-    └── ...
-```
-
-| Каталог | Назначение | Кто использует |
-|---------|------------|----------------|
-| `/workspace` | Настройки Claude, документы стандартов, инструкции | Все агенты (чтение) |
-| `/home/vselug/workspace/Napominalky/docs/` | 8 обязательных стандартов кодирования | Все агенты (чтение) |
-| `/home/vselug/workspace/Napominalky/.claude/agents/` | Конфигурации ролей агентов | Orchestrator |
-| `/home/vselug/workspace/Napominalky/backend/` | **Исходный код проекта — единственное место для операций с кодом** | Все агенты |
-
-**Правила:**
-- Все операции с кодом (чтение, запись, запуск команд) — **только** в `/home/vselug/workspace/Napominalky/backend/`
-- Стандарты проекта читаются из `/home/vselug/workspace/Napominalky/docs/`
-- Все относительные пути к коду (`app/`, `resources/`, `routes/`, `tests/`) отсчитываются от `/home/vselug/workspace/Napominalky/backend/`
-- Агенты с Bash-инструментами выполняют `cd /home/vselug/workspace/Napominalky/backend` перед началом работы
+> Актуализировано 2026-09-29 (DOC-54). Прежняя редакция описывала другой проект (Orchid, Admin/Frontend Developer, Database Engineer) и однорепозиторную структуру.
 
 ---
 
-## Архитектура
+## Рабочие директории
 
-### Модель взаимодействия
-
-Используется **гибридная модель**: supervisor/worker для координации + pipeline для последовательных фаз разработки.
-
-```
-                        ┌─────────────────┐
-                        │   Orchestrator   │
-                        │  (координация)   │
-                        └────────┬────────┘
-                                 │
-            ┌────────────────────┼────────────────────┐
-            │                    │                     │
-     ┌──────▼──────┐    ┌───────▼───────┐    ┌───────▼───────┐
-     │  Architect   │    │   Backend     │    │   Frontend    │
-     │ (планирование)│    │  Developer    │    │  Developer    │
-     └──────┬──────┘    └───────┬───────┘    └───────┬───────┘
-            │                    │                     │
-            │           ┌───────▼───────┐             │
-            │           │    Admin      │             │
-            │           │  Developer    │             │
-            │           └───────┬───────┘             │
-            │                    │                     │
-            │           ┌───────▼───────┐             │
-            │           │   Database    │             │
-            │           │   Engineer    │             │
-            │           └───────┬───────┘             │
-            │                    │                     │
-            └────────────────────┼────────────────────┘
-                                 │
-            ┌────────────────────┼────────────────────┐
-            │                    │                     │
-     ┌──────▼──────┐    ┌───────▼───────┐    ┌───────▼───────┐
-     │    Code      │    │     Test      │    │   Security    │
-     │   Reviewer   │    │   Engineer    │    │   Auditor     │
-     └─────────────┘    └──────────────┘    └───────────────┘
-            │                    │                     │
-            └────────────────────┼────────────────────┘
-                                 │
-            ┌────────────────────┼────────────────────┐
-            │                                          │
-     ┌──────▼──────┐                          ┌───────▼───────┐
-     │   DevOps     │                          │  Technical    │
-     │   Engineer   │                          │   Writer      │
-     └─────────────┘                          └───────────────┘
+```text
+/home/vselug/workspace/Napominalky/     # Корень проекта — отсюда запускается Claude Code
+├── CLAUDE.md                # Инструкции проекта (читают все агенты)
+├── .claude/agents/          # Конфигурации 12 агентов
+├── docs/                    # Стандарты 01–08, архитектура, реестр задач TASKS.md
+│   ├── architecture/        # mvp-architecture.md (ARCH-1, согласовано)
+│   └── reviews/             # Отчёты REVIEW-N / SEC-N
+├── backend/                 # Laravel 12: app/, database/, routes/, tests/ (Pest), docker-compose.yml
+├── mobile/                  # Expo Router + TanStack Query + Zustand + Drizzle/expo-sqlite, Jest+RNTL
+├── web/                     # Vue 3.5 + Vite 6 + Pinia + Vue Router, Vitest
+└── deploy/                  # nginx-конфиги прод-контейнеров (jemsoft.ru/napominalki)
 ```
 
-### Ключевые принципы
+| Агент | Пишет в | Читает |
+|-------|---------|--------|
+| backend-developer, mobile-backend-developer | `backend/` | `docs/` |
+| mobile-developer | `mobile/` | `docs/`, `backend/app/Http/Resources` (контракт) |
+| web-developer | `web/` | `docs/`, `backend/app/Http/Resources` (контракт) |
+| test-engineer, ux-ui-test-engineer | тесты в `backend/tests`, `mobile/`, `web/` | всё |
+| devops-engineer | `backend/docker*`, `mobile/eas.json`, `deploy/`, CI | всё |
+| technical-writer | `docs/`, README, CHANGELOG | всё |
+| architect, code-reviewer, security-auditor | **ничего** (read-only) | всё |
 
-- **Разделение workspace/project** — настройки и стандарты в `/home/vselug/workspace/Napominalky/`, код проекта в `/home/vselug/workspace/Napominalky/backend/`. Агенты работают с кодом **только** в `/home/vselug/workspace/Napominalky/backend/`
-- **Единые стандарты** — все агенты обязаны читать и соблюдать стандарты из `/home/vselug/workspace/Napominalky/docs/` (01-general, 02-php, 03-laravel, 04-database, 05-typescript-vue, 06-orchid). Оркестратор указывает каждому агенту, какие docs/ читать
-- **Изоляция контекста** — каждый агент получает собственное окно контекста (200k токенов), что предотвращает деградацию рассуждений при большом объёме информации
-- **Ограничение инструментов** — read-only агенты (Architect, Reviewer, Auditor) не могут случайно модифицировать код; write-агенты ограничены своей зоной ответственности
-- **Worktree-изоляция** — агенты, пишущие код параллельно (Backend, Frontend), работают в изолированных git worktree внутри `/home/vselug/workspace/Napominalky/backend/`, исключая конфликты файловой системы
-- **Файловая координация** — прогресс фиксируется через git-коммиты и файлы прогресса, обеспечивая устойчивость между сессиями
+**Правила:**
+- Код правится только внутри своего слоя; стандарты читаются из `docs/`.
+- Агенты с Bash выполняют `cd` в свой слой перед работой. Backend-команды (`php artisan …`, Pest) идут через Docker: `docker exec reminders_app php artisan test --compact` (локального PHP нет).
+- Реестр `docs/TASKS.md` — вне слоёв, доступен по абсолютному пути всем.
+
+---
+
+## Модель взаимодействия
+
+Гибрид supervisor/worker (Orchestrator ↔ агенты) и pipeline по фазам:
+
+```text
+ARCH → DEV → MBE → (MOB ‖ WEB) → TEST → UITEST* → (REVIEW ‖ SEC) → DOC
+```
+
+\* UITEST — только для задач с дизайн-макетом.
+
+```text
+                     ┌──────────────┐
+                     │ Orchestrator │  декомпозиция, делегирование, блокировки
+                     └──────┬───────┘
+      ┌──────────┬──────────┼──────────┬──────────┐
+  ┌───▼───┐ ┌────▼────┐ ┌───▼───┐ ┌────▼────┐ ┌───▼───┐
+  │ ARCH  │ │ DEV/MBE │ │MOB/WEB│ │TEST/UIT │ │ OPS   │
+  └───────┘ └─────────┘ └───────┘ └─────────┘ └───────┘
+                 read-only контроль: REVIEW ‖ SEC   →   DOC (реестр, счётчики)
+```
+
+**Ключевые принципы**
+- Архитектура согласуется с пользователем до реализации (ARCH → «Согласовано»).
+- Контракт API (`docs/07-api.md`, API Resources backend) — источник истины для типов mobile/web; JSON — snake_case без трансформаций.
+- Каждая задача выполнима одним агентом за одну сессию, имеет ID `{PREFIX}-{N}` и запись в `docs/TASKS.md`.
+- Read-only агенты (ARCH, REVIEW, SEC) не правят файлы; их счётчики и отчёты фиксирует technical-writer.
+- Мелкие сквозные фичи допускается вести одной записью `FEAT-N` с подзадачами по слоям (см. FEAT-1, FEAT-2 в реестре).
 
 ---
 
 ## Роли агентов
 
-### 1. Orchestrator (Оркестратор)
+| # | Агент | Префикс | Модель | Инструменты | Слой |
+|---|-------|---------|--------|-------------|------|
+| 1 | `orchestrator` | — | fable | Task, Read, Glob, Grep, AskUserQuestion, TodoWrite | любой (не пишет код) |
+| 2 | `architect` | ARCH | fable | Read, Glob, Grep, WebSearch, WebFetch | все (read-only) |
+| 3 | `backend-developer` | DEV | fable | Read, Write, Edit, Bash, Glob, Grep | `backend/` |
+| 4 | `mobile-backend-developer` | MBE | fable | Read, Write, Edit, Bash, Glob, Grep | `backend/` |
+| 5 | `mobile-developer` | MOB | fable | Read, Write, Edit, Bash, Glob, Grep | `mobile/` |
+| 6 | `web-developer` | WEB | fable | Read, Write, Edit, Bash, Glob, Grep | `web/` |
+| 7 | `test-engineer` | TEST | fable | Read, Write, Edit, Bash, Glob, Grep | все |
+| 8 | `ux-ui-test-engineer` | UITEST | fable | Read, Write, Edit, Bash, Glob, Grep | `mobile/`, `web/` |
+| 9 | `code-reviewer` | REVIEW | fable | Read, Glob, Grep, Bash | все (read-only) |
+| 10 | `security-auditor` | SEC | fable | Read, Glob, Grep, Bash | все (read-only) |
+| 11 | `devops-engineer` | OPS | fable | Read, Write, Edit, Bash, Glob, Grep | все |
+| 12 | `technical-writer` | DOC | haiku | Read, Write, Edit, Glob, Grep | `docs/`, README |
 
-**Назначение:** Центральный координатор. Декомпозирует задачи, делегирует специалистам, агрегирует результаты.
+### 1. Orchestrator
+Центральный координатор: читает `docs/TASKS.md` (счётчики), декомпозирует запрос пользователя на задачи по стандарту `docs/07-task-management.md`, делегирует агентам в порядке зависимостей, разрешает блокировки, агрегирует результаты. Кода не пишет, вопросы пользователю задаёт через AskUserQuestion.
 
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Task`, `Read`, `Glob`, `Grep`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`, `AskUserQuestion` |
-| Изоляция | нет |
+### 2. Architect (ARCH)
+Проектирует фичу целиком: схема БД, API-контракт, файловая структура и план реализации для DEV/MBE/MOB/WEB. Результат — архитектурный документ в `docs/architecture/` со статусом «Согласовано» и рекомендуемая декомпозиция. Только читает код.
 
-**Обязанности:**
+### 3. Backend Developer (DEV)
+Доменный слой Laravel: модели, миграции (+ применение к прод- и тестовой БД `reminders_test`), DTO (readonly), Actions, политики, enum'ы, события, sync-сервисы (`app/Services/Sync`). Стандарты: 02-php, 03-laravel, 04-database.
 
-1. Принимает задачу от пользователя и анализирует её scope
-2. Декомпозирует задачу на подзадачи с чёткими deliverables
-3. Определяет порядок выполнения и зависимости между подзадачами
-4. Делегирует подзадачи соответствующим специализированным агентам
-5. Контролирует прогресс и разрешает блокировки между агентами
-6. Агрегирует результаты и формирует итоговый отчёт пользователю
-7. Принимает решения о повторном запуске агентов при неудачных результатах
+### 4. Mobile Backend Developer (MBE)
+HTTP-слой API: контроллеры (`__invoke`), Form Requests, API Resources, маршруты `routes/api.php` (`/api/v1`), throttle, Sanctum. Стандарты: 03-laravel, 07-api. Ресурсы — контракт для MOB/WEB.
 
-**Не делает:** Не пишет код, не запускает тесты, не делает коммиты.
+### 5. Mobile Developer (MOB)
+Expo-приложение: экраны Expo Router, компоненты, хуки, Zustand-stores, Drizzle-схема и репозитории (local-first, outbox), sync-движок, локальные уведомления (expo-notifications, exact alarms), календарь, PIN/биометрия. Стандарт 04-typescript-rn. Проверка: `tsc --noEmit`, Jest.
 
----
+### 6. Web Developer (WEB)
+Vue 3: личный кабинет (`/lk`) и админка (`/admin`) по дизайн-макетам, Pinia-stores, composables, API-клиенты. Стандарт 05-typescript-vue. Проверка: `vue-tsc --noEmit`, Vitest. Прод-сборка: `VITE_API_URL=/napominalki npm run build -- --base=/napominalki/`.
 
-### 2. Architect (Архитектор)
+### 7. Test Engineer (TEST)
+Pest (backend: unit Actions/Policies + feature API/sync), Jest+RNTL (mobile), Vitest+Vue Test Utils (web). Ловит регрессии и sync-баги, чинит flaky-тесты. Даты в тестах — относительные (`now()->addDay()`), не константы.
 
-**Назначение:** Проектирование структуры приложения, выбор технических подходов, планирование реализации.
+### 8. UX/UI Test Engineer (UITEST)
+Сверяет реализованные формы/экраны с дизайн-макетом поэлементно: вёрстка, навигация, состояния, варианты. Усиливает presence-тесты структурными. Только для задач с макетом.
 
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch` |
-| Изоляция | нет (read-only) |
+### 9. Code Reviewer (REVIEW)
+Ревью по стандартам (PSR-12/TS strict, лимиты длины из 01-general, SOLID, edge cases). Отчёт: Резюме / Critical / Warning / Suggestion / Пройдено → сохраняется в `docs/reviews/REVIEW-N.md`. Идёт параллельно с SEC.
 
-**Обязанности:**
+### 10. Security Auditor (SEC)
+OWASP Top 10, авторизация API (policies, sync push/pull), секреты, зависимости, мобильное хранение (expo-secure-store), CORS/заголовки/токены. Отчёт с приоритизацией → `docs/reviews/SEC-N.md`; исправления — задачами OPS/MBE/WEB.
 
-1. Анализирует существующую архитектуру проекта перед внесением изменений
-2. Проектирует структуру новых модулей: модели, сервисы, контроллеры, компоненты
-3. Определяет API-контракты между backend и frontend (endpoints, request/response DTO)
-4. Выбирает паттерны реализации (Repository, Service Layer, Action Classes)
-5. Составляет план миграций БД и изменений схемы данных
-6. Идентифицирует файлы, которые потребуют изменений, и оценивает влияние
-7. Формирует детальный план реализации с указанием порядка шагов
+### 11. DevOps Engineer (OPS)
+Docker Compose backend (`name: project`, тома `project_*`), прод-контейнеры на jemsoft.ru (`reminders_serve`, `reminders_web`, nginx-proxy), EAS Build (`preview` = APK, `.easignore` для монорепо), CI, структура репозитория.
 
-**Стандарты:**
-- Laravel: PSR-12, Service/Action Classes, Form Requests, API Resources, readonly DTO, Enums
-- Vue.js: Composition API, `<script setup>`, composables для переиспользуемой логики
-- PostgreSQL: нормализация до 3NF, индексы для частых запросов, партиционирование для больших таблиц
-
----
-
-### 3. Backend Developer (Backend-разработчик)
-
-**Назначение:** Реализация серверной логики на PHP Laravel.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep` |
-| Изоляция | `worktree` |
-
-**Обязанности:**
-
-1. Создаёт и модифицирует Eloquent-модели с отношениями, scopes, accessors/mutators
-2. Реализует контроллеры (Resource Controllers для CRUD, Invokable для единичных действий)
-3. Пишет сервисы и Action Classes для бизнес-логики
-4. Создаёт Form Requests для валидации входных данных
-5. Реализует API Resources для трансформации данных в ответах
-6. Настраивает маршрутизацию (routes/api.php, routes/web.php)
-7. Реализует middleware, policies, events/listeners
-8. Использует Artisan-команды для генерации scaffolding
-
-**Стек и стандарты:**
-- PHP 8.5+, Laravel 12+
-- PSR-12 coding standard
-- Strict types (`declare(strict_types=1)`)
-- Eloquent ORM с eager loading (`with()`) для предотвращения N+1
-- Laravel Sanctum для API-аутентификации
-- Queues (Redis/Database) для тяжёлых операций
+### 12. Technical Writer (DOC)
+Ведёт `docs/TASKS.md` (записи задач, счётчики всех агентов, включая read-only ARCH/REVIEW/SEC, сводка Completed), README/CHANGELOG, архитектурные документы, отчёты ревью. Завершает каждый цикл коммитом `[DOC] TASKS: …`.
 
 ---
-
-### 4. Admin Developer (Разработчик административной панели)
-
-**Назначение:** Реализация административного интерфейса на Orchid Platform для всех значимых сущностей.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep` |
-| Изоляция | `worktree` |
-
-**Обязанности:**
-
-1. Создаёт Orchid Screen-классы: ListScreen, EditScreen, ViewScreen для каждой значимой сущности
-2. Реализует Layout-классы: Table (ListLayout), Rows (EditLayout), Legend (ViewLayout)
-3. Настраивает фильтры через HttpFilter и Filterable trait
-4. Конфигурирует пагинацию, сортировку и поиск в ListScreen
-5. Реализует единый EditScreen для create/update операций
-6. Настраивает Sight/Legend layout для детализированного ViewScreen
-7. Регистрирует маршруты в `routes/platform.php` и permissions в `PlatformProvider`
-8. Делегирует бизнес-логику в существующие Service/Action классы
-
-**Область ответственности — только файлы Orchid (в `/home/vselug/workspace/Napominalky/backend/`):**
-- `app/Orchid/Screens/{Entity}/` — экраны
-- `app/Orchid/Layouts/{Entity}/` — макеты
-- `app/Orchid/Filters/` — фильтры
-- `app/Orchid/Presenters/` — презентеры
-- `routes/platform.php` — маршрутизация
-- `app/Orchid/PlatformProvider.php` — меню и permissions
-
-**Не создаёт:** контроллеры, модели, миграции, сервисы, API Resources, Vue-компоненты.
-
-**Стандарты:**
-- PHP 8.5+, Laravel 12+, Orchid Platform
-- Обязательные стандарты: `/home/vselug/workspace/Napominalky/docs/01-general.md`, `02-php.md`, `03-laravel.md`, `06-orchid.md`
-
----
-
-### 5. Frontend Developer (Frontend-разработчик)
-
-**Назначение:** Реализация пользовательского интерфейса на Vue.js 3 с TypeScript.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep` |
-| Изоляция | `worktree` |
-
-**Обязанности:**
-
-1. Создаёт Vue 3 компоненты с `<script setup lang="ts">`
-2. Реализует Pinia stores для управления состоянием
-3. Создаёт composables для переиспользуемой логики (useAuth, usePagination, useForm)
-4. Типизирует props, emits, API-ответы через TypeScript interfaces
-5. Реализует маршрутизацию (Vue Router) с guards и lazy loading
-6. Интегрирует API-вызовы через axios/fetch с типизированными обёртками
-7. Реализует формы с валидацией (VeeValidate / нативная)
-8. Обеспечивает реактивность и корректное управление жизненным циклом компонентов
-
-**Стек и стандарты:**
-- Vue 3.5+, TypeScript 5+, Vite
-- Composition API only (без Options API)
-- Pinia для state management
-- Vue Router 4
-- Строгая типизация: `strict: true` в tsconfig
-- SFC (Single File Components) с `<script setup>`
-
----
-
-### 6. Database Engineer (Инженер баз данных)
-
-**Назначение:** Проектирование и оптимизация схемы PostgreSQL, миграции, производительность запросов.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep` |
-| Изоляция | `worktree` |
-
-**Обязанности:**
-
-1. Проектирует схему базы данных: таблицы, связи, constraints, типы данных
-2. Создаёт Laravel-миграции с правильным порядком зависимостей
-3. Пишет seeders и factories для тестовых данных
-4. Оптимизирует запросы: анализ EXPLAIN, создание индексов (B-tree, GIN, GiST)
-5. Настраивает PostgreSQL-специфичные возможности: JSONB-поля, полнотекстовый поиск, массивы, enum types
-6. Проверяет Eloquent-запросы на N+1 проблемы и предлагает eager loading
-7. Проектирует стратегию партиционирования для больших таблиц
-
-**Стандарты:**
-- PostgreSQL 17+
-- Миграции через Laravel Schema Builder
-- Имена таблиц: snake_case, множественное число (users, order_items)
-- Внешние ключи с ON DELETE CASCADE/SET NULL по контексту
-- Индексы для всех foreign keys и часто фильтруемых полей
-- Soft deletes (`deleted_at`) для сущностей, требующих восстановления
-
----
-
-### 7. Code Reviewer (Ревьюер кода)
-
-**Назначение:** Анализ качества кода, соответствия стандартам, поиск потенциальных проблем.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Glob`, `Grep`, `Bash` (только git diff, php artisan) |
-| Изоляция | нет (read-only) |
-
-**Обязанности:**
-
-1. Проверяет соответствие кода PSR-12 (PHP) и ESLint/Prettier (TypeScript/Vue)
-2. Выявляет нарушения SOLID-принципов и предлагает рефакторинг
-3. Находит потенциальные баги: race conditions, memory leaks, unhandled exceptions
-4. Проверяет корректность Eloquent-отношений и eager loading
-5. Анализирует TypeScript-типизацию: отсутствие `any`, корректность generics
-6. Проверяет обработку ошибок и edge cases
-7. Формирует структурированный отчёт с категоризацией замечаний (critical / warning / suggestion)
-
-**Чек-лист ревью:**
-- [ ] Нет SQL-инъекций (raw queries без биндингов)
-- [ ] Нет XSS (v-html без санитизации)
-- [ ] Валидация всех входных данных через Form Requests
-- [ ] Авторизация через Policies/Gates
-- [ ] Нет хардкода секретов
-- [ ] Корректная обработка ошибок и пустых состояний
-
----
-
-### 8. Test Engineer (Тест-инженер)
-
-**Назначение:** Написание и запуск автоматических тестов для backend и frontend.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep` |
-| Изоляция | `worktree` |
-
-**Обязанности:**
-
-1. Пишет Feature-тесты для API endpoints (Pest PHP)
-2. Пишет Unit-тесты для сервисов и Action Classes (Pest PHP)
-3. Создаёт компонентные тесты для Vue-компонентов (Vitest + Vue Test Utils)
-4. Пишет тесты для Pinia stores и composables
-5. Запускает тесты и анализирует результаты: `php artisan test`, `npx vitest`
-6. Обеспечивает покрытие критических путей: аутентификация, авторизация, CRUD-операции
-7. Создаёт factories и fixtures для тестовых данных
-
-**Команды:**
-```bash
-# Backend
-php artisan test                          # все тесты
-php artisan test --filter=UserTest        # один класс
-php artisan test --filter=it_creates_user # один тест
-
-# Frontend
-npx vitest                                # все тесты
-npx vitest run src/components/UserForm    # один файл
-npx vitest --coverage                     # с покрытием
-```
-
----
-
-### 9. DevOps Engineer (DevOps-инженер)
-
-**Назначение:** Конфигурация окружений, CI/CD, Docker, деплой.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep` |
-| Изоляция | нет |
-
-**Обязанности:**
-
-1. Настраивает Docker-окружение: docker-compose.yml для разработки (PHP-FPM, Nginx, PostgreSQL, Redis)
-2. Создаёт Dockerfile для production-сборки (multi-stage build)
-3. Конфигурирует CI/CD пайплайны (GitHub Actions / GitLab CI)
-4. Настраивает environment-файлы (.env.example, .env.testing)
-5. Конфигурирует Vite для production-сборки frontend
-6. Настраивает кэширование: Redis для сессий, очередей, кэша Laravel
-7. Управляет зависимостями: composer.json, package.json
-
-**Стек:**
-- Docker + Docker Compose
-- Nginx + PHP-FPM
-- Redis (cache, sessions, queues)
-- GitHub Actions / GitLab CI
-- Laravel Sail (опционально для dev)
-
----
-
-### 10. Security Auditor (Аудитор безопасности)
-
-**Назначение:** Аудит безопасности кода и конфигурации, поиск уязвимостей.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `fable` |
-| Инструменты | `Read`, `Glob`, `Grep`, `Bash` (только статический анализ) |
-| Изоляция | нет (read-only) |
-
-**Обязанности:**
-
-1. Проверяет код на уязвимости OWASP Top 10: SQL Injection, XSS, CSRF, IDOR
-2. Аудирует конфигурацию аутентификации и авторизации (Sanctum, Policies)
-3. Проверяет корректность CORS-настроек и CSP-заголовков
-4. Анализирует зависимости на известные уязвимости (`composer audit`, `npm audit`)
-5. Проверяет отсутствие секретов в коде и git-истории
-6. Валидирует настройки шифрования, хеширования паролей, rate limiting
-7. Формирует отчёт с классификацией по критичности (Critical / High / Medium / Low)
-
-**Контрольные точки:**
-- Mass assignment protection (Eloquent `$fillable` / `$guarded`)
-- CSRF-токены для всех мутирующих запросов
-- Rate limiting для API и форм логина
-- Helmet/security headers (X-Frame-Options, X-Content-Type-Options)
-- HTTPS enforced, secure cookies
-- Нет debug mode в production (`APP_DEBUG=false`)
-
----
-
-### 11. Technical Writer (Технический писатель)
-
-**Назначение:** Документирование API, архитектурных решений, процессов разработки.
-
-| Параметр | Значение |
-|----------|----------|
-| Модель | `haiku` |
-| Инструменты | `Read`, `Write`, `Edit`, `Glob`, `Grep` |
-| Изоляция | нет |
-
-**Обязанности:**
-
-1. Генерирует и обновляет API-документацию (OpenAPI/Swagger)
-2. Документирует архитектурные решения (ADR — Architecture Decision Records)
-3. Обновляет README.md с актуальными инструкциями по установке и запуску
-4. Документирует конфигурацию окружений и переменные .env
-5. Создаёт CHANGELOG.md при выпуске новых версий
-6. Описывает сложные бизнес-процессы и потоки данных
-7. Обновляет счётчики задач в `/home/vselug/workspace/Napominalky/docs/TASKS.md` по делегации от Orchestrator (для read-only агентов: `ARCH`, `REVIEW`, `SEC`)
-
----
-
-## Паттерны взаимодействия
-
-### Сценарий: Новая функциональность (Feature)
-
-```
-1. Orchestrator    → декомпозирует задачу
-2. Architect       → проектирует структуру, определяет файлы и API-контракты
-3. Database Eng.   → создаёт миграции и модели (если нужны изменения БД)
-4. Backend Dev.    → реализует API endpoints, сервисы, контроллеры
-   Admin Dev.      → реализует экраны Orchid (List/Edit/View) (параллельно с backend)
-   Frontend Dev.   → реализует компоненты, stores, маршруты (параллельно с backend)
-5. Test Engineer   → пишет и запускает тесты
-6. Code Reviewer   → проверяет качество кода
-   Security Auditor → проверяет безопасность (параллельно с ревью)
-7. Technical Writer → обновляет документацию
-```
-
-### Сценарий: Исправление бага (Bugfix)
-
-```
-1. Orchestrator    → анализирует баг-репорт
-2. Architect       → локализует проблему, определяет затронутые файлы
-3. Backend/Frontend Dev. → исправляет баг (один агент по контексту)
-4. Test Engineer   → пишет регрессионный тест
-5. Code Reviewer   → проверяет исправление
-```
-
-### Сценарий: Рефакторинг
-
-```
-1. Orchestrator    → определяет scope рефакторинга
-2. Architect       → проектирует целевую архитектуру, составляет план миграции
-3. Backend/Frontend Dev. → выполняет рефакторинг поэтапно
-4. Test Engineer   → проверяет, что существующие тесты проходят
-5. Code Reviewer   → проверяет соответствие целевой архитектуре
-```
-
-### Сценарий: Оптимизация производительности
-
-```
-1. Orchestrator    → определяет цели оптимизации
-2. Architect       → профилирует, определяет узкие места
-3. Database Eng.   → оптимизирует запросы и индексы
-   Backend Dev.    → оптимизирует серверный код, добавляет кэширование
-   Frontend Dev.   → оптимизирует бандл, lazy loading, виртуализацию
-4. Test Engineer   → проверяет, что оптимизация не сломала функциональность
-```
-
----
-
-## Матрица доступа к инструментам
-
-| Роль | Read | Write | Edit | Bash | Glob | Grep | Task | TaskCRUD | AskUser | Web | Worktree |
-|------|------|-------|------|------|------|------|------|----------|---------|-----|----------|
-| Orchestrator | + | - | - | - | + | + | + | + | + | - | - |
-| Architect | + | - | - | - | + | + | - | - | - | + | - |
-| Backend Dev. | + | + | + | + | + | + | - | - | - | - | + |
-| Admin Dev. | + | + | + | + | + | + | - | - | - | - | + |
-| Frontend Dev. | + | + | + | + | + | + | - | - | - | - | + |
-| Database Eng. | + | + | + | + | + | + | - | - | - | - | + |
-| Code Reviewer | + | - | - | +* | + | + | - | - | - | - | - |
-| Test Engineer | + | + | + | + | + | + | - | - | - | - | + |
-| DevOps Eng. | + | + | + | + | + | + | - | - | - | - | - |
-| Security Auditor | + | - | - | +* | + | + | - | - | - | - | - |
-| Tech. Writer | + | + | + | - | + | + | - | - | - | - | - |
-
-*+\* — только read-only команды (git diff, php artisan route:list, composer audit, npm audit)*
 
 ## Матрица стандартов
 
-Каждый агент **обязан** прочитать и соблюдать стандарты из `/home/vselug/workspace/Napominalky/docs/` перед началом работы:
-
-| Роль | 01-general | 02-php | 03-laravel | 04-database | 05-ts-vue | 06-orchid | 07-tasks | 08-git | TASKS.md |
-|------|-----------|--------|------------|-------------|-----------|-----------|----------|--------|----------|
-| Orchestrator | знает | знает | знает | знает | знает | знает | **читает** | **читает** | **читает** |
-| Architect | читает | читает | читает | читает | читает | читает | **читает** | ссылается | — |
-| Backend Dev. | читает | читает | читает | — | — | — | — | **читает** | **пишет** |
-| Admin Dev. | читает | читает | читает | — | — | читает | — | **читает** | **пишет** |
-| Frontend Dev. | читает | — | — | — | читает | — | — | **читает** | **пишет** |
-| Database Eng. | читает | — | — | читает | — | — | — | **читает** | **пишет** |
-| Code Reviewer | читает | читает | читает | читает | читает | читает | — | ссылается | — |
-| Test Engineer | читает | читает | читает | — | читает | читает | — | **читает** | **пишет** |
-| DevOps Eng. | — | ссылается | ссылается | ссылается | ссылается | — | — | **читает** | **пишет** |
-| Security Auditor | — | читает | читает | читает | читает | читает | — | — | — |
-| Tech. Writer | ссылается | ссылается | ссылается | ссылается | ссылается | ссылается | ссылается | ссылается | **пишет** |
-
-*«читает» — обязан прочитать перед работой; «знает» — знает содержание для координации; «ссылается» — использует как справку; «пишет» — обновляет счётчик своего префикса после завершения задачи*
+| Стандарт | Кто обязан читать |
+|----------|-------------------|
+| `01-general.md` | все |
+| `02-php.md`, `03-laravel.md`, `04-database.md` | DEV, MBE, TEST, REVIEW, SEC, OPS |
+| `04-typescript-rn.md` | MOB, TEST, UITEST, REVIEW |
+| `05-typescript-vue.md` | WEB, TEST, UITEST, REVIEW |
+| `07-api.md` | MBE, MOB, WEB, TEST, REVIEW, SEC |
+| `07-task-management.md` | Orchestrator, DOC |
+| `08-git-workflow.md` | все, кто коммитит |
+| `06-orchid.md` | не используется (решение ARCH-1: админка на Vue без Orchid) |
 
 ---
 
-## Управление задачами
+## Управление задачами и счётчики
 
-Все задачи управляются по стандарту `/home/vselug/workspace/Napominalky/docs/07-task-management.md`. Реестр задач хранится в `/home/vselug/workspace/Napominalky/docs/TASKS.md`.
+Стандарт — `docs/07-task-management.md`. ID `{PREFIX}-{N}` уникальны и не переиспользуются; текущие значения — таблица «Счётчики» в `docs/TASKS.md`.
 
-### ID-конвенция
+| Кто инкрементирует | Префиксы |
+|--------------------|----------|
+| сам исполнитель после коммита | DEV, MBE, MOB, WEB, TEST, UITEST, OPS, DOC |
+| technical-writer по итогам отчёта | ARCH, REVIEW, SEC |
 
-Каждая задача имеет уникальный ID `{PREFIX}-{N}`, где PREFIX определяется ролью исполнителя:
-
-`ARCH-` (architect), `DEV-` (backend), `ADM-` (admin), `FE-` (frontend), `DB-` (database), `TEST-` (test), `REVIEW-` (reviewer), `SEC-` (security), `OPS-` (devops), `DOC-` (writer)
-
-### Жизненный цикл
-
-1. **Architect** → проектирует план с секцией «Рекомендуемая декомпозиция на задачи»
-2. **Orchestrator** → формализует задачи через `TaskCreate` с уникальными ID
-3. **Orchestrator** → делегирует `technical-writer` запись задач в `/home/vselug/workspace/Napominalky/docs/TASKS.md`
-4. **Orchestrator** → делегирует задачи агентам-исполнителям в порядке зависимостей (рабочая директория: `/home/vselug/workspace/Napominalky/backend`)
-5. **Агент** → выполняет задачу, инкрементирует счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`
-   *(для read-only агентов: Orchestrator делегирует инкремент `technical-writer`)*
-6. **Orchestrator** → обновляет статусы через `TaskUpdate`
-7. **Orchestrator** → при завершении фазы делегирует обновление `/home/vselug/workspace/Napominalky/docs/TASKS.md`
-
-### Требования к задачам
-
-- Атомарная и выполнимая одним агентом за одну сессию
-- Содержит описание ЧТО, ЗАЧЕМ и КАК
-- Содержит конкретные файлы, паттерны, стандарты
-- Верифицируемые критерии приёмки (чеклист)
-- Явные зависимости и блокировки по ID
-
-### Обновление счётчиков задач
-
-После завершения задачи исполнитель **обязан** инкрементировать счётчик своего префикса в `/home/vselug/workspace/Napominalky/docs/TASKS.md`. Это гарантирует, что следующая задача получит корректный ID, а ветка git — соответствующее имя.
-
-**Самостоятельное обновление** (агенты с Write/Edit):
-
-| Агент | Префикс | Триггер |
-|-------|---------|---------|
-| Backend Developer | `DEV` | После успешного коммита |
-| Admin Developer | `ADM` | После успешного коммита |
-| Frontend Developer | `FE` | После успешного коммита |
-| Database Engineer | `DB` | После успешного коммита |
-| Test Engineer | `TEST` | После успешного коммита |
-| DevOps Engineer | `OPS` | После успешного коммита |
-| Technical Writer | `DOC` | После завершения задачи |
-
-**Делегированное обновление** (read-only агенты):
-
-| Агент | Префикс | Кто обновляет |
-|-------|---------|---------------|
-| Architect | `ARCH` | Orchestrator → Technical Writer |
-| Code Reviewer | `REVIEW` | Orchestrator → Technical Writer |
-| Security Auditor | `SEC` | Orchestrator → Technical Writer |
-
-**Пример:** Backend Developer завершил `DEV-1` → обновляет строку `| DEV | 0 |` → `| DEV | 1 |` в `/home/vselug/workspace/Napominalky/docs/TASKS.md` → следующая задача получит ID `DEV-2`, ветка `DEV-2`.
+Жизненный цикл: `pending → in_progress → completed` (или `blocked` / `cancelled`). Запись задачи содержит исполнителя, статус, приоритет, зависимости, стандарты, описание, файлы, критерии приёмки (чеклист), даты.
 
 ---
 
-## Git Workflow
+## Git workflow
 
-Все агенты работают по стандарту `/home/vselug/workspace/Napominalky/docs/08-git-workflow.md`. Git-репозиторий находится в `/home/vselug/workspace/Napominalky/backend/`.
+Стандарт — `docs/08-git-workflow.md`. Ветка `main`; фичи — в ветках `feat-*` с merge-коммитом, мелкие задачи — напрямую. Коммит: `[{TASK-ID}] {цель}` (например `[MOB-64] Диалог закрытия повторяющегося напоминания …`), цикл закрывается коммитом `[DOC] TASKS: …` с обновлёнными счётчиками.
 
-### Ключевые правила
+---
 
-| Правило | Описание |
-|---------|----------|
-| **Merge --no-ff** | Слияние без rebase, с сохранением полной истории |
-| **Ветка = ID задачи** | Каждая задача → ветка `{TASK-ID}` от `main` |
-| **Формат коммита** | `[{TASK-ID}] {цель}` + описание |
-| **Git-идентификация** | Каждый агент коммитит под именем своей роли |
-| **Rebase запрещён** | Нет rebase, force push, squash |
+## Сценарии
 
-### Согласование архитектуры
+**Новая фича.** Orchestrator → ARCH (документ, согласование) → DEV (домен, миграции обеих БД) → MBE (API) → MOB ‖ WEB → TEST → UITEST (если есть макет) → REVIEW ‖ SEC → DOC.
 
-Верхнеуровневые ARCH-задачи **требуют согласования** с пользователем перед передачей в реализацию. Orchestrator обязан вызвать `AskUserQuestion` после получения плана от Architect.
+**Багфикс.** Orchestrator → исполнитель слоя (воспроизведение, фикс) → TEST (регрессионный тест) → DOC. Прод-инциденты (sync, Redis, миграции) — фиксируются в реестре с причиной и симптомом.
 
-### DTT-методология (backend)
+**Задача по макету (MOB/WEB).** Исполнитель → UITEST (сверка поэлементно, доводка тестов) → DOC.
 
-Backend Developer работает строго по **Design → Test → Type**:
-1. Спроектировать решение
-2. Написать тесты **до** реализации (unit + integration)
-3. Написать реализацию, добиться прохождения тестов
-
-### Тестирование админки
-
-- Код Orchid-экранов (`app/Orchid/`) **НЕ покрывается** тестами
-- **Ролевая модель** (permissions, доступ к экранам) **обязательно тестируется** Test Engineer
-
-### Workflow задачи
-
-```
-Orchestrator → создаёт задачу, назначает агента
-    ↓
-Агент → cd /home/vselug/workspace/Napominalky/backend && git checkout -b {TASK-ID}
-    ↓
-Агент → читает стандарты из /home/vselug/workspace/Napominalky/docs/, реализация (DTT для backend), git commit
-    ↓
-Агент → инкрементирует счётчик {PREFIX} в /home/vselug/workspace/Napominalky/docs/TASKS.md
-    (для read-only агентов: Orchestrator делегирует Technical Writer)
-    ↓
-Test Engineer → cd /home/vselug/workspace/Napominalky/backend && тесты (unit/integration для backend, ролевая модель для admin)
-    ↓
-Orchestrator → git merge --no-ff {TASK-ID} в main, удалить ветку
-```
+**Инфраструктура.** OPS (Docker/EAS/деплой/структура) → проверка прода (API 422 на пустой логин, веб 200, `migrate:status`) → DOC.

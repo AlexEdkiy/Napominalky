@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-29 (реструктуризация монорепо: корень Napominalky/, project→backend — OPS-10)
+> Последнее обновление: 2026-09-29 (TEST-19 дата-«бомба» в TaskStatusSyncTest; DOC-54 актуализация multi-agent-roles.md и чекбоксов)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -12,18 +12,18 @@
 | MBE     | 20           | mobile-backend-developer  |
 | MOB     | 64           | mobile-developer          |
 | WEB     | 48           | web-developer             |
-| TEST    | 18           | test-engineer             |
+| TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 0            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 10           | devops-engineer           |
-| DOC     | 53           | technical-writer          |
+| DOC     | 54           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 141 |
+| Completed | 143 |
 | In Progress | 0 |
 | Pending | 0 |
 | Blocked | 0 |
@@ -44,13 +44,13 @@
 - **Реализация:** Прочитать требования в CLAUDE.md, проанализировать структуру проекта, определить схему БД, API-контракты, компоненты и хранилища для каждого слоя. Выделить критические решения, требующие согласования. Создать детальный план декомпозиции на задачи для остальных агентов.
 - **Файлы:** `/home/vselug/workspace/Napominalky/docs/architecture/mvp-architecture.md`
 - **Критерии приёмки:**
-  - [ ] Архитектурный документ содержит все 10 групп фич с деталями Backend/MBE/MOB/WEB
-  - [ ] Определена полная схема БД (users, devices, notes, shopping_lists, shopping_list_items, reminders, sync_conflicts + sync_revision sequence)
-  - [ ] API-контракты описаны для всех 7 групп эндпоинтов
-  - [ ] Sync-стратегия полностью задокументирована (идентификаторы, курсор, PULL/PUSH, outbox, LWW, tombstones, конфликты)
-  - [ ] Выделены 6 решений для согласования с пользователем
-  - [ ] Рекомендуемая декомпозиция на задачи содержит зависимости и критический путь
-  - [ ] Документ согласован с пользователем (статус: Согласовано)
+  - [x] Архитектурный документ содержит все 10 групп фич с деталями Backend/MBE/MOB/WEB
+  - [x] Определена полная схема БД (users, devices, notes, shopping_lists, shopping_list_items, reminders, sync_conflicts + sync_revision sequence)
+  - [x] API-контракты описаны для всех 7 групп эндпоинтов
+  - [x] Sync-стратегия полностью задокументирована (идентификаторы, курсор, PULL/PUSH, outbox, LWW, tombstones, конфликты)
+  - [x] Выделены 6 решений для согласования с пользователем
+  - [x] Рекомендуемая декомпозиция на задачи содержит зависимости и критический путь
+  - [x] Документ согласован с пользователем (статус: Согласовано)
 - **Создана:** 2026-06-03
 - **Завершена:** 2026-06-03
 
@@ -1435,13 +1435,13 @@
 - **Реализация:** Создать архитектурный документ со статусом «Согласовано» (6 согласованных решений). Сгруппировать задачи по фичам в TASKS.md. Счётчики: ARCH=1, OPS=3, DEV=12, MBE=10, MOB=20, WEB=9, TEST=11, REVIEW=0, SEC=0, DOC=1. Сводка: Completed=1, Pending=65.
 - **Файлы:** `/home/vselug/workspace/Napominalky/docs/architecture/mvp-architecture.md`, `/home/vselug/workspace/Napominalky/docs/TASKS.md`
 - **Критерии приёмки:**
-  - [ ] Архитектурный документ содержит все 10 групп фич и 3 слоя
-  - [ ] TASKS.md содержит все 66 задач (1 completed + 65 pending)
-  - [ ] Счётчики обновлены правильно
-  - [ ] Зависимости корректны (нет циклов)
-  - [ ] Каждая задача имеет описание, реализацию, критерии приёмки, файлы
-  - [ ] Критический путь выявлен: MOB-3 → все mobile-репозитории, DEV-2+DEV-9 → sync
-  - [ ] Архитектурный документ разместить в /docs/architecture/
+  - [x] Архитектурный документ содержит все 10 групп фич и 3 слоя
+  - [x] TASKS.md содержит все 66 задач (1 completed + 65 pending)
+  - [x] Счётчики обновлены правильно
+  - [x] Зависимости корректны (нет циклов)
+  - [x] Каждая задача имеет описание, реализацию, критерии приёмки, файлы
+  - [x] Критический путь выявлен: MOB-3 → все mobile-репозитории, DEV-2+DEV-9 → sync
+  - [x] Архитектурный документ разместить в /docs/architecture/
 - **Создана:** 2026-06-03
 - **Завершена:** 2026-06-03
 
@@ -2618,7 +2618,7 @@
 - **Файлы:** `backend/database/migrations/2026_08_21_140000_widen_sync_conflicts_entity_type.php`, `backend/tests/Feature/Sync/SyncPushServiceTest.php`
 - **Критерии приёмки:**
   - [x] Миграция применена к тестовой БД; Pest Sync — 81 passed
-  - [ ] Миграция применена к продовой БД (`docker exec reminders_serve php artisan migrate --force`)
+  - [x] Миграция применена к продовой БД (`migrate:status` 2026-09-29: [15] Ran)
 - **Создана:** 2026-08-21
 - **Завершена:** 2026-08-21
 
@@ -2687,5 +2687,35 @@
   - [x] Pest (docker exec), Vitest, Jest запускаются с нового расположения
   - [x] Контейнеры reminders_serve/web (docker run) и app/db/redis (compose) пересозданы на новые пути, симлинки удалены, nginx-proxy перечитал upstream; тома project_* на месте
   - [x] Удалены worktree `agent-a3d65c…`/`agent-af92…` и ветки `worktree-agent-*`; убран obsolete `version:` из docker-compose.yml
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### TEST-19: Дата-«бомба» в TaskStatusSyncTest — LWW проигрывал зашитой константе
+- **Исполнитель:** test-engineer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** —
+- **Стандарты:** docs/03-laravel.md
+- **Описание:** С 2026-09-01 стабильно падал `derives the item status from a pushed is_checked without status`: хелпер `taskStatusPushBody` подставлял `updated_at = '2026-09-01T10:00:00Z'` по умолчанию. Пока дата была в будущем, push побеждал фабричную запись (updated_at = now); после 1 сентября сервер стал новее → LWW отдавал изменение в `conflicts`, статус оставался `new`. Код продукта корректен (подтверждено зондом с датой 2027 года). Фикс: дефолт `?string $updatedAt = null` → `now()->addDay()->toIso8601ZuluString()`. Остальные зашитые даты в Pest/Jest/Vitest проверены — это фиксированные входы чистых функций или пары «сервер/клиент» с обеими константами, от текущего времени не зависят.
+- **Файлы:** `backend/tests/Feature/Sync/TaskStatusSyncTest.php`
+- **Критерии приёмки:**
+  - [x] Pest tests/Feature/Sync — 59 passed
+  - [x] Дефолтная дата в хелпере относительная
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### DOC-54: Актуализация multi-agent-roles.md, чекбоксов реестра и версий стека в архитектуре
+- **Исполнитель:** technical-writer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** OPS-10
+- **Блокирует:** —
+- **Стандарты:** docs/07-task-management.md
+- **Описание:** `docs/multi-agent-roles.md` описывал чужой проект (Orchid, Admin/Frontend Developer, Database Engineer, префиксы ADM/FE, Vue в `project/resources/js`) — переписан под реальную команду из 12 агентов: структура `Napominalky/`, конвейер, таблица ролей с инструментами/моделями/слоями, матрица стандартов, правила счётчиков, сценарии. Закрыты устаревшие чекбоксы ARCH-1 и DOC-1 (выполнены 2026-06-03) и DEV-22 (прод-миграция применена). В `mvp-architecture.md` §0.6 добавлена пометка о фактических версиях (Expo SDK 54 / RN 0.81 вместо планового SDK 52; каталог `backend/`).
+- **Файлы:** `docs/multi-agent-roles.md`, `docs/TASKS.md`, `docs/architecture/mvp-architecture.md`
+- **Критерии приёмки:**
+  - [x] В реестре нет незакрытых чекбоксов у completed-задач
+  - [x] Документ ролей соответствует `.claude/agents/*.md` и CLAUDE.md
 - **Создана:** 2026-09-29
 - **Завершена:** 2026-09-29
