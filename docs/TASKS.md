@@ -2685,7 +2685,7 @@
   - [x] Прод жив: API `/auth/login` → 422, веб → 200, bind-mount'ы контейнеров читают файлы через симлинки
   - [x] `docker compose config` в backend/ отдаёт name: project
   - [x] Pest (docker exec), Vitest, Jest запускаются с нового расположения
-  - [ ] Пересоздать контейнеры на новые пути и убрать симлинки (отдельно, с коротким простоем)
-  - [ ] Удалить сломанные `workspace/.claude/worktrees/*` + ветки `worktree-agent-*` (вручную)
+  - [x] Контейнеры reminders_serve/web (docker run) и app/db/redis (compose) пересозданы на новые пути, симлинки удалены, nginx-proxy перечитал upstream; тома project_* на месте
+  - [x] Удалены worktree `agent-a3d65c…`/`agent-af92…` и ветки `worktree-agent-*`; убран obsolete `version:` из docker-compose.yml
 - **Создана:** 2026-09-29
 - **Завершена:** 2026-09-29
