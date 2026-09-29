@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-29 (OPS-11/WEB-51: Заметки/Календарь не открывались на проде после пересборки — SPA-fallback отдавал index.html вместо устаревшего чанка)
+> Последнее обновление: 2026-09-29 (MBE-23/WEB-52: заметки ЛК — архив/возврат, единая палитра маркеров, счётчики «Активные/Архив»; MOB-66 в бэклог)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -9,23 +9,23 @@
 | ------- | :----------: | ------------------------ |
 | ARCH    | 3            | architect                 |
 | DEV     | 24           | backend-developer         |
-| MBE     | 22           | mobile-backend-developer  |
-| MOB     | 65           | mobile-developer          |
-| WEB     | 51           | web-developer             |
+| MBE     | 23           | mobile-backend-developer  |
+| MOB     | 66           | mobile-developer          |
+| WEB     | 52           | web-developer             |
 | TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 11           | devops-engineer           |
-| DOC     | 57           | technical-writer          |
+| DOC     | 58           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 152 |
+| Completed | 154 |
 | In Progress | 0 |
-| Pending | 2 |
+| Pending | 3 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -2836,3 +2836,51 @@
   - [x] Vitest 3 passed (staleChunkReload), vue-tsc OK; прод пересобран и выложен
 - **Создана:** 2026-09-29
 - **Завершена:** 2026-09-29
+
+## Feature: Заметки ЛК — архив, маркеры, счётчики
+
+### MBE-23: Список заметок — meta.counts «активные/архив» + единая палитра цветов (веб + мобилка)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** WEB-52, MOB-66
+- **Стандарты:** docs/03-laravel.md, docs/07-api.md
+- **Описание:** (1) `GET /notes` отдаёт `meta.counts = {active, archived}` — считаются по тому же `search`, но без фильтра архива (`ResourceCollection::additional`, merge в meta пагинатора), чтобы переключатель ЛК показывал количество в обеих вкладках. (2) Диагностика «маркеры не работают»: в проде 11 заметок без цвета, 4 — с hex мобилки (`#ea899a/#ffebb8/#91d177`), 5 — с именами веба; REST-валидация принимала только `teal|coral|amber|purple`, sync — что угодно. Введён `App\Support\NoteColor` (NAMED + HEX = 8 токенов), `Store/UpdateNoteRequest` валидируют по нему. Контракт: клиенты обязаны рендерить все 8 значений.
+- **Файлы:** `backend/app/Http/Controllers/Notes/IndexController.php`, `backend/app/Support/NoteColor.php`, `backend/app/Http/Requests/Note/{StoreNoteRequest,UpdateNoteRequest}.php`, `backend/tests/Feature/Notes/{ArchiveTest,UpdateTest}.php`
+- **Критерии приёмки:**
+  - [x] `meta.counts` в ответе списка при любом фильтре; скоуп по search; чужие не считаются
+  - [x] Цвет: 4 имени + 4 hex принимаются, прочее — 422
+  - [x] Pest tests/Feature/Notes — 32 passed; проверено на проде зондом
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### WEB-52: Заметки ЛК — архив/возврат из формы и карточки, рабочие цветовые маркеры, счётчики «Активные / Архив»
+- **Исполнитель:** web-developer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** MBE-23
+- **Блокирует:** —
+- **Стандарты:** docs/05-typescript-vue.md
+- **Описание:** (1) **Архив**: кнопка в карточке была, но заметка после нажатия оставалась в текущей вкладке (replaceNote) — теперь `useLkNotesList.archive` убирает заметку из вкладки, чей фильтр она перестала удовлетворять, и сдвигает счётчики без refetch; в форме редактирования добавлена кнопка «В архив» / «Вернуть из архива» (`notesApi.toggleArchive` → `notifyNoteSaved` → закрытие). Подсказки `title` на кнопках закрепления/архива карточки. (2) **Маркеры**: `NoteColor` расширен до 8 токенов, `NAMED_NOTE_COLORS` рендерит hex-маркеры мобилки своими цветами (раньше — фолбэк по uuid, выбор на мобилке на вебе не был виден), форма показывает 8 свотчей, hex из мобилки подсвечивается в edit-режиме и сохраняется. (3) **Счётчики**: `LkNotesToolbar` получает `counts` (meta.counts) и рисует бейджи у «Активные»/«Архив»; удаление уменьшает счётчик текущей вкладки.
+- **Файлы:** `web/src/types/note.ts`, `web/src/api/notesApi.ts`, `web/src/constants/lkNoteColors.ts`, `web/src/composables/{useNotes,useLkNotesList}.ts`, `web/src/components/lk/notes/{LkNotesToolbar,LkNoteCard}.vue`, `web/src/components/lk/LkNoteFormDialog.vue`, `web/src/pages/lk/notes/NotesListView.vue` (+ тесты всех перечисленных)
+- **Критерии приёмки:**
+  - [x] Архивация/возврат из карточки и формы; заметка уходит из вкладки, счётчики сдвигаются
+  - [x] 8 свотчей; hex-маркер мобилки виден на карточке и в форме
+  - [x] Счётчики на переключателе из meta.counts
+  - [x] Vitest 655 passed, vue-tsc OK; прод пересобран и выложен
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### MOB-66: Мобилка — принимать и рендерить именованные цвета заметок веба (teal/coral/amber/purple)
+- **Исполнитель:** mobile-developer
+- **Статус:** pending
+- **Приоритет:** medium
+- **Зависимости:** MBE-23
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** `notesRepo.isNoteColor` принимает только 4 hex — цвет, выбранный в веб-ЛК (`teal|coral|amber|purple`), на мобилке становится `null`. Расширить `NoteColor` до 8 токенов (зеркально `backend/app/Support/NoteColor.php` и `web/src/constants/lkNoteColors.ts`), добавить маппинг имён в цвета карточки и 4 свотча в форму заметки. Миграция схемы не нужна (колонка text).
+- **Файлы:** `mobile/src/db/repositories/notesRepo.ts`, компоненты формы/карточки заметки, тесты
+- **Критерии приёмки:**
+  - [ ] Заметка с color='teal' из синка рендерится цветом, свотч подсвечен; Jest зелёный
+- **Создана:** 2026-09-29
