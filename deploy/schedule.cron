@@ -1,0 +1,5 @@
+# Планировщик Laravel для прода «Напоминалок» (OPS-12).
+# Ставится в user-crontab vselug: `crontab -e` → строка ниже.
+# schedule:run сам решает, что пора запускать (routes/console.php):
+#   reminders:purge-completed — ежечасно, автоудаление выполненных > 7 дней.
+* * * * * docker exec reminders_serve php artisan schedule:run >> /home/vselug/workspace/Napominalky/backend/storage/logs/schedule.log 2>&1
