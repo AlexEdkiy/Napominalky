@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-29 (TEST-19 дата-«бомба» в TaskStatusSyncTest; DOC-54 актуализация multi-agent-roles.md и чекбоксов)
+> Последнее обновление: 2026-09-29 (REVIEW-1 первое ревью: DEV-23 пункт-сирота, MBE-21 лимит батча, MOB-65 LWW по времени; бэклог WEB-49, DEV-24)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -8,24 +8,24 @@
 | Префикс | Последний ID | Исполнитель              |
 | ------- | :----------: | ------------------------ |
 | ARCH    | 3            | architect                 |
-| DEV     | 22           | backend-developer         |
-| MBE     | 20           | mobile-backend-developer  |
-| MOB     | 64           | mobile-developer          |
-| WEB     | 48           | web-developer             |
+| DEV     | 24           | backend-developer         |
+| MBE     | 21           | mobile-backend-developer  |
+| MOB     | 65           | mobile-developer          |
+| WEB     | 49           | web-developer             |
 | TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
-| REVIEW  | 0            | code-reviewer             |
+| REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
 | OPS     | 10           | devops-engineer           |
-| DOC     | 54           | technical-writer          |
+| DOC     | 55           | technical-writer          |
 
 ## Сводка
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 143 |
+| Completed | 148 |
 | In Progress | 0 |
-| Pending | 0 |
+| Pending | 2 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -2719,3 +2719,89 @@
   - [x] Документ ролей соответствует `.claude/agents/*.md` и CLAUDE.md
 - **Создана:** 2026-09-29
 - **Завершена:** 2026-09-29
+
+## Feature: Первое ревью кода (REVIEW-1)
+
+### REVIEW-1: Ревью августовских фич — sync, статусы, комментарии, snooze
+- **Исполнитель:** code-reviewer
+- **Статус:** completed
+- **Приоритет:** high
+- **Зависимости:** —
+- **Блокирует:** DEV-23, MBE-21, MOB-65, WEB-49, DEV-24
+- **Стандарты:** docs/01-general.md, docs/02-php.md, docs/03-laravel.md, docs/04-typescript-rn.md, docs/05-typescript-vue.md, docs/07-api.md
+- **Описание:** Первое ревью проекта (счётчик REVIEW был 0 при 495 коммитах). Срез `main`, область — код без ревью с наибольшим риском: backend `app/Services/Sync/*`, статусы задач, комментарии-тред, snooze; mobile `services/sync/*`, уведомления; web `reminderGrouping`, `LkReminderFormDialog`, `useReminders`. Итог: 1 Critical (пункт-сирота валит push-батч 500 → устройство блокирует sync навсегда), 4 Warning (строковое LWW-сравнение на клиенте; нет `max:` на `changes`; `LkReminderFormDialog.vue` 637 строк; `useReminders` без TanStack Query), 3 Suggestion. Авторизация/IDOR, инварианты статусов, идемпотентность push, ресурсы — пройдено.
+- **Файлы:** `docs/reviews/REVIEW-1.md`
+- **Критерии приёмки:**
+  - [x] Отчёт сохранён в `docs/reviews/REVIEW-1.md`
+  - [x] Critical и исправимые Warning заведены задачами и закрыты (DEV-23, MBE-21, MOB-65); остальное — в бэклог (WEB-49, DEV-24)
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### DEV-23: Пункт-сирота в sync push — no-op вместо 500 (REVIEW-1 Critical)
+- **Исполнитель:** backend-developer
+- **Статус:** completed
+- **Приоритет:** critical
+- **Зависимости:** REVIEW-1
+- **Блокирует:** —
+- **Стандарты:** docs/03-laravel.md
+- **Описание:** `SyncChangeApplier::create()` имел guard для комментария-сироты, но не для пункта: `shopping_list_item` с отсутствующим/чужим/неизвестным `shopping_list_uuid` сохранялся с `shopping_list_id = NULL` → `SQLSTATE[23502]` → откат всей push-транзакции 500 → мобильный клиент бесконечно ретраил весь outbox, а `pullChanges()` не вызывался (устройство теряло и push, и pull). Добавлен симметричный no-op guard (`ShoppingListItem` с `shopping_list_id === null` → `null`). Регрессия: 2 теста в `SyncPushRobustnessTest` (неизвестный родитель — остальной батч применяется; чужой родитель — пункт не создаётся, чужой список не тронут).
+- **Файлы:** `backend/app/Services/Sync/SyncChangeApplier.php`, `backend/tests/Feature/Sync/SyncPushRobustnessTest.php`
+- **Критерии приёмки:**
+  - [x] Push с пунктом-сиротой → 200, пункт пропущен, остальные изменения применены
+  - [x] Pest tests/Feature/Sync — 62 passed
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### MBE-21: Лимит размера push-батча — `changes` max:500 (REVIEW-1 Warning)
+- **Исполнитель:** mobile-backend-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** REVIEW-1
+- **Блокирует:** —
+- **Стандарты:** docs/07-api.md
+- **Описание:** `PushRequest` не ограничивал размер массива `changes`: произвольно большой батч обрабатывался в одной длинной `DB::transaction()`. Добавлено `max:500` (+ тест: 501 изменение → 422 `changes`). Клиент шлёт весь outbox одним запросом без разбиения — при росте outbox выше 500 понадобится чанкование на стороне МП (учтено в DEV-24).
+- **Файлы:** `backend/app/Http/Requests/Sync/PushRequest.php`, `backend/tests/Feature/Sync/PushEndpointTest.php`
+- **Критерии приёмки:**
+  - [x] 501 изменение → 422 с ошибкой по `changes`
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### MOB-65: LWW в applyChanges — сравнение таймстампов по времени, а не строками (REVIEW-1 Warning)
+- **Исполнитель:** mobile-developer
+- **Статус:** completed
+- **Приоритет:** medium
+- **Зависимости:** REVIEW-1
+- **Блокирует:** —
+- **Стандарты:** docs/04-typescript-rn.md
+- **Описание:** `applyRecord` сравнивал `server.updated_at < localUpdatedAt` как строки. Сервер отдаёт микросекунды (`…21.582043Z`), клиент пишет миллисекунды (`…21.582Z`); `'Z'` лексикографически больше цифры, поэтому более новая серверная запись в той же миллисекунде считалась старее и пропускалась. Введён `isOlder()` через `Date.getTime()`; тест на кейс «микросекунды новее в той же миллисекунде».
+- **Файлы:** `mobile/src/services/sync/applyChanges.ts`, `mobile/src/services/sync/__tests__/applyChanges.test.ts`
+- **Критерии приёмки:**
+  - [x] Jest src/services/sync — 95 passed, tsc OK
+- **Создана:** 2026-09-29
+- **Завершена:** 2026-09-29
+
+### WEB-49: Разбить LkReminderFormDialog.vue (637 строк) — composable пикеров даты/времени + вынос стилей (REVIEW-1 Warning)
+- **Исполнитель:** web-developer
+- **Статус:** pending
+- **Приоритет:** low
+- **Зависимости:** REVIEW-1
+- **Блокирует:** —
+- **Стандарты:** docs/05-typescript-vue.md
+- **Описание:** Компонент кратно превышает лимит 200 строк. Вынести `applyCustomDate`/`applyCustomTime`/`buildRemindAtIso`/`resetForm` в `useReminderDatePicker`, стили пилюль — в общий модуль; заодно тримить `notes` (Suggestion). При следующем рефакторинге ЛК рассмотреть перевод `useReminders` на TanStack Query (стандарт 05).
+- **Файлы:** `web/src/components/lk/LkReminderFormDialog.vue`, `web/src/composables/useReminderDatePicker.ts` (новый)
+- **Критерии приёмки:**
+  - [ ] Компонент ≤ 200 строк script+template, Vitest зелёный без потери кейсов
+- **Создана:** 2026-09-29
+
+### DEV-24: Устойчивость push-батча — изоляция ошибки одной записи + чанкование outbox (REVIEW-1)
+- **Исполнитель:** backend-developer (+ mobile-developer для чанкования)
+- **Статус:** pending
+- **Приоритет:** medium
+- **Зависимости:** DEV-23, MBE-21
+- **Блокирует:** —
+- **Стандарты:** docs/03-laravel.md, docs/04-typescript-rn.md
+- **Описание:** Точечные guard'ы в `SyncChangeApplier` (null-title, camelCase, orphan-comment, orphan-item) — хрупкая защита от 500 на весь батч. Спроектировать per-change изоляцию в `SyncPushService::push()` (savepoint на изменение, «плохая» запись → в `rejected[]` ответа, остальные применяются) и на МП — удаление/карантин отклонённых записей outbox + чанкование push по 500 (лимит MBE-21) и вызов `pullChanges()` даже при ошибке push. Требует ARCH-согласования контракта ответа `/sync/push`. Defensive-скоуп `user_id` в `parentIsTasks`/`recalculateParent` и `@property` в `SyncChangesResource` — сюда же (Suggestion).
+- **Файлы:** `backend/app/Services/Sync/SyncPushService.php`, `backend/app/Http/Resources/Sync/SyncPushResultResource.php`, `mobile/src/services/sync/{pushChanges,syncEngine}.ts`
+- **Критерии приёмки:**
+  - [ ] Одна некорректная запись не блокирует применение остальных и не блокирует pull устройства
+- **Создана:** 2026-09-29
