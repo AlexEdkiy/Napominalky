@@ -221,3 +221,24 @@ it('returns 422 when device_uuid is missing', function (): void {
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['device_uuid']);
 });
+
+it('rejects a batch larger than 500 changes with 422 (REVIEW-1 / MBE-21)', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $changes = [];
+    for ($i = 0; $i < 501; $i++) {
+        $changes[] = [
+            'entity_type' => 'note',
+            'uuid' => (string) Str::uuid(),
+            'operation' => 'create',
+            'payload' => ['title' => "n{$i}", 'body' => null],
+            'updated_at' => '2026-06-01T10:00:00Z',
+        ];
+    }
+
+    $this->postJson('/api/v1/sync/push', [
+        'device_uuid' => (string) Str::uuid(),
+        'changes' => $changes,
+    ])->assertStatus(422)->assertJsonValidationErrors(['changes']);
+});

@@ -34,7 +34,7 @@ final class PushRequest extends FormRequest
         return [
             'device_uuid' => ['required', 'uuid'],
             'device_name' => ['nullable', 'string', 'max:255'],
-            'changes' => ['present', 'array'],
+            'changes' => ['present', 'array', 'max:500'],
             'changes.*.entity_type' => [
                 'required',
                 'string',
