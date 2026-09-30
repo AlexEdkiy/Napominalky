@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-30 (ARCH-4 согласован; DEV-24/A готов в ветке; DEV-24/B–E впереди; OPS-14 закрыта)
+> Последнее обновление: 2026-09-30 (OPS-15: APK подготовлен к EAS, ожидается вход Expo; DEV-24/B–E впереди)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -16,7 +16,7 @@
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
-| OPS     | 14           | devops-engineer           |
+| OPS     | 15           | devops-engineer           |
 | DOC     | 61           | technical-writer          |
 
 ## Сводка
@@ -28,7 +28,7 @@
 | Completed | 158 |
 | In Progress | 1 |
 | Pending | 4 |
-| Blocked | 0 |
+| Blocked | 1 |
 | Cancelled | 0 |
 
 ---
@@ -3009,6 +3009,19 @@
 - **Результат:** [Правило main](https://github.com/AlexEdkiy/Napominalky/rules/24237275) активно; protected=true, три required checks с strict policy, PR обязателен, force push и удаление запрещены. CI 36692654027 на 34a16d0 — success.
 - **Создана:** 2026-09-30
 - **Завершена:** 2026-09-30
+
+### OPS-15: Собрать установочный Android APK через Expo EAS
+- **Исполнитель:** Codex (devops / mobile)
+- **Статус:** blocked
+- **Приоритет:** high
+- **Зависимости:** OPS-14, DEV-24/A
+- **Описание:** По запросу пользователя «разверни apk при помощи Expo» подготовить APK текущей рабочей ветки через существующий EAS-проект alex_edkiy/reminders-app и профиль preview. Использовать сохранённую Android-подпись и действующий API https://jemsoft.ru/napominalki. Выдать ссылку на готовый APK; Google Play/OTA и backend-выпуск в эту задачу не входят.
+- **Критерии приёмки:**
+  - [x] Проверены конфигурация preview, состав EAS-архива и Android Metro export
+  - [ ] EAS Android build завершён успешно, записаны source SHA, build ID и versionCode
+  - [ ] Получен APK, проверен артефакт и дана ссылка для установки
+- **Состояние:** Expo CLI 20.5.1 доступен локально, whoami возвращает Not logged in. Пользователю передана команда входа. Android Metro/Hermes export успешен (2040 модулей), актуальные mobile-исправления и API URL проверены в бандле; EAS-архив проверен, исправлено исключение .git. [Отчёт](reviews/ops15-expo-apk-2026-09-30.md). EAS-проект 53b5aa88-4771-48cf-ac27-f7c25bc34915, пакет com.remindersapp.mobile.
+- **Создана:** 2026-09-30
 
 ### ARCH-4: Устойчивый sync с явным подтверждением каждой мутации
 - **Исполнитель:** architect
