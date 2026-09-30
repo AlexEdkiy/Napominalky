@@ -175,14 +175,22 @@ on 2026-09-30 after the automated reviewer requested that consent. GitHub Action
 run [36691202007](https://github.com/AlexEdkiy/Napominalky/actions/runs/36691202007)
 passed backend, mobile checks and web checks at f933b10.
 [Run 36691997833](https://github.com/AlexEdkiy/Napominalky/actions/runs/36691997833)
-also passed at 68f81a1, including the release routing regressions. Branch protection is not
-yet active: main reports protected=false and the rulesets list is empty.
+also passed at 68f81a1, including the release routing regressions.
+[Run 36692654027](https://github.com/AlexEdkiy/Napominalky/actions/runs/36692654027)
+passed all three jobs at 34a16d0.
 
-Prepared ruleset: [.github/rulesets/main.json](../../.github/rulesets/main.json).
-Import it through Settings → Rules → Rulesets → New ruleset → Import a ruleset,
+The owner imported [ruleset 24237275](https://github.com/AlexEdkiy/Napominalky/rules/24237275)
+on 2026-09-30. API verification confirmed enforcement=active for refs/heads/main,
+protected=true, the three required GitHub Actions checks with strict policy, the PR
+requirement, and deletion/force-push restrictions. OPS-14 is complete.
+
+Ruleset source: [.github/rulesets/main.json](../../.github/rulesets/main.json).
+The following import instructions are for another repository or initial setup; the
+current repository already has the active rule above. Import it through Settings → Rules → Rulesets → New ruleset → Import a ruleset,
 review and Create with enforcement Active. It targets main, requires the three
 checks from GitHub Actions (app ID 15368 verified from this run), requires a PR,
-blocks deletion/force push and has no bypass actors. Zero mandatory approvals keeps
+blocks deletion/force push and configures no bypass actors in the import file.
+Public API responses do not expose the live bypass list without admin access. Zero mandatory approvals keeps
 a single-maintainer workflow usable; it does not claim independent review.
 
 SSH authorizes Git pushes but not repository administration through the API.

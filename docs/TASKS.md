@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-30 (MOB-68/OPS-13/DOC-60: управление разработкой, sync-батчи, CI; ветка manage-2026-09-30, без выкладки)
+> Последнее обновление: 2026-09-30 (OPS-14 закрыта: production отделён от Git, CI прошёл, обязательные проверки main включены)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -25,8 +25,8 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 156 |
-| In Progress | 1 |
+| Completed | 157 |
+| In Progress | 0 |
 | Pending | 6 |
 | Blocked | 0 |
 | Cancelled | 0 |
@@ -2981,26 +2981,28 @@
   - [x] Workflow в корне, корректные каталоги, PostgreSQL 17, PHP 8.5, Node 22
   - [x] Включены typecheck, тесты всех слоёв, сборка web; тестовый ключ генерируется отдельно
   - [x] Минимальные permissions, ограничение времени, без команд выкладки
-- **Результат:** Корневой CI прошёл на GitHub, run 36691202007 (f933b10): backend/mobile/web. Required checks настраиваются в OPS-14.
+- **Результат:** Корневой CI прошёл на GitHub, run 36691202007 (f933b10): backend/mobile/web. Required checks включены и проверены в OPS-14.
 - **Создана:** 2026-09-30
 - **Завершена:** 2026-09-30
 
 ### OPS-14: Отделить production от рабочих файлов и проверить выпуск
 - **Исполнитель:** devops-engineer
-- **Статус:** in_progress
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** OPS-13
 - **Блокирует:** —
 - **Стандарты:** docs/DEVELOPMENT.md
 - **Описание:** reminders_serve читает backend из основной рабочей копии, reminders_web — её web/dist. Подготовить отдельные артефакты релиза, staging, SHA, smoke и rollback; перед переключением действующего сервиса представить конкретный план выпуска.
-- **Файлы:** deploy/, backend/docker-compose.prod.yml, docs/DEVELOPMENT.md
+- **Файлы:** deploy/releases/, .github/workflows/ci.yml, .github/rulesets/main.json, docs/DEVELOPMENT.md
 - **Критерии приёмки:**
   - [x] Правка dev-кода и локальная сборка не меняют обслуживаемую версию
   - [x] Версия релиза идентифицируется SHA, smoke и откат проверены
   - [x] Корневой CI реально прошёл на GitHub
-  - [ ] Обязательность проверок подтверждена (подготовлен ruleset, нужен admin-доступ или импорт владельцем)
-- **Начата:** 2026-09-30. Production перенесён в Napominalky-runtime; активен r9cb10c6-ops14. Backend артефакта 412/1534; public smoke, перенос данных/cron, автоматический откат и повторное переключение прошли. CI в GitHub зелёный. Осталось включить required checks; отчёт docs/reviews/ops14-release-2026-09-30.md.
+  - [x] Обязательность проверок подтверждена через GitHub API: active ruleset 24237275 для main, backend/mobile checks/web checks от GitHub Actions
+- **Начата:** 2026-09-30. Production перенесён в Napominalky-runtime; активен r9cb10c6-ops14. Backend артефакта 412/1534; public smoke, перенос данных/cron, автоматический откат и повторное переключение прошли. CI в GitHub зелёный. Required checks включены владельцем и проверены через API; отчёт docs/reviews/ops14-release-2026-09-30.md.
+- **Результат:** [Правило main](https://github.com/AlexEdkiy/Napominalky/rules/24237275) активно; protected=true, три required checks с strict policy, PR обязателен, force push и удаление запрещены. CI 36692654027 на 34a16d0 — success.
 - **Создана:** 2026-09-30
+- **Завершена:** 2026-09-30
 
 ### ARCH-4: Устойчивый sync с явным подтверждением каждой мутации
 - **Исполнитель:** architect
