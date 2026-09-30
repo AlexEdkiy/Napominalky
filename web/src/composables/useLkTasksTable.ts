@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { useShoppingLists } from '@/composables/useShoppingLists'
 import { LK_STATUS_ORDER } from '@/constants/lkStatusColors'
-import type { ShoppingList, ShoppingListItem, ShoppingListType, TaskStatus } from '@/types/shoppingList'
+import type { ShoppingList, ShoppingListItem, ShoppingListType, TaskStatus, UpdateShoppingListPayload } from '@/types/shoppingList'
 import { isShoppingListCompleted } from '@/utils/shoppingList'
 
 /**
@@ -46,12 +46,9 @@ export interface LkListCommentPreview {
  * Производные данные списка из его пунктов: даты для колонок ДАТА /
  * НАПОМИНАНИЕ и комментарии для 💬-попапа колонки ЗАДАЧА.
  *
- * ВРЕМЕННОЕ РЕШЕНИЕ (по решению пользователя): у списка нет собственных
- * полей даты/напоминания на бэкенде, поэтому значения выводятся из
- * `deadline`/`reminder_at` ПУНКТОВ списка (только чтение) — ближайшие
- * к текущему моменту, см. `nearestIso`. Комментарии (`comments_count` +
- * embed `comments`) приходят в тех же ответах `fetchItems` — дополнительных
- * запросов агрегат не делает.
+ * Для tasks общие даты возвращает сервер (WEB-54); у старого API и goods
+ * используется производная дата пунктов. В tasks учитываются только
+ * невыполненные пункты, включая просроченные даты.
  */
 export interface LkListDerivedDates {
   deadline: string | null
@@ -60,6 +57,8 @@ export interface LkListDerivedDates {
   commentsCount: number
   /** Плоский список комментариев (в порядке пунктов, внутри пункта — ASC). */
   comments: LkListCommentPreview[]
+  /** Имена пунктов для подсказки задач; без тел комментариев. */
+  items?: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked'>[]
 }
 
 /**
@@ -85,6 +84,12 @@ export function nearestIso(values: (string | null)[], now: Date): string | null 
   return bestFuture?.iso ?? null
 }
 
+/** Самый ранний срок активных пунктов, в том числе просроченный. */
+function earliestIso(values: (string | null)[]): string | null {
+  return values.filter((value): value is string => value !== null && !Number.isNaN(Date.parse(value)))
+    .sort((a, b) => Date.parse(a) - Date.parse(b))[0] ?? null
+}
+
 /** Начало суток в ms — для сравнения дат без учёта времени. */
 function startOfDayTime(value: Date): number {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
@@ -95,7 +100,7 @@ function dayDiff(iso: string | null, now: Date): number | null {
   if (iso === null) {
     return null
   }
-  const date = new Date(iso)
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + 'T00:00:00' : iso)
   if (Number.isNaN(date.getTime())) {
     return null
   }
@@ -126,7 +131,8 @@ export function lkTableDateLabel(iso: string | null, now: Date): string {
   if (diffDays === 1) {
     return 'Завтра'
   }
-  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + 'T00:00:00' : iso)
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
 }
 
 /** Метка колонки НАПОМИНАНИЕ: локальное время «HH:MM»; пустая строка для null. */
@@ -182,11 +188,17 @@ async function deriveListDates(
 ): Promise<[string, LkListDerivedDates] | null> {
   try {
     const items = await shoppingListsApi.fetchItems(list.uuid)
+    const active = list.type === 'tasks' ? items.filter((item) => !item.is_checked) : items
+    const chooseDate = (values: (string | null)[]): string | null =>
+      list.type === 'tasks' ? earliestIso(values) : nearestIso(values, now)
     return [
       list.uuid,
       {
-        deadline: nearestIso(items.map((item) => item.deadline), now),
-        reminderAt: nearestIso(items.map((item) => item.reminder_at), now),
+        deadline: list.type === 'tasks' && list.deadline !== undefined
+          ? list.deadline : chooseDate(active.map((item) => item.deadline)),
+        reminderAt: list.type === 'tasks' && list.reminder_at !== undefined
+          ? list.reminder_at : chooseDate(active.map((item) => item.reminder_at)),
+        items: items.map(({ uuid, name, is_checked }) => ({ uuid, name, is_checked })),
         commentsCount: items.reduce((sum, item) => sum + item.comments_count, 0),
         comments: flattenItemComments(items),
       },
@@ -234,6 +246,8 @@ export function useLkTasksTable() {
   const sortKey = ref<LkTasksSortKey | null>(null)
   const sortAsc = ref(true)
   const derivedDates = ref<Map<string, LkListDerivedDates>>(new Map())
+  const savingLists = ref(new Set<string>())
+  let loadGeneration = 0
 
   function toggleSort(key: LkTasksSortKey): void {
     if (sortKey.value === key) {
@@ -245,7 +259,18 @@ export function useLkTasksTable() {
   }
 
   function derivedFor(uuid: string): LkListDerivedDates | undefined {
-    return derivedDates.value.get(uuid)
+    const derived = derivedDates.value.get(uuid)
+    const list = lists.value.find((item) => item.uuid === uuid)
+    if (list?.type !== 'tasks' || (list.deadline === undefined && list.reminder_at === undefined)) {
+      return derived
+    }
+    return {
+      ...derived,
+      deadline: list.deadline !== undefined ? list.deadline : derived?.deadline ?? null,
+      reminderAt: list.reminder_at !== undefined ? list.reminder_at : derived?.reminderAt ?? null,
+      comments: derived?.comments ?? [],
+      commentsCount: derived?.commentsCount ?? 0,
+    }
   }
 
   /**
@@ -303,11 +328,14 @@ export function useLkTasksTable() {
    * Дата/Напоминание — второстепенный источник, при сбое строка показывает «—».
    */
   async function loadDerivedDates(): Promise<void> {
-    derivedDates.value = await fetchListsDerivedDates(lists.value, derivedDates.value)
+    const generation = loadGeneration
+    const result = await fetchListsDerivedDates(lists.value, derivedDates.value)
+    if (generation === loadGeneration) derivedDates.value = result
   }
 
   /** Полная перезагрузка таблицы: списки — блокирующе, производные даты — фоном. */
   async function reload(): Promise<void> {
+    loadGeneration += 1
     derivedDates.value = new Map()
     await load({ per_page: LK_TASKS_TABLE_PER_PAGE })
     void loadDerivedDates()
@@ -323,6 +351,26 @@ export function useLkTasksTable() {
     await update(list.uuid, { is_completed: !list.is_completed })
   }
 
+  /** Сохраняем ответ API без оптимистичной подмены; ошибку обрабатывает редактор. */
+  async function updateFields(list: ShoppingList, patch: UpdateShoppingListPayload): Promise<void> {
+    if (list.type !== 'tasks') return
+    if (savingLists.value.has(list.uuid)) throw new Error('Сохранение этой задачи уже выполняется')
+    savingLists.value = new Set(savingLists.value).add(list.uuid)
+    try {
+      const updated = await shoppingListsApi.updateList(list.uuid, patch)
+      const index = lists.value.findIndex((item) => item.uuid === list.uuid)
+      if (index !== -1) lists.value.splice(index, 1, updated)
+    } finally {
+      const next = new Set(savingLists.value)
+      next.delete(list.uuid)
+      savingLists.value = next
+    }
+  }
+
+  function isSaving(uuid: string): boolean {
+    return savingLists.value.has(uuid)
+  }
+
   /**
    * Смена статуса задачи из бейджа колонки СТАТУС (только tasks): выбор
    * статуса — PUT `{ status }` (сервер закрепит его как ручной и сведёт
@@ -331,10 +379,10 @@ export function useLkTasksTable() {
    */
   async function changeStatus(list: ShoppingList, value: TaskStatus | 'auto'): Promise<void> {
     if (value === 'auto') {
-      await update(list.uuid, { status_is_manual: false })
+      await updateFields(list, { status_is_manual: false })
       return
     }
-    await update(list.uuid, { status: value })
+    await updateFields(list, { status: value })
   }
 
   return {
@@ -353,6 +401,8 @@ export function useLkTasksTable() {
     loadNextPage,
     toggleCompleted,
     changeStatus,
+    updateFields,
+    isSaving,
     remove,
   }
 }

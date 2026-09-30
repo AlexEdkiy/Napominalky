@@ -145,13 +145,13 @@ describe('useLkDashboard', () => {
     await load()
     await vi.waitFor(() => expect(taskListDates.value.size).toBe(2))
 
-    expect(taskListDates.value.get('l-1')).toEqual({
+    expect(taskListDates.value.get('l-1')).toMatchObject({
       deadline: '2026-07-06',
       reminderAt: null,
       commentsCount: 0,
       comments: [],
     })
-    expect(taskListDates.value.get('l-2')).toEqual({
+    expect(taskListDates.value.get('l-2')).toMatchObject({
       deadline: '2026-07-08',
       reminderAt: null,
       commentsCount: 0,

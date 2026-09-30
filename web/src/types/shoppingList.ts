@@ -28,6 +28,9 @@ export interface ShoppingList {
   title: string
   type: ShoppingListType
   tags: string[]
+  /** Итоговые общие даты tasks; optional для совместимости со старым API. */
+  deadline?: string | null
+  reminder_at?: string | null
   items_count: number
   checked_items_count: number
   /**
@@ -124,6 +127,8 @@ export interface ShoppingListParams {
  * при чтении.
  */
 export interface CreateShoppingListPayload {
+  deadline?: string | null
+  reminder_at?: string | null
   title: string
   type?: ShoppingListType
   tags?: string[]
@@ -139,6 +144,8 @@ export interface CreateShoppingListPayload {
  * (UI редактирования этих полей не обязателен, но контракт готов к нему).
  */
 export interface UpdateShoppingListPayload {
+  deadline?: string | null
+  reminder_at?: string | null
   title?: string
   type?: ShoppingListType
   tags?: string[]

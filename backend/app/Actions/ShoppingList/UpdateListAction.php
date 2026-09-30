@@ -7,37 +7,47 @@ namespace App\Actions\ShoppingList;
 use App\Data\ShoppingListData;
 use App\Enums\TaskStatus;
 use App\Models\ShoppingList;
+use App\Services\ShoppingList\ListScheduleResolver;
+use Illuminate\Support\Facades\DB;
 
 final class UpdateListAction
 {
     public function __construct(
         private readonly RecalculateListStatusAction $recalculateStatus,
+        private readonly ListScheduleResolver $schedule,
     ) {}
 
     public function __invoke(ShoppingList $list, ShoppingListData $data): ShoppingList
     {
-        $attributes = [
-            'title' => $data->title,
-            'type' => $data->type,
-            'tags' => $data->tags,
-            'is_completed' => $data->isCompleted,
-        ];
+        return DB::transaction(function () use ($list, $data): ShoppingList {
+            $locked = ShoppingList::query()->whereKey($list->id)->lockForUpdate()->firstOrFail();
+            $list->setRawAttributes($locked->getAttributes(), true);
 
-        // goods — прежнее поведение: статусные поля игнорируются.
-        if ($data->type !== 'tasks') {
-            $list->update($attributes);
+            $attributes = [
+                'title' => $data->title,
+                'type' => $data->type,
+                'tags' => $data->tags,
+                'is_completed' => $data->isCompleted,
+            ];
+
+            // goods — прежнее поведение: статусные поля игнорируются.
+            if ($data->type !== 'tasks') {
+                $list->update($attributes);
+
+                return $list;
+            }
+
+            $needsRecalc = $this->applyStatus($list, $data, $attributes);
+            $list->fill($attributes);
+            $this->schedule->fill($list, $data->schedule);
+            $list->save();
+
+            if ($needsRecalc) {
+                ($this->recalculateStatus)($list);
+            }
 
             return $list;
-        }
-
-        $needsRecalc = $this->applyStatus($list, $data, $attributes);
-        $list->update($attributes);
-
-        if ($needsRecalc) {
-            ($this->recalculateStatus)($list);
-        }
-
-        return $list;
+        }, 3);
     }
 
     /**

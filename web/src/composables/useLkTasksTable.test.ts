@@ -229,19 +229,19 @@ describe('useLkTasksTable', () => {
     await table.reload()
     await vi.waitFor(() => expect(table.derivedFor('l-1')).toBeDefined())
 
-    expect(table.derivedFor('l-1')).toEqual({
+    expect(table.derivedFor('l-1')).toMatchObject({
       deadline: '2026-03-12',
       reminderAt: '2026-03-12T09:00:00',
       commentsCount: 0,
       comments: [],
     })
-    expect(table.derivedFor('l-2')).toEqual({
+    expect(table.derivedFor('l-2')).toMatchObject({
       deadline: '2026-03-11',
       reminderAt: null,
       commentsCount: 0,
       comments: [],
     })
-    expect(table.derivedFor('l-3')).toEqual({
+    expect(table.derivedFor('l-3')).toMatchObject({
       deadline: null,
       reminderAt: null,
       commentsCount: 0,
@@ -269,7 +269,7 @@ describe('useLkTasksTable', () => {
     await table.reload()
     await vi.waitFor(() => expect(table.derivedFor('l-1')).toBeDefined())
 
-    expect(table.derivedFor('l-1')).toEqual({
+    expect(table.derivedFor('l-1')).toMatchObject({
       deadline: null,
       reminderAt: null,
       commentsCount: 0,

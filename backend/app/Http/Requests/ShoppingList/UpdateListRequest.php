@@ -27,6 +27,8 @@ final class UpdateListRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'type' => ['nullable', 'string', Rule::in(['goods', 'tasks'])],
             'tags' => ['nullable', 'string', 'max:1000'],
+            'deadline' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'reminder_at' => ['sometimes', 'nullable', 'date'],
             'is_completed' => ['sometimes', 'boolean'],
             'status' => ['sometimes', Rule::enum(TaskStatus::class)],
             'status_is_manual' => ['sometimes', 'boolean'],

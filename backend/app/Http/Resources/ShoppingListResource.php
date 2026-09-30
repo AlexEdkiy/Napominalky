@@ -34,6 +34,8 @@ final class ShoppingListResource extends JsonResource
             'type' => $this->type,
             'tags' => $this->tags,
             'is_completed' => $this->is_completed,
+            'deadline' => $this->deadline?->toDateString(),
+            'reminder_at' => $this->reminder_at?->toISOString(),
             'status' => $this->resolveStatus()->value,
             'status_label' => $this->resolveStatus()->label(),
             'status_is_manual' => (bool) $this->status_is_manual,

@@ -23,6 +23,7 @@ final class UpdateController extends Controller
         $this->authorize('update', $shoppingList);
 
         $data = new ShoppingListData(
+            schedule: $request->safe()->only(['deadline', 'reminder_at']),
             // Частичное обновление (напр. только смена статуса из таблицы) —
             // title может не прийти: берём существующий, чтобы не затереть.
             title: $request->has('title')

@@ -39,7 +39,7 @@ final class SyncPushService
     ) {}
 
     /**
-     * @param list<SyncChangeData> $changes
+     * @param  list<SyncChangeData>  $changes
      */
     public function push(User $user, array $changes): SyncPushResultData
     {
@@ -98,10 +98,17 @@ final class SyncPushService
     {
         $class = SyncEntities::modelFor($change->entityType);
 
-        return $class::withTrashed()
+        $query = $class::withTrashed()
             ->where('user_id', $user->id)
-            ->where('uuid', $change->uuid)
-            ->first();
+            ->where('uuid', $change->uuid);
+
+        // Общие даты должны считаться из актуального родителя под той же
+        // блокировкой, что REST-обновление и пересчёт после изменения пункта.
+        if ($change->entityType === 'shopping_list') {
+            $query->lockForUpdate();
+        }
+
+        return $query->first();
     }
 
     /**
@@ -117,7 +124,7 @@ final class SyncPushService
         }
 
         return (int) DB::selectOne(
-            "SELECT last_value AS rev FROM sync_revision_sequence",
+            'SELECT last_value AS rev FROM sync_revision_sequence',
         )->rev;
     }
 }

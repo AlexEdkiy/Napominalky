@@ -64,7 +64,7 @@ final class SyncEntities
      */
     public const FIELDS = [
         'note' => ['title', 'body', 'is_pinned', 'is_archived', 'color'],
-        'shopping_list' => ['title', 'type', 'tags', 'is_completed', 'status', 'status_is_manual'],
+        'shopping_list' => ['title', 'type', 'tags', 'is_completed', 'status', 'status_is_manual', 'deadline', 'reminder_at'],
         'shopping_list_item' => [
             'name',
             'category',

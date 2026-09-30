@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
+import LkTaskInlineEditor from './LkTaskInlineEditor.vue'
+import LkTaskItemsPopover from './LkTaskItemsPopover.vue'
 import LkCommentsPopover from '@/components/lk/LkCommentsPopover.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import LkTagPill from '@/components/lk/LkTagPill.vue'
 import { lkTableDateLabel, lkTableTimeLabel } from '@/composables/useLkTasksTable'
 import type { LkListCommentPreview, LkListDerivedDates } from '@/composables/useLkTasksTable'
-import type { ShoppingList, TaskStatus } from '@/types/shoppingList'
+import { formatDateTime } from '@/utils/datetime'
+import type { ShoppingList, TaskStatus, UpdateShoppingListPayload } from '@/types/shoppingList'
 
 interface Props {
   list: ShoppingList
+  busy: boolean
+  saveFields: (list: ShoppingList, patch: UpdateShoppingListPayload) => Promise<void>
   /**
-   * Производные данные пунктов (ДАТА/НАПОМИНАНИЕ + комментарии для
-   * 💬-попапа). `null`, пока фоновая подгрузка пунктов не завершилась —
-   * колонки показывают «—», индикатор комментариев скрыт.
+   * Общие даты задачи и превью пунктов; комментарии используются только для покупок.
+   * Даты tasks приходят с сервером, превью пунктов подгружается в фоне.
    */
   derived: LkListDerivedDates | null
 }
@@ -24,7 +28,6 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   toggleCompleted: [list: ShoppingList]
   open: [list: ShoppingList]
-  changeStatus: [list: ShoppingList, value: TaskStatus | 'auto']
 }>()
 
 /** Русское склонение «пункт/пункта/пунктов». */
@@ -61,7 +64,7 @@ const commentsCount = computed<number>(() => props.derived?.commentsCount ?? 0)
 const popoverComments = computed<LkListCommentPreview[]>(() => props.derived?.comments ?? [])
 
 function handleRowClick(): void {
-  emit('open', props.list)
+  if (props.list.type === 'goods') emit('open', props.list)
 }
 
 function handleToggle(): void {
@@ -69,15 +72,26 @@ function handleToggle(): void {
 }
 
 /** Выбор в меню бейджа СТАТУС (только tasks); клик по бейджу строку не открывает. */
-function handleStatusSelect(value: TaskStatus | 'auto'): void {
-  emit('changeStatus', props.list, value)
+const statusError = ref('')
+
+async function handleStatusSelect(value: TaskStatus | 'auto'): Promise<void> {
+  statusError.value = ''
+  try {
+    await savePatch(value === 'auto' ? { status_is_manual: false } : { status: value })
+  } catch {
+    statusError.value = 'Не удалось изменить статус. Повторите попытку.'
+  }
+}
+
+function savePatch(patch: UpdateShoppingListPayload): Promise<void> {
+  return props.saveFields(props.list, patch)
 }
 </script>
 
 <template>
   <tr
     class="lk-task-row"
-    :class="{ 'lk-task-row--completed': list.is_completed }"
+    :class="{ 'lk-task-row--completed': list.is_completed, 'lk-task-row--goods': list.type === 'goods' }"
     @click="handleRowClick"
   >
     <td class="lk-task-row__cell lk-task-row__cell--task">
@@ -86,18 +100,38 @@ function handleStatusSelect(value: TaskStatus | 'auto'): void {
           type="checkbox"
           class="lk-task-row__checkbox"
           :checked="list.is_completed"
+          :disabled="busy"
           :aria-label="`Отметить выполненной: ${list.title}`"
           @click.stop
           @change="handleToggle"
         />
         <span class="lk-task-row__text">
-          <span class="lk-task-row__title">{{ list.title }}</span>
+          <button
+            v-if="list.type === 'tasks'"
+            type="button"
+            class="lk-task-row__title lk-task-row__open"
+            :title="list.title"
+            @click.stop="emit('open', list)"
+          >
+            {{ list.title }}
+          </button>
+          <span v-else class="lk-task-row__title">{{ list.title }}</span>
           <span class="lk-task-row__subtitle-line">
-            <span class="lk-task-row__subtitle">{{ subtitle }}</span>
+            <LkTaskItemsPopover v-if="list.type === 'tasks' && derived?.items" :items="derived.items">
+              <button
+                type="button"
+                class="lk-task-row__subtitle lk-task-row__items"
+                :aria-label="'Пункты задачи: ' + list.title"
+                @click.stop
+              >
+                {{ subtitle }}
+              </button>
+            </LkTaskItemsPopover>
+            <span v-else class="lk-task-row__subtitle">{{ subtitle }}</span>
             <!-- 💬 + суммарный счётчик тредов пунктов; hover — попап с
                  содержимым, сгруппированным по пунктам. @click.stop:
                  клик по индикатору не открывает модалку строки. -->
-            <LkCommentsPopover v-if="commentsCount > 0" :comments="popoverComments">
+            <LkCommentsPopover v-if="list.type === 'goods' && commentsCount > 0" :comments="popoverComments">
               <button
                 type="button"
                 class="lk-task-row__comments"
@@ -117,7 +151,7 @@ function handleStatusSelect(value: TaskStatus | 'auto'): void {
          бейджу/меню не должен открывать модалку строки. -->
     <td class="lk-task-row__cell lk-task-row__cell--status" @click.stop>
       <span v-if="list.type === 'tasks'" class="lk-task-row__status">
-        <LkStatusBadge :status="list.status" interactive with-auto @select="handleStatusSelect" />
+        <LkStatusBadge :status="list.status" :interactive="!busy" with-auto @select="handleStatusSelect" />
         <span
           v-if="list.status_is_manual"
           class="lk-task-row__status-manual"
@@ -127,28 +161,70 @@ function handleStatusSelect(value: TaskStatus | 'auto'): void {
         />
       </span>
       <span v-else class="lk-task-row__empty">—</span>
+      <span v-if="statusError" role="alert" class="lk-task-row__error">{{ statusError }}</span>
     </td>
 
     <td class="lk-task-row__cell lk-task-row__cell--tags">
-      <span v-if="list.tags.length > 0" class="lk-task-row__tags">
+      <LkTaskInlineEditor
+        v-if="list.type === 'tasks'"
+        field="tags"
+        :label="'Теги: ' + list.title"
+        :value="list.tags"
+        :busy="busy"
+        :save="savePatch"
+      >
+        <span v-if="list.tags.length" class="lk-task-row__tags">
+          <LkTagPill v-for="tag in list.tags" :key="tag" :tag="tag" />
+        </span>
+        <span v-else class="lk-task-row__empty">—</span>
+      </LkTaskInlineEditor>
+      <span v-else-if="list.tags.length > 0" class="lk-task-row__tags">
         <LkTagPill v-for="tag in list.tags" :key="tag" :tag="tag" />
       </span>
       <span v-else class="lk-task-row__empty">—</span>
     </td>
 
     <td class="lk-task-row__cell lk-task-row__cell--date">
+      <LkTaskInlineEditor
+        v-if="list.type === 'tasks'"
+        field="deadline"
+        :label="'Дедлайн: ' + list.title"
+        :value="derived?.deadline ?? null"
+        :busy="busy"
+        :save="savePatch"
+      >
+        <span
+          v-if="dateLabel"
+          class="lk-task-row__date"
+          :class="{ 'lk-task-row__date--today': dateLabel === 'Сегодня' }"
+          >{{ dateLabel }}</span
+        >
+        <span v-else class="lk-task-row__empty">—</span>
+      </LkTaskInlineEditor>
       <span
-        v-if="dateLabel !== ''"
+        v-else-if="dateLabel"
         class="lk-task-row__date"
         :class="{ 'lk-task-row__date--today': dateLabel === 'Сегодня' }"
+        >{{ dateLabel }}</span
       >
-        {{ dateLabel }}
-      </span>
       <span v-else class="lk-task-row__empty">—</span>
     </td>
 
     <td class="lk-task-row__cell lk-task-row__cell--reminder">
-      <span v-if="timeLabel !== ''" class="lk-task-row__reminder">⏰ {{ timeLabel }}</span>
+      <LkTaskInlineEditor
+        v-if="list.type === 'tasks'"
+        field="reminder_at"
+        :label="'Напоминание: ' + list.title"
+        :value="derived?.reminderAt ?? null"
+        :busy="busy"
+        :save="savePatch"
+      >
+        <span v-if="derived?.reminderAt" class="lk-task-row__reminder lk-task-row__reminder--full">
+          ⏰ {{ formatDateTime(derived.reminderAt) }}
+        </span>
+        <span v-else class="lk-task-row__empty">—</span>
+      </LkTaskInlineEditor>
+      <span v-else-if="timeLabel" class="lk-task-row__reminder">⏰ {{ timeLabel }}</span>
       <span v-else class="lk-task-row__empty">—</span>
     </td>
   </tr>
@@ -156,10 +232,38 @@ function handleStatusSelect(value: TaskStatus | 'auto'): void {
 
 <style scoped>
 .lk-task-row {
-  cursor: pointer;
   border-top: 1px solid #eef1f0;
 }
 
+.lk-task-row--goods {
+  cursor: pointer;
+}
+.lk-task-row__open,
+.lk-task-row__items {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.lk-task-row__open:hover {
+  text-decoration: underline;
+}
+.lk-task-row__open:focus-visible,
+.lk-task-row__items:focus-visible {
+  outline: 2px solid #17897a;
+  outline-offset: 2px;
+}
+.lk-task-row__error {
+  display: block;
+  color: #b13b36;
+  font-size: 12px;
+}
+.lk-task-row__reminder.lk-task-row__reminder--full {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .lk-task-row:hover {
   background: #fafbfa;
 }

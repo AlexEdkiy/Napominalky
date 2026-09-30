@@ -11,7 +11,9 @@ use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use App\Models\ShoppingListItemComment;
 use App\Models\User;
+use App\Services\ShoppingList\ListScheduleResolver;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 /**
  * Применяет одно клиентское изменение к серверной записи (upsert/tombstone).
@@ -27,6 +29,7 @@ final class SyncChangeApplier
     public function __construct(
         private readonly RecalculateListStatusAction $recalculateStatus,
         private readonly SyncParentResolver $parentResolver,
+        private readonly ListScheduleResolver $schedule,
     ) {}
 
     /**
@@ -108,11 +111,19 @@ final class SyncChangeApplier
             return;
         }
 
+        $previousParentId = $existing instanceof ShoppingListItem ? $existing->shopping_list_id : null;
+
         // Реанимация tombstone при update/create поверх удалённой записи.
         $existing->deleted_at = null;
         $this->fillFields($user, $existing, $change);
         $this->persist($existing, $change);
         $this->recalculateParent($existing);
+        if ($existing instanceof ShoppingListItem && $previousParentId !== $existing->shopping_list_id) {
+            $previousParent = ShoppingList::query()->find($previousParentId);
+            if ($previousParent !== null) {
+                ($this->recalculateStatus)($previousParent);
+            }
+        }
     }
 
     /**
@@ -126,6 +137,9 @@ final class SyncChangeApplier
         $allowed = SyncEntities::fieldsFor($change->entityType);
 
         foreach ($allowed as $field) {
+            if ($model instanceof ShoppingList && in_array($field, ['deadline', 'reminder_at'], true)) {
+                continue; // Даты списка записываются через общую настройку и resolver ниже.
+            }
             if (array_key_exists($field, $change->payload)) {
                 $value = $change->payload[$field];
 
@@ -153,6 +167,7 @@ final class SyncChangeApplier
 
         if ($model instanceof ShoppingList) {
             $this->normalizeListStatus($model, $change);
+            $this->schedule->fill($model, Arr::only($change->payload, ['deadline', 'reminder_at']));
         }
     }
 

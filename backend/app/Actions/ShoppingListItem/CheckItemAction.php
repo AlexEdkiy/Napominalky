@@ -7,6 +7,7 @@ namespace App\Actions\ShoppingListItem;
 use App\Actions\ShoppingList\RecalculateListStatusAction;
 use App\Enums\TaskStatus;
 use App\Models\ShoppingListItem;
+use Illuminate\Support\Facades\DB;
 
 final class CheckItemAction
 {
@@ -23,19 +24,21 @@ final class CheckItemAction
      */
     public function __invoke(ShoppingListItem $item, bool $checked): ShoppingListItem
     {
-        $attributes = ['is_checked' => $checked];
-        $list = $item->shoppingList;
+        return DB::transaction(function () use ($item, $checked): ShoppingListItem {
+            $attributes = ['is_checked' => $checked];
+            $list = $item->shoppingList;
 
-        if ($list !== null && $list->isTasks()) {
-            $attributes['status'] = TaskStatus::forChecked($checked, $item->status ?? TaskStatus::New);
-        }
+            if ($list !== null && $list->isTasks()) {
+                $attributes['status'] = TaskStatus::forChecked($checked, $item->status ?? TaskStatus::New);
+            }
 
-        $item->update($attributes);
+            $item->update($attributes);
 
-        if ($list !== null) {
-            ($this->recalculateStatus)($list);
-        }
+            if ($list !== null) {
+                ($this->recalculateStatus)($list);
+            }
 
-        return $item;
+            return $item;
+        });
     }
 }

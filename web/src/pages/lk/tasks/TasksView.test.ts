@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { DOMWrapper, flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { defineComponent } from 'vue'
 import type { VueWrapper } from '@vue/test-utils'
@@ -702,6 +702,133 @@ describe('TasksView', () => {
     const narrow = await mountTasksView()
     await vi.waitFor(() => expect(narrow.wrapper.text()).not.toContain('Загрузка'))
     expect(narrow.wrapper.find('.lk-tasks-right-rail').exists()).toBe(false)
+  })
+  async function mountInlineTask(overrides: Partial<ShoppingList> = {}) {
+    stubMatchMedia(true)
+    const list = makeList({ type: 'tasks', title: 'Задача', deadline: null, reminder_at: null, ...overrides })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([list]))
+    const { wrapper } = await mountTasksView()
+    await vi.waitFor(() => expect(wrapper.find('.lk-task-row').exists()).toBe(true))
+    return { wrapper, list }
+  }
+
+  function editor() {
+    const element = document.querySelector<HTMLFormElement>('.task-inline__panel')
+    if (!element) throw new Error('Inline editor missing')
+    return new DOMWrapper(element)
+  }
+
+  it('opens a task only from its title, not the row, subtitle or blank cells', async () => {
+    const { wrapper, list } = await mountInlineTask()
+    await wrapper.find('.lk-task-row').trigger('click')
+    await wrapper.find('.lk-task-row__subtitle').trigger('click')
+    for (const cell of wrapper.findAll('.lk-task-row td')) await cell.trigger('click')
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
+    await wrapper.find('.lk-task-row__open').trigger('click')
+    expect(useLkForms().taskFormList.value).toEqual(list)
+    expect(useLkForms().isTaskFormOpen.value).toBe(true)
+  })
+
+  it('previews task item names including completed items without exposing comments', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({ uuid: 'a', name: 'Подготовить макет', comments_count: 1,
+        comments: [{ uuid: 'c', author_name: 'Author', body: 'Скрытый комментарий', created_at: '2026-10-01T10:00:00Z' }] }),
+      makeItem({ uuid: 'b', name: 'Согласовать текст', is_checked: true }),
+    ])
+    const { wrapper } = await mountInlineTask()
+    await vi.waitFor(() => expect(wrapper.find('.task-items-popover').exists()).toBe(true))
+    await wrapper.find('.task-items-popover').trigger('focusin')
+    const tooltip = document.querySelector('[role="tooltip"]')
+    expect(tooltip?.textContent).toContain('Подготовить макет')
+    expect(tooltip?.textContent).toContain('Согласовать текст')
+    expect(tooltip?.textContent).not.toContain('Скрытый комментарий')
+    expect(wrapper.find('.lk-task-row__comments').exists()).toBe(false)
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
+  })
+
+  it('edits a tag in place and keeps the dialog and draft on failure for retry', async () => {
+    const { wrapper, list } = await mountInlineTask({ tags: ['Работа'] })
+    vi.mocked(shoppingListsApi.updateList).mockRejectedValueOnce(new Error('Network failed'))
+      .mockResolvedValueOnce({ ...list, tags: ['Дом'] })
+    await wrapper.find('.lk-task-row__cell--tags .task-inline__trigger').trigger('click')
+    await editor().find('input').setValue('Дом')
+    await editor().trigger('submit')
+    await flushPromises()
+    expect(editor().find('[role="alert"]').exists()).toBe(true)
+    expect(editor().find('input').element.value).toBe('Дом')
+    expect(wrapper.find('.lk-task-row__cell--tags').text()).toContain('Работа')
+    expect(wrapper.find('.tasks-view__card').exists()).toBe(true)
+    await editor().trigger('submit')
+    await flushPromises()
+    expect(shoppingListsApi.updateList).toHaveBeenLastCalledWith('l-1', { tags: ['Дом'] })
+    expect(document.querySelector('.task-inline__panel')).toBeNull()
+    expect(wrapper.find('.lk-task-row__cell--tags').text()).toContain('Дом')
+    expect(useLkForms().isTaskFormOpen.value).toBe(false)
+  })
+
+  it('uses the earlier date returned by the server instead of the submitted later deadline', async () => {
+    const { wrapper, list } = await mountInlineTask({ deadline: '2026-10-12' })
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, deadline: '2026-10-12' })
+    await wrapper.find('.lk-task-row__cell--date .task-inline__trigger').trigger('click')
+    await editor().find('input').setValue('2026-10-15')
+    await editor().trigger('submit')
+    await flushPromises()
+    expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { deadline: '2026-10-15' })
+    expect(wrapper.find('.lk-task-row__cell--date').text()).toContain('12 октября')
+    expect(document.querySelector('.task-inline__panel')).toBeNull()
+  })
+
+  it('edits the reminder date and local time and renders the full returned date', async () => {
+    const { wrapper, list } = await mountInlineTask()
+    const iso = new Date(2026, 9, 12, 9, 30).toISOString()
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, reminder_at: iso })
+    await wrapper.find('.lk-task-row__cell--reminder .task-inline__trigger').trigger('click')
+    await editor().find('input').setValue('2026-10-12T09:30')
+    await editor().trigger('submit')
+    await flushPromises()
+    expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { reminder_at: iso })
+    expect(wrapper.find('.lk-task-row__cell--reminder').text()).toContain('12.10.2026')
+    expect(wrapper.find('.lk-task-row__cell--reminder').text()).toContain('09:30')
+  })
+
+  it('cancels without a request and clears a field explicitly', async () => {
+    const { wrapper, list } = await mountInlineTask({ deadline: '2026-10-15' })
+    await wrapper.find('.lk-task-row__cell--date .task-inline__trigger').trigger('click')
+    await editor().find('input').setValue('2026-10-20')
+    await editor().findAll('button').find((button) => button.text() === 'Отмена')!.trigger('click')
+    expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, deadline: null })
+    await wrapper.find('.lk-task-row__cell--date .task-inline__trigger').trigger('click')
+    await editor().findAll('button').find((button) => button.text() === 'Очистить')!.trigger('click')
+    await flushPromises()
+    expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { deadline: null })
+    expect(wrapper.find('.lk-task-row__cell--date').text()).toBe('—')
+  })
+
+  it('blocks duplicate saves and other row editors while a save is pending', async () => {
+    const { wrapper, list } = await mountInlineTask()
+    let finish: ((value: ShoppingList) => void) | undefined
+    vi.mocked(shoppingListsApi.updateList).mockReturnValue(new Promise((resolve) => { finish = resolve }))
+    await wrapper.find('.lk-task-row__cell--date .task-inline__trigger').trigger('click')
+    await editor().find('input').setValue('2026-10-15')
+    await editor().trigger('submit')
+    await editor().trigger('submit')
+    expect(shoppingListsApi.updateList).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('.lk-task-row__cell--tags button').attributes('disabled')).toBeDefined()
+    finish?.({ ...list, deadline: '2026-10-15' })
+    await flushPromises()
+    expect(document.querySelector('.task-inline__panel')).toBeNull()
+  })
+
+  it('shows a status failure in the row without removing the table or changing status', async () => {
+    const { wrapper } = await mountInlineTask()
+    vi.mocked(shoppingListsApi.updateList).mockRejectedValueOnce(new Error('Network failed'))
+    await wrapper.find('.lk-status-badge__pill--interactive').trigger('click')
+    await wrapper.findAll('.lk-status-badge__option')[1]!.trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.lk-task-row__cell--status [role="alert"]').exists()).toBe(true)
+    expect(wrapper.find('.lk-status-badge__pill').text()).toBe('Новая')
+    expect(wrapper.find('.tasks-view__card').exists()).toBe(true)
   })
 })
 

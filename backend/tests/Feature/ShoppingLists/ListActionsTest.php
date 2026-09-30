@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 it('creates a list for the user with a generated uuid via CreateListAction', function (): void {
     $user = User::factory()->create();
 
-    $list = (new CreateListAction())($user, new ShoppingListData(title: 'Groceries'));
+    $list = app(CreateListAction::class)($user, new ShoppingListData(title: 'Groceries'));
 
     expect($list)->toBeInstanceOf(ShoppingList::class)
         ->and($list->user_id)->toBe($user->id)
@@ -25,7 +25,7 @@ it('persists a client-provided uuid via CreateListAction', function (): void {
     $user = User::factory()->create();
     $uuid = (string) Str::uuid();
 
-    $list = (new CreateListAction())($user, new ShoppingListData(title: 'Offline list'), $uuid);
+    $list = app(CreateListAction::class)($user, new ShoppingListData(title: 'Offline list'), $uuid);
 
     expect($list->uuid)->toBe($uuid)
         ->and(ShoppingList::where('uuid', $uuid)->where('user_id', $user->id)->exists())->toBeTrue();
@@ -43,7 +43,7 @@ it('updates a list title via UpdateListAction', function (): void {
 it('soft deletes a list via DeleteListAction', function (): void {
     $list = ShoppingList::factory()->create();
 
-    (new DeleteListAction())($list);
+    (new DeleteListAction)($list);
 
     expect(ShoppingList::find($list->id))->toBeNull()
         ->and(ShoppingList::withTrashed()->find($list->id)->deleted_at)->not->toBeNull();

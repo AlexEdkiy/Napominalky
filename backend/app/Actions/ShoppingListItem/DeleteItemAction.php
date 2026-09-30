@@ -6,6 +6,7 @@ namespace App\Actions\ShoppingListItem;
 
 use App\Actions\ShoppingList\RecalculateListStatusAction;
 use App\Models\ShoppingListItem;
+use Illuminate\Support\Facades\DB;
 
 final class DeleteItemAction
 {
@@ -15,14 +16,16 @@ final class DeleteItemAction
 
     public function __invoke(ShoppingListItem $item): void
     {
-        $list = $item->shoppingList;
+        DB::transaction(function () use ($item): void {
+            $list = $item->shoppingList;
 
-        $item->delete();
+            $item->delete();
 
-        // Удалённый пункт больше не участвует в деривации статуса задачи
-        // (items() исключает soft-deleted строки).
-        if ($list !== null) {
-            ($this->recalculateStatus)($list);
-        }
+            // Удалённый пункт больше не участвует в деривации статуса задачи
+            // (items() исключает soft-deleted строки).
+            if ($list !== null) {
+                ($this->recalculateStatus)($list);
+            }
+        });
     }
 }

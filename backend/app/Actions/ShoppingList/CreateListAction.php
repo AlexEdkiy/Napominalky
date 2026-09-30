@@ -8,9 +8,12 @@ use App\Data\ShoppingListData;
 use App\Enums\TaskStatus;
 use App\Models\ShoppingList;
 use App\Models\User;
+use App\Services\ShoppingList\ListScheduleResolver;
 
 final class CreateListAction
 {
+    public function __construct(private readonly ListScheduleResolver $schedule) {}
+
     public function __invoke(User $user, ShoppingListData $data, ?string $uuid = null): ShoppingList
     {
         $list = new ShoppingList([
@@ -21,6 +24,7 @@ final class CreateListAction
         ]);
         $list->user_id = $user->id;
         $this->applyStatus($list, $data);
+        $this->schedule->fill($list, $data->schedule);
 
         // Клиентский uuid (offline-создание) задаётся до save; HasUuid (??=)
         // сгенерирует значение сам, если uuid не передан. Sync-идемпотентность —

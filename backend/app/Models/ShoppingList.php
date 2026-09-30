@@ -36,6 +36,8 @@ class ShoppingList extends Model
         'is_completed',
         'status',
         'status_is_manual',
+        'deadline',
+        'reminder_at',
     ];
 
     /**
@@ -111,6 +113,10 @@ class ShoppingList extends Model
             'is_completed' => 'boolean',
             'status' => TaskStatus::class,
             'status_is_manual' => 'boolean',
+            'deadline' => 'immutable_date',
+            'manual_deadline' => 'immutable_date',
+            'reminder_at' => 'immutable_datetime',
+            'manual_reminder_at' => 'immutable_datetime',
             'server_revision' => 'integer',
         ];
     }

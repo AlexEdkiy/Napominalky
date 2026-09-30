@@ -161,3 +161,23 @@ it('hides incoming tombstones from mobile lists without generating outgoing edit
   expect(fixture.db.select().from(notes).where(eq(notes.uuid, 'note')).get()?.deletedAt).toBe(deletedAt)
   expect(queue()).toEqual([])
 })
+
+it('accepts server task schedule fields without an old mobile snapshot erasing them', async () => {
+  const incoming = response()
+  Object.assign(incoming.data.shopping_lists[0]!, {
+    deadline: '2026-10-12', reminder_at: '2026-10-12T09:00:00.000000Z',
+  })
+  getChanges.mockResolvedValue(incoming)
+  await pullChanges(fixture.db)
+  await listRepo().updateList('list', { title: 'Edited on phone' })
+  push.mockResolvedValue({ applied: ['list'], conflicts: [], cursor: 6 })
+  await pushChanges(fixture.db)
+  const change = push.mock.calls[0]![2].find((entry) => entry.uuid === 'list')!
+  expect(change.payload).toMatchObject({ title: 'Edited on phone', type: 'tasks', tags: '["work"]' })
+  expect(change.payload).not.toHaveProperty('deadline')
+  expect(change.payload).not.toHaveProperty('reminder_at')
+  expect(queue()).toEqual([])
+  expect((await listRepo().listItems('list'))[0]).toMatchObject({
+    deadline: '2026-10-03', reminderAt: '2026-10-02T12:30:00.000000Z',
+  })
+})

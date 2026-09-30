@@ -21,6 +21,8 @@ it('preserves all writable sync fields and parent references through push and pu
         ],
         'shopping_list' => [
             'title' => 'Tasks',
+            'deadline' => '2026-10-01',
+            'reminder_at' => '2026-09-29T12:30:00.000000Z',
             'type' => 'tasks',
             'tags' => '["work"]',
             'is_completed' => false,
@@ -78,6 +80,8 @@ it('preserves all writable sync fields and parent references through push and pu
     if ($clearOptional) {
         $payloads['note']['color'] = null;
         $payloads['shopping_list']['tags'] = null;
+        $payloads['shopping_list']['deadline'] = null;
+        $payloads['shopping_list']['reminder_at'] = null;
         foreach (['deadline', 'reminder_at', 'link', 'comment', 'tags'] as $field) {
             $payloads['shopping_list_item'][$field] = null;
         }

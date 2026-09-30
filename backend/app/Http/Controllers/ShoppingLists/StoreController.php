@@ -31,6 +31,7 @@ final class StoreController extends Controller
             : null;
 
         $data = new ShoppingListData(
+            schedule: $request->safe()->only(['deadline', 'reminder_at']),
             title: $request->string('title')->toString(),
             type: $request->filled('type') ? $request->string('type')->toString() : 'goods',
             tags: $request->filled('tags') ? $request->string('tags')->toString() : null,

@@ -8,7 +8,7 @@ import { useLkForms } from '@/composables/useLkForms'
 import { useLkTasksTable } from '@/composables/useLkTasksTable'
 import { useLkWideDesktop } from '@/composables/useLkBreakpoint'
 import type { LkTasksSortKey, LkTasksTab, LkTasksTypeFilter } from '@/composables/useLkTasksTable'
-import type { ShoppingList, TaskStatus } from '@/types/shoppingList'
+import type { ShoppingList } from '@/types/shoppingList'
 
 const TABS: { value: LkTasksTab; label: string }[] = [
   { value: 'all', label: 'Все' },
@@ -48,7 +48,8 @@ const {
   reload,
   loadNextPage,
   toggleCompleted,
-  changeStatus,
+  updateFields,
+  isSaving,
 } = useLkTasksTable()
 
 function handleOpen(list: ShoppingList): void {
@@ -57,11 +58,6 @@ function handleOpen(list: ShoppingList): void {
 
 async function handleToggleCompleted(list: ShoppingList): Promise<void> {
   await toggleCompleted(list)
-}
-
-/** Смена статуса из бейджа колонки СТАТУС (tasks): статус или «Авто». */
-async function handleChangeStatus(list: ShoppingList, value: TaskStatus | 'auto'): Promise<void> {
-  await changeStatus(list, value)
 }
 
 // Модалка «Задача/список» рендерится в `LkLayout`, а не здесь — при
@@ -171,7 +167,8 @@ onMounted(() => reload())
                 :derived="derivedFor(list.uuid) ?? null"
                 @open="handleOpen"
                 @toggle-completed="handleToggleCompleted"
-                @change-status="handleChangeStatus"
+                :busy="isSaving(list.uuid)"
+                :save-fields="updateFields"
               />
 
               <tr class="tasks-view__add-row" @click="openTaskForm()">
@@ -297,7 +294,7 @@ onMounted(() => reload())
 .tasks-view__table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 640px;
+  min-width: 760px;
   /* Ширины колонок задаёт colgroup, а не контент — фоновая подгрузка
      дат/напоминаний не меняет геометрию таблицы (нет layout shift). */
   table-layout: fixed;
@@ -309,7 +306,7 @@ onMounted(() => reload())
 }
 
 .tasks-view__col--tags {
-  width: 180px;
+  width: 140px;
 }
 
 .tasks-view__col--date {
