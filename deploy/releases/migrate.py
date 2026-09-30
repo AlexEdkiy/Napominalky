@@ -2,13 +2,12 @@
 """One-time migration from the inspected legacy pair to versioned artifacts.
 
 Application schema and database volumes are left unchanged. Before routing any
-requests, failure restores the legacy pair. After routing, recovery uses the
+requests, failure restores the legacy pair. Once the new API can accept writes, recovery uses the
 baseline artifact with the NEW shared storage, preserving concurrent user writes.
 """
 import argparse
 import fcntl
 import json
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -85,23 +84,29 @@ def migrate(config, release, baseline, legacy, expected_api, expected_web, direc
     state = {'phase': 'prepared', 'target': str(release), 'baseline': str(baseline),
              'backups': backups, 'started_at': time.time(), 'old_cron': str(old_cron)}
     write_state(state_file, state)
-    routed, renamed, attempted_start = False, [], False
+    may_have_writes, renamed, attempted_start = False, [], False
     install_cron(config, cron.replace(lines[0], '# OPS-14 paused: ' + lines[0]))
     try:
         # Stop writes before copying storage. The schema, database and Redis volumes stay in place.
         docker('stop', '--time', '20', config['api_name'])
         storage = Path(config['storage'])
         storage.mkdir(parents=True)
-        docker('cp', f'{config["api_name"]}:/var/www/html/storage/.', storage)
+        # A helper can read root-owned private files without Docker's stopped-container
+        # archive path trying to recreate nested read-only .env mountpoints.
+        docker('run', '--rm', '--network', 'none', '--read-only',
+               '--mount', f'type=bind,src={legacy / "backend/storage"},dst=/source,readonly',
+               '--mount', f'type=bind,src={storage},dst=/target',
+               '--entrypoint', 'sh', manifest['images']['api'], '-c', 'cp -a /source/. /target/')
         for name in names:
             if name == config['web_name']:
                 docker('stop', '--time', '20', name)
             docker('rename', name, backups[name])
             renamed.append(name)
         attempted_start = True
+        # The published API port can accept writes before proxy reload completes.
+        may_have_writes = True
         start(config, release)
         reload_proxy(config)
-        routed = True
         public_check(config, manifest['release'])
         install_cron(config, new_cron)
         state['phase'] = 'active'
@@ -110,7 +115,7 @@ def migrate(config, release, baseline, legacy, expected_api, expected_web, direc
     except BaseException:
         if attempted_start:
             remove_pair(config)
-        if routed:
+        if may_have_writes:
             # User writes may already exist in the new storage: never copy old data back.
             start(config, baseline)
             reload_proxy(config)

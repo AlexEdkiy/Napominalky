@@ -74,6 +74,23 @@ mount refused it and emitted a warning, without changing the result or artifact.
 Managed switching passed in both directions. An induced port collision after API
 creation automatically restored the previous pair.
 
+The initial-migration rehearsal also passed using dummy credentials/storage and a
+fixture crontab. Existing uploads, environment permissions, unrelated cron entries
+and a new upload made AFTER migration survived rollback. Migration took about 8 s;
+rollback about 6 s on this host. A failed storage-copy attempt restored the legacy
+pair before routing. Copy now uses a read-only helper mount while the old API is
+stopped, preserving ownership and private directory permissions.
+
+```bash
+python3 deploy/releases/rehearse.py \
+  --root /home/vselug/workspace/Napominalky-runtime/rehearsal-new \
+  --release /home/vselug/workspace/Napominalky-runtime/releases/r9cb10c6-ops14 \
+  --baseline /home/vselug/workspace/Napominalky-runtime/releases/r96e0568-rollback \
+  --stage-env /home/vselug/workspace/Napominalky-runtime/stage/.env
+```
+
+Stop/remove only earlier rehearsal fixture containers before rerunning.
+
 ## First production migration
 
 Before execution, record live container IDs, verify candidate and baseline, check
@@ -89,8 +106,8 @@ checks precede nginx -t/reload, public checks and scheduler restoration.
 
 This causes a short API interruption for storage copy and container replacement.
 Other applications' proxy configuration and DB volumes are unchanged. No schema
-migration is run. Before public routing, failure restores the legacy pair. After
-routing, users may have written new data: recovery launches the baseline artifact
+migration is run. Before starting the new API, failure restores the legacy pair. Once the API can
+accept requests (including its published port), recovery launches the baseline artifact
 with the NEW shared storage. Never restart the old mutable containers after user
 writes have been accepted. Inspect the journal after interrupted execution.
 
@@ -139,8 +156,9 @@ global Docker prune on this shared host.
 CI also runs on branch pushes, allowing verification before merge. Branch
 protection is a separate setting: a passing workflow alone does not make checks
 mandatory. Public repository: https://github.com/AlexEdkiy/Napominalky.
-Initial public publication requires the owner's explicit approval; the automated
-approval reviewer rejected the first proposed push. No refs were uploaded.
+The owner explicitly approved public publication of main and manage-2026-09-30
+on 2026-09-30 after the automated reviewer requested that consent. GitHub Actions
+and branch protection still require verification; local success is not remote CI.
 
 References: [Docker mounts](https://docs.docker.com/engine/storage/bind-mounts/),
 [nginx reload](https://nginx.org/en/docs/control.html),
