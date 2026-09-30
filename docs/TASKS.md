@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-30 (OPS-14 закрыта: production отделён от Git, CI прошёл, обязательные проверки main включены)
+> Последнее обновление: 2026-09-30 (ARCH-4: проект sync v2 подготовлен к согласованию; OPS-14 закрыта; API и production в ARCH-4 не менялись)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -25,9 +25,9 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 157 |
+| Completed | 158 |
 | In Progress | 0 |
-| Pending | 6 |
+| Pending | 5 |
 | Blocked | 0 |
 | Cancelled | 0 |
 
@@ -2795,18 +2795,23 @@
   - [ ] Компонент ≤ 200 строк script+template, Vitest зелёный без потери кейсов
 - **Создана:** 2026-09-29
 
-### DEV-24: Устойчивость push-батча — изоляция ошибки одной записи + чанкование outbox (REVIEW-1)
-- **Исполнитель:** backend-developer (+ mobile-developer для чанкования)
+### DEV-24: Реализовать устойчивый sync по проекту ARCH-4
+- **Исполнитель:** backend-developer + mobile-developer; координатор — Codex
 - **Статус:** pending
 - **Приоритет:** high
 - **Зависимости:** DEV-23, MBE-21, ARCH-4
 - **Блокирует:** —
 - **Стандарты:** docs/03-laravel.md, docs/04-typescript-rn.md
-- **Описание:** Точечные guard'ы в `SyncChangeApplier` (null-title, camelCase, orphan-comment, orphan-item) — хрупкая защита от 500 на весь батч. Спроектировать per-change изоляцию в `SyncPushService::push()` (savepoint на изменение, «плохая» запись → в `rejected[]` ответа, остальные применяются) и на МП — удаление/карантин отклонённых записей outbox + чанкование push по 500 (лимит MBE-21) и вызов `pullChanges()` даже при ошибке push. Требует ARCH-согласования контракта ответа `/sync/push`. Defensive-скоуп `user_id` в `parentIsTasks`/`recalculateParent` и `@property` в `SyncChangesResource` — сюда же (Suggestion).
-- **Файлы:** `backend/app/Services/Sync/SyncPushService.php`, `backend/app/Http/Resources/Sync/SyncPushResultResource.php`, `mobile/src/services/sync/{pushChanges,syncEngine}.ts`
+- **Описание:** После согласования ARCH-4 выполнить этапы A–E из docs/architecture/sync-resilience.md: round-trip и локальная атомарность; guard серверных ревизий; receipts и отдельные v2 sync-маршруты; mobile ack/inbox/quarantine/session guards; staging и отдельный выпуск. Частичный push не должен терять draft и блокировать независимый pull. Чанкование по 500 уже сделано в MOB-68.
+- **Файлы:** backend/app/Services/Sync/, backend/app/Http/{Controllers,Requests,Resources}/Sync/, backend/database/migrations/, mobile/src/{db,services/sync,api,types,hooks}/; точная разбивка — ARCH-4.
 - **Критерии приёмки:**
-  - [ ] Одна некорректная запись не блокирует применение остальных и не блокирует pull устройства
-- **Уточнение 2026-09-30:** Чанкование и очистка по ID выделены в MOB-68 и готовы в ветке. Остальная задача остаётся pending: контракт rejected/ack, карантин и безопасный pull требуют ARCH-4.
+  - [ ] Проект ARCH-4 согласован перед изменением API/схемы
+  - [ ] Этап A: полный round-trip всех sync-полей; доменная запись и outbox атомарны на установленном SQLite-драйвере
+  - [ ] Этап B: конкурентные REST/push/purge/pull не пропускают поздний commit с меньшей ревизией
+  - [ ] Этап C: каждый mutation_id имеет точный исход, replay без повторных эффектов; v1 совместимость проверена
+  - [ ] Этап D: pending draft защищён; inbox+cursor и ack атомарны; quarantine/logout/account-switch сохраняют данные
+  - [ ] Этап E: 32 сценария ARCH-4, CI, native SQLite/устройство, ревью и план отдельного выпуска
+- **Уточнение 2026-09-30:** ARCH-4 завершена как подготовка проекта, но согласование пока не получено. DEV-24 остаётся pending. Следующий шаг после согласования — DEV-24/A; API и production пока без изменений.
 - **Создана:** 2026-09-29
 
 ### MBE-22 / WEB-50: Тред комментариев пропадал после флажка «Выполнено» на пункте задачи (веб ЛК)
@@ -3006,18 +3011,21 @@
 
 ### ARCH-4: Устойчивый sync с явным подтверждением каждой мутации
 - **Исполнитель:** architect
-- **Статус:** pending
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** REVIEW-1
 - **Блокирует:** DEV-24
 - **Стандарты:** docs/07-api.md, docs/architecture/mvp-architecture.md
 - **Описание:** Спроектировать совместимый ответ push для applied/conflicts/rejected; исключить ложный applied при orphan no-op; определить сохранение/карантин отклонённых правок и безопасный pull при незавершённом push. Согласовать документ перед изменением API.
-- **Файлы:** docs/architecture/sync-resilience.md (новый)
+- **Файлы:** docs/architecture/sync-resilience.md, docs/reviews/arch4-findings-2026-09-30.md
 - **Критерии приёмки:**
-  - [ ] Описаны идентичность мутации, подтверждение, повтор, совместимость со старыми клиентами
-  - [ ] Pull не перезаписывает ожидающие отправки локальные правки
-  - [ ] План и приёмочные сценарии готовы к согласованию; решение не обозначено согласованным заранее
+  - [x] Описаны идентичность мутации, подтверждение, повтор, совместимость со старыми клиентами
+  - [x] Pull не перезаписывает ожидающие отправки локальные правки
+  - [x] План и приёмочные сценарии готовы к согласованию; решение не обозначено согласованным заранее
 - **Создана:** 2026-09-30
+- **Начата:** 2026-09-30. Анализ фактического push/pull и подготовка контракта без изменения API.
+- **Результат:** Готов проект sync v2: mutation_id/receipts, applied/conflicts/rejected, quarantine/inbox, защита pending правок и порядок публикации ревизий, совместимость/rollback и 32 сценария. Подтверждены 8 наблюдений на изолированном backend и установленном Drizzle. Завершена подготовка архитектуры; согласование и реализация не заявляются выполненными.
+- **Завершена:** 2026-09-30 (проект готов к согласованию).
 
 ### DOC-60: Аудит агентской модели и начало управления разработкой
 - **Исполнитель:** Codex (координатор / technical-writer)
