@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-09-30 (OPS-15: APK подготовлен к EAS, ожидается вход Expo; DEV-24/B–E впереди)
+> Последнее обновление: 2026-09-30 (OPS-15: APK 1.0.1 (43) собран и проверен; DEV-24/B–E впереди)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -25,10 +25,10 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 158 |
+| Completed | 159 |
 | In Progress | 1 |
 | Pending | 4 |
-| Blocked | 1 |
+| Blocked | 0 |
 | Cancelled | 0 |
 
 ---
@@ -3012,16 +3012,17 @@
 
 ### OPS-15: Собрать установочный Android APK через Expo EAS
 - **Исполнитель:** Codex (devops / mobile)
-- **Статус:** blocked
+- **Статус:** completed
 - **Приоритет:** high
 - **Зависимости:** OPS-14, DEV-24/A
 - **Описание:** По запросу пользователя «разверни apk при помощи Expo» подготовить APK текущей рабочей ветки через существующий EAS-проект alex_edkiy/reminders-app и профиль preview. Использовать сохранённую Android-подпись и действующий API https://jemsoft.ru/napominalki. Выдать ссылку на готовый APK; Google Play/OTA и backend-выпуск в эту задачу не входят.
 - **Критерии приёмки:**
   - [x] Проверены конфигурация preview, состав EAS-архива и Android Metro export
-  - [ ] EAS Android build завершён успешно, записаны source SHA, build ID и versionCode
-  - [ ] Получен APK, проверен артефакт и дана ссылка для установки
-- **Состояние:** Expo CLI 20.5.1 доступен локально, whoami возвращает Not logged in. Пользователю передана команда входа. Android Metro/Hermes export успешен (2040 модулей), актуальные mobile-исправления и API URL проверены в бандле; EAS-архив проверен, исправлено исключение .git. [Отчёт](reviews/ops15-expo-apk-2026-09-30.md). EAS-проект 53b5aa88-4771-48cf-ac27-f7c25bc34915, пакет com.remindersapp.mobile.
+  - [x] EAS Android build завершён успешно, записаны source SHA, build ID и versionCode
+  - [x] Получен APK, проверен артефакт и дана ссылка для установки
+- **Результат:** EAS build 205508d5-db5e-4f23-a778-82bdf58ab15f — FINISHED, source dc69e0d78e7dc6191d34eb34f031e84e03b2a8e3, APK 1.0.1 (43). [APK](https://expo.dev/artifacts/eas/hVof6DzS0qpnqbKIk5XwfUjmpsrIVhhh5ukEZDhoV4c.apk) скачан (121 065 038 байт); ZIP CRC, manifest, API URL и native-классы font/SQLite/SecureStore проверены, SHA256 сохранён. Использована прежняя EAS keystore. Expo Doctor 16/18: диагностика прямой зависимости expo-font и patch-версий сохранена в [отчёте](reviews/ops15-expo-apk-2026-09-30.md); устройство/E2E не проверялись.
 - **Создана:** 2026-09-30
+- **Завершена:** 2026-09-30
 
 ### ARCH-4: Устойчивый sync с явным подтверждением каждой мутации
 - **Исполнитель:** architect
