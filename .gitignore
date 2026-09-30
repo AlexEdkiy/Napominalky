@@ -52,3 +52,6 @@ Thumbs.db
 
 # === Claude Code (служебные worktree) ===
 .claude/worktrees/
+
+# Release tooling bytecode
+deploy/releases/__pycache__/
