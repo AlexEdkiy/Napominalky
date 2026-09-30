@@ -1,342 +1,185 @@
-/**
- * Тесты изоляции аккаунтов:
- * 1. Логаут — флаш push, guard при незасинхронизированных данных, очистка DB.
- * 2. onAuthSuccess — resetLocalData при смене пользователя; адопшен гостевых.
- * 3. Логин-флоу не чистит локальную БД для гостевых данных.
- */
-
-// ---- Моки верхнего уровня (до импортов) -----------------------------------
-
+// Exercise the real hook, sync queue, account reset and SQLite. Only external
+// APIs, routing, auth storage and the provider's DB connection are replaced.
+jest.mock('@/db/client', () => ({ db: {} }))
+jest.mock('@/providers/DbProvider', () => ({ useDb: jest.fn() }))
+jest.mock('@/stores/authStore', () => ({ useAuthStore: jest.fn() }))
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }))
-
 jest.mock('@/api/authApi', () => ({
-  authApi: {
-    login: jest.fn(),
-    register: jest.fn(),
-    logout: jest.fn(async () => undefined),
-  },
+  authApi: { login: jest.fn(), register: jest.fn(), logout: jest.fn() },
+}))
+jest.mock('@/api/syncApi', () => ({
+  syncApi: { pushChanges: jest.fn(), getChanges: jest.fn() },
 }))
 
-jest.mock('@/db/resetLocalData', () => ({
-  resetLocalData: jest.fn(async () => undefined),
-}))
-
-jest.mock('@/services/sync/pushChanges', () => ({
-  pushChanges: jest.fn(async () => null),
-}))
-
-jest.mock('@/services/sync/syncMeta', () => ({
-  getMeta: jest.fn(async () => null),
-  setMeta: jest.fn(async () => undefined),
-  resetPullCursor: jest.fn(async () => undefined),
-  LAST_USER_ID: 'last_user_id',
-}))
-
-jest.mock('@/stores/authStore', () => ({
-  useAuthStore: jest.fn(),
-}))
-
-jest.mock('@/providers/DbProvider', () => ({
-  useDb: jest.fn(() => ({})),
-}))
-
-jest.mock('@tanstack/react-query', () => ({
-  useMutation: jest.fn((opts: { mutationFn: () => Promise<void> }) => ({
-    mutateAsync: opts.mutationFn,
-    mutate: opts.mutationFn,
-    isPending: false,
-  })),
-  useQueryClient: jest.fn(() => ({ clear: jest.fn() })),
-}))
-
-jest.mock('react-native', () => ({
-  Alert: { alert: jest.fn() },
-}))
-
-// ---- Импорты ---------------------------------------------------------------
-
+import { createElement, type ReactNode } from 'react'
 import { Alert } from 'react-native'
+import { act, cleanup, renderHook } from '@testing-library/react-native'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as Notifications from 'expo-notifications'
 import { router } from 'expo-router'
-import { resetLocalData } from '@/db/resetLocalData'
-import { pushChanges } from '@/services/sync/pushChanges'
-import { getMeta, setMeta, resetPullCursor } from '@/services/sync/syncMeta'
 import { authApi } from '@/api/authApi'
-import type { AuthResponse, User } from '@/types/auth'
-import type { Database } from '@/db/client'
+import { syncApi } from '@/api/syncApi'
+import { useDb } from '@/providers/DbProvider'
+import { useAuthStore } from '@/stores/authStore'
+import { NotesRepository } from '@/db/repositories/notesRepo'
+import { notes, syncOutbox } from '@/db/schema'
+import { createSqliteTestDb } from '@/db/testing/sqlite'
+import { getMeta, setMeta, LAST_USER_ID, LAST_PULLED_REVISION } from '@/services/sync/syncMeta'
+import type { AuthResponse } from '@/types/auth'
+import { useAuth } from '../useAuth'
 
-// ---- Хелперы ---------------------------------------------------------------
-
-const mockedPushChanges = pushChanges as jest.MockedFunction<typeof pushChanges>
-const mockedResetLocalData = resetLocalData as jest.MockedFunction<typeof resetLocalData>
-const mockedGetMeta = getMeta as jest.MockedFunction<typeof getMeta>
-const mockedSetMeta = setMeta as jest.MockedFunction<typeof setMeta>
-const mockedResetPullCursor = resetPullCursor as jest.MockedFunction<typeof resetPullCursor>
-const mockedLogout = authApi.logout as jest.MockedFunction<typeof authApi.logout>
-const mockedAlert = Alert.alert as jest.MockedFunction<typeof Alert.alert>
-const mockedRouterReplace = router.replace as jest.MockedFunction<typeof router.replace>
-
-const FAKE_DB = {} as Database
-
-const makeUser = (uuid: string): User => ({
-  uuid,
-  name: 'Alice',
-  email: 'alice@example.com',
-  is_admin: false,
-  sync_enabled: true,
-  created_at: '2026-01-01T00:00:00Z',
-})
-
-const makeAuthResponse = (userUuid: string): AuthResponse => ({
-  token: 'tok-abc',
-  token_type: 'Bearer',
-  user: makeUser(userUuid),
-})
-
-// ---- Имитация внутренних функций useAuth ----------------------------------
-
-/**
- * Имитирует выполнение tryFlushSync + performLogout из useAuth.ts.
- * Тестирует ту же логику без необходимости рендерить хук.
- */
-async function runLogoutFlow(): Promise<void> {
-  let pushOk: boolean
-  try {
-    await mockedPushChanges(FAKE_DB)
-    pushOk = true
-  } catch {
-    pushOk = false
-  }
-
-  if (!pushOk) {
-    const confirmed = await new Promise<boolean>((resolve) => {
-      mockedAlert('title', 'msg', [
-        { text: 'Отмена', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Выйти', style: 'destructive', onPress: () => resolve(true) },
-      ])
-      // alert вызван — onPress не будет вызван автоматически без мока.
-      // Тест проверяет только факт вызова Alert.
-      // Для проверки ветки «Отмена» / «Выйти» — управляем через mockedAlert.
-      resolve(false) // по умолчанию — Отмена (тест может переопределить)
-    })
-    if (!confirmed) return
-  }
-
-  await mockedResetLocalData(FAKE_DB)
-  try {
-    await mockedLogout()
-  } catch {
-    // офлайн-логаут допустим
-  }
-  mockedRouterReplace('/(auth)/login' as never)
+const mockedUseDb = useDb as jest.MockedFunction<typeof useDb>
+const mockedStore = useAuthStore as unknown as jest.Mock
+const push = syncApi.pushChanges as jest.MockedFunction<typeof syncApi.pushChanges>
+const login = authApi.login as jest.MockedFunction<typeof authApi.login>
+const store = {
+  token: 'test-token', user: null, guestMode: false,
+  setToken: jest.fn(async () => undefined), setUser: jest.fn(),
+  setGuestMode: jest.fn(), logout: jest.fn(async () => undefined),
 }
-
-/**
- * Имитирует onAuthSuccess — логику смены/адопшена пользователя.
- * Порядок: resetLocalData (при смене юзера) → setMeta → resetPullCursor (курсор
- * сбрасывается ДО setToken/setUser, чтобы post-login pull стартовал с 0) →
- * setUser → setToken → queryClient.clear() → router.replace.
- */
-async function runOnAuthSuccess(response: AuthResponse): Promise<void> {
-  const lastUserId = await mockedGetMeta('last_user_id', FAKE_DB)
-  const incomingId = response.user.uuid
-  if (lastUserId !== null && lastUserId !== incomingId) {
-    await mockedResetLocalData(FAKE_DB)
-  }
-  await mockedSetMeta('last_user_id', incomingId, FAKE_DB)
-  await mockedResetPullCursor(FAKE_DB)
+let fixture: ReturnType<typeof createSqliteTestDb>
+let queryClient: QueryClient
+let alert: jest.SpyInstance
+const response = (uuid: string): AuthResponse => ({
+  token: 'new-token', token_type: 'Bearer',
+  user: { uuid, name: 'Alice', email: 'alice@example.com', is_admin: false,
+    sync_enabled: true, created_at: '2026-01-01T00:00:00Z' },
+})
+const mount = () => renderHook(() => useAuth(), {
+  wrapper: ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client: queryClient }, children),
+})
+const repo = () => new NotesRepository(fixture.db)
+const queue = () => fixture.db.select().from(syncOutbox).all()
+const choose = (label: string) => alert.mockImplementation((_title, _message, buttons) => {
+  const choice = (buttons as NonNullable<Parameters<typeof Alert.alert>[2]>)
+    .find((button) => button.text === label)
+  expect(choice).toBeDefined()
+  choice?.onPress?.()
+})
+const logout = async () => {
+  const { result } = await mount()
+  await act(async () => { await result.current.logout.mutateAsync() })
 }
-
-// ============================================================================
-// ТЕСТЫ ЛОГАУТА
-// ============================================================================
 
 beforeEach(() => {
   jest.clearAllMocks()
+  fixture = createSqliteTestDb()
+  queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false, gcTime: Infinity }, queries: { gcTime: Infinity } } })
+  mockedUseDb.mockReturnValue(fixture.db)
+  mockedStore.mockImplementation(
+    (select: (state: typeof store) => unknown) => select(store),
+  )
+  store.setToken.mockReset().mockResolvedValue(undefined)
+  store.logout.mockReset().mockResolvedValue(undefined)
+  push.mockReset().mockResolvedValue({ applied: [], conflicts: [], cursor: 0 })
+  login.mockReset()
+  alert = jest.spyOn(Alert, 'alert')
+  choose('Отмена')
+})
+afterEach(async () => {
+  await cleanup()
+  queryClient.clear()
+  fixture.close()
+  alert.mockRestore()
 })
 
-describe('useAuth — логаут: outbox пуст / push успешен', () => {
-  it('не показывает Alert при успешном push', async () => {
-    mockedPushChanges.mockResolvedValue(null)
-
-    await runLogoutFlow()
-
-    expect(mockedAlert).not.toHaveBeenCalled()
+describe('useAuth logout with the real mobile queue', () => {
+  it('preserves unacknowledged data after HTTP success when the user cancels', async () => {
+    const note = await repo().createNote({ title: 'Still pending' })
+    const originalQueue = queue()
+    await logout()
+    expect(alert).toHaveBeenCalledTimes(1)
+    expect(queue()).toEqual(originalQueue)
+    expect((await repo().getNoteByUuid(note.uuid))?.title).toBe('Still pending')
+    expect(authApi.logout).not.toHaveBeenCalled()
+    expect(store.logout).not.toHaveBeenCalled()
+    expect(router.replace).not.toHaveBeenCalled()
+    expect(Notifications.cancelAllScheduledNotificationsAsync).not.toHaveBeenCalled()
   })
 
-  it('вызывает resetLocalData', async () => {
-    mockedPushChanges.mockResolvedValue(null)
-
-    await runLogoutFlow()
-
-    expect(mockedResetLocalData).toHaveBeenCalledWith(FAKE_DB)
-  })
-
-  it('вызывает authApi.logout', async () => {
-    mockedPushChanges.mockResolvedValue(null)
-
-    await runLogoutFlow()
-
-    expect(mockedLogout).toHaveBeenCalledTimes(1)
-  })
-
-  it('навигирует на /(auth)/login', async () => {
-    mockedPushChanges.mockResolvedValue(null)
-
-    await runLogoutFlow()
-
-    expect(mockedRouterReplace).toHaveBeenCalledWith('/(auth)/login')
-  })
-})
-
-describe('useAuth — логаут: push не удался (офлайн)', () => {
-  beforeEach(() => {
-    mockedPushChanges.mockRejectedValue(new Error('Network Error'))
-  })
-
-  it('показывает Alert с guard при неуспешном push', async () => {
-    await runLogoutFlow()
-
-    expect(mockedAlert).toHaveBeenCalled()
-  })
-
-  it('при guard (Отмена) — НЕ вызывает resetLocalData и НЕ разлогинивает', async () => {
-    // runLogoutFlow по умолчанию resolve(false) при push-ошибке → выход не происходит.
-    await runLogoutFlow()
-
-    expect(mockedResetLocalData).not.toHaveBeenCalled()
-    expect(mockedLogout).not.toHaveBeenCalled()
-  })
-
-  it('при guard «Выйти» — вызывает resetLocalData и разлогинивает', async () => {
-    // Переопределяем Alert так, чтобы сразу «нажать» Выйти.
-    // Но runLogoutFlow resolve(false) после вызова Alert — изменим логику через мок.
-    // Тест проверяет внутреннюю логику: confirmed=true → cleanup.
-    let resetCalled = false
-    mockedResetLocalData.mockImplementation(async () => {
-      resetCalled = true
+  it('preserves an edit created during the successful push', async () => {
+    const note = await repo().createNote({ title: 'Sent version' })
+    push.mockImplementationOnce(async () => {
+      await repo().updateNote(note.uuid, { title: 'New local draft' })
+      return { applied: [note.uuid], conflicts: [], cursor: 1 }
     })
+    await logout()
+    expect(alert).toHaveBeenCalledTimes(1)
+    expect(queue()).toHaveLength(1)
+    expect(JSON.parse(queue()[0]!.payload).title).toBe('New local draft')
+    expect((await repo().getNoteByUuid(note.uuid))?.title).toBe('New local draft')
+    expect(store.logout).not.toHaveBeenCalled()
+  })
 
-    // Эмулируем ветку: pushOk=false, confirmed=true
-    const confirmed = true
-    if (!confirmed) return
-    await mockedResetLocalData(FAKE_DB)
-    await mockedLogout()
+  it('logs out without prompting after every queued edit is acknowledged', async () => {
+    const note = await repo().createNote({ title: 'Synced' })
+    push.mockResolvedValue({ applied: [note.uuid], conflicts: [], cursor: 1 })
+    await logout()
+    expect(alert).not.toHaveBeenCalled()
+    expect(queue()).toEqual([])
+    expect(fixture.db.select().from(notes).all()).toEqual([])
+    expect(Notifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalledTimes(1)
+    expect(authApi.logout).toHaveBeenCalledTimes(1)
+    expect(store.logout).toHaveBeenCalledTimes(1)
+    expect(router.replace).toHaveBeenCalledWith('/(auth)/login')
+  })
 
-    expect(resetCalled).toBe(true)
-    expect(mockedLogout).toHaveBeenCalledTimes(1)
+  it('logs out with an empty queue without making a push request', async () => {
+    await logout()
+    expect(push).not.toHaveBeenCalled()
+    expect(alert).not.toHaveBeenCalled()
+    expect(store.logout).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['Отмена', 'Выйти'])('respects %s after a failed push', async (choice) => {
+    const note = await repo().createNote({ title: 'Offline' })
+    push.mockRejectedValue(new Error('Push failed'))
+    choose(choice)
+    await logout()
+    expect(alert).toHaveBeenCalledTimes(1)
+    if (choice === 'Отмена') {
+      expect(queue()).toHaveLength(1)
+      expect(await repo().getNoteByUuid(note.uuid)).not.toBeNull()
+      expect(store.logout).not.toHaveBeenCalled()
+    } else {
+      expect(queue()).toEqual([])
+      expect(await repo().getNoteByUuid(note.uuid)).toBeNull()
+      expect(store.logout).toHaveBeenCalledTimes(1)
+    }
+  })
+
+  it('clears unacknowledged data only after explicit confirmation', async () => {
+    await repo().createNote({ title: 'User chooses to discard' })
+    choose('Выйти')
+    await logout()
+    expect(alert).toHaveBeenCalledTimes(1)
+    expect(queue()).toEqual([])
+    expect(fixture.db.select().from(notes).all()).toEqual([])
+    expect(store.logout).toHaveBeenCalledTimes(1)
   })
 })
 
-// ============================================================================
-// ТЕСТЫ onAuthSuccess — изоляция при смене пользователя
-// ============================================================================
-
-describe('useAuth — onAuthSuccess: смена пользователя (last_user_id != new)', () => {
-  it('вызывает resetLocalData перед setMeta когда last_user_id отличается', async () => {
-    mockedGetMeta.mockResolvedValue('old-user-uuid')
-    const response = makeAuthResponse('new-user-uuid')
-
-    const order: string[] = []
-    mockedResetLocalData.mockImplementation(async () => {
-      order.push('reset')
+describe('useAuth login with persisted account metadata', () => {
+  it.each([null, 'incoming-user', 'old-user'])('prepares the account and cursor before exposing the token (previous=%s)', async (previous) => {
+    const note = await repo().createNote({ title: 'Existing local data' })
+    // Previous account has no unsent edits; guest/same-account drafts must survive.
+    if (previous === 'old-user') fixture.db.delete(syncOutbox).run()
+    if (previous !== null) await setMeta(LAST_USER_ID, previous, fixture.db)
+    await setMeta(LAST_PULLED_REVISION, '123', fixture.db)
+    login.mockResolvedValue(response('incoming-user'))
+    store.setToken.mockImplementationOnce(async () => {
+      expect(await getMeta(LAST_USER_ID, fixture.db)).toBe('incoming-user')
+      expect(await getMeta(LAST_PULLED_REVISION, fixture.db)).toBe('0')
+      expect(await repo().getNoteByUuid(note.uuid)).toEqual(previous === 'old-user' ? null : note)
     })
-    mockedSetMeta.mockImplementation(async () => {
-      order.push('setMeta')
+    const { result } = await mount()
+    await act(async () => {
+      await result.current.login.mutateAsync({ email: 'alice@example.com', password: 'fixture-password' })
     })
-
-    await runOnAuthSuccess(response)
-
-    expect(order).toEqual(['reset', 'setMeta'])
-    expect(mockedResetLocalData).toHaveBeenCalledWith(FAKE_DB)
-  })
-
-  it('записывает new user.uuid в last_user_id', async () => {
-    mockedGetMeta.mockResolvedValue('old-user-uuid')
-    const response = makeAuthResponse('new-user-uuid')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedSetMeta).toHaveBeenCalledWith('last_user_id', 'new-user-uuid', FAKE_DB)
-  })
-})
-
-describe('useAuth — onAuthSuccess: гостевые данные (last_user_id = null)', () => {
-  it('НЕ вызывает resetLocalData — адопшен гостевых данных сохранён', async () => {
-    mockedGetMeta.mockResolvedValue(null)
-    const response = makeAuthResponse('user-uuid-1')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedResetLocalData).not.toHaveBeenCalled()
-  })
-
-  it('записывает user.uuid в last_user_id при первом входе', async () => {
-    mockedGetMeta.mockResolvedValue(null)
-    const response = makeAuthResponse('user-uuid-1')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedSetMeta).toHaveBeenCalledWith('last_user_id', 'user-uuid-1', FAKE_DB)
-  })
-})
-
-describe('useAuth — onAuthSuccess: тот же пользователь вернулся', () => {
-  it('НЕ вызывает resetLocalData при совпадении user.uuid', async () => {
-    mockedGetMeta.mockResolvedValue('same-user-uuid')
-    const response = makeAuthResponse('same-user-uuid')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedResetLocalData).not.toHaveBeenCalled()
-  })
-})
-
-describe('useAuth — логин не чистит локальную БД (адопшен гостевых данных)', () => {
-  it('если last_user_id=null → resetLocalData не вызывается при логине', async () => {
-    mockedGetMeta.mockResolvedValue(null)
-    const response = makeAuthResponse('user-abc')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedResetLocalData).not.toHaveBeenCalled()
-  })
-})
-
-// ============================================================================
-// ТЕСТЫ resetPullCursor при onAuthSuccess
-// ============================================================================
-
-describe('useAuth — onAuthSuccess: сброс курсора pull после логина', () => {
-  it('вызывает resetPullCursor при обычном входе (last_user_id=null)', async () => {
-    mockedGetMeta.mockResolvedValue(null)
-    const response = makeAuthResponse('user-new')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedResetPullCursor).toHaveBeenCalledWith(FAKE_DB)
-  })
-
-  it('вызывает resetPullCursor при входе тем же пользователем', async () => {
-    mockedGetMeta.mockResolvedValue('same-user-uuid')
-    const response = makeAuthResponse('same-user-uuid')
-
-    await runOnAuthSuccess(response)
-
-    expect(mockedResetPullCursor).toHaveBeenCalledWith(FAKE_DB)
-  })
-
-  it('вызывает resetPullCursor при смене пользователя (после resetLocalData)', async () => {
-    mockedGetMeta.mockResolvedValue('old-user-uuid')
-    const response = makeAuthResponse('new-user-uuid')
-
-    const order: string[] = []
-    mockedResetLocalData.mockImplementation(async () => { order.push('reset') })
-    mockedResetPullCursor.mockImplementation(async () => { order.push('cursor') })
-
-    await runOnAuthSuccess(response)
-
-    expect(order).toContain('reset')
-    expect(order).toContain('cursor')
-    expect(order.indexOf('reset')).toBeLessThan(order.indexOf('cursor'))
+    expect(store.setToken).toHaveBeenCalledWith('new-token')
+    expect(store.setUser).toHaveBeenCalledWith(response('incoming-user').user)
+    expect(router.replace).toHaveBeenCalledWith('/(tabs)')
+    expect(queue()).toHaveLength(previous === 'old-user' ? 0 : 1)
   })
 })

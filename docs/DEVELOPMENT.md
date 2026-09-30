@@ -58,6 +58,12 @@ TASKS.md обновляет один координатор. ID резервир
 
 ## Проверки
 
+По указанию пользователя изменения sync проверяются также со стороны mobile.
+Для затронутого сценария нужны вызовы реальных сервисов/хуков и проверка SQLite/outbox,
+полей, читаемых экранами, повторов/офлайн и выхода/смены аккаунта. Копия алгоритма в
+тесте не считается проверкой приложения. Условия успешной проверки и известные пробелы
+записываются в отчёте; HTTP/native mocks и Node SQLite не объявляются тестом на устройстве.
+
 Из своего worktree:
 
 ```bash
@@ -132,8 +138,8 @@ GitHub: [AlexEdkiy/Napominalky](https://github.com/AlexEdkiy/Napominalky), SSH o
 Владелец импортировал `.github/rulesets/main.json`. GitHub API подтвердил: main protected=true,
 [правило 24237275](https://github.com/AlexEdkiy/Napominalky/rules/24237275) активно,
 обязательны backend, mobile checks и web checks от GitHub Actions (15368), strict policy,
-PR, запрет force push/удаления. Последний проверенный CI —
-[36692654027](https://github.com/AlexEdkiy/Napominalky/actions/runs/36692654027), 34a16d0: success.
+PR, запрет force push/удаления. CI реализации DEV-24/A —
+[36702370706](https://github.com/AlexEdkiy/Napominalky/actions/runs/36702370706), 5ddf372: все три проверки success.
 OPS-14 закрыта. ARCH-4 завершена как подготовка [проекта sync v2](architecture/sync-resilience.md),
 который **согласован пользователем 2026-09-30**. [Отчёт проверки](reviews/arch4-findings-2026-09-30.md)
 фиксирует 8 наблюдений: ложный applied, повторные revision/conflicts, неполные payload,
@@ -149,6 +155,12 @@ SQLite с установленным Expo Drizzle через Node bridge и HTTP
 Полные проверки: backend 414 тестов / 1755 assertions; mobile 94 файла / 1097 тестов,
 typecheck. [Отчёт DEV-24/A](reviews/dev24-a-2026-09-30.md). Это самопроверка автора;
 проверка на устройстве и независимое ревью остаются этапом E.
+Дополнительная [проверка mobile](reviews/dev24-mobile-review-2026-09-30.md) обнаружила
+и исправила выход без предупреждения при остатке outbox после успешного HTTP push.
+Тесты useAuth теперь монтируют настоящий хук с настоящими sync/reset/SQLite; добавлен
+путь API → SQLite → мобильные репозитории → outbox/push. Повторный полный mobile-прогон:
+95 файлов / 1097 тестов и typecheck проходят. Защита pending от pull,
+inbox/cursor и in-flight account-switch ещё впереди; DEV-24/D не закрыт.
 Следующий приоритет — DEV-24/B: инвентаризация всех серверных writers, SyncWriteGuard
 и конкурентный тест позднего commit; далее C–E. V2 ещё не включён, новых миграций нет.
 Согласование проекта само по себе не означает разрешения на production-выпуск.

@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { authApi } from '@/api/authApi'
 import { useDb } from '@/providers/DbProvider'
 import { resetLocalData } from '@/db/resetLocalData'
+import { syncOutbox } from '@/db/schema/syncOutbox'
 import { getMeta, setMeta, LAST_USER_ID, resetPullCursor } from '@/services/sync/syncMeta'
 import { pushChanges } from '@/services/sync/pushChanges'
 import { useAuthStore } from '@/stores/authStore'
@@ -25,13 +26,14 @@ const confirmLogoutWithUnsaved = (): Promise<boolean> =>
   })
 
 /**
- * Флашит push (пока токен валиден). Возвращает true — ok или outbox пуст;
- * false — push не удался (офлайн / ошибка) и в outbox есть изменения.
+ * Флашит push (пока токен валиден). Успех означает, что очередь действительно
+ * пуста: HTTP 200 может оставить неподтверждённые или только что созданные правки.
+ * При ошибке push/чтения очереди требуется подтверждение удаления данных.
  */
 const tryFlushSync = async (db: Database): Promise<boolean> => {
   try {
     await pushChanges(db)
-    return true
+    return db.select({ id: syncOutbox.id }).from(syncOutbox).limit(1).get() === undefined
   } catch {
     return false
   }
