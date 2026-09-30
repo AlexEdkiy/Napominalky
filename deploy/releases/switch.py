@@ -9,7 +9,7 @@ import subprocess
 import time
 import uuid
 
-from runtime import docker, smoke, start, verify
+from runtime import docker, smoke, start, verify, wait_public
 
 
 def write_state(path, value):
@@ -53,10 +53,7 @@ def switch(config, release, state_file):
         new_ready = True
         reload_proxy(config)
         if config.get('public_web_url'):
-            from runtime import request
-            body, _ = request(config['public_web_url'] + '/napominalki/release.json', 200)
-            if json.loads(body)['release'] != manifest['release']:
-                raise RuntimeError('Public proxy still serves the wrong release')
+            wait_public(config, manifest['release'])
         journal['phase'] = 'active'
         journal['finished_at'] = time.time()
         write_state(state_file, journal)
@@ -72,6 +69,8 @@ def switch(config, release, state_file):
             docker('start', name)
         reload_proxy(config)
         smoke(config['api_url'], config['web_url'], old_release)
+        if config.get('public_web_url'):
+            wait_public(config, old_release)
         journal['phase'] = 'restored_after_failure'
         journal['finished_at'] = time.time()
         write_state(state_file, journal)

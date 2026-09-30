@@ -26,7 +26,9 @@ IDs are local to this host; portable image distribution is a separate task.
 The artifact contains an **empty** backend/.env mountpoint, overlaid by the actual
 runtime file. Storage is writable and bootstrap/cache is tmpfs. Code mounts and
 container roots are read-only. API joins DB and proxy networks; web only joins the
-proxy network. The node_modules symlink exists only in a temporary export during
+proxy network. Compose labels inherited from the PHP image are overridden with
+project napominalky-release, so the development Compose project cannot mistake the
+API for its app service. The node_modules symlink exists only in a temporary export during
 build and never enters the artifact. Never install packages through that symlink.
 
 ## Package and verify
@@ -78,7 +80,8 @@ The initial-migration rehearsal also passed using dummy credentials/storage and 
 fixture crontab. Existing uploads, environment permissions, unrelated cron entries
 and a new upload made AFTER migration survived rollback. Migration took about 8 s;
 rollback about 6 s on this host. A failed storage-copy attempt restored the legacy
-pair before routing. Copy now uses a read-only helper mount while the old API is
+pair before routing. An injected failure after a direct API write, before proxy
+reload, restored the baseline using new storage and preserved that write. Copy now uses a read-only helper mount while the old API is
 stopped, preserving ownership and private directory permissions.
 
 ```bash
@@ -151,6 +154,10 @@ invalidate rollback and need a separate compatibility plan. Keep active/baseline
 artifacts. Remove only explicitly identified unused containers/releases; never run
 global Docker prune on this shared host.
 
+nginx reload is asynchronous. Public probes wait up to 20 seconds for the expected
+release marker and API status, allowing old workers to retire; persistent failures
+trigger recovery. Three regression checks run locally and in the backend CI job.
+
 ## GitHub
 
 CI also runs on branch pushes, allowing verification before merge. Branch
@@ -158,7 +165,30 @@ protection is a separate setting: a passing workflow alone does not make checks
 mandatory. Public repository: https://github.com/AlexEdkiy/Napominalky.
 The owner explicitly approved public publication of main and manage-2026-09-30
 on 2026-09-30 after the automated reviewer requested that consent. GitHub Actions
-and branch protection still require verification; local success is not remote CI.
+run [36691202007](https://github.com/AlexEdkiy/Napominalky/actions/runs/36691202007)
+passed backend, mobile checks and web checks at f933b10. Branch protection is not
+yet active: main reports protected=false and the rulesets list is empty.
+
+Prepared ruleset: [.github/rulesets/main.json](../../.github/rulesets/main.json).
+Import it through Settings → Rules → Rulesets → New ruleset → Import a ruleset,
+review and Create with enforcement Active. It targets main, requires the three
+checks from GitHub Actions (app ID 15368 verified from this run), requires a PR,
+blocks deletion/force push and has no bypass actors. Zero mandatory approvals keeps
+a single-maintainer workflow usable; it does not claim independent review.
+
+SSH authorizes Git pushes but not repository administration through the API.
+An authenticated GitHub CLI with repository Administration:write can alternatively
+apply the reviewed file:
+
+```bash
+gh api --method POST repos/AlexEdkiy/Napominalky/rulesets \
+  --input .github/rulesets/main.json
+```
+
+Do not run that POST again if a matching ruleset exists: inspect/update it instead.
+After import, verify GET /repos/AlexEdkiy/Napominalky/rules/branches/main returns the
+required checks and PR rule. The JSON file alone does not enable protection.
+[GitHub ruleset import documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/managing-rulesets-for-a-repository#importing-a-ruleset).
 
 References: [Docker mounts](https://docs.docker.com/engine/storage/bind-mounts/),
 [nginx reload](https://nginx.org/en/docs/control.html),

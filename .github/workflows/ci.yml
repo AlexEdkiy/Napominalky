@@ -48,6 +48,9 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - name: Check release routing regressions
+        working-directory: .
+        run: python3 -m unittest discover -s deploy/releases -p 'test_*.py'
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'

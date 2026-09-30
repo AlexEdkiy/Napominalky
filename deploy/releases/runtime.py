@@ -35,11 +35,11 @@ def verify(release):
     return manifest
 
 
-def request(url, status, method='GET', data=None):
+def request(url, status, method='GET', data=None, timeout=10):
     req = urllib.request.Request(url, data=data, method=method,
                                  headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
     try:
-        response = urllib.request.urlopen(req, timeout=10)
+        response = urllib.request.urlopen(req, timeout=timeout)
     except urllib.error.HTTPError as error:
         response = error
     with response:
@@ -47,6 +47,27 @@ def request(url, status, method='GET', data=None):
     if code != status:
         raise RuntimeError(f'{method} {url}: expected {status}, received {code}')
     return body, headers
+
+
+def wait_public(config, release_id, timeout=20):
+    """Wait for nginx's asynchronous reload to replace workers with stale DNS."""
+    deadline = time.monotonic() + timeout
+    last_error = None
+    while time.monotonic() < deadline:
+        try:
+            remaining = max(0.01, min(3, deadline - time.monotonic()))
+            body, _ = request(config['public_web_url'] + '/napominalki/release.json',
+                              200, timeout=remaining)
+            if json.loads(body)['release'] != release_id:
+                raise RuntimeError('Public proxy serves a different release')
+            remaining = max(0.01, min(3, deadline - time.monotonic()))
+            request(config['public_web_url'] + '/napominalki/api/v1/auth/me',
+                    401, timeout=remaining)
+            return
+        except (OSError, RuntimeError, ValueError, KeyError) as error:
+            last_error = error
+            time.sleep(max(0, min(0.5, deadline - time.monotonic())))
+    raise RuntimeError('Public proxy did not become ready before timeout') from last_error
 
 
 def smoke(api_url, web_url, release_id):
@@ -75,7 +96,9 @@ def smoke(api_url, web_url, release_id):
 def container_args(config, release, manifest, role):
     name = config[role + '_name']
     args = ['create', '--name', name, '--restart', 'unless-stopped', '--read-only',
-            '--label', 'napominalky.managed=release', '--label', f'napominalky.release={manifest["release"]}',
+            '--label', 'napominalky.managed=release',
+            '--label', 'com.docker.compose.project=napominalky-release',
+            '--label', f'com.docker.compose.service={role}', '--label', f'napominalky.release={manifest["release"]}',
             '--label', f'org.opencontainers.image.revision={manifest["source_sha"]}',
             '--network', (config.get('proxy_network') or config['network']) if role == 'web' else config['network'], '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m']
     port = config.get(role + '_port')

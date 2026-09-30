@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import time
 
-from runtime import docker, request, start, verify
+from runtime import docker, start, verify, wait_public
 from switch import reload_proxy, write_state
 
 
@@ -39,13 +39,6 @@ def remove_pair(config):
             if (info['Config'].get('Labels') or {}).get('napominalky.managed') != 'release':
                 raise RuntimeError('Refusing to remove an unmanaged container')
             docker('rm', '-f', name)
-
-
-def public_check(config, release_id):
-    body, _ = request(config['public_web_url'] + '/napominalki/release.json', 200)
-    if json.loads(body)['release'] != release_id:
-        raise RuntimeError('Public endpoint serves a different release')
-    request(config['public_web_url'] + '/napominalki/api/v1/auth/me', 401)
 
 
 def migrate(config, release, baseline, legacy, expected_api, expected_web, directory):
@@ -107,7 +100,7 @@ def migrate(config, release, baseline, legacy, expected_api, expected_web, direc
         may_have_writes = True
         start(config, release)
         reload_proxy(config)
-        public_check(config, manifest['release'])
+        wait_public(config, manifest['release'])
         install_cron(config, new_cron)
         state['phase'] = 'active'
         state['finished_at'] = time.time()
@@ -119,7 +112,7 @@ def migrate(config, release, baseline, legacy, expected_api, expected_web, direc
             # User writes may already exist in the new storage: never copy old data back.
             start(config, baseline)
             reload_proxy(config)
-            public_check(config, fallback['release'])
+            wait_public(config, fallback['release'])
             install_cron(config, new_cron)
             state['phase'] = 'baseline_restored_with_new_storage'
         else:
