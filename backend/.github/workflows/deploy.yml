@@ -1,3 +1,5 @@
+# Historical scaffold only: nested workflows are not executed by GitHub.
+# Active checks: /.github/workflows/ci.yml. Production release plan: docs/DEVELOPMENT.md (OPS-14).
 name: Deploy
 
 on:

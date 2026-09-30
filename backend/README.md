@@ -89,7 +89,9 @@ docker compose down
 
 ## Running tests
 
-Tests use `.env.testing` (array cache/session, sync queue). For full integration tests with PostgreSQL, use the GitHub Actions workflow which spins up a real PostgreSQL service.
+Tests use `phpunit.xml` and an optional local `.env.testing` (not committed). The root
+`.github/workflows/ci.yml` prepares its own test environment and PostgreSQL 17 database.
+Use a valid test-only `APP_KEY`; never regenerate a production key to make tests pass.
 
 ```bash
 # Inside the container (after docker compose up -d):
