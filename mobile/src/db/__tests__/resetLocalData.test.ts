@@ -12,6 +12,7 @@ jest.mock('@/db/schema/shoppingLists', () => ({
 jest.mock('@/db/schema/shoppingListItems', () => ({
   shoppingListItems: '__shoppingListItems__',
 }))
+jest.mock('@/db/schema/shoppingListItemComments', () => ({ shoppingListItemComments: '__comments__' }))
 jest.mock('@/db/schema/syncOutbox', () => ({ syncOutbox: '__syncOutbox__' }))
 jest.mock('@/db/schema/syncMeta', () => ({ syncMeta: '__syncMeta__' }))
 
@@ -24,14 +25,14 @@ interface FakeDbState {
 }
 
 const createFakeDb = (state: FakeDbState) => ({
-  transaction: jest.fn(async (fn: (tx: unknown) => Promise<void>) => {
+  transaction: jest.fn((fn: (tx: unknown) => void) => {
     const tx = {
       delete: jest.fn((table: unknown) => {
         state.deletedTables.push(table)
-        return Promise.resolve()
+        return { run: () => undefined }
       }),
     }
-    await fn(tx)
+    fn(tx)
   }),
 })
 
@@ -40,14 +41,14 @@ beforeEach(() => {
 })
 
 describe('resetLocalData — удаление таблиц в транзакции', () => {
-  it('удаляет все шесть таблиц внутри транзакции', async () => {
+  it('удаляет все семь таблиц внутри транзакции', async () => {
     const state: FakeDbState = { deletedTables: [] }
     const db = createFakeDb(state)
 
     await resetLocalData(db as never)
 
     expect(db.transaction).toHaveBeenCalledTimes(1)
-    expect(state.deletedTables).toHaveLength(6)
+    expect(state.deletedTables).toHaveLength(7)
   })
 
   it('удаляет syncOutbox, shoppingListItems, shoppingLists, reminders, notes, syncMeta', async () => {
@@ -57,6 +58,7 @@ describe('resetLocalData — удаление таблиц в транзакци
     await resetLocalData(db as never)
 
     expect(state.deletedTables).toContain('__syncOutbox__')
+    expect(state.deletedTables).toContain('__comments__')
     expect(state.deletedTables).toContain('__shoppingListItems__')
     expect(state.deletedTables).toContain('__shoppingLists__')
     expect(state.deletedTables).toContain('__reminders__')
@@ -78,9 +80,9 @@ describe('resetLocalData — отмена уведомлений', () => {
   it('сначала транзакция, потом отмена уведомлений (порядок)', async () => {
     const order: string[] = []
     const db = {
-      transaction: jest.fn(async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = { delete: jest.fn(() => Promise.resolve()) }
-        await fn(tx)
+      transaction: jest.fn((fn: (tx: unknown) => void) => {
+        const tx = { delete: jest.fn(() => ({ run: () => undefined })) }
+        fn(tx)
         order.push('tx')
       }),
     }

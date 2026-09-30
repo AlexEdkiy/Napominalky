@@ -1,3 +1,5 @@
+import { returningRows } from '../../testing/returningRows'
+
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
 jest.mock('../../client', () => ({ db: {} }))
 
@@ -43,15 +45,16 @@ const createFakeDb = (inserts: InsertCall[], data: FakeRows = {}) => {
   }
 
   return {
+    transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
     insert: () => ({
       values: (values: Record<string, unknown>) => {
         inserts.push({ values })
-        return { returning: async () => [values] }
+        return { run: () => undefined, returning: () => returningRows(() => [values]) }
       },
     }),
     update: () => ({
       set: (values: Record<string, unknown>) => ({
-        where: () => ({ returning: async () => [{ uuid: 'u1', ...values }] }),
+        where: () => ({ run: () => undefined, returning: () => returningRows(() => [{ uuid: 'u1', ...values }]) }),
       }),
     }),
     // select() → полные строки; select(projection) → агрегаты/поля.
@@ -316,15 +319,16 @@ const pastIso = (): string => new Date(Date.now() - 60_000).toISOString()
  * (чтобы toItem получал полный контекст reminderAt/notificationId).
  */
 const createFakeDbNotif = (inserts: InsertCall[], rows: Record<string, unknown>[] = []) => ({
+  transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
   insert: () => ({
     values: (values: Record<string, unknown>) => {
       inserts.push({ values })
-      return { returning: async () => [{ ...itemRow(), ...values }] }
+      return { run: () => undefined, returning: () => returningRows(() => [{ ...itemRow(), ...values }]) }
     },
   }),
   update: () => ({
     set: (values: Record<string, unknown>) => ({
-      where: () => ({ returning: async () => [{ ...rows[0], ...values }] }),
+      where: () => ({ run: () => undefined, returning: () => returningRows(() => [{ ...rows[0], ...values }]) }),
     }),
   }),
   select: (proj?: unknown) => ({

@@ -52,6 +52,7 @@ final class SyncSerializer
             'uuid' => $note->uuid,
             'title' => $note->title,
             'body' => $note->body,
+            'color' => $note->color,
             'is_pinned' => $note->is_pinned,
             'is_archived' => $note->is_archived,
             ...$this->timestamps($note),
@@ -95,6 +96,12 @@ final class SyncSerializer
             // Статус строки задачи (только для пунктов type='tasks').
             'status' => $item->status?->value ?? TaskStatus::New->value,
             'position' => $item->position,
+            'quantity' => $item->quantity,
+            'deadline' => $item->deadline?->toDateString(),
+            'reminder_at' => $item->reminder_at?->toISOString(),
+            'link' => $item->link,
+            'comment' => $item->comment,
+            'tags' => $item->tags,
             ...$this->timestamps($item),
         ];
     }

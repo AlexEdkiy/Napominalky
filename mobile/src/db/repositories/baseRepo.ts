@@ -2,7 +2,7 @@ import * as Crypto from 'expo-crypto'
 import { and, eq, isNull } from 'drizzle-orm'
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core'
 import { db as defaultDb, type Database } from '../client'
-import { enqueueOutbox } from './outbox'
+import { enqueueOutbox, type OutboxWriter } from './outbox'
 import { toSnakeCaseKeys } from '../../utils/snakeCase'
 
 /**
@@ -33,7 +33,8 @@ const nowIso = (): string => new Date().toISOString()
  * передавая свою Drizzle-таблицу и тип сущности для outbox/sync.
  *
  * Каждая мутация: (1) пишет/меняет доменную строку, (2) добавляет запись в
- * sync_outbox. uuid (v4) и updated_at (ISO) генерируются на клиенте.
+ * sync_outbox в одной синхронной транзакции. uuid (v4) и updated_at (ISO)
+ * генерируются на клиенте.
  */
 export class BaseRepository<TTable extends SyncTable> {
   public constructor(
@@ -47,9 +48,13 @@ export class BaseRepository<TTable extends SyncTable> {
     const updatedAt = nowIso()
     const values = { ...data, uuid, updatedAt } as TTable['$inferInsert']
 
-    const [row] = await this.db.insert(this.table).values(values).returning()
-    await this.writeOutbox('create', uuid, updatedAt, row as Row<TTable>)
-    return row as Row<TTable>
+    // Expo Drizzle commits when the callback returns. Never await inside it.
+    return this.db.transaction((tx) => {
+      const [row] = tx.insert(this.table).values(values).returning().all() as Row<TTable>[]
+      if (row === undefined) throw new Error('Insert returned no row')
+      this.writeOutbox(tx, 'create', uuid, updatedAt, row)
+      return row
+    })
   }
 
   public async update(
@@ -59,15 +64,17 @@ export class BaseRepository<TTable extends SyncTable> {
     const updatedAt = nowIso()
     const values = { ...patch, updatedAt } as Partial<TTable['$inferInsert']>
 
-    const [row] = await this.db
-      .update(this.table)
-      .set(values)
-      .where(eq(this.table.uuid, uuid))
-      .returning()
-    if (row === undefined) return null
-
-    await this.writeOutbox('update', uuid, updatedAt, row as Row<TTable>)
-    return row as Row<TTable>
+    return this.db.transaction((tx) => {
+      const [row] = tx
+        .update(this.table)
+        .set(values)
+        .where(eq(this.table.uuid, uuid))
+        .returning()
+        .all() as Row<TTable>[]
+      if (row === undefined) return null
+      this.writeOutbox(tx, 'update', uuid, updatedAt, row)
+      return row
+    })
   }
 
   public async softDelete(uuid: string): Promise<Row<TTable> | null> {
@@ -77,15 +84,17 @@ export class BaseRepository<TTable extends SyncTable> {
       updatedAt,
     } as Partial<TTable['$inferInsert']>
 
-    const [row] = await this.db
-      .update(this.table)
-      .set(values)
-      .where(eq(this.table.uuid, uuid))
-      .returning()
-    if (row === undefined) return null
-
-    await this.writeOutbox('delete', uuid, updatedAt, row as Row<TTable>)
-    return row as Row<TTable>
+    return this.db.transaction((tx) => {
+      const [row] = tx
+        .update(this.table)
+        .set(values)
+        .where(eq(this.table.uuid, uuid))
+        .returning()
+        .all() as Row<TTable>[]
+      if (row === undefined) return null
+      this.writeOutbox(tx, 'delete', uuid, updatedAt, row)
+      return row
+    })
   }
 
   /** Активная (не удалённая tombstone) запись по uuid. */
@@ -98,13 +107,14 @@ export class BaseRepository<TTable extends SyncTable> {
     return (row as Row<TTable> | undefined) ?? null
   }
 
-  private async writeOutbox(
+  private writeOutbox(
+    writer: OutboxWriter,
     operation: 'create' | 'update' | 'delete',
     uuid: string,
     updatedAt: string,
     row: Row<TTable>,
-  ): Promise<void> {
-    await enqueueOutbox(this.db, {
+  ): void {
+    enqueueOutbox(writer, {
       entityType: this.entityType,
       entityUuid: uuid,
       operation,

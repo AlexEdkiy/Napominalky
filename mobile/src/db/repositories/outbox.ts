@@ -1,6 +1,9 @@
 import type { Database } from '../client'
 import { syncOutbox, type SyncOperation } from '../schema/syncOutbox'
 
+/** Database or transaction: enqueue must use the same writer as the domain change. */
+export type OutboxWriter = Pick<Database, 'insert'>
+
 export interface OutboxEntry {
   entityType: string
   entityUuid: string
@@ -14,15 +17,15 @@ export interface OutboxEntry {
  * Записывает мутацию в очередь синхронизации (sync_outbox).
  * Вызывается из baseRepo внутри той же транзакции, что и доменная запись.
  */
-export const enqueueOutbox = async (
-  db: Database,
+export const enqueueOutbox = (
+  db: OutboxWriter,
   entry: OutboxEntry,
-): Promise<void> => {
-  await db.insert(syncOutbox).values({
+): void => {
+  db.insert(syncOutbox).values({
     entityType: entry.entityType,
     entityUuid: entry.entityUuid,
     operation: entry.operation,
     payload: JSON.stringify(entry.payload),
     updatedAt: entry.updatedAt,
-  })
+  }).run()
 }

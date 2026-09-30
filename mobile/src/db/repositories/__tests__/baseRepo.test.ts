@@ -1,3 +1,5 @@
+import { returningRows } from '../../testing/returningRows'
+
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 // Изолируем тест от нативного expo-sqlite: baseRepo принимает db явно.
@@ -41,10 +43,11 @@ type FakeRow = Record<string, unknown>
  * - select().from().where().limit() → возвращает selectRows
  */
 const createFakeDb = (log: DbCallLog, selectRows: FakeRow[] = []) => ({
+  transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
   insert: () => ({
     values: (values: Record<string, unknown>) => {
       log.inserts.push({ values })
-      return { returning: async () => [values] }
+      return { run: () => undefined, returning: () => returningRows(() => [values]) }
     },
   }),
   update: () => ({
@@ -52,10 +55,11 @@ const createFakeDb = (log: DbCallLog, selectRows: FakeRow[] = []) => ({
       log.updates.push({ values })
       return {
         where: () => ({
-          returning: async () =>
+          run: () => undefined,
+          returning: () => returningRows(() =>
             selectRows.length > 0
               ? [{ ...selectRows[0], ...values }]
-              : [{ uuid: 'test-uuid', title: 'Test', updatedAt: 'ts', deletedAt: null, ...values }],
+              : [{ uuid: 'test-uuid', title: 'Test', updatedAt: 'ts', deletedAt: null, ...values }]),
         }),
       }
     },
@@ -197,15 +201,16 @@ describe('BaseRepository.update', () => {
     const log = makeLog()
     // Создаём db где update returning() возвращает пустой массив.
     const emptyUpdateDb = {
+      transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
       insert: () => ({
         values: (values: Record<string, unknown>) => {
           log.inserts.push({ values })
-          return { returning: async () => [values] }
+          return { run: () => undefined, returning: () => returningRows(() => [values]) }
         },
       }),
       update: () => ({
         set: () => ({
-          where: () => ({ returning: async () => [] }),
+          where: () => ({ run: () => undefined, returning: () => returningRows(() => []) }),
         }),
       }),
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
@@ -276,15 +281,16 @@ describe('BaseRepository.softDelete', () => {
   it('возвращает null когда запись не найдена', async () => {
     const log = makeLog()
     const emptyUpdateDb = {
+      transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
       insert: () => ({
         values: (values: Record<string, unknown>) => {
           log.inserts.push({ values })
-          return { returning: async () => [values] }
+          return { run: () => undefined, returning: () => returningRows(() => [values]) }
         },
       }),
       update: () => ({
         set: () => ({
-          where: () => ({ returning: async () => [] }),
+          where: () => ({ run: () => undefined, returning: () => returningRows(() => []) }),
         }),
       }),
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
@@ -415,13 +421,14 @@ describe('BaseRepository — outbox payload в snake_case', () => {
       deletedAt: null,
     }
     const db = {
+      transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
       insert: () => ({
         values: (values: Record<string, unknown>) => {
           log.inserts.push({ values })
-          return { returning: async () => [camelRow] }
+          return { run: () => undefined, returning: () => returningRows(() => [camelRow]) }
         },
       }),
-      update: () => ({ set: () => ({ where: () => ({ returning: async () => [] }) }) }),
+      update: () => ({ set: () => ({ where: () => ({ run: () => undefined, returning: () => returningRows(() => []) }) }) }),
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
     }
     const repo = new BaseRepository(notes as unknown as SyncTable, 'note', db as never)
@@ -460,13 +467,14 @@ describe('BaseRepository — outbox payload в snake_case', () => {
       deletedAt: null,
     }
     const db = {
+      transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
       insert: () => ({
         values: (values: Record<string, unknown>) => {
           log.inserts.push({ values })
-          return { returning: async () => [camelRow] }
+          return { run: () => undefined, returning: () => returningRows(() => [camelRow]) }
         },
       }),
-      update: () => ({ set: () => ({ where: () => ({ returning: async () => [] }) }) }),
+      update: () => ({ set: () => ({ where: () => ({ run: () => undefined, returning: () => returningRows(() => []) }) }) }),
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
     }
     const repo = new BaseRepository(
@@ -510,13 +518,14 @@ describe('BaseRepository — outbox payload в snake_case', () => {
       deletedAt: null,
     }
     const db = {
+      transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
       insert: () => ({
         values: (values: Record<string, unknown>) => {
           log.inserts.push({ values })
-          return { returning: async () => [camelRow] }
+          return { run: () => undefined, returning: () => returningRows(() => [camelRow]) }
         },
       }),
-      update: () => ({ set: () => ({ where: () => ({ returning: async () => [] }) }) }),
+      update: () => ({ set: () => ({ where: () => ({ run: () => undefined, returning: () => returningRows(() => []) }) }) }),
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
     }
     const repo = new BaseRepository(

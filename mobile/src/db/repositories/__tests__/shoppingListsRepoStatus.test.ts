@@ -1,3 +1,5 @@
+import { returningRows } from '../../testing/returningRows'
+
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
 jest.mock('../../client', () => ({ db: {} }))
 
@@ -55,6 +57,7 @@ const createFakeDb = (state: FakeState, updates: UpdateLog[], outbox: OutboxLog[
   }
 
   return {
+    transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
     insert: (table: unknown) => ({
       values: (values: Row) => {
         if (table === syncOutbox) {
@@ -64,20 +67,21 @@ const createFakeDb = (state: FakeState, updates: UpdateLog[], outbox: OutboxLog[
             payload: JSON.parse(values.payload as string) as Row,
           })
         }
-        return { returning: async () => [values] }
+        return { run: () => undefined, returning: () => returningRows(() => [values]) }
       },
     }),
     update: (table: unknown) => ({
       set: (values: Row) => ({
         where: () => ({
-          returning: async () => {
+          run: () => undefined,
+          returning: () => returningRows(() => {
             const rows = rowsOf(table)
             const target = rows[0]
             if (target === undefined) return []
             Object.assign(target, values)
             updates.push({ table: tableKind(table), values })
             return [{ ...target }]
-          },
+          }),
         }),
       }),
     }),

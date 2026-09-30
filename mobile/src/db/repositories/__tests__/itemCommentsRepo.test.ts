@@ -1,3 +1,5 @@
+import { returningRows } from '../../testing/returningRows'
+
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
 jest.mock('../../client', () => ({ db: {} }))
 
@@ -26,10 +28,11 @@ type FakeRow = Record<string, unknown>
  * (одна и та же цепочка терминируется limit/orderBy/groupBy — все async).
  */
 const createFakeDb = (log: DbCallLog, selectRows: FakeRow[] = []) => ({
+  transaction<T>(fn: (tx: unknown) => T): T { return fn(this) },
   insert: () => ({
     values: (values: Record<string, unknown>) => {
       log.inserts.push({ values })
-      return { returning: async () => [values] }
+      return { run: () => undefined, returning: () => returningRows(() => [values]) }
     },
   }),
   update: () => ({
@@ -37,8 +40,9 @@ const createFakeDb = (log: DbCallLog, selectRows: FakeRow[] = []) => ({
       log.updates.push({ values })
       return {
         where: () => ({
-          returning: async () =>
-            selectRows.length > 0 ? [{ ...selectRows[0], ...values }] : [],
+          run: () => undefined,
+          returning: () => returningRows(() =>
+            selectRows.length > 0 ? [{ ...selectRows[0], ...values }] : []),
         }),
       }
     },
