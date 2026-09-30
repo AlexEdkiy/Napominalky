@@ -1,5 +1,10 @@
 # Versioned releases (OPS-14)
 
+Production is active on r9cb10c6-ops14 since 2026-09-30. The first migration
+automatically recovered to baseline after a transient proxy 502; the corrected
+managed switch then passed. Current state is recorded in production/target.state.json.
+[Execution report](../../docs/reviews/ops14-release-2026-09-30.md).
+
 Code is packaged outside every Git worktree: committed backend source, locally
 installed Composer dependencies verified against the production lock entries,
 a fresh Vue build, nginx configuration and a file-hash manifest. The source commit
@@ -92,7 +97,9 @@ python3 deploy/releases/rehearse.py \
   --stage-env /home/vselug/workspace/Napominalky-runtime/stage/.env
 ```
 
-Stop/remove only earlier rehearsal fixture containers before rerunning.
+Stop/remove only earlier rehearsal fixture containers before rerunning. Disposable
+rehearsal fixtures from this session were removed after verification; journals are
+retained in stage/rehearsal-evidence.json. Active staging, production and baseline remain.
 
 ## First production migration
 
@@ -166,7 +173,9 @@ mandatory. Public repository: https://github.com/AlexEdkiy/Napominalky.
 The owner explicitly approved public publication of main and manage-2026-09-30
 on 2026-09-30 after the automated reviewer requested that consent. GitHub Actions
 run [36691202007](https://github.com/AlexEdkiy/Napominalky/actions/runs/36691202007)
-passed backend, mobile checks and web checks at f933b10. Branch protection is not
+passed backend, mobile checks and web checks at f933b10.
+[Run 36691997833](https://github.com/AlexEdkiy/Napominalky/actions/runs/36691997833)
+also passed at 68f81a1, including the release routing regressions. Branch protection is not
 yet active: main reports protected=false and the rulesets list is empty.
 
 Prepared ruleset: [.github/rulesets/main.json](../../.github/rulesets/main.json).
