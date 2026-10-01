@@ -167,7 +167,43 @@ describe('useLkTasksTable', () => {
     // Сортировка применяется поверх отфильтрованного набора.
     table.tab.value = 'all'
     table.toggleSort('title')
-    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-3', 'l-1'])
+    expect(table.visibleLists.value.map((list) => list.uuid)).toEqual(['l-1', 'l-3'])
+  })
+
+  it('keeps completed lists last before and after sorting in either direction', async () => {
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([
+      makeList({ uuid: 'done-a', title: 'Альфа', is_completed: true }),
+      makeList({ uuid: 'active-z', title: 'Янтарь', type: 'tasks' }),
+      makeList({ uuid: 'active-a', title: 'Азбука' }),
+      makeList({ uuid: 'done-z', title: 'Ясень', is_completed: true, type: 'tasks' }),
+    ]))
+    const table = useLkTasksTable()
+    await table.reload()
+    expect(table.visibleLists.value.map(list => list.uuid)).toEqual(['active-z', 'active-a', 'done-a', 'done-z'])
+    table.toggleSort('title')
+    expect(table.visibleLists.value.map(list => list.uuid)).toEqual(['active-a', 'active-z', 'done-a', 'done-z'])
+    table.toggleSort('title')
+    expect(table.visibleLists.value.map(list => list.uuid)).toEqual(['active-z', 'active-a', 'done-z', 'done-a'])
+    for (const key of ['status', 'tags', 'date', 'reminder'] as const) {
+      for (let direction = 0; direction < 2; direction += 1) {
+        table.toggleSort(key)
+        expect(table.visibleLists.value.map(list => list.is_completed)).toEqual([false, false, true, true])
+      }
+    }
+    expect(table.lists.value.map(list => list.uuid)).toEqual(['done-a', 'active-z', 'active-a', 'done-z'])
+  })
+
+  it('moves a completed task down immediately and restores it after unchecking', async () => {
+    const first = makeList({ uuid: 'first', type: 'tasks' })
+    const second = makeList({ uuid: 'second', type: 'tasks' })
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([first, second]))
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValueOnce({ ...first, is_completed: true }).mockResolvedValueOnce(first)
+    const table = useLkTasksTable()
+    await table.reload()
+    await table.toggleCompleted(first)
+    expect(table.visibleLists.value.map(list => list.uuid)).toEqual(['second', 'first'])
+    await table.toggleCompleted({ ...first, is_completed: true })
+    expect(table.visibleLists.value.map(list => list.uuid)).toEqual(['first', 'second'])
   })
 
   it('sorts by title and reverses on a second toggle', async () => {

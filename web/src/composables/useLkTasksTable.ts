@@ -315,7 +315,10 @@ export function useLkTasksTable() {
     const filtered = lists.value.filter(
       (list) => matchesTab(list, tab.value) && matchesType(list, typeFilter.value),
     )
-    return sortKey.value === null ? filtered : [...filtered].sort((a, b) => compare(a, b))
+    // Группа выполнения имеет приоритет над колонкой и направлением сортировки.
+    return filtered.sort((a, b) =>
+      Number(isShoppingListCompleted(a)) - Number(isShoppingListCompleted(b)) || compare(a, b),
+    )
   })
 
   const hasMore = computed<boolean>(

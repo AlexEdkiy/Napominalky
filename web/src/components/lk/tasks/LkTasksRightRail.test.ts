@@ -51,10 +51,13 @@ function mountRail() {
 describe('LkTasksRightRail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-01T09:00:00Z'))
     resetLkFormsForTests()
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 

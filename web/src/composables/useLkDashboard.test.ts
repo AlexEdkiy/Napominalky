@@ -85,7 +85,7 @@ describe('useLkDashboard', () => {
     vi.useRealTimers()
   })
 
-  it('counts today reminders in stats and keeps only upcoming ones for the panel', async () => {
+  it('counts today reminders in stats and includes them first in the upcoming panel', async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginated([makeList(5, 2, 'l-1'), makeList(3, 3, 'l-2')]),
     )
@@ -103,8 +103,8 @@ describe('useLkDashboard', () => {
 
     expect(isLoading.value).toBe(false)
     expect(error.value).toBeNull()
-    // Сегодняшнее r-1 учитывается только в счётчике, панели «на сегодня» нет.
-    expect(upcomingReminders.value.map((reminder) => reminder.uuid)).toEqual(['r-2', 'r-3'])
+    // Ближайшее сегодняшнее событие также видно в панели.
+    expect(upcomingReminders.value.map((reminder) => reminder.uuid)).toEqual(['r-1', 'r-2', 'r-3'])
     expect(stats.value).toEqual({
       activeTasksCount: 3,
       remindersTodayCount: 1,

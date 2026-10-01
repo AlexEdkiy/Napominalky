@@ -157,9 +157,8 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Заметок')
     expect(wrapper.text()).toContain('Выполнено за неделю')
     expect(wrapper.text()).toContain('40%')
-    // Сегодняшнее r-1 учитывается только в счётчике «Напоминаний сегодня»;
-    // в панели «Ближайшие напоминания» — только предстоящее r-2.
-    expect(wrapper.text()).not.toContain('Напоминание r-1')
+    // Сегодняшнее событие видно в панели и учитывается в счётчике.
+    expect(wrapper.findAll('.lk-reminder-item__title').map(item => item.text())).toEqual(['Напоминание r-1', 'Напоминание r-2'])
     expect(wrapper.text()).toContain('Напоминание r-2')
 
     // Порядок по макету: 4 стат-карточки в фиксированном порядке.
