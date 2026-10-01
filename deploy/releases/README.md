@@ -1,6 +1,12 @@
 # Versioned releases (OPS-14)
 
-Production is active on r9cb10c6-ops14 since 2026-09-30. The first migration
+Production is active on **r2811588-web54** since 2026-10-01, source SHA
+`28115881f8508f8e6abd2533d0976cbcc5fd844e`. The task schedule schema migration
+(batch 16), database backup, managed switch and public checks passed.
+[WEB-54 deployment report](../../docs/reviews/web54-task-table-2026-09-30.md#выпуск-2026-10-01).
+Keep r9cb10c6-ops14 for code rollback; retain the added database columns.
+
+The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
 managed switch then passed. Current state is recorded in production/target.state.json.
 [Execution report](../../docs/reviews/ops14-release-2026-09-30.md).
