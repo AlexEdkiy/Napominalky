@@ -143,10 +143,7 @@ function cancelNameEdit(): void {
 </script>
 
 <template>
-  <li
-    class="lk-form-dialog__item"
-    :class="{ 'lk-form-dialog__item--checked': isDone }"
-  >
+  <li class="lk-form-dialog__item" :class="{ 'lk-form-dialog__item--checked': isDone }">
     <div class="lk-item-row__top">
       <label class="lk-form-dialog__item-label">
         <input
@@ -175,7 +172,21 @@ function cancelNameEdit(): void {
             @blur="commitNameEdit"
           />
           <span v-else class="lk-item-row__name-line">
-            <span class="lk-form-dialog__item-name">{{ item.name }}</span>
+            <LkCommentsPopover
+              v-if="listType === 'tasks' && hasComment"
+              v-slot="{ describedBy }"
+              :comments="item.comments"
+              teleported
+              full-thread
+            >
+              <span
+                class="lk-form-dialog__item-name"
+                tabindex="0"
+                :aria-describedby="describedBy"
+                >{{ item.name }}</span
+              >
+            </LkCommentsPopover>
+            <span v-else class="lk-form-dialog__item-name">{{ item.name }}</span>
             <button
               type="button"
               class="lk-item-row__name-edit"
@@ -226,7 +237,9 @@ function cancelNameEdit(): void {
           @click.stop="handleCommentClick"
         >
           <LkIcon name="comment" :size="16" />
-          <span v-if="hasComment" class="lk-item-row__comment-count">{{ item.comments_count }}</span>
+          <span v-if="hasComment" class="lk-item-row__comment-count">{{
+            item.comments_count
+          }}</span>
         </button>
       </LkCommentsPopover>
       <button

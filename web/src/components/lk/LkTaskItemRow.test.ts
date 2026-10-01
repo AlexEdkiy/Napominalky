@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 
 import LkTaskItemRow from './LkTaskItemRow.vue'
@@ -503,5 +503,37 @@ describe('LkTaskItemRow — раскрытая панель атрибутов',
 
     const tasks = mountRow({ expanded: true, listType: 'tasks' })
     expect(tasks.find('.lk-item-attrs__quantity').exists()).toBe(false)
+  })
+})
+
+
+describe('LkTaskItemRow — комментарии по названию пункта (WEB-56)', () => {
+  it('shows only the hovered item thread, including older comments, without changing the item', async () => {
+    vi.useFakeTimers()
+    const first = mountRow({ listType: 'tasks', item: { comments_count: 6,
+      comments: Array.from({ length: 6 }, (_, n) => makeComment({ uuid: `c-${n}`, body: `Комментарий ${n}` })),
+    } })
+    const second = mountRow({ listType: 'tasks', item: { uuid: 'other', name: 'Другой пункт', comments_count: 1,
+      comments: [makeComment({ uuid: 'other-comment', body: 'Чужой комментарий' })],
+    } })
+    try {
+      const name = first.find('.lk-item-row__name-line .lk-comments-popover')
+      await name.trigger('mouseenter')
+      expect(document.querySelector('[role="tooltip"]')).toBeNull()
+      await vi.advanceTimersByTimeAsync(250)
+      const tooltip = document.querySelector('[role="tooltip"]')
+      expect(tooltip?.textContent).toContain('Комментарий 0')
+      expect(tooltip?.textContent).toContain('Комментарий 5')
+      expect(tooltip?.textContent).not.toContain('Чужой комментарий')
+      expect(tooltip?.parentElement).toBe(document.body)
+      expect(first.emitted('check')).toBeUndefined()
+      expect(first.emitted('update')).toBeUndefined()
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await first.vm.$nextTick()
+      expect(document.querySelector('[role="tooltip"]')).toBeNull()
+      await second.find('.lk-form-dialog__item-name').trigger('focusin')
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Чужой комментарий')
+      expect(document.querySelector('[role="tooltip"]')?.textContent).not.toContain('Комментарий 0')
+    } finally { first.unmount(); second.unmount(); vi.useRealTimers() }
   })
 })

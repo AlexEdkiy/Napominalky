@@ -57,8 +57,8 @@ export interface LkListDerivedDates {
   commentsCount: number
   /** Плоский список комментариев (в порядке пунктов, внутри пункта — ASC). */
   comments: LkListCommentPreview[]
-  /** Имена пунктов для подсказки задач; без тел комментариев. */
-  items?: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked'>[]
+  /** Имена и статусы пунктов для подсказки задач; без тел комментариев. */
+  items?: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked' | 'status'>[]
 }
 
 /**
@@ -198,7 +198,7 @@ async function deriveListDates(
           ? list.deadline : chooseDate(active.map((item) => item.deadline)),
         reminderAt: list.type === 'tasks' && list.reminder_at !== undefined
           ? list.reminder_at : chooseDate(active.map((item) => item.reminder_at)),
-        items: items.map(({ uuid, name, is_checked }) => ({ uuid, name, is_checked })),
+        items: items.map(({ uuid, name, is_checked, status }) => ({ uuid, name, is_checked, status })),
         commentsCount: items.reduce((sum, item) => sum + item.comments_count, 0),
         comments: flattenItemComments(items),
       },

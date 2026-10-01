@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { nextTick, onUnmounted, ref, useId } from 'vue'
+import { nextTick, onUnmounted, ref, useId, watch } from 'vue'
+import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import type { ShoppingListItem } from '@/types/shoppingList'
 
-defineProps<{ items: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked'>[] }>()
+defineOptions({ inheritAttrs: false })
+
+const props = defineProps<{
+  items?: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked' | 'status'>[] | undefined
+}>()
 
 const anchor = ref<HTMLElement | null>(null)
 const panel = ref<HTMLElement | null>(null)
@@ -23,6 +28,10 @@ function close(): void {
 async function show(): Promise<void> {
   clearTimer()
   open.value = true
+  await updatePosition()
+}
+
+async function updatePosition(): Promise<void> {
   await nextTick()
   const rect = anchor.value?.getBoundingClientRect()
   if (!rect) return
@@ -31,10 +40,18 @@ async function show(): Promise<void> {
   position.value = {
     left: String(Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))) + 'px',
     top:
-      String(Math.max(12, rect.bottom + height + 8 > window.innerHeight ? rect.top - height - 8 : rect.bottom + 8)) +
-      'px',
+      String(
+        Math.max(
+          12,
+          rect.bottom + height + 8 > window.innerHeight ? rect.top - height - 8 : rect.bottom + 8,
+        ),
+      ) + 'px',
   }
 }
+
+watch(() => props.items, () => {
+  if (open.value) void updatePosition()
+})
 
 function enter(): void {
   clearTimer()
@@ -46,11 +63,40 @@ function leave(): void {
   timer = setTimeout(close, 150)
 }
 
-onUnmounted(clearTimer)
+function onEscape(event: KeyboardEvent): void {
+  if (open.value && event.key === 'Escape') {
+    event.stopPropagation()
+    close()
+  }
+}
+
+function onScroll(event: Event): void {
+  if (!panel.value?.contains(event.target as Node)) close()
+}
+
+function unbind(): void {
+  document.removeEventListener('keydown', onEscape, true)
+  window.removeEventListener('scroll', onScroll, true)
+  window.removeEventListener('resize', close)
+}
+
+watch(open, (value) => {
+  if (value) {
+    document.addEventListener('keydown', onEscape, true)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', close)
+  } else unbind()
+})
+
+onUnmounted(() => {
+  clearTimer()
+  unbind()
+})
 </script>
 
 <template>
   <span
+    v-bind="$attrs"
     ref="anchor"
     class="task-items-popover"
     :aria-describedby="open ? tooltipId : undefined"
@@ -58,9 +104,10 @@ onUnmounted(clearTimer)
     @mouseleave="leave"
     @focusin="show"
     @focusout="close"
-    @keydown.esc.stop="close"
+    @keydown.esc="onEscape"
+    @click.capture="close"
   >
-    <slot />
+    <slot :described-by="open ? tooltipId : undefined" />
   </span>
   <Teleport to="body">
     <div
@@ -73,12 +120,18 @@ onUnmounted(clearTimer)
       @mouseenter="clearTimer"
       @mouseleave="leave"
     >
-      <strong>Пункты задачи · {{ items.length }}</strong>
-      <p v-if="items.length === 0">Пока нет пунктов</p>
+      <strong
+        >Пункты задачи<span v-if="items"> · {{ items.length }}</span></strong
+      >
+      <p v-if="!items">Пункты пока недоступны.</p>
+      <p v-else-if="items.length === 0">Пока нет пунктов</p>
       <ul v-else>
         <li v-for="item in items" :key="item.uuid" :class="{ 'is-done': item.is_checked }">
-          <span :aria-label="item.is_checked ? 'Выполнено' : 'Не выполнено'">{{ item.is_checked ? '✓' : '○' }}</span>
-          <span>{{ item.name }}</span>
+          <span :aria-label="item.is_checked ? 'Выполнено' : 'Не выполнено'">{{
+            item.is_checked ? '✓' : '○'
+          }}</span>
+          <span class="task-items-popover__name">{{ item.name }}</span>
+          <LkStatusBadge :status="item.status" />
         </li>
       </ul>
     </div>
@@ -118,16 +171,20 @@ ul {
 li {
   display: flex;
   gap: 8px;
-  align-items: baseline;
+  align-items: start;
   overflow-wrap: anywhere;
 }
 li > span:first-child {
   flex-shrink: 0;
 }
+.task-items-popover__name {
+  flex: 1;
+  min-width: 0;
+}
 .is-done {
   color: #a5b2aa;
 }
-.is-done > span:last-child {
+.is-done > .task-items-popover__name {
   text-decoration: line-through;
 }
 </style>

@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import LkTaskItemsPopover from '@/components/lk/tasks/LkTaskItemsPopover.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { isLkDateToday } from '@/composables/useLkTasksTable'
 import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
@@ -104,19 +105,35 @@ function handleOpen(list: ShoppingList): void {
         <li v-for="list in visibleLists" :key="list.uuid" class="lk-overview-tasks__item">
           <div
             class="lk-overview-tasks__body"
-            role="button"
-            tabindex="0"
-            :aria-label="`Открыть: ${list.title}`"
-            @click="handleOpen(list)"
-            @keydown.enter="handleOpen(list)"
-            @keydown.space.prevent="handleOpen(list)"
+            :role="list.type === 'goods' ? 'button' : undefined"
+            :tabindex="list.type === 'goods' ? 0 : undefined"
+            :aria-label="list.type === 'goods' ? `Открыть: ${list.title}` : undefined"
+            @click="list.type === 'goods' && handleOpen(list)"
+            @keydown.enter.self="list.type === 'goods' && handleOpen(list)"
+            @keydown.space.self.prevent="list.type === 'goods' && handleOpen(list)"
           >
             <span
               class="lk-overview-tasks__dot"
               :style="{ background: shoppingListAccent(list.type).color }"
               aria-hidden="true"
             />
-            <span class="lk-overview-tasks__item-title">{{ list.title }}</span>
+            <LkTaskItemsPopover
+              v-if="list.type === 'tasks'"
+              v-slot="{ describedBy }"
+              class="lk-overview-tasks__preview"
+              :items="props.derivedDates.get(list.uuid)?.items"
+            >
+              <button
+                type="button"
+                class="lk-overview-tasks__item-title"
+                :aria-label="`Открыть: ${list.title}`"
+                :aria-describedby="describedBy"
+                @click="handleOpen(list)"
+              >
+                {{ list.title }}
+              </button>
+            </LkTaskItemsPopover>
+            <span v-else class="lk-overview-tasks__item-title">{{ list.title }}</span>
             <span class="lk-overview-tasks__count">
               {{ list.checked_items_count }} / {{ list.items_count }}
             </span>
@@ -234,6 +251,7 @@ function handleOpen(list: ShoppingList): void {
   background: #f7f9f8;
 }
 
+.lk-overview-tasks__item-title:focus-visible,
 .lk-overview-tasks__body:focus-visible {
   outline: 2px solid #17897a;
   outline-offset: 2px;
@@ -246,7 +264,18 @@ function handleOpen(list: ShoppingList): void {
   border-radius: 50%;
 }
 
+.lk-overview-tasks__preview {
+  flex: 1;
+  min-width: 0;
+}
+
 .lk-overview-tasks__item-title {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   flex: 1;
   min-width: 0;
   overflow: hidden;

@@ -150,13 +150,48 @@ describe('LkOverviewTasksPanel', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-tasks'))
   })
 
-  it('emits open with the clicked list (row body click)', async () => {
+  it('emits open with the clicked list (title button click)', async () => {
     const lists = makeLists(2)
     const { wrapper } = await mountPanel(lists)
 
-    await wrapper.findAll('.lk-overview-tasks__body')[1]?.trigger('click')
+    await wrapper.findAll('.lk-overview-tasks__item-title')[1]?.trigger('click')
 
     expect(wrapper.emitted('open')).toEqual([[lists[1]]])
+  })
+
+  it('previews task items on title focus, hides on click, and opens only from the title', async () => {
+    const list = makeList('task', { type: 'tasks' })
+    const { wrapper } = await mountPanel([list], new Map([['task', {
+      deadline: null, reminderAt: null, commentsCount: 1,
+      comments: [{ uuid: 'c', itemName: 'Прототип', body: 'Не для Обзора', author_name: 'Автор', created_at: '2026-10-01T10:00:00Z' }],
+      items: [{ uuid: 'i', name: 'Прототип', is_checked: false, status: 'in_progress' }],
+    }]]))
+    try {
+      await wrapper.find('.lk-overview-tasks__count').trigger('click')
+      expect(wrapper.emitted('open')).toBeUndefined()
+      const title = wrapper.find('.lk-overview-tasks__item-title')
+      await title.trigger('focusin')
+      const tooltip = document.querySelector('[role="tooltip"]')
+      expect(tooltip?.textContent).toContain('Прототип')
+      expect(tooltip?.textContent).toContain('В работе')
+      expect(tooltip?.textContent).not.toContain('Не для Обзора')
+      expect(title.attributes('aria-describedby')).toBe(tooltip?.id)
+      await title.trigger('click')
+      expect(document.querySelector('[role="tooltip"]')).toBeNull()
+      expect(wrapper.emitted('open')).toEqual([[list]])
+      // After the preview closes, Escape must reach the dialog's window handler.
+      document.body.appendChild(wrapper.element)
+      const onEscape = vi.fn()
+      window.addEventListener('keydown', onEscape)
+      try {
+        await title.trigger('keydown', { key: 'Escape' })
+        expect(onEscape).toHaveBeenCalledTimes(1)
+        await title.trigger('focusin')
+        await title.trigger('keydown', { key: 'Escape' })
+        expect(document.querySelector('[role="tooltip"]')).toBeNull()
+        expect(onEscape).toHaveBeenCalledTimes(1)
+      } finally { window.removeEventListener('keydown', onEscape) }
+    } finally { wrapper.unmount(); wrapper.element.remove() }
   })
 
   it('falls back to a fixed small number of rows on mobile (page scrolls anyway)', async () => {

@@ -106,28 +106,19 @@ function savePatch(patch: UpdateShoppingListPayload): Promise<void> {
           @change="handleToggle"
         />
         <span class="lk-task-row__text">
-          <button
-            v-if="list.type === 'tasks'"
-            type="button"
-            class="lk-task-row__title lk-task-row__open"
-            :title="list.title"
-            @click.stop="emit('open', list)"
-          >
-            {{ list.title }}
-          </button>
+          <LkTaskItemsPopover v-if="list.type === 'tasks'" v-slot="{ describedBy }" :items="derived?.items">
+            <button
+              type="button"
+              class="lk-task-row__title lk-task-row__open"
+              :aria-describedby="describedBy"
+              @click.stop="emit('open', list)"
+            >
+              {{ list.title }}
+            </button>
+          </LkTaskItemsPopover>
           <span v-else class="lk-task-row__title">{{ list.title }}</span>
           <span class="lk-task-row__subtitle-line">
-            <LkTaskItemsPopover v-if="list.type === 'tasks' && derived?.items" :items="derived.items">
-              <button
-                type="button"
-                class="lk-task-row__subtitle lk-task-row__items"
-                :aria-label="'Пункты задачи: ' + list.title"
-                @click.stop
-              >
-                {{ subtitle }}
-              </button>
-            </LkTaskItemsPopover>
-            <span v-else class="lk-task-row__subtitle">{{ subtitle }}</span>
+            <span class="lk-task-row__subtitle">{{ subtitle }}</span>
             <!-- 💬 + суммарный счётчик тредов пунктов; hover — попап с
                  содержимым, сгруппированным по пунктам. @click.stop:
                  клик по индикатору не открывает модалку строки. -->
@@ -238,8 +229,7 @@ function savePatch(patch: UpdateShoppingListPayload): Promise<void> {
 .lk-task-row--goods {
   cursor: pointer;
 }
-.lk-task-row__open,
-.lk-task-row__items {
+.lk-task-row__open {
   border: 0;
   padding: 0;
   background: none;
@@ -250,8 +240,7 @@ function savePatch(patch: UpdateShoppingListPayload): Promise<void> {
 .lk-task-row__open:hover {
   text-decoration: underline;
 }
-.lk-task-row__open:focus-visible,
-.lk-task-row__items:focus-visible {
+.lk-task-row__open:focus-visible {
   outline: 2px solid #17897a;
   outline-offset: 2px;
 }

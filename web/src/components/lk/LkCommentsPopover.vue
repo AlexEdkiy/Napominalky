@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, useId } from 'vue'
+import { computed, nextTick, onUnmounted, ref, useId, watch } from 'vue'
 
 import { formatCommentTimestamp } from '@/utils/datetime'
 
@@ -26,6 +26,9 @@ export interface LkPopoverComment {
  */
 interface Props {
   comments: LkPopoverComment[]
+  /** Вынос из прокручиваемой формы; полный тред для названия пункта. */
+  teleported?: boolean
+  fullThread?: boolean
 }
 
 const props = defineProps<Props>()
@@ -45,13 +48,15 @@ const isOpen = ref(false)
 const flipUp = ref(false)
 const alignRight = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
+const position = ref({ top: '0px', left: '0px' })
 const tooltipId = useId()
 
 let showTimer: ReturnType<typeof setTimeout> | null = null
 let hideTimer: ReturnType<typeof setTimeout> | null = null
 
 const visibleComments = computed<LkPopoverComment[]>(() =>
-  props.comments.slice(-PREVIEW_LIMIT),
+  props.fullThread ? props.comments : props.comments.slice(-PREVIEW_LIMIT),
 )
 const hiddenCount = computed<number>(() => props.comments.length - visibleComments.value.length)
 
@@ -92,7 +97,10 @@ function clipBounds(): { right: number; bottom: number } {
     const style = window.getComputedStyle(ancestor)
     if (clipsOverflow(style.overflowX) || clipsOverflow(style.overflowY)) {
       const rect = ancestor.getBoundingClientRect()
-      return { right: Math.min(rect.right, window.innerWidth), bottom: Math.min(rect.bottom, window.innerHeight) }
+      return {
+        right: Math.min(rect.right, window.innerWidth),
+        bottom: Math.min(rect.bottom, window.innerHeight),
+      }
     }
     ancestor = ancestor.parentElement
   }
@@ -110,13 +118,24 @@ function updatePlacement(): void {
   alignRight.value = rect.left + PANEL_WIDTH > bounds.right
 }
 
-function open(): void {
+async function open(): Promise<void> {
   clearTimers()
   if (props.comments.length === 0) {
     return
   }
   updatePlacement()
   isOpen.value = true
+  if (props.teleported) {
+    await nextTick()
+    const rect = rootRef.value?.getBoundingClientRect()
+    if (!rect) return
+    const width = panelRef.value?.offsetWidth ?? PANEL_WIDTH
+    const height = panelRef.value?.offsetHeight ?? PANEL_MAX_HEIGHT
+    position.value = {
+      left: `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`,
+      top: `${Math.max(12, rect.bottom + height + 6 > window.innerHeight ? rect.top - height - 6 : rect.bottom + 6)}px`,
+    }
+  }
 }
 
 function close(): void {
@@ -134,7 +153,35 @@ function handleMouseLeave(): void {
   hideTimer = setTimeout(close, HIDE_GRACE_MS)
 }
 
-onUnmounted(clearTimers)
+function onEscape(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    event.stopPropagation()
+    close()
+  }
+}
+
+function onScroll(event: Event): void {
+  if (!panelRef.value?.contains(event.target as Node)) close()
+}
+
+function unbind(): void {
+  document.removeEventListener('keydown', onEscape, true)
+  window.removeEventListener('scroll', onScroll, true)
+  window.removeEventListener('resize', close)
+}
+
+watch(isOpen, (value) => {
+  if (value && props.teleported) {
+    document.addEventListener('keydown', onEscape, true)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', close)
+  } else unbind()
+})
+
+onUnmounted(() => {
+  clearTimers()
+  unbind()
+})
 </script>
 
 <template>
@@ -147,34 +194,45 @@ onUnmounted(clearTimers)
     @focusin="open"
     @focusout="close"
     @keydown.esc="close"
+    @click.capture="teleported && close()"
   >
-    <slot />
+    <slot :described-by="isOpen ? tooltipId : undefined" />
 
-    <div
-      v-if="isOpen"
-      :id="tooltipId"
-      role="tooltip"
-      class="lk-comments-popover__panel"
-      :class="{
-        'lk-comments-popover__panel--up': flipUp,
-        'lk-comments-popover__panel--right': alignRight,
-      }"
-    >
-      <p class="lk-comments-popover__header">Комментарии · {{ comments.length }}</p>
-      <template v-for="(comment, index) in visibleComments" :key="comment.uuid">
-        <p v-if="groupTitle(index) !== null" class="lk-comments-popover__group">
-          {{ groupTitle(index) }}
-        </p>
-        <div class="lk-comments-popover__comment">
-          <span class="lk-comments-popover__head">
-            <span class="lk-comments-popover__author">{{ comment.author_name }}</span>
-            <span class="lk-comments-popover__time">{{ formatCommentTimestamp(comment.created_at) }}</span>
-          </span>
-          <span class="lk-comments-popover__body">{{ comment.body }}</span>
-        </div>
-      </template>
-      <p v-if="hiddenCount > 0" class="lk-comments-popover__more">и ещё {{ hiddenCount }}</p>
-    </div>
+    <Teleport to="body" :disabled="!teleported">
+      <div
+        v-if="isOpen"
+        :id="tooltipId"
+        ref="panelRef"
+        :style="teleported ? position : undefined"
+        role="tooltip"
+        class="lk-comments-popover__panel"
+        :class="{
+          'lk-comments-popover__panel--up': !teleported && flipUp,
+          'lk-comments-popover__panel--right': !teleported && alignRight,
+          'lk-comments-popover__panel--fixed': teleported,
+        }"
+        @mouseenter="clearTimers"
+        @mouseleave="handleMouseLeave"
+        @click.stop.prevent
+      >
+        <p class="lk-comments-popover__header">Комментарии · {{ comments.length }}</p>
+        <template v-for="(comment, index) in visibleComments" :key="comment.uuid">
+          <p v-if="groupTitle(index) !== null" class="lk-comments-popover__group">
+            {{ groupTitle(index) }}
+          </p>
+          <div class="lk-comments-popover__comment">
+            <span class="lk-comments-popover__head">
+              <span class="lk-comments-popover__author">{{ comment.author_name }}</span>
+              <span class="lk-comments-popover__time">{{
+                formatCommentTimestamp(comment.created_at)
+              }}</span>
+            </span>
+            <span class="lk-comments-popover__body">{{ comment.body }}</span>
+          </div>
+        </template>
+        <p v-if="hiddenCount > 0" class="lk-comments-popover__more">и ещё {{ hiddenCount }}</p>
+      </div>
+    </Teleport>
   </span>
 </template>
 
@@ -182,6 +240,7 @@ onUnmounted(clearTimers)
 .lk-comments-popover {
   position: relative;
   display: inline-flex;
+  min-width: 0;
 }
 
 /* Тёмное окно — как на макете («КОММЕНТАРИИ · N» на тёмном фоне). */
@@ -215,6 +274,13 @@ onUnmounted(clearTimers)
 .lk-comments-popover__panel--right {
   left: auto;
   right: 0;
+}
+
+.lk-comments-popover__panel--fixed {
+  position: fixed;
+  z-index: 110;
+  max-width: calc(100vw - 24px);
+  max-height: min(260px, calc(100vh - 24px));
 }
 
 /* Заголовок окна «КОММЕНТАРИИ · N» (uppercase — визуально как на макете). */
