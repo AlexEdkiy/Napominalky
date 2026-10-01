@@ -766,6 +766,26 @@ describe('TasksView', () => {
     expect(useLkForms().isTaskFormOpen.value).toBe(false)
   })
 
+  it('offers the same preset tags as the task form and saves selections without losing custom tags', async () => {
+    const { wrapper, list } = await mountInlineTask({ tags: ['Свой тег'] })
+    vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, tags: ['Свой тег', 'Работа'] })
+    await wrapper.find('.lk-task-row__cell--tags .task-inline__trigger').trigger('click')
+    const presets = editor().findAll('.task-inline__preset')
+    expect(presets.map((button) => button.text())).toEqual(['Покупки', 'Дом', 'Личное', 'Важное', 'Работа', 'Здоровье'])
+    const work = presets.find((button) => button.text() === 'Работа')!
+    await work.trigger('click')
+    expect(work.attributes('aria-pressed')).toBe('true')
+    await work.trigger('click')
+    expect(work.attributes('aria-pressed')).toBe('false')
+    expect(editor().find('input').element.value).toBe('Свой тег')
+    await work.trigger('click')
+    expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
+    await editor().trigger('submit')
+    await flushPromises()
+    expect(shoppingListsApi.updateList).toHaveBeenCalledWith('l-1', { tags: ['Свой тег', 'Работа'] })
+    expect(wrapper.find('.lk-task-row__cell--tags').text()).toContain('Работа')
+  })
+
   it('uses the earlier date returned by the server instead of the submitted later deadline', async () => {
     const { wrapper, list } = await mountInlineTask({ deadline: '2026-10-12' })
     vi.mocked(shoppingListsApi.updateList).mockResolvedValue({ ...list, deadline: '2026-10-12' })

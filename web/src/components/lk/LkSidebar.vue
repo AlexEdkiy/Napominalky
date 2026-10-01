@@ -61,80 +61,85 @@ function handleCreateClick(event: MouseEvent): void {
 
 <template>
   <aside class="lk-sidebar" :class="{ 'lk-sidebar--collapsed': collapsed }">
-    <RouterLink :to="{ name: 'lk-dashboard' }" class="lk-sidebar__brand">
-      <span class="lk-sidebar__brand-icon"><LkIcon name="bell" :size="18" /></span>
-      <span v-if="!collapsed" class="lk-sidebar__brand-text">
-        <span class="lk-sidebar__brand-title">Напоминалки</span>
-        <span class="lk-sidebar__brand-subtitle">Личный кабинет</span>
-      </span>
-    </RouterLink>
-
-    <hr class="lk-sidebar__divider" />
-
-    <nav class="lk-sidebar__nav" aria-label="Разделы личного кабинета">
-      <RouterLink
-        v-for="item in LK_NAV_ITEMS"
-        :key="item.routeName"
-        :to="{ name: item.routeName }"
-        class="lk-sidebar__link"
-        :class="{ 'lk-sidebar__link--active': isLkNavItemActive(item, route.name as string) }"
-      >
-        <LkIcon :name="item.icon" :size="20" />
-        <span v-if="!collapsed" class="lk-sidebar__label">{{ item.label }}</span>
-        <span
-          v-if="!collapsed && item.badgeKey && badgeFor(item.badgeKey) !== null"
-          class="lk-sidebar__badge"
-        >
-          {{ badgeFor(item.badgeKey) }}
+    <div class="lk-sidebar__navigation">
+      <RouterLink :to="{ name: 'lk-dashboard' }" class="lk-sidebar__brand">
+        <span class="lk-sidebar__brand-icon"><LkIcon name="bell" :size="18" /></span>
+        <span v-if="!collapsed" class="lk-sidebar__brand-text">
+          <span class="lk-sidebar__brand-title">Напоминалки</span>
+          <span class="lk-sidebar__brand-subtitle">Личный кабинет</span>
         </span>
       </RouterLink>
 
-      <RouterLink v-if="auth.isAdmin" to="/admin" class="lk-sidebar__link lk-sidebar__link--admin">
-        <LkIcon name="gear" :size="20" />
-        <span v-if="!collapsed" class="lk-sidebar__label">Админ-панель</span>
+      <hr class="lk-sidebar__divider" />
+
+      <nav class="lk-sidebar__nav" aria-label="Разделы личного кабинета">
+        <RouterLink
+          v-for="item in LK_NAV_ITEMS"
+          :key="item.routeName"
+          :to="{ name: item.routeName }"
+          class="lk-sidebar__link"
+          :class="{ 'lk-sidebar__link--active': isLkNavItemActive(item, route.name as string) }"
+        >
+          <LkIcon :name="item.icon" :size="20" />
+          <span v-if="!collapsed" class="lk-sidebar__label">{{ item.label }}</span>
+          <span v-if="!collapsed && item.badgeKey && badgeFor(item.badgeKey) !== null" class="lk-sidebar__badge">
+            {{ badgeFor(item.badgeKey) }}
+          </span>
+        </RouterLink>
+
+        <RouterLink v-if="auth.isAdmin" to="/admin" class="lk-sidebar__link lk-sidebar__link--admin">
+          <LkIcon name="gear" :size="20" />
+          <span v-if="!collapsed" class="lk-sidebar__label">Админ-панель</span>
+        </RouterLink>
+      </nav>
+
+      <button type="button" class="lk-sidebar__create" @click="handleCreateClick">
+        <LkIcon name="plus" :size="18" />
+        <span v-if="!collapsed">Создать</span>
+      </button>
+    </div>
+
+    <div class="lk-sidebar__footer">
+      <button
+        v-if="!collapsed"
+        type="button"
+        class="lk-sidebar__sync"
+        :class="{ 'lk-sidebar__sync--syncing': isSyncing }"
+        aria-label="Запустить синхронизацию с сервером"
+        @click="runSync"
+      >
+        <span class="lk-sidebar__sync-label">Синхронизация с сервером</span>
+        <div class="lk-sidebar__sync-track"><div class="lk-sidebar__sync-fill" /></div>
+        <span class="lk-sidebar__sync-status">{{ syncStatusLabel }}</span>
+      </button>
+
+      <RouterLink :to="{ name: 'lk-account' }" class="lk-sidebar__user">
+        <img
+          v-if="auth.user?.avatar"
+          :src="auth.user.avatar"
+          alt=""
+          class="lk-sidebar__avatar lk-sidebar__avatar--photo"
+        />
+        <span v-else class="lk-sidebar__avatar">{{ userInitial }}</span>
+        <span v-if="!collapsed" class="lk-sidebar__user-info">
+          <span class="lk-sidebar__user-name">{{ userLabel }}</span>
+          <span class="lk-sidebar__user-email">{{ auth.user?.email }}</span>
+        </span>
+        <LkIcon v-if="!collapsed" name="gear" :size="18" class="lk-sidebar__user-gear" />
       </RouterLink>
-    </nav>
-
-    <button type="button" class="lk-sidebar__create" @click="handleCreateClick">
-      <LkIcon name="plus" :size="18" />
-      <span v-if="!collapsed">Создать</span>
-    </button>
-
-    <div class="lk-sidebar__spacer" />
-
-    <button
-      v-if="!collapsed"
-      type="button"
-      class="lk-sidebar__sync"
-      :class="{ 'lk-sidebar__sync--syncing': isSyncing }"
-      aria-label="Запустить синхронизацию с сервером"
-      @click="runSync"
-    >
-      <span class="lk-sidebar__sync-label">Синхронизация с сервером</span>
-      <div class="lk-sidebar__sync-track"><div class="lk-sidebar__sync-fill" /></div>
-      <span class="lk-sidebar__sync-status">{{ syncStatusLabel }}</span>
-    </button>
-
-    <RouterLink :to="{ name: 'lk-account' }" class="lk-sidebar__user">
-      <img
-        v-if="auth.user?.avatar"
-        :src="auth.user.avatar"
-        alt=""
-        class="lk-sidebar__avatar lk-sidebar__avatar--photo"
-      />
-      <span v-else class="lk-sidebar__avatar">{{ userInitial }}</span>
-      <span v-if="!collapsed" class="lk-sidebar__user-info">
-        <span class="lk-sidebar__user-name">{{ userLabel }}</span>
-        <span class="lk-sidebar__user-email">{{ auth.user?.email }}</span>
-      </span>
-      <LkIcon v-if="!collapsed" name="gear" :size="18" class="lk-sidebar__user-gear" />
-    </RouterLink>
+    </div>
   </aside>
 </template>
 
 <style scoped>
 .lk-sidebar {
   --lk-sidebar-width: 256px;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
+  flex-shrink: 0;
   width: var(--lk-sidebar-width);
   min-width: var(--lk-sidebar-width);
   display: flex;
@@ -143,8 +148,10 @@ function handleCreateClick(event: MouseEvent): void {
   padding: 1.25rem 1rem;
   background: linear-gradient(180deg, #0f6155 0%, #0b3f37 100%);
   color: #fff;
-  transition: width 0.2s ease, min-width 0.2s ease;
-  overflow-x: hidden;
+  transition:
+    width 0.2s ease,
+    min-width 0.2s ease;
+  overflow: hidden;
 }
 
 .lk-sidebar--collapsed {
@@ -262,8 +269,32 @@ function handleCreateClick(event: MouseEvent): void {
   background: #d99a3e;
 }
 
-.lk-sidebar__spacer {
+/* Высота меню зависит от окна; длинные разделы прокручиваются отдельно.
+   При малой высоте прокручивается навигация, а аккаунт остаётся доступен. */
+.lk-sidebar__navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.lk-sidebar__navigation > * {
+  flex-shrink: 0;
+}
+
+.lk-sidebar__footer {
+  flex: none;
+  width: 100%;
+}
+
+.lk-sidebar--collapsed .lk-sidebar__brand,
+.lk-sidebar--collapsed .lk-sidebar__link,
+.lk-sidebar--collapsed .lk-sidebar__user {
+  justify-content: center;
 }
 
 .lk-sidebar__sync {

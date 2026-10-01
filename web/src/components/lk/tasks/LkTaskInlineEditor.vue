@@ -2,6 +2,8 @@
 import { nextTick, onUnmounted, ref, watch } from 'vue'
 import type { UpdateShoppingListPayload } from '@/types/shoppingList'
 import { dateTimeLocalToIso, isoToDateTimeLocal } from '@/utils/datetime'
+import { colorForTag } from '@/constants/lkTagColors'
+import { LK_TASK_TAG_PRESETS } from '@/constants/lkTaskTags'
 
 const props = defineProps<{
   field: 'tags' | 'deadline' | 'reminder_at'
@@ -75,6 +77,20 @@ async function open(): Promise<void> {
   window.addEventListener('scroll', place, true)
 }
 
+function hasTag(tag: string): boolean {
+  return tags.value.some((value) => value.trim() === tag)
+}
+
+function toggleTag(tag: string): void {
+  if (hasTag(tag)) {
+    tags.value = tags.value.filter((value) => value.trim() !== tag)
+    return
+  }
+  const emptyIndex = tags.value.findIndex((value) => value.trim() === '')
+  if (emptyIndex === -1) tags.value.push(tag)
+  else tags.value[emptyIndex] = tag
+}
+
 async function submit(clear = false): Promise<void> {
   if (saving.value || props.busy) return
   saving.value = true
@@ -132,11 +148,24 @@ onUnmounted(unbind)
       <strong>{{ label }}</strong>
       <fieldset :disabled="saving || busy">
         <template v-if="field === 'tags'">
+          <div class="task-inline__presets" role="group" aria-label="Готовые теги">
+            <button
+              v-for="tag in LK_TASK_TAG_PRESETS"
+              :key="tag"
+              type="button"
+              class="task-inline__preset"
+              :aria-pressed="hasTag(tag)"
+              :style="{ backgroundColor: colorForTag(tag).bg, color: colorForTag(tag).fg }"
+              @click="toggleTag(tag)"
+            >
+              {{ tag }}
+            </button>
+          </div>
           <div v-for="(_, index) in tags" :key="index" class="task-inline__tag">
             <input v-model="tags[index]" :aria-label="'Тег ' + (index + 1)" maxlength="255" />
             <button type="button" :aria-label="'Удалить тег ' + (index + 1)" @click="tags.splice(index, 1)">×</button>
           </div>
-          <button type="button" @click="tags.push('')">+ Добавить тег</button>
+          <button type="button" class="task-inline__add-tag" @click="tags.push('')">+ Добавить свой тег</button>
         </template>
         <label v-else>
           {{ field === 'deadline' ? 'Дедлайн' : 'Дата и время напоминания' }}
@@ -199,6 +228,7 @@ onUnmounted(unbind)
   gap: 12px;
   background: #fff;
   color: #1f2622;
+  color-scheme: light;
   border: 1px solid #e0e8e4;
   border-radius: 14px;
   box-shadow: 0 10px 35px #1f26222b;
@@ -222,10 +252,13 @@ input {
   box-sizing: border-box;
   padding: 8px;
   border: 1px solid #ced8d2;
+  background: #fff;
+  color: #1f2622;
   border-radius: 7px;
   font: inherit;
 }
 button {
+  color: inherit;
   font: inherit;
   cursor: pointer;
 }
@@ -260,9 +293,48 @@ button:disabled {
   border-radius: 7px;
   padding: 7px;
   background: #eef3f0;
+  color: #40534a;
 }
 .task-inline__actions .task-inline__save {
   color: #fff;
-  background: #17897a;
+  background: #147d70;
+}
+.task-inline__actions button:hover:not(:disabled) {
+  background: #dfe9e3;
+}
+.task-inline__actions .task-inline__save:hover:not(:disabled) {
+  background: #11685d;
+}
+.task-inline__panel button:focus-visible {
+  outline: 2px solid #147d70;
+  outline-offset: 2px;
+}
+.task-inline__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px;
+}
+.task-inline__preset {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 5px 9px;
+}
+.task-inline__preset[aria-pressed='true'] {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor;
+}
+.task-inline__preset:hover:not(:disabled) {
+  border-color: currentColor;
+}
+.task-inline__add-tag {
+  color: #176859;
+  background: #e8f3ef;
+  border: 1px solid #b8d6cd;
+  border-radius: 7px;
+}
+.task-inline__add-tag:hover:not(:disabled),
+.task-inline__tag button:hover:not(:disabled) {
+  background: #dceee6;
 }
 </style>

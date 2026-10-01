@@ -11,6 +11,7 @@ import { useLkForms } from '@/composables/useLkForms'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { colorForTag } from '@/constants/lkTagColors'
+import { LK_TASK_TAG_PRESETS as TAG_PRESETS } from '@/constants/lkTaskTags'
 import type { ValidationErrorResponse } from '@/types/api'
 import type {
   ShoppingList,
@@ -20,9 +21,6 @@ import type {
   UpdateShoppingListItemPayload,
 } from '@/types/shoppingList'
 import { shoppingListAccent } from '@/utils/shoppingList'
-
-/** Пресеты тегов задачи/списка (палитра `lkTagColors`, см. `web-lk-tasks-table.md`). */
-const TAG_PRESETS = ['Покупки', 'Дом', 'Личное', 'Важное', 'Работа', 'Здоровье'] as const
 
 const typeOptions: { value: ShoppingListType; label: string; icon: 'cart' | 'check' }[] = [
   { value: 'goods', label: 'Купить', icon: 'cart' },
