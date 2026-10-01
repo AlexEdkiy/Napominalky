@@ -1,10 +1,10 @@
 # Versioned releases (OPS-14)
 
-Production is active on **r2864c86-web55** since 2026-10-01, source SHA
-`2864c8682461988a5d689e6c11d6aa292f2e7cba`. The owner explicitly approved WEB-55;
+Production is active on **rd3d0797-web56** since 2026-10-01, source SHA
+`d3d0797e98e987caa1df5dc8fcdc4014dacb286d`. The owner explicitly approved WEB-56;
 managed switch, public web/API and read-only mounts passed. No new migration.
-[WEB-55 deployment report](../../docs/reviews/web55-ui-fixes-2026-10-01.md#выпуск-2026-10-01).
-Keep r2811588-web54 for code rollback; retain the WEB-54 database columns (batch 16).
+[WEB-56 deployment report](../../docs/reviews/web56-task-tooltips-2026-10-01.md#выпуск-2026-10-01).
+Keep r2864c86-web55 for code rollback; retain the WEB-54 database columns (batch 16).
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
