@@ -85,6 +85,7 @@ export default function ListsScreen(): React.JSX.Element {
         collapsibleSearch
         searchValue={search}
         onSearchChange={setSearch}
+        onGlobalSearch={(q) => router.push({ pathname: '/search', params: { q } })}
       />
 
       <FilterTabs

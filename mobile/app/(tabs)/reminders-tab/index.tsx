@@ -71,6 +71,7 @@ export default function RemindersScreen(): React.JSX.Element {
         collapsibleSearch
         searchValue={search}
         onSearchChange={setSearch}
+        onGlobalSearch={(q) => router.push({ pathname: '/search', params: { q } })}
       />
 
       <View style={styles.filterWrap}>

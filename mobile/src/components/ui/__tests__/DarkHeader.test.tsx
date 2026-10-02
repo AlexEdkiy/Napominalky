@@ -37,7 +37,7 @@ describe('DarkHeader', () => {
     const { getByLabelText } = await render(
       <DarkHeader title="Главная" onAvatarPress={onAvatarPress} />,
     )
-    fireEvent.press(getByLabelText('Профиль'))
+    await fireEvent.press(getByLabelText('Профиль'))
     expect(onAvatarPress).toHaveBeenCalledTimes(1)
   })
 
@@ -92,7 +92,7 @@ describe('DarkHeader', () => {
       const { getByLabelText } = await render(
         <DarkHeader title="Календарь" onBack={onBack} />,
       )
-      fireEvent.press(getByLabelText('Назад'))
+      await fireEvent.press(getByLabelText('Назад'))
       expect(onBack).toHaveBeenCalledTimes(1)
     })
   })
@@ -116,7 +116,7 @@ describe('DarkHeader', () => {
       const { getByLabelText } = await render(
         <DarkHeader title="Напоминания" onCalendarPress={onCalendarPress} />,
       )
-      fireEvent.press(getByLabelText('Открыть календарь'))
+      await fireEvent.press(getByLabelText('Открыть календарь'))
       expect(onCalendarPress).toHaveBeenCalledTimes(1)
     })
   })
@@ -137,19 +137,19 @@ describe('DarkHeader', () => {
     })
 
     it('тап на кнопку-лупу раскрывает строку поиска', async () => {
-      const { getByLabelText, getByPlaceholderText } = await render(
+      const { getByRole, getByPlaceholderText } = await render(
         <DarkHeader title="Заметки" collapsibleSearch onSearchChange={jest.fn()} />,
       )
-      fireEvent.press(getByLabelText('Поиск'))
+      await fireEvent.press(getByRole('button', { name: 'Поиск' }))
       await waitFor(() => expect(getByPlaceholderText('Поиск')).toBeTruthy())
     })
 
     it('повторный тап на кнопку-лупу скрывает строку поиска', async () => {
-      const { getByLabelText, queryByPlaceholderText } = await render(
+      const { getByRole, queryByPlaceholderText } = await render(
         <DarkHeader title="Заметки" collapsibleSearch onSearchChange={jest.fn()} />,
       )
-      fireEvent.press(getByLabelText('Поиск'))
-      fireEvent.press(getByLabelText('Поиск'))
+      await fireEvent.press(getByRole('button', { name: 'Поиск' }))
+      await fireEvent.press(getByRole('button', { name: 'Поиск' }))
       expect(queryByPlaceholderText('Поиск')).toBeNull()
     })
 
@@ -158,4 +158,17 @@ describe('DarkHeader', () => {
       expect(queryByLabelText('Поиск')).toBeNull()
     })
   })
+})
+
+
+it('opens global search with the current text from its button or keyboard', async () => {
+  const onGlobalSearch = jest.fn()
+  const screen = await render(<DarkHeader title="Главная" collapsibleSearch
+    searchValue="молоко" onGlobalSearch={onGlobalSearch} />)
+  expect(screen.queryByLabelText('Искать везде')).toBeNull()
+  await fireEvent.press(screen.getByLabelText('Поиск'))
+  await fireEvent.press(screen.getByLabelText('Искать везде'))
+  expect(onGlobalSearch).toHaveBeenLastCalledWith('молоко')
+  await fireEvent(screen.getByPlaceholderText('Поиск'), 'submitEditing')
+  expect(onGlobalSearch).toHaveBeenCalledTimes(2)
 })

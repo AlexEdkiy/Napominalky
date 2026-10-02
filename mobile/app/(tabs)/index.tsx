@@ -107,6 +107,7 @@ export default function HomeScreen(): React.JSX.Element {
         collapsibleSearch
         searchValue={search}
         onSearchChange={setSearch}
+        onGlobalSearch={(q) => router.push({ pathname: '/search', params: { q } })}
       />
 
       <FilterChips active={filter} onSelect={setFilter} colors={colors} counts={counts} />

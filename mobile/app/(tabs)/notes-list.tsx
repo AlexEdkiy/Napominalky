@@ -86,6 +86,7 @@ export default function NotesListScreen(): React.JSX.Element {
         collapsibleSearch
         searchValue={search}
         onSearchChange={setSearch}
+        onGlobalSearch={(q) => router.push({ pathname: '/search', params: { q } })}
       />
 
       {isLoading ? (

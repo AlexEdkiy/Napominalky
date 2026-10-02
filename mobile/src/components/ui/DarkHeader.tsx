@@ -15,6 +15,7 @@ interface DarkHeaderProps {
   collapsibleSearch?: boolean
   searchValue?: string
   onSearchChange?: (text: string) => void
+  onGlobalSearch?: (text: string) => void
 }
 
 const GRAD_START = { x: 0, y: 0 }
@@ -34,6 +35,7 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
   collapsibleSearch = false,
   searchValue = '',
   onSearchChange,
+  onGlobalSearch,
 }) => {
   const insets = useSafeAreaInsets()
   const [searchOpen, setSearchOpen] = useState(false)
@@ -116,16 +118,26 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
             placeholderTextColor="#9aa39f"
             value={searchValue}
             onChangeText={onSearchChange}
+            returnKeyType={onGlobalSearch ? 'search' : 'done'}
+            onSubmitEditing={() => onGlobalSearch?.(searchValue)}
             autoFocus={collapsibleSearch && searchOpen}
             style={styles.searchInput}
           />
         </View>
+      )}
+      {showSearchRow && onGlobalSearch && (
+        <Pressable accessibilityRole="button" accessibilityLabel="Искать везде"
+          onPress={() => onGlobalSearch(searchValue)} style={styles.globalSearch}>
+          <Text style={styles.globalSearchText}>Искать везде →</Text>
+        </Pressable>
       )}
     </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
+  globalSearch: { paddingVertical: 12, alignSelf: 'flex-end' },
+  globalSearchText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   gradient: {
     paddingHorizontal: 20,
     paddingBottom: 16,

@@ -8,9 +8,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import React from 'react'
-import { act, fireEvent, render } from '@testing-library/react-native'
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 
 // ---- Изменяемые синглтоны для управления данными -------------------------
+
+let mockSearchParams: { uuid: string; itemUuid?: string; showComments?: string } = { uuid: 'list-1' }
+let mockItemsLoading = false
+beforeEach(() => { mockSearchParams = { uuid: 'list-1' }; mockItemsLoading = false })
 
 let mockListData = {
   uuid: 'list-1',
@@ -75,7 +79,7 @@ jest.mock('expo-router', () => ({
       return <View>{headerRight ?? null}</View>
     },
   },
-  useLocalSearchParams: () => ({ uuid: 'list-1' }),
+  useLocalSearchParams: () => mockSearchParams,
 }))
 
 jest.mock('@react-native-community/datetimepicker', () => () => null)
@@ -133,6 +137,7 @@ const mockDeleteItemMutate = jest.fn()
 jest.mock('@/hooks/useShoppingListItems', () => ({
   useShoppingListItems: () => ({
     items: mockItems,
+    isLoading: mockItemsLoading,
     addItem: { mutate: jest.fn() },
     updateItem: { mutate: jest.fn() },
     deleteItem: { mutate: mockDeleteItemMutate },
@@ -485,5 +490,42 @@ describe('Экран [uuid] — шторка «Допатрибуты» пунк
     buttons.find((b) => b.text === 'Удалить')?.onPress?.()
     expect(mockDeleteItemMutate).toHaveBeenCalledWith('i1')
     alertSpy.mockRestore()
+  })
+})
+
+
+describe('MOB-69 — opening a search item', () => {
+  beforeEach(() => { resetToGoodsEmpty(); mockDeleteItemMutate.mockClear() })
+
+  it('waits for items then opens the matching item parameters once', async () => {
+    mockSearchParams = { uuid: 'list-1', itemUuid: 'target' }
+    mockItemsLoading = true
+    const screen = await render(<Screen />)
+    expect(screen.queryByTestId('attributes-sheet')).toBeNull()
+    mockItems = [makeItem('Другой', false, 'other'), makeItem('Найденный', false, 'target')]
+    mockItemsLoading = false
+    await screen.rerender(<Screen />)
+    await waitFor(() => expect(screen.getByTestId('item-name-input').props.value).toBe('Найденный'))
+    await fireEvent.press(screen.getByLabelText('Закрыть'))
+    await screen.rerender(<Screen />)
+    expect(screen.queryByTestId('attributes-sheet')).toBeNull()
+    expect(mockDeleteItemMutate).not.toHaveBeenCalled()
+  })
+
+  it('opens comments for a comment match', async () => {
+    mockSearchParams = { uuid: 'list-1', itemUuid: 'target', showComments: '1' }
+    mockItems = [makeItem('Найденный', false, 'target')]
+    const screen = await render(<Screen />)
+    await waitFor(() => expect(screen.getByText('Комментарии')).toBeTruthy())
+    expect(screen.getByLabelText('Новый комментарий')).toBeTruthy()
+    expect(screen.queryByTestId('attributes-sheet')).toBeNull()
+  })
+
+  it('reports an item deleted after search instead of opening another row', async () => {
+    mockSearchParams = { uuid: 'list-1', itemUuid: 'deleted' }
+    mockItems = [makeItem('Другой', false, 'other')]
+    const screen = await render(<Screen />)
+    expect(screen.getByText('Пункт из результатов поиска больше недоступен.')).toBeTruthy()
+    expect(screen.queryByTestId('attributes-sheet')).toBeNull()
   })
 })

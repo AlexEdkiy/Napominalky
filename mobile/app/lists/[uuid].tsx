@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -44,12 +44,14 @@ const filterItems = (items: ShoppingListItem[], filter: ItemFilter): ShoppingLis
 type StatusSheetTarget = { kind: 'list' } | { kind: 'item'; itemUuid: string }
 
 export default function ListDetailScreen() {
-  const { uuid } = useLocalSearchParams<{ uuid: string }>()
+  const { uuid, itemUuid, showComments } = useLocalSearchParams<{
+    uuid: string; itemUuid?: string; showComments?: string
+  }>()
   const listUuid = uuid ?? ''
   const { colors } = useTheme()
   const { data: list, isLoading } = useShoppingList(listUuid)
   const { deleteList, setListStatus } = useShoppingLists()
-  const { items, addItem, updateItem, deleteItem, checkItem, setItemStatus } =
+  const { items, isLoading: itemsLoading, addItem, updateItem, deleteItem, checkItem, setItemStatus } =
     useShoppingListItems(listUuid)
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
@@ -59,6 +61,21 @@ export default function ListDetailScreen() {
   /** uuid пункта, чей тред комментариев открыт (null — шторка скрыта). */
   const [commentsItemUuid, setCommentsItemUuid] = useState<string | null>(null)
   const commentCounts = useItemCommentCounts(listUuid, items.map((i) => i.uuid))
+  const openedSearchTarget = useRef('')
+  const [searchTargetMissing, setSearchTargetMissing] = useState(false)
+  useEffect(() => {
+    if (!itemUuid || itemsLoading || isLoading) return
+    const target = `${listUuid}:${itemUuid}:${showComments}`
+    if (openedSearchTarget.current === target) return
+    openedSearchTarget.current = target
+    const found = items.some((item) => item.uuid === itemUuid)
+    setSearchTargetMissing(!found)
+    if (!found) return
+    setItemFilter('all')
+    if (showComments === '1') setCommentsItemUuid(itemUuid)
+    else setAttributesItemUuid(itemUuid)
+  }, [itemUuid, showComments, listUuid, itemsLoading, isLoading, items])
+
 
   const accentColor = list?.type === 'tasks' ? colors.amber : colors.accent
   const accentBg = list?.type === 'tasks' ? colors.amberBg : colors.accentSoftBg
@@ -189,6 +206,10 @@ export default function ListDetailScreen() {
             // отступ от края экрана; шапка уже имеет собственные margin/padding
             // (16), поэтому компенсируем внешний паддинг здесь, чтобы не удвоить его.
             <View style={styles.headerOffset}>
+              {searchTargetMissing && <Text accessibilityRole="alert"
+                style={[styles.searchMissing, { color: colors.textSecondary }]}>
+                Пункт из результатов поиска больше недоступен.
+              </Text>}
               <ListDetailHeader
                 listType={listType}
                 accentColor={accentColor}
@@ -323,6 +344,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  searchMissing: { padding: 16, fontSize: 15 },
   container: { flex: 1 },
   loader: { marginTop: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
