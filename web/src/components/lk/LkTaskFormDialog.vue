@@ -8,6 +8,7 @@ import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import LkTaskItemRow from '@/components/lk/LkTaskItemRow.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
+import { useLkDialogViewport } from '@/composables/useLkDialogViewport'
 import { useShoppingListItems } from '@/composables/useShoppingListItems'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { colorForTag } from '@/constants/lkTagColors'
@@ -29,6 +30,7 @@ const typeOptions: { value: ShoppingListType; label: string; icon: 'cart' | 'che
 
 const { isDesktop } = useLkBreakpoint()
 const { isTaskFormOpen, taskFormList, closeForm, notifyTaskSaved } = useLkForms()
+const { viewportStyle } = useLkDialogViewport(computed(() => isTaskFormOpen.value && !isDesktop.value))
 
 /**
  * Текущий список модалки. В new-режиме — `null` до первого «Добавить пункт»
@@ -427,6 +429,7 @@ async function confirmDelete(): Promise<void> {
     v-if="isTaskFormOpen"
     class="lk-form-dialog__overlay"
     :class="{ 'lk-form-dialog__overlay--desktop': isDesktop }"
+    :style="viewportStyle"
     @click.self="handleClose"
   >
     <div
@@ -717,6 +720,7 @@ async function confirmDelete(): Promise<void> {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 0 20px;
   scrollbar-width: thin;
   scrollbar-color: #cfd6d3 transparent;
@@ -921,10 +925,12 @@ async function confirmDelete(): Promise<void> {
 .lk-form-dialog__item-form {
   display: flex;
   gap: 8px;
+  margin-top: 12px;
 }
 
 .lk-form-dialog__item-input {
   flex: 1;
+  min-width: 0;
 }
 
 .lk-form-dialog__item-add {
@@ -1064,5 +1070,39 @@ async function confirmDelete(): Promise<void> {
   color: #cf5b4a;
   font-size: 0.8rem;
   margin-top: 4px;
+}
+
+/* На телефоне используем всю доступную над клавиатурой высоту. */
+@media (max-width: 1023px) {
+  .lk-form-dialog__panel {
+    max-height: 100%;
+    padding: 16px 0 max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .lk-form-dialog__footer {
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .lk-form-dialog__input,
+  .lk-form-dialog__tag-input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lk-form-dialog__footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .lk-form-dialog__spacer {
+    display: none;
+  }
+
+  .lk-form-dialog__delete {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
 </style>
