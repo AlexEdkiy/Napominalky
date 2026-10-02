@@ -49,6 +49,11 @@ const rightItems = LK_NAV_ITEMS.slice(splitIndex)
 
 <style scoped>
 .lk-bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  height: var(--lk-bottom-nav-height, calc(4rem + env(safe-area-inset-bottom, 0px)));
   display: flex;
   align-items: center;
   justify-content: space-around;

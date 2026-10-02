@@ -197,6 +197,7 @@ onUnmounted(() => {
 }
 
 .lk-shell--mobile {
+  --lk-bottom-nav-height: calc(4rem + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
 }
@@ -221,6 +222,8 @@ onUnmounted(() => {
 
 .lk-shell--mobile .lk-shell__content {
   padding: 1rem;
+  /* Место для закреплённой панели и выступающей круглой кнопки. */
+  padding-bottom: calc(1.5rem + var(--lk-bottom-nav-height));
 }
 
 .lk-shell__create-overlay {
