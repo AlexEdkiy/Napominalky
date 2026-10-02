@@ -9,7 +9,7 @@ function findItem(routeName: string) {
 describe('LK_NAV_ITEMS', () => {
   it('contains 5 items in order: Обзор, Задачи и списки, Напоминания, Календарь, Заметки', () => {
     expect(LK_NAV_ITEMS.map((item) => item.label)).toEqual([
-      'Обзор',
+      'Вспомнить все!',
       'Задачи и списки',
       'Напоминания',
       'Календарь',

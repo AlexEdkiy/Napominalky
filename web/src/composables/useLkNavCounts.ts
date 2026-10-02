@@ -1,40 +1,42 @@
-import { ref } from 'vue'
-
+import { computed, ref } from 'vue'
+import type { Ref } from 'vue'
 import { notesApi } from '@/api/notesApi'
-import { shoppingListsApi } from '@/api/shoppingListsApi'
+import { fetchAllShoppingLists } from '@/api/fetchAllShoppingLists'
+import { fetchListsDerivedDates } from '@/composables/useLkTasksTable'
+import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
+import type { ShoppingList } from '@/types/shoppingList'
+import { hasDeadlineToday } from '@/utils/lkToday'
 
-/**
- * Кол-во списков покупок, запрашиваемое для подсчёта бейджа «активных задач».
- * Публичного агрегирующего эндпоинта нет — считаем по доступной первой
- * странице списков (см. design-бриф: «используй доступные данные»).
- */
-const NAV_COUNTS_LISTS_PER_PAGE = 100
-
-/**
- * Лёгкие бейджи навигации ЛК: число активных (невыполненных) пунктов списков
- * покупок и число заметок (`meta.total`, точное независимо от пагинации).
- * Ошибки не выбрасывает — бейджи необязательны и не должны блокировать
- * рендер оболочки.
- */
-export function useLkNavCounts() {
+/** Бейджи оболочки; при ошибке сроки неизвестны, а не «всё выполнено». */
+export function useLkNavCounts(today: Ref<Date> = ref(new Date())) {
   const activeTasksCount = ref<number | null>(null)
   const notesCount = ref<number | null>(null)
+  const lists = ref<ShoppingList[]>([])
+  const dates = ref(new Map<string, LkListDerivedDates>())
+  const datesReady = ref(false)
+  let generation = 0
+  const todayDeadlineCount = computed(() => datesReady.value
+    ? lists.value.filter((list) => hasDeadlineToday(list, dates.value.get(list.uuid), today.value)).length
+    : null)
 
   async function load(): Promise<void> {
+    const current = ++generation
     try {
-      const [listsResponse, notesResponse] = await Promise.all([
-        shoppingListsApi.fetchLists({ per_page: NAV_COUNTS_LISTS_PER_PAGE }),
-        notesApi.fetchNotes({ per_page: 1 }),
+      const [allLists, notesResponse] = await Promise.all([
+        fetchAllShoppingLists(), notesApi.fetchNotes({ per_page: 1 }),
       ])
-      activeTasksCount.value = listsResponse.data.reduce(
-        (sum, list) => sum + (list.items_count - list.checked_items_count),
-        0,
-      )
+      if (current !== generation) return
+      activeTasksCount.value = allLists.reduce((sum, list) => sum + list.items_count - list.checked_items_count, 0)
       notesCount.value = notesResponse.meta.total
+      const active = allLists.filter((list) => !list.is_completed)
+      const derived = await fetchListsDerivedDates(active, new Map())
+      if (current !== generation) return
+      lists.value = active
+      dates.value = derived
+      datesReady.value = active.every((list) => derived.has(list.uuid))
     } catch {
-      // Бейджи необязательны — тихо игнорируем сетевую ошибку.
+      if (current === generation) datesReady.value = false
     }
   }
-
-  return { activeTasksCount, notesCount, load }
+  return { activeTasksCount, notesCount, todayDeadlineCount, load }
 }

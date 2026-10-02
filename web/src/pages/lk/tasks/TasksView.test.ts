@@ -92,9 +92,9 @@ function stubMatchMedia(matches: boolean) {
 // API. Отслеживаем все смонтированные обёртки и размонтируем их в `afterEach`.
 const mountedWrappers: VueWrapper[] = []
 
-async function mountTasksView() {
+async function mountTasksView(query: Record<string, string> = {}) {
   const router = createTestRouter()
-  await router.push({ name: 'lk-tasks' })
+  await router.push({ name: 'lk-tasks', query })
   const wrapper = mount(TasksView, { global: { plugins: [router] } })
   mountedWrappers.push(wrapper)
   return { wrapper, router }
@@ -127,6 +127,64 @@ describe('TasksView', () => {
   afterEach(() => {
     mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount())
     vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it('filters all pages to unfinished today deadlines, supports type/reset and direct URL reload', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 2, 12))
+    stubMatchMedia(false)
+    const first = [
+      makeList({ uuid: 'parent', title: 'Общий срок', type: 'tasks', deadline: '2026-10-02' }),
+      makeList({ uuid: 'reminder', title: 'Только напоминание', type: 'tasks', reminder_at: '2026-10-02T12:00:00' }),
+      makeList({ uuid: 'checked', title: 'Куплено сегодня', type: 'goods' }),
+      makeList({ uuid: 'done', title: 'Завершено', type: 'tasks', deadline: '2026-10-02', is_completed: true }),
+    ]
+    const second = [makeList({ uuid: 'goods', title: 'Купить сегодня' }),
+      makeList({ uuid: 'overdue', title: 'Просрочено и сегодня', type: 'tasks', deadline: '2026-10-01' })]
+    vi.mocked(shoppingListsApi.fetchLists).mockImplementation(async (params) => ({
+      ...paginatedLists(params?.page === 2 ? second : first),
+      meta: { current_page: params?.page ?? 1, last_page: 2, per_page: 100, total: 6 },
+    }))
+    vi.mocked(shoppingListsApi.fetchItems).mockImplementation(async (uuid) => ['goods', 'overdue', 'checked'].includes(uuid)
+      ? [makeItem({ deadline: '2026-10-02', is_checked: uuid === 'checked' })] : [])
+    const { wrapper, router } = await mountTasksView({ deadline: 'today' })
+    await flushPromises()
+    const titles = () => wrapper.findAll('.lk-task-row__title').map((row) => row.text())
+    expect(titles()).toEqual(['Общий срок', 'Купить сегодня', 'Просрочено и сегодня'])
+    expect(shoppingListsApi.fetchLists).toHaveBeenCalledWith({ page: 2, per_page: 100 })
+    expect(wrapper.find('.tasks-view__load-more').exists()).toBe(false)
+    await wrapper.findAll('.tasks-view__type-tab')[1]!.trigger('click')
+    await flushPromises()
+    expect(titles()).toEqual(['Купить сегодня'])
+    // Repeated bell navigation resets the type filter even on the same page.
+    await router.push({ name: 'lk-tasks', query: { deadline: 'today' } })
+    await flushPromises()
+    expect(titles()).toHaveLength(3)
+    await wrapper.find('.tasks-view__today button').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({})
+    expect(wrapper.find('.tasks-view__today').exists()).toBe(false)
+    expect(titles()).toContain('Только напоминание')
+    router.back()
+    await flushPromises()
+    expect(wrapper.find('.tasks-view__today').exists()).toBe(true)
+    expect(titles()).toHaveLength(3)
+  })
+
+  it('shows a retryable error instead of a false empty filter when item loading fails', async () => {
+    stubMatchMedia(false)
+    vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginatedLists([makeList({})]))
+    vi.mocked(shoppingListsApi.fetchItems).mockRejectedValue(new Error('offline'))
+    const { wrapper } = await mountTasksView({ deadline: 'today' })
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('Не удалось проверить сроки')
+    expect(wrapper.text()).not.toContain('Невыполненных списков с дедлайном на сегодня нет.')
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
+    await wrapper.find('.tasks-view__retry').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Невыполненных списков с дедлайном на сегодня нет.')
   })
 
   it('shows a loading state before the lists resolve', async () => {

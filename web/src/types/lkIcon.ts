@@ -8,6 +8,7 @@ export type LkIconName =
   | 'calendar'
   | 'note'
   | 'bell'
+  | 'alarm'
   | 'search'
   | 'gear'
   | 'menu'

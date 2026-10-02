@@ -36,7 +36,7 @@ describe('LkBottomNav', () => {
       return node.find('.lk-bottom-nav__label').text()
     })
 
-    expect(slotLabels).toEqual(['Обзор', 'Задачи', 'Напомин.', '+', 'Календарь', 'Заметки'])
+    expect(slotLabels).toEqual(['Главная', 'Задачи', 'Напомин.', '+', 'Календарь', 'Заметки'])
   })
 
   it('highlights the active nav item in teal, matching the current route', async () => {

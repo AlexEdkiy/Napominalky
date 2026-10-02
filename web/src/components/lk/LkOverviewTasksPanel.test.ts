@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Router } from 'vue-router'
 
@@ -7,6 +7,8 @@ import LkOverviewTasksPanel from './LkOverviewTasksPanel.vue'
 import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
 import { LK_VISIBLE_COUNT_DEBOUNCE_MS } from '@/composables/useLkVisibleCount'
 import type { ShoppingList } from '@/types/shoppingList'
+
+enableAutoUnmount(afterEach)
 
 const ORIGINAL_INNER_HEIGHT = window.innerHeight
 
@@ -95,7 +97,7 @@ describe('LkOverviewTasksPanel', () => {
   it('shows the empty state without the «Все задачи» link when there are no lists', async () => {
     const { wrapper } = await mountPanel([])
 
-    expect(wrapper.text()).toContain('Пока нет задач.')
+    expect(wrapper.text()).toContain('Пока нет задач и покупок.')
     expect(wrapper.find('.lk-overview-tasks__link').exists()).toBe(false)
   })
 
@@ -119,7 +121,7 @@ describe('LkOverviewTasksPanel', () => {
     const { wrapper } = await mountPanel(makeLists(10))
 
     expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(5)
-    expect(wrapper.find('.lk-overview-tasks__link').text()).toContain('Все задачи')
+    expect(wrapper.find('.lk-overview-tasks__link').attributes('aria-label')).toBe('Все задачи и покупки')
   })
 
   it('clamps the visible rows to the max (8) on tall screens and to the min (3) on tiny ones', async () => {
@@ -203,78 +205,29 @@ describe('LkOverviewTasksPanel', () => {
     expect(wrapper.find('.lk-overview-tasks__link').exists()).toBe(true)
   })
 
-  it('shows only today-deadline tasks when «Сделать сегодня» is on and all tasks when off', async () => {
+  it('marks today deadlines/reminders without hiding other lists or showing the old filter', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(NOW)
-    const { wrapper } = await mountPanel(
-      [makeList('l-1'), makeList('l-2'), makeList('l-3')],
-      makeDerived({ 'l-1': '2026-07-06', 'l-2': '2026-07-07', 'l-3': null }),
-    )
-
-    const chip = wrapper.find('.lk-overview-tasks__filter')
-    expect(chip.text()).toContain('Сделать сегодня')
-    expect(chip.attributes('aria-pressed')).toBe('false')
+    const derived = makeDerived({ 'l-1': '2026-07-06', 'l-2': null, 'l-3': '2026-07-07' })
+    derived.get('l-2')!.reminderAt = '2026-07-06T23:00:00'
+    const { wrapper } = await mountPanel(makeLists(3), derived)
+    expect(wrapper.find('h2').text()).toBe('Задачи и покупки')
+    expect(wrapper.find('.lk-overview-tasks__filter').exists()).toBe(false)
     expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(3)
-
-    // Вкл: остаются только задачи с дедлайном на сегодня.
-    await chip.trigger('click')
-    expect(chip.attributes('aria-pressed')).toBe('true')
-    const rows = wrapper.findAll('.lk-overview-tasks__item')
-    expect(rows).toHaveLength(1)
-    expect(rows[0]?.text()).toContain('Список l-1')
-
-    // Выкл: снова весь активный набор.
-    await chip.trigger('click')
-    expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(3)
+    expect(wrapper.findAll('.lk-overview-tasks__alarm')).toHaveLength(2)
+    expect(wrapper.findAll('.lk-overview-tasks__item')[2]!.find('.lk-overview-tasks__alarm').exists()).toBe(false)
   })
 
-  it('shows the today-empty state when the filter is on and nothing is due today', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(NOW)
-    const { wrapper } = await mountPanel(
-      [makeList('l-1'), makeList('l-2')],
-      makeDerived({ 'l-1': '2026-07-08', 'l-2': null }),
-    )
-
-    await wrapper.find('.lk-overview-tasks__filter').trigger('click')
-
-    expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(0)
-    expect(wrapper.text()).toContain('На сегодня задач нет.')
-  })
-
-  it('applies the adaptive row limit and the «Все задачи» link to the filtered set', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(NOW)
-    setInnerHeight(290) // (290 - 40) / 48 = 5 видимых строк
-    const lists = makeLists(10)
-    const derived = makeDerived(
-      Object.fromEntries(lists.map((list, index) => [list.uuid, index < 7 ? '2026-07-06' : null])),
-    )
-    const { wrapper } = await mountPanel(lists, derived)
-
-    // Фильтр вкл: 7 сегодняшних > 5 видимых → лимит и ссылка работают по отфильтрованному набору.
-    await wrapper.find('.lk-overview-tasks__filter').trigger('click')
-    expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(5)
-    const link = wrapper.find('.lk-overview-tasks__link')
-    expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('/lk/tasks')
-  })
-
-  it('hides the «Все задачи» link when the filtered set fits into the visible area', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(NOW)
-    setInnerHeight(290) // 5 видимых строк; всего 10 задач, но сегодняшних лишь 2
-    const lists = makeLists(10)
-    const derived = makeDerived(
-      Object.fromEntries(lists.map((list, index) => [list.uuid, index < 2 ? '2026-07-06' : null])),
-    )
-    const { wrapper } = await mountPanel(lists, derived)
-
-    expect(wrapper.find('.lk-overview-tasks__link').exists()).toBe(true)
-    await wrapper.find('.lk-overview-tasks__filter').trigger('click')
-
-    expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(2)
-    expect(wrapper.find('.lk-overview-tasks__link').exists()).toBe(false)
+  it('updates alarms at local midnight and removes timers on unmount', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 6, 6, 23, 59, 59))
+    const { wrapper } = await mountPanel(makeLists(2), makeDerived({ 'l-1': '2026-07-06', 'l-2': '2026-07-07' }))
+    expect(wrapper.findAll('.lk-overview-tasks__item')[0]!.find('.lk-overview-tasks__alarm').exists()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1100)
+    expect(wrapper.findAll('.lk-overview-tasks__item')[0]!.find('.lk-overview-tasks__alarm').exists()).toBe(false)
+    expect(wrapper.findAll('.lk-overview-tasks__item')[1]!.find('.lk-overview-tasks__alarm').exists()).toBe(true)
+    wrapper.unmount()
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('recomputes the visible rows after a debounced window resize', async () => {

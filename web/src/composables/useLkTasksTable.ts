@@ -1,4 +1,6 @@
 import { computed, ref } from 'vue'
+import type { Ref } from 'vue'
+import { fetchAllShoppingLists } from '@/api/fetchAllShoppingLists'
 
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { useShoppingLists } from '@/composables/useShoppingLists'
@@ -53,6 +55,9 @@ export interface LkListCommentPreview {
 export interface LkListDerivedDates {
   deadline: string | null
   reminderAt: string | null
+  /** Все сроки невыполненных пунктов для отметок/фильтра на сегодня. */
+  activeDeadlines?: string[]
+  activeReminders?: string[]
   /** Суммарное число комментариев тредов всех пунктов списка. */
   commentsCount: number
   /** Плоский список комментариев (в порядке пунктов, внутри пункта — ASC). */
@@ -109,8 +114,7 @@ function dayDiff(iso: string | null, now: Date): number | null {
 
 /**
  * Дата приходится на «сегодня»? Единое правило и для метки «Сегодня» в
- * таблице задач (`lkTableDateLabel`), и для быстрого фильтра «Сделать
- * сегодня» панели «Задачи» на Обзоре (`LkOverviewTasksPanel`).
+ * таблице задач (`lkTableDateLabel`), и для отметок/фильтра на сегодня.
  */
 export function isLkDateToday(iso: string | null, now: Date): boolean {
   return dayDiff(iso, now) === 0
@@ -199,6 +203,8 @@ async function deriveListDates(
         reminderAt: list.type === 'tasks' && list.reminder_at !== undefined
           ? list.reminder_at : chooseDate(active.map((item) => item.reminder_at)),
         items: items.map(({ uuid, name, is_checked, status }) => ({ uuid, name, is_checked, status })),
+        activeDeadlines: items.filter((item) => !item.is_checked && item.deadline).map((item) => item.deadline!),
+        activeReminders: items.filter((item) => !item.is_checked && item.reminder_at).map((item) => item.reminder_at!),
         commentsCount: items.reduce((sum, item) => sum + item.comments_count, 0),
         comments: flattenItemComments(items),
       },
@@ -221,11 +227,11 @@ export async function fetchListsDerivedDates(
 ): Promise<Map<string, LkListDerivedDates>> {
   const now = new Date()
   const targets = lists.filter((list) => !known.has(list.uuid))
-  const entries = await Promise.all(targets.map((list) => deriveListDates(list, now)))
   const next = new Map(known)
-  for (const entry of entries) {
-    if (entry !== null) {
-      next.set(entry[0], entry[1])
+  for (let offset = 0; offset < targets.length; offset += 8) {
+    const entries = await Promise.all(targets.slice(offset, offset + 8).map((list) => deriveListDates(list, now)))
+    for (const entry of entries) {
+      if (entry !== null) next.set(entry[0], entry[1])
     }
   }
   return next
@@ -238,8 +244,9 @@ export async function fetchListsDerivedDates(
  * в конце) и ленивое вычисление производных дат пунктов (см.
  * `LkListDerivedDates`) — не блокирует рендер строк.
  */
-export function useLkTasksTable() {
-  const { lists, meta, isLoading, error, load, loadMore, update, remove } = useShoppingLists()
+export function useLkTasksTable(allPages?: Ref<boolean>) {
+  const { lists, meta, isLoading, error, update, remove } = useShoppingLists()
+  const isLoadingDates = ref(false)
 
   const tab = ref<LkTasksTab>('all')
   const typeFilter = ref<LkTasksTypeFilter>('all')
@@ -248,6 +255,7 @@ export function useLkTasksTable() {
   const derivedDates = ref<Map<string, LkListDerivedDates>>(new Map())
   const savingLists = ref(new Set<string>())
   let loadGeneration = 0
+  let loadingMore = false
 
   function toggleSort(key: LkTasksSortKey): void {
     if (sortKey.value === key) {
@@ -332,26 +340,64 @@ export function useLkTasksTable() {
    */
   async function loadDerivedDates(): Promise<void> {
     const generation = loadGeneration
-    const result = await fetchListsDerivedDates(lists.value, derivedDates.value)
-    if (generation === loadGeneration) derivedDates.value = result
+    isLoadingDates.value = true
+    const targets = allPages?.value ? lists.value.filter((list) => !list.is_completed) : lists.value
+    const result = await fetchListsDerivedDates(targets, derivedDates.value)
+    if (generation !== loadGeneration) return
+    derivedDates.value = new Map([...derivedDates.value, ...result])
+    isLoadingDates.value = false
+    if (allPages?.value && targets.some((list) => !result.has(list.uuid))) {
+      error.value = 'Не удалось проверить сроки всех списков. Повторите загрузку.'
+    }
   }
 
   /** Полная перезагрузка таблицы: списки — блокирующе, производные даты — фоном. */
   async function reload(): Promise<void> {
-    loadGeneration += 1
+    const generation = ++loadGeneration
+    isLoading.value = true
+    isLoadingDates.value = false
+    error.value = null
     derivedDates.value = new Map()
-    await load({ per_page: LK_TASKS_TABLE_PER_PAGE })
-    void loadDerivedDates()
+    try {
+      if (allPages?.value) {
+        const result = await fetchAllShoppingLists()
+        if (generation !== loadGeneration) return
+        lists.value = result
+        meta.value = null
+      } else {
+        const response = await shoppingListsApi.fetchLists({ per_page: LK_TASKS_TABLE_PER_PAGE })
+        if (generation !== loadGeneration) return
+        lists.value = response.data
+        meta.value = response.meta
+      }
+      void loadDerivedDates()
+    } catch (e) {
+      if (generation === loadGeneration) error.value = e instanceof Error ? e.message : 'Не удалось загрузить списки'
+    } finally {
+      if (generation === loadGeneration) isLoading.value = false
+    }
   }
 
   async function loadNextPage(): Promise<void> {
-    await loadMore()
-    void loadDerivedDates()
+    if (loadingMore || isLoading.value || !hasMore.value || !meta.value) return
+    const generation = loadGeneration
+    loadingMore = true
+    try {
+      const response = await shoppingListsApi.fetchLists({ page: meta.value.current_page + 1, per_page: meta.value.per_page })
+      if (generation !== loadGeneration) return
+      lists.value = [...lists.value, ...response.data]
+      meta.value = response.meta
+      void loadDerivedDates()
+    } catch (e) {
+      if (generation === loadGeneration) error.value = e instanceof Error ? e.message : 'Не удалось загрузить списки'
+    } finally {
+      loadingMore = false
+    }
   }
 
   /** Чекбокс строки: переключает флаг `is_completed` через PUT /shopping-lists/{uuid}. */
-  async function toggleCompleted(list: ShoppingList): Promise<void> {
-    await update(list.uuid, { is_completed: !list.is_completed })
+  async function toggleCompleted(list: ShoppingList): Promise<boolean> {
+    return await update(list.uuid, { is_completed: !list.is_completed }) !== null
   }
 
   /** Сохраняем ответ API без оптимистичной подмены; ошибку обрабатывает редактор. */
@@ -392,6 +438,7 @@ export function useLkTasksTable() {
     lists,
     visibleLists,
     isLoading,
+    isLoadingDates,
     error,
     hasMore,
     tab,

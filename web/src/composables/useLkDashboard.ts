@@ -32,7 +32,7 @@ function emptyStats(): LkOverviewStats {
 /**
  * Инкапсулирует данные раздела «Обзор» (`DashboardView`): агрегаты по
  * спискам/напоминаниям/заметкам, активные списки задач для панели «Задачи»
- * (с производными датами пунктов для фильтра «Сделать сегодня») и ближайшие
+ * (с производными датами пунктов для отметок на сегодня) и ближайшие
  * предстоящие напоминания.
  */
 export function useLkDashboard() {
@@ -48,18 +48,22 @@ export function useLkDashboard() {
   /**
    * Производные даты пунктов активных списков (ближайшие deadline/reminder_at)
    * — тем же механизмом, что и таблица «Задачи и списки»
-   * (`fetchListsDerivedDates`); нужны фильтру «Сделать сегодня» панели
+   * (`fetchListsDerivedDates`); нужны отметкам на сегодня панели
    * «Задачи». Загружаются фоном и не блокируют рендер Обзора.
    */
   const taskListDates = ref<Map<string, LkListDerivedDates>>(new Map())
   const upcomingReminders = ref<Reminder[]>([])
 
+  let generation = 0
+
   /** Фоновая подгрузка производных дат пунктов активных списков; сбои не ломают Обзор. */
-  async function loadTaskListDates(): Promise<void> {
-    taskListDates.value = await fetchListsDerivedDates(taskLists.value, new Map())
+  async function loadTaskListDates(current: number): Promise<void> {
+    const dates = await fetchListsDerivedDates(taskLists.value, new Map())
+    if (current === generation) taskListDates.value = dates
   }
 
   async function load(): Promise<void> {
+    const current = ++generation
     isLoading.value = true
     error.value = null
     try {
@@ -69,6 +73,8 @@ export function useLkDashboard() {
         notesApi.fetchNotes({ per_page: 1 }),
       ])
 
+      if (current !== generation) return
+      taskListDates.value = new Map()
       const totalItems = listsResponse.data.reduce((sum, list) => sum + list.items_count, 0)
       const checkedItems = listsResponse.data.reduce(
         (sum, list) => sum + list.checked_items_count,
@@ -87,11 +93,11 @@ export function useLkDashboard() {
         notesCount: notesResponse.meta.total,
         completedWeekPercent: totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0,
       }
-      void loadTaskListDates()
+      void loadTaskListDates(current)
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Не удалось загрузить данные обзора'
+      if (current === generation) error.value = e instanceof Error ? e.message : 'Не удалось загрузить данные обзора'
     } finally {
-      isLoading.value = false
+      if (current === generation) isLoading.value = false
     }
   }
 

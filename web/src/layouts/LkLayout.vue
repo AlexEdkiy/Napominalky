@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import LkBottomNav from '@/components/lk/LkBottomNav.vue'
 import LkCreateMenu from '@/components/lk/LkCreateMenu.vue'
@@ -14,6 +14,7 @@ import { useLkAutoRefresh } from '@/composables/useLkAutoRefresh'
 import { provideLkBreadcrumbTail } from '@/composables/useLkBreadcrumbTail'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import { useLkForms } from '@/composables/useLkForms'
+import { useLkToday } from '@/composables/useLkToday'
 import { useLkNavCounts } from '@/composables/useLkNavCounts'
 import { useSyncMeter } from '@/composables/useSyncMeter'
 import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
@@ -21,9 +22,14 @@ import { useAuthStore } from '@/stores/authStore'
 import { getUserDisplayName } from '@/utils/user'
 
 const route = useRoute()
+const router = useRouter()
+const today = useLkToday()
+function openToday(): void {
+  void router.push({ name: 'lk-tasks', query: { deadline: 'today' } })
+}
 const auth = useAuthStore()
 const { isDesktop } = useLkBreakpoint()
-const { activeTasksCount, notesCount, load: loadNavCounts } = useLkNavCounts()
+const { activeTasksCount, notesCount, todayDeadlineCount, load: loadNavCounts } = useLkNavCounts(today)
 const { runSync } = useSyncMeter()
 const { openTaskForm, openNoteForm, openReminderForm, tasksVersion, notesVersion } = useLkForms()
 
@@ -148,8 +154,8 @@ onUnmounted(() => {
     />
 
     <div class="lk-shell__main">
-      <LkTopbar v-if="isDesktop" :title="sectionMeta.title" @toggle-sidebar="toggleSidebar" />
-      <LkMobileHeader v-else :title="sectionMeta.title" :subtitle="sectionSubtitle" />
+      <LkTopbar v-if="isDesktop" :title="sectionMeta.title" :today-deadline-count="todayDeadlineCount" @open-today="openToday" @toggle-sidebar="toggleSidebar" />
+      <LkMobileHeader v-else :title="sectionMeta.title" :subtitle="sectionSubtitle" :today-deadline-count="todayDeadlineCount" @open-today="openToday" />
 
       <main class="lk-shell__content">
         <RouterView />

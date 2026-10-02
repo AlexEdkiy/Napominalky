@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import LkBreadcrumbs from '@/components/lk/LkBreadcrumbs.vue'
+import LkTodayBell from '@/components/lk/LkTodayBell.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { getUserInitial } from '@/utils/user'
@@ -10,9 +11,11 @@ import { getUserInitial } from '@/utils/user'
 interface Props {
   title: string
   subtitle: string
+  todayDeadlineCount?: number | null
 }
 
 defineProps<Props>()
+const emit = defineEmits<{ openToday: [] }>()
 
 const auth = useAuthStore()
 const isSearchOpen = ref(false)
@@ -39,6 +42,8 @@ function toggleSearch(): void {
       >
         <LkIcon name="search" :size="18" />
       </button>
+
+      <LkTodayBell compact :count="todayDeadlineCount ?? null" @open="emit('openToday')" />
 
       <RouterLink :to="{ name: 'lk-account' }" class="lk-mobile-header__avatar">
         <img
@@ -70,7 +75,7 @@ function toggleSearch(): void {
 .lk-mobile-header__row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .lk-mobile-header__titles {

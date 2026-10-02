@@ -22,8 +22,8 @@ export interface LkNavItem {
 export const LK_NAV_ITEMS: LkNavItem[] = [
   {
     routeName: 'lk-dashboard',
-    label: 'Обзор',
-    mobileLabel: 'Обзор',
+    label: 'Вспомнить все!',
+    mobileLabel: 'Главная',
     icon: 'grid',
   },
   {
@@ -66,7 +66,7 @@ export interface LkSectionMeta {
 }
 
 export const LK_SECTION_META: Record<string, LkSectionMeta> = {
-  'lk-dashboard': { title: 'Обзор', subtitle: 'Вот что запланировано' },
+  'lk-dashboard': { title: 'Вспомнить все!', subtitle: 'Вот что запланировано' },
   'lk-tasks': {
     title: 'Задачи и списки',
     subtitle: 'Таблица дел с тегами, датами и напоминаниями',

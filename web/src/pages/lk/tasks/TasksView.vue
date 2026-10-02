@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useLkToday } from '@/composables/useLkToday'
+import { hasDeadlineToday } from '@/utils/lkToday'
 
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkTaskTableRow from '@/components/lk/tasks/LkTaskTableRow.vue'
@@ -8,7 +11,7 @@ import { useLkForms } from '@/composables/useLkForms'
 import { useLkTasksTable } from '@/composables/useLkTasksTable'
 import { useLkWideDesktop } from '@/composables/useLkBreakpoint'
 import type { LkTasksSortKey, LkTasksTab, LkTasksTypeFilter } from '@/composables/useLkTasksTable'
-import type { ShoppingList } from '@/types/shoppingList'
+import type { UpdateShoppingListPayload, ShoppingList } from '@/types/shoppingList'
 
 const TABS: { value: LkTasksTab; label: string }[] = [
   { value: 'all', label: 'Все' },
@@ -32,11 +35,16 @@ const COLUMNS: { key: LkTasksSortKey; label: string }[] = [
 ]
 
 const { isWideDesktop } = useLkWideDesktop()
-const { openTaskForm, tasksVersion } = useLkForms()
+const { openTaskForm, tasksVersion, notifyTaskSaved } = useLkForms()
+const route = useRoute()
+const router = useRouter()
+const today = useLkToday()
+const todayOnly = computed(() => route.query.deadline === 'today')
 const {
   lists,
   visibleLists,
   isLoading,
+  isLoadingDates,
   error,
   hasMore,
   tab,
@@ -50,14 +58,44 @@ const {
   toggleCompleted,
   updateFields,
   isSaving,
-} = useLkTasksTable()
+} = useLkTasksTable(todayOnly)
+const displayedLists = computed(() => todayOnly.value
+  ? visibleLists.value.filter((list) => hasDeadlineToday(list, derivedFor(list.uuid), today.value))
+  : visibleLists.value)
+
+watch(() => route.query, () => {
+  if (todayOnly.value) {
+    tab.value = 'active'
+    typeFilter.value = route.query.type === 'goods' || route.query.type === 'tasks' ? route.query.type : 'all'
+  }
+}, { immediate: true })
+watch(todayOnly, () => void reload())
+
+function clearToday(): void {
+  const { deadline: _deadline, type: _type, ...query } = route.query
+  tab.value = 'all'
+  typeFilter.value = 'all'
+  void router.push({ query })
+}
+function selectTab(value: LkTasksTab): void {
+  if (todayOnly.value && value !== 'active') clearToday()
+  tab.value = value
+}
+function selectType(value: LkTasksTypeFilter): void {
+  typeFilter.value = value
+  if (todayOnly.value) void router.push({ query: { ...route.query, type: value } })
+}
+async function saveFields(list: ShoppingList, patch: UpdateShoppingListPayload): Promise<void> {
+  await updateFields(list, patch)
+  notifyTaskSaved()
+}
 
 function handleOpen(list: ShoppingList): void {
   openTaskForm(list)
 }
 
 async function handleToggleCompleted(list: ShoppingList): Promise<void> {
-  await toggleCompleted(list)
+  if (await toggleCompleted(list)) notifyTaskSaved()
 }
 
 // Модалка «Задача/список» рендерится в `LkLayout`, а не здесь — при
@@ -83,7 +121,7 @@ onMounted(() => reload())
                 class="tasks-view__tab"
                 :class="{ 'tasks-view__tab--active': tab === tabOption.value }"
                 :aria-selected="tab === tabOption.value"
-                @click="tab = tabOption.value"
+                @click="selectTab(tabOption.value)"
               >
                 {{ tabOption.label }}
               </button>
@@ -97,7 +135,7 @@ onMounted(() => reload())
                 class="tasks-view__type-tab"
                 :class="{ 'tasks-view__type-tab--active': typeFilter === typeOption.value }"
                 :aria-pressed="typeFilter === typeOption.value"
-                @click="typeFilter = typeOption.value"
+                @click="selectType(typeOption.value)"
               >
                 {{ typeOption.label }}
               </button>
@@ -110,8 +148,15 @@ onMounted(() => reload())
           </button>
         </div>
 
-        <p v-if="isLoading && lists.length === 0" class="tasks-view__state" aria-live="polite">Загрузка…</p>
-        <p v-else-if="error" class="tasks-view__state tasks-view__state--error" role="alert">{{ error }}</p>
+        <div v-if="todayOnly" class="tasks-view__today" role="status">
+          <span><LkIcon name="alarm" :size="18" /> Дедлайн сегодня · невыполненные</span>
+          <button type="button" @click="clearToday">Показать все списки</button>
+        </div>
+
+        <p v-if="(isLoading && lists.length === 0) || (todayOnly && (isLoading || isLoadingDates))" class="tasks-view__state" aria-live="polite">Загрузка…</p>
+        <p v-else-if="error" class="tasks-view__state tasks-view__state--error" role="alert">
+          {{ error }} <button type="button" class="tasks-view__retry" @click="reload">Повторить</button>
+        </p>
 
         <div v-else class="tasks-view__card">
           <table class="tasks-view__table">
@@ -148,9 +193,10 @@ onMounted(() => reload())
             </thead>
 
             <tbody>
-              <tr v-if="visibleLists.length === 0">
+              <tr v-if="displayedLists.length === 0">
                 <td class="tasks-view__empty-cell" colspan="5">
-                  <template v-if="lists.length === 0">
+                  <template v-if="todayOnly">Невыполненных списков с дедлайном на сегодня нет.</template>
+                  <template v-else-if="lists.length === 0">
                     Пока нет задач.
                     <button type="button" class="tasks-view__empty-cta" @click="openTaskForm()">
                       Создать первую задачу
@@ -161,14 +207,14 @@ onMounted(() => reload())
               </tr>
 
               <LkTaskTableRow
-                v-for="list in visibleLists"
+                v-for="list in displayedLists"
                 :key="list.uuid"
                 :list="list"
                 :derived="derivedFor(list.uuid) ?? null"
                 @open="handleOpen"
                 @toggle-completed="handleToggleCompleted"
                 :busy="isSaving(list.uuid)"
-                :save-fields="updateFields"
+                :save-fields="saveFields"
               />
 
               <tr class="tasks-view__add-row" @click="openTaskForm()">
@@ -194,6 +240,28 @@ onMounted(() => reload())
 </template>
 
 <style scoped>
+.tasks-view__today {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 12px;
+  color: #9e2329;
+}
+.tasks-view__today span { display: flex; align-items: center; gap: 0.5rem; }
+.tasks-view__today button, .tasks-view__retry {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: #fff;
+  background: #17897a;
+  cursor: pointer;
+}
+
 .tasks-view {
   max-width: 1240px;
   margin: 0 auto;

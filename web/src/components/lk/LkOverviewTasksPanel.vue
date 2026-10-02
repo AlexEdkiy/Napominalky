@@ -4,7 +4,9 @@ import { RouterLink } from 'vue-router'
 
 import LkTaskItemsPopover from '@/components/lk/tasks/LkTaskItemsPopover.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
-import { isLkDateToday } from '@/composables/useLkTasksTable'
+import LkIcon from '@/components/lk/LkIcon.vue'
+import { useLkToday } from '@/composables/useLkToday'
+import { hasScheduleToday } from '@/utils/lkToday'
 import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
 import { useLkVisibleCount } from '@/composables/useLkVisibleCount'
 import type { ShoppingList } from '@/types/shoppingList'
@@ -23,11 +25,7 @@ const MOBILE_VISIBLE = 4
 interface Props {
   /** Активные списки задач/покупок — тот же источник, что раздел «Задачи и списки». */
   lists: ShoppingList[]
-  /**
-   * Производные даты пунктов (ближайший deadline на список) для быстрого
-   * фильтра «Сделать сегодня» — правило «Сегодня» общее с таблицей задач
-   * (см. `isLkDateToday`). Пока даты не подгружены, фильтр даёт пустой набор.
-   */
+  /** Даты активных пунктов для отметки на сегодня. */
   derivedDates?: Map<string, LkListDerivedDates>
 }
 
@@ -48,31 +46,16 @@ const { visibleCount } = useLkVisibleCount(listContainer, {
   maxCount: MAX_VISIBLE,
 })
 
-/** Быстрый фильтр «Сделать сегодня»: только задачи с датой (дедлайном) на сегодня. */
-const todayOnly = ref(false)
-
-const filteredLists = computed<ShoppingList[]>(() => {
-  if (!todayOnly.value) {
-    return props.lists
-  }
-  const now = new Date()
-  return props.lists.filter((list) =>
-    isLkDateToday(props.derivedDates.get(list.uuid)?.deadline ?? null, now),
-  )
-})
+const today = useLkToday()
 
 const effectiveCount = computed<number>(() =>
   isDesktop.value ? visibleCount.value : MOBILE_VISIBLE,
 )
 const visibleLists = computed<ShoppingList[]>(() =>
-  filteredLists.value.slice(0, effectiveCount.value),
+  props.lists.slice(0, effectiveCount.value),
 )
 /** «Все задачи» показывается ТОЛЬКО когда есть скрытые (не поместившиеся) элементы. */
-const hasHidden = computed<boolean>(() => filteredLists.value.length > effectiveCount.value)
-
-const emptyText = computed<string>(() =>
-  todayOnly.value ? 'На сегодня задач нет.' : 'Пока нет задач.',
-)
+const hasHidden = computed<boolean>(() => props.lists.length > effectiveCount.value)
 
 function handleOpen(list: ShoppingList): void {
   emit('open', list)
@@ -83,24 +66,15 @@ function handleOpen(list: ShoppingList): void {
   <section class="lk-overview-tasks" aria-labelledby="lk-overview-tasks-heading">
     <header class="lk-overview-tasks__header">
       <div class="lk-overview-tasks__heading">
-        <h2 id="lk-overview-tasks-heading" class="lk-overview-tasks__title">Задачи</h2>
-        <button
-          type="button"
-          class="lk-overview-tasks__filter"
-          :class="{ 'lk-overview-tasks__filter--active': todayOnly }"
-          :aria-pressed="todayOnly"
-          @click="todayOnly = !todayOnly"
-        >
-          Сделать сегодня
-        </button>
+        <h2 id="lk-overview-tasks-heading" class="lk-overview-tasks__title">Задачи и покупки</h2>
       </div>
-      <RouterLink v-if="hasHidden" :to="{ name: 'lk-tasks' }" class="lk-overview-tasks__link">
-        Все задачи →
+      <RouterLink v-if="hasHidden" :to="{ name: 'lk-tasks' }" class="lk-overview-tasks__link" aria-label="Все задачи и покупки">
+        Все →
       </RouterLink>
     </header>
 
     <div ref="listContainer" class="lk-overview-tasks__container">
-      <p v-if="filteredLists.length === 0" class="lk-overview-tasks__empty">{{ emptyText }}</p>
+      <p v-if="lists.length === 0" class="lk-overview-tasks__empty">Пока нет задач и покупок.</p>
       <ul v-else class="lk-overview-tasks__list">
         <li v-for="list in visibleLists" :key="list.uuid" class="lk-overview-tasks__item">
           <div
@@ -134,6 +108,13 @@ function handleOpen(list: ShoppingList): void {
               </button>
             </LkTaskItemsPopover>
             <span v-else class="lk-overview-tasks__item-title">{{ list.title }}</span>
+            <span
+              v-if="hasScheduleToday(list, props.derivedDates.get(list.uuid), today)"
+              class="lk-overview-tasks__alarm"
+              role="img"
+              aria-label="Дедлайн или напоминание на сегодня"
+              title="Дедлайн или напоминание на сегодня"
+            ><LkIcon name="alarm" :size="18" /></span>
             <span class="lk-overview-tasks__count">
               {{ list.checked_items_count }} / {{ list.items_count }}
             </span>
@@ -174,28 +155,10 @@ function handleOpen(list: ShoppingList): void {
   color: #1f2622;
 }
 
-/* Чип-тумблер «Сделать сегодня» — в стиле фильтров раздела «Задачи и списки». */
-.lk-overview-tasks__filter {
-  height: 28px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 9px;
-  background: #f1f4f2;
-  color: #5a625e;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.lk-overview-tasks__filter:hover {
-  background: #e8edeb;
-}
-
-.lk-overview-tasks__filter--active,
-.lk-overview-tasks__filter--active:hover {
-  background: #1f2622;
-  color: #fff;
+.lk-overview-tasks__alarm {
+  display: flex;
+  flex-shrink: 0;
+  color: #d92d35;
 }
 
 .lk-overview-tasks__link {

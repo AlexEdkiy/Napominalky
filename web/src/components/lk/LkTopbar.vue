@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import LkBreadcrumbs from '@/components/lk/LkBreadcrumbs.vue'
+import LkTodayBell from '@/components/lk/LkTodayBell.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 
 interface Props {
   title: string
+  todayDeadlineCount?: number | null
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
   toggleSidebar: []
+  openToday: []
 }>()
 </script>
 
@@ -34,10 +37,7 @@ const emit = defineEmits<{
       <input type="search" placeholder="Поиск по всему" aria-label="Поиск по всему" />
     </div>
 
-    <button type="button" class="lk-topbar__bell" aria-label="Уведомления">
-      <LkIcon name="bell" :size="20" />
-      <span class="lk-topbar__bell-dot" aria-hidden="true" />
-    </button>
+    <LkTodayBell :count="todayDeadlineCount ?? null" @open="emit('openToday')" />
   </header>
 </template>
 
@@ -112,29 +112,4 @@ const emit = defineEmits<{
   color: #1f2622;
 }
 
-.lk-topbar__bell {
-  position: relative;
-  border: none;
-  background: #f2f4f3;
-  color: #5a625e;
-  border-radius: 12px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex: none;
-}
-
-.lk-topbar__bell-dot {
-  position: absolute;
-  top: 9px;
-  right: 10px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e2685f;
-  border: 2px solid #f2f4f3;
-}
 </style>

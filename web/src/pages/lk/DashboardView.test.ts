@@ -303,7 +303,7 @@ describe('DashboardView', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('lk-tasks'))
   })
 
-  it('filters the tasks panel to today-only via the «Сделать сегодня» chip (derived item deadlines)', async () => {
+  it("marks today’s items without filtering other lists", async () => {
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(
       paginated([
         makeShoppingList('l-1', { title: 'Сегодняшние дела' }),
@@ -325,11 +325,13 @@ describe('DashboardView', () => {
 
     expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(2)
 
-    await wrapper.find('.lk-overview-tasks__filter').trigger('click')
+    expect(wrapper.find('.lk-overview-tasks__filter').exists()).toBe(false)
 
     const rows = wrapper.findAll('.lk-overview-tasks__item')
-    expect(rows).toHaveLength(1)
+    expect(rows).toHaveLength(2)
     expect(rows[0]?.text()).toContain('Сегодняшние дела')
+    expect(rows[0]?.find('.lk-overview-tasks__alarm').exists()).toBe(true)
+    expect(rows[1]?.find('.lk-overview-tasks__alarm').exists()).toBe(false)
   })
 
   it('opens the task form modal (not a route navigation) when clicking a tasks panel row', async () => {

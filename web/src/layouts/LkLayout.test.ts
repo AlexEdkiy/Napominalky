@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
@@ -11,6 +11,8 @@ import { resetLkFormsForTests } from '@/composables/useLkForms'
 import { resetSyncMeterForTests, useSyncMeter } from '@/composables/useSyncMeter'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types/auth'
+
+enableAutoUnmount(afterEach)
 
 const StubView = { template: '<div class="stub-view" />' }
 
@@ -110,13 +112,27 @@ describe('LkLayout', () => {
     })
   })
 
+  it.each([true, false])('opens today deadlines from the bell (desktop=%s)', async (desktop) => {
+    stubMatchMedia(desktop)
+    const { wrapper, router } = await mountLayoutWithRouter()
+    await flushPromises()
+    expect(wrapper.find('h1').text()).toBe('Вспомнить все!')
+    const bell = wrapper.find('.lk-today-bell')
+    expect(bell.exists()).toBe(true)
+    expect(bell.find('.lk-today-bell__dot').exists()).toBe(false)
+    await bell.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.fullPath).toBe('/lk/tasks?deadline=today')
+    vi.unstubAllGlobals()
+  })
+
   it('renders the desktop sidebar with all 5 navigation sections', async () => {
     stubMatchMedia(true)
     const wrapper = await mountLayout()
 
     expect(wrapper.find('.lk-sidebar').exists()).toBe(true)
     expect(wrapper.find('.lk-bottom-nav').exists()).toBe(false)
-    expect(wrapper.text()).toContain('Обзор')
+    expect(wrapper.text()).toContain('Вспомнить все!')
     expect(wrapper.text()).toContain('Задачи и списки')
     expect(wrapper.text()).toContain('Напоминания')
     expect(wrapper.text()).toContain('Календарь')

@@ -4,7 +4,7 @@ import type { VueWrapper } from '@vue/test-utils'
 
 import LkTopbar from './LkTopbar.vue'
 
-function mountTopbar(props: { title: string }): VueWrapper {
+function mountTopbar(props: { title: string; todayDeadlineCount?: number | null }): VueWrapper {
   return mount(LkTopbar, {
     props,
     global: {
@@ -54,16 +54,18 @@ describe('LkTopbar', () => {
     expect(wrapper.find('.lk-topbar__search svg').exists()).toBe(true)
   })
 
-  it('renders the bell as a chip with an unread indicator dot', () => {
-    const wrapper = mountTopbar({ title: 'Обзор' })
-    const bell = wrapper.find('button.lk-topbar__bell')
-
-    expect(bell.attributes('aria-label')).toBe('Уведомления')
-    expect(bell.find('svg').exists()).toBe(true)
-
-    const dot = bell.find('.lk-topbar__bell-dot')
-    expect(dot.exists()).toBe(true)
-    expect(dot.attributes('aria-hidden')).toBe('true')
+  it('marks the bell only when there are today deadlines and emits navigation on click', async () => {
+    const wrapper = mountTopbar({ title: 'Вспомнить все!', todayDeadlineCount: 2 })
+    const bell = wrapper.find('button.lk-today-bell')
+    expect(bell.attributes('aria-label')).toBe('Списки с дедлайном на сегодня: 2')
+    expect(bell.find('.lk-today-bell__dot').exists()).toBe(true)
+    await bell.trigger('click')
+    expect(wrapper.emitted('openToday')).toHaveLength(1)
+    await wrapper.setProps({ todayDeadlineCount: 0 })
+    expect(bell.find('.lk-today-bell__dot').exists()).toBe(false)
+    await wrapper.setProps({ todayDeadlineCount: null })
+    expect(bell.find('.lk-today-bell__dot').exists()).toBe(false)
+    expect(bell.attributes('aria-label')).toBe('Открыть списки с дедлайном на сегодня')
   })
 
   it('keeps the breadcrumbs slot above the title inside the titles block', () => {

@@ -50,6 +50,11 @@ withDefaults(defineProps<Props>(), { size: 20 })
       <path d="M14 3v6h6" />
     </template>
 
+    <template v-else-if="name === 'alarm'">
+      <circle cx="12" cy="13" r="8" />
+      <path d="M12 9v4l3 2M3 5l3-3M18 2l3 3M6 20l-1 2M18 20l1 2" />
+    </template>
+
     <template v-else-if="name === 'bell'">
       <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" />
       <path d="M10 19a2 2 0 0 0 4 0" />
