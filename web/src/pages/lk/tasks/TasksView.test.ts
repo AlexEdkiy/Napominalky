@@ -787,7 +787,7 @@ describe('TasksView', () => {
     expect(useLkForms().isTaskFormOpen.value).toBe(true)
   })
 
-  it('previews all item statuses on the task title without exposing comments', async () => {
+  it('previews all item names on the task title without status badges or comments', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
       makeItem({ uuid: 'a', name: 'Подготовить макет', comments_count: 1,
         comments: [{ uuid: 'c', author_name: 'Author', body: 'Скрытый комментарий', created_at: '2026-10-01T10:00:00Z' }] }),
@@ -801,7 +801,9 @@ describe('TasksView', () => {
     await wrapper.find('.lk-task-row__open').trigger('focusin')
     const tooltip = document.querySelector('[role="tooltip"]')
     await vi.waitFor(() => expect(tooltip?.textContent).toContain('Подготовить макет'))
-    expect(Array.from(tooltip?.querySelectorAll('.lk-status-badge__pill') ?? []).map(el => el.textContent?.trim())).toEqual(['Новая', 'Выполнена', 'В работе', 'Отложена'])
+    expect(tooltip?.querySelector('.lk-status-badge')).toBeNull()
+    expect(Array.from(tooltip?.querySelectorAll('.task-items-popover__name') ?? []).map(el => el.textContent?.trim())).toEqual(['Подготовить макет', 'Согласовать текст', 'Разработка', 'Публикация'])
+    for (const status of ['Новая', 'Выполнена', 'В работе', 'Отложена']) expect(tooltip?.textContent).not.toContain(status)
     expect(wrapper.find('.lk-task-row__open').attributes('aria-describedby')).toBe(tooltip?.id)
     expect(tooltip?.textContent).toContain('Согласовать текст')
     expect(tooltip?.textContent).not.toContain('Скрытый комментарий')

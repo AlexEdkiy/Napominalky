@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { nextTick, onUnmounted, ref, useId, watch } from 'vue'
-import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
 import type { ShoppingListItem } from '@/types/shoppingList'
 
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{
-  items?: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked' | 'status'>[] | undefined
+  items?: Pick<ShoppingListItem, 'uuid' | 'name' | 'is_checked'>[] | undefined
 }>()
 
 const anchor = ref<HTMLElement | null>(null)
@@ -131,7 +130,6 @@ onUnmounted(() => {
             item.is_checked ? '✓' : '○'
           }}</span>
           <span class="task-items-popover__name">{{ item.name }}</span>
-          <LkStatusBadge :status="item.status" />
         </li>
       </ul>
     </div>
