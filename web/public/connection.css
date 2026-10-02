@@ -1,0 +1,39 @@
+/* Shared by the mounted application and the network-only navigation fallback. */
+.connection-page {
+  box-sizing: border-box;
+  width: 100%; max-width: none; height: 100%; min-height: 100svh; max-height: none;
+  margin: 0; border: 0;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  color: #203b34; background: #f2f7f3; font-family: system-ui, -apple-system, sans-serif;
+  isolation: isolate; overflow: auto; overscroll-behavior: contain;
+}
+main.connection-page, dialog.connection-page[open] { display: grid; place-items: center; }
+.connection-page::backdrop { background: #f2f7f3; }
+.connection-page::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: url('./connection-illustration.png') center 25% / min(90vw, 760px) auto no-repeat;
+  opacity: .32;
+}
+.connection-page__card {
+  box-sizing: border-box; width: min(100%, 480px); margin-top: clamp(100px, 23vh, 220px);
+  padding: clamp(24px, 5vw, 40px); border-radius: 28px;
+  background: rgba(255, 255, 255, .94); border: 1px solid #dfeae4;
+  box-shadow: 0 16px 48px #104f4020; text-align: center;
+}
+.connection-page__brand { color: #147c6e; font-size: 14px; font-weight: 750; }
+.connection-page h1 { color: #203b34; margin: 16px 0 12px; font-size: clamp(24px, 4vw, 32px); line-height: 1.2; }
+.connection-page p { margin: 0; font-size: 17px; line-height: 1.55; }
+button.connection-page__retry {
+  box-sizing: border-box; display: block; width: 100%; min-height: 52px; margin: 28px 0 16px;
+  padding: 12px 16px; border: 0; border-radius: 14px; background: #147f71;
+  color: #fff; font: inherit; font-weight: 700; cursor: pointer; touch-action: manipulation;
+}
+button.connection-page__retry:hover { background: #0e6b5e; }
+button.connection-page__retry:focus-visible { outline: 3px solid #d69d30; outline-offset: 4px; }
+button.connection-page__retry[aria-disabled='true'] { cursor: wait; }
+p.connection-page__hint { color: #60736c; font-size: 13px; }
+@media (max-height: 500px) {
+  .connection-page__card { margin-top: 0; padding: 20px 28px; }
+  .connection-page h1 { margin-top: 8px; }
+  button.connection-page__retry { margin-top: 16px; }
+}

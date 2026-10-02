@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { reportConnectionLost, retryConnection } from '@/connection'
 
 import { isStaleChunkError, reloadForStaleChunk, setupStaleChunkReload } from './staleChunkReload'
 
@@ -25,7 +26,7 @@ describe('staleChunkReload', () => {
 
   it('вешает обработчик на router.onError и vite:preloadError', () => {
     const handlers: Array<(error: unknown) => void> = []
-    const router = { onError: (handler: (error: unknown) => void) => handlers.push(handler) }
+    const router = { currentRoute: { value: { matched: [{}] } }, onError: (handler: (error: unknown) => void) => handlers.push(handler) }
     const addEventListener = vi.spyOn(window, 'addEventListener')
 
     setupStaleChunkReload(router as never)
@@ -33,4 +34,17 @@ describe('staleChunkReload', () => {
     expect(handlers).toHaveLength(1)
     expect(addEventListener).toHaveBeenCalledWith('vite:preloadError', expect.any(Function))
   })
+
+  it('does not reload or consume the reload cooldown when connectivity is lost', async () => {
+    const reload = vi.fn()
+    reportConnectionLost()
+    expect(reloadForStaleChunk(reload, 1_000_000)).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem('napominalki:stale-chunk-reload-at')).toBeNull()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401, headers: { 'content-type': 'application/json' } })))
+    await retryConnection()
+    expect(reloadForStaleChunk(reload, 1_000_000)).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
 })

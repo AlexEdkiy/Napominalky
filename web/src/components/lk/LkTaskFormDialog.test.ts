@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import LkTaskFormDialog from './LkTaskFormDialog.vue'
+import { reportConnectionLost, retryConnection } from '@/connection'
 import dialogSource from './LkTaskFormDialog.vue?raw'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
 import { resetLkFormsForTests, useLkForms } from '@/composables/useLkForms'
@@ -128,6 +129,26 @@ describe('LkTaskFormDialog', () => {
     )
     await vi.waitFor(() => expect(wrapper.find('.lk-form-dialog__title').text()).toBe('Продукты на неделю'))
     vi.unstubAllGlobals()
+  })
+
+  it('preserves an edited title without autosave when the connection dialog takes focus', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await wrapper.vm.$nextTick()
+    await wrapper.find('.lk-form-dialog__title-button').trigger('click')
+    const input = wrapper.find('#task-form-title')
+    await input.setValue('Несохранённый заголовок')
+    reportConnectionLost()
+    try {
+      await input.trigger('blur')
+      expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
+      expect((wrapper.get('#task-form-title').element as HTMLInputElement).value).toBe('Несохранённый заголовок')
+    } finally {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401, headers: { 'content-type': 'application/json' } })))
+      await retryConnection()
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
   })
 
   it('reverts an empty title on blur and Esc cancels the edit (edit mode, no PUT)', async () => {

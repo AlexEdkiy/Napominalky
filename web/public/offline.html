@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f6155">
+  <title>Нет соединения — Напоминалки</title>
+  <link rel="stylesheet" href="connection.css">
+  <script src="offline-retry.js" defer></script>
+</head>
+<body style="margin:0">
+  <main class="connection-page" aria-labelledby="connection-title">
+    <section class="connection-page__card">
+      <span class="connection-page__brand">Напоминалки</span>
+      <h1 id="connection-title">Что-то пошло не так.</h1>
+      <p>Проверьте подключение к интернету</p>
+      <button type="button" class="connection-page__retry" autofocus>Попробовать снова</button>
+      <p class="connection-page__hint" role="status" aria-live="polite">Как только связь восстановится, можно продолжить.</p>
+    </section>
+  </main>
+</body>
+</html>

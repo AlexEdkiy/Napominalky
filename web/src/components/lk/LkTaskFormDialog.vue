@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useConnection } from '@/connection'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { isAxiosError } from 'axios'
 
@@ -153,6 +154,8 @@ function startTitleEdit(): void {
  * атрибуты пунктов). New-режим: пустое имя оставляет поле активным.
  */
 async function finishTitleEdit(): Promise<void> {
+  // The connection dialog moves focus; this must not autosave or discard the draft.
+  if (useConnection().unavailable.value) return
   const trimmed = form.title.trim()
   const current = currentList.value
   if (current === null) {

@@ -19,6 +19,7 @@ import { useLkNavCounts } from '@/composables/useLkNavCounts'
 import { useSyncMeter } from '@/composables/useSyncMeter'
 import { LK_DEFAULT_SECTION_META, LK_SECTION_META } from '@/constants/lkNav'
 import { useAuthStore } from '@/stores/authStore'
+import { useConnection } from '@/connection'
 import { getUserDisplayName } from '@/utils/user'
 
 const route = useRoute()
@@ -41,6 +42,12 @@ const { openTaskForm, openNoteForm, openReminderForm, tasksVersion, notesVersion
 // 'visible', с троттлингом): открытый раздел подхватит изменения из мобилки
 // без F5. См. `useLkAutoRefresh.ts`.
 useLkAutoRefresh()
+const { recoveryCount } = useConnection()
+watch(recoveryCount, () => {
+  if (!auth.token) return
+  if (!auth.user) void auth.fetchMe().catch(() => { /* API interceptor handles errors. */ })
+  void runSync()
+})
 
 const isSidebarCollapsed = ref(false)
 const isCreateMenuOpen = ref(false)

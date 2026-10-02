@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
+import ConnectionPage from '@/components/ConnectionPage.vue'
+import { setupConnectionMonitoring, useConnection } from '@/connection'
+import { registerOfflineFallback } from '@/offlineFallback'
 import { RouterView } from 'vue-router'
 
 import { useTheme } from '@/composables/useTheme'
 
 const { applyTheme } = useTheme()
+const { unavailable } = useConnection()
+const stopMonitoring = setupConnectionMonitoring()
+onUnmounted(stopMonitoring)
 
 onMounted(() => {
   applyTheme()
+  registerOfflineFallback()
 })
 </script>
 
 <template>
   <RouterView />
+  <ConnectionPage v-if="unavailable" />
 </template>
 
 <style>

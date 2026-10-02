@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useConnection } from '@/connection'
 import { computed, nextTick, ref, watch } from 'vue'
 
 import LkCommentsPopover from '@/components/lk/LkCommentsPopover.vue'
@@ -126,6 +127,8 @@ async function startNameEdit(): Promise<void> {
 
 /** Enter/blur: пустое/пробельное или неизменённое имя НЕ отправляем — откат. */
 function commitNameEdit(): void {
+  // The connection dialog moves focus; this must not autosave or discard the draft.
+  if (useConnection().unavailable.value) return
   if (!isEditingName.value) {
     return
   }

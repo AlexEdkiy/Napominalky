@@ -1,4 +1,6 @@
 import type { Router } from 'vue-router'
+import { watch } from 'vue'
+import { reportConnectionLost, retryConnection, useConnection } from '@/connection'
 
 /**
  * Защита от устаревших чанков после деплоя (WEB-51): кэшированный index.html
@@ -38,6 +40,10 @@ export function reloadForStaleChunk(
   reload: () => void = () => window.location.reload(),
   now: number = Date.now(),
 ): boolean {
+  if (!navigator.onLine || useConnection().unavailable.value) {
+    reportConnectionLost()
+    return false
+  }
   if (now - readStamp() < RELOAD_COOLDOWN_MS) {
     return false
   }
@@ -46,14 +52,30 @@ export function reloadForStaleChunk(
   return true
 }
 
+function handleChunkFailure(): void {
+  if (!navigator.onLine || useConnection().unavailable.value) {
+    reportConnectionLost()
+    return
+  }
+  // A failed lazy import can also mean lost connectivity, not an old deployment.
+  void retryConnection().then(connected => { if (connected) reloadForStaleChunk() })
+}
+
 export function setupStaleChunkReload(router: Router): void {
+  watch(useConnection().recoveryCount, () => {
+    // If no route ever mounted, there is no draft to preserve. Failed initial imports
+    // can stay rejected in the module map, so recover with one fresh document load.
+    if (router.currentRoute.value.matched.length === 0) {
+      reloadForStaleChunk()
+    }
+  })
   router.onError((error) => {
     if (isStaleChunkError(error)) {
-      reloadForStaleChunk()
+      handleChunkFailure()
     }
   })
   window.addEventListener('vite:preloadError', (event) => {
     event.preventDefault()
-    reloadForStaleChunk()
+    handleChunkFailure()
   })
 }
