@@ -29,7 +29,7 @@ const typeOptions: { value: ShoppingListType; label: string; icon: 'cart' | 'che
 ]
 
 const { isDesktop } = useLkBreakpoint()
-const { isTaskFormOpen, taskFormList, closeForm, notifyTaskSaved } = useLkForms()
+const { isTaskFormOpen, taskFormList, taskFormItemUuid, closeForm, notifyTaskSaved } = useLkForms()
 const { viewportStyle } = useLkDialogViewport(computed(() => isTaskFormOpen.value && !isDesktop.value))
 
 /**
@@ -119,11 +119,22 @@ function resetForm(): void {
   generalError.value = null
   isConfirmingDelete.value = false
   hasItemChanges.value = false
-  expandedItemUuid.value = null
+  expandedItemUuid.value = taskFormItemUuid.value
   removingItem.value = null
   isTitleEditing.value = false
   if (list !== null) {
-    void loadItems()
+    const targetUuid = taskFormItemUuid.value
+    void loadItems().then(async () => {
+      await nextTick()
+      if (!targetUuid || !isTaskFormOpen.value || currentList.value?.uuid !== list.uuid || taskFormItemUuid.value !== targetUuid) return
+      if (!items.value.some(item => item.uuid === targetUuid)) {
+        if (!itemsError.value) generalError.value = 'Пункт из результатов поиска больше недоступен.'
+        return
+      }
+      const target = document.getElementById(`task-item-${targetUuid}`)
+      target?.focus({ preventScroll: true })
+      target?.scrollIntoView?.({ block: 'nearest' })
+    })
   } else {
     startTitleEdit()
   }
@@ -542,6 +553,8 @@ async function confirmDelete(): Promise<void> {
             <LkTaskItemRow
               v-for="item in items"
               :key="item.uuid"
+              :id="`task-item-${item.uuid}`"
+              tabindex="-1"
               :item="item"
               :list-type="form.type"
               :accent-color="accent.color"

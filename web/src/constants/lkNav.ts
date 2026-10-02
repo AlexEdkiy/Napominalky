@@ -66,6 +66,7 @@ export interface LkSectionMeta {
 }
 
 export const LK_SECTION_META: Record<string, LkSectionMeta> = {
+  'lk-search': { title: 'Результаты поиска', subtitle: 'Задачи, покупки, заметки и напоминания' },
   'lk-dashboard': { title: 'Вспомнить все!', subtitle: 'Вот что запланировано' },
   'lk-tasks': {
     title: 'Задачи и списки',

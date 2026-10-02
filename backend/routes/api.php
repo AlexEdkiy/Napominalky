@@ -102,6 +102,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // Authenticated endpoints — require valid Sanctum token
     // ------------------------------------------------------------------
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('search', \App\Http\Controllers\Search\IndexController::class)
+            ->middleware('throttle:60,1,search')->name('search');
 
         // Auth — authenticated actions
         Route::prefix('auth')->name('auth.')->group(function (): void {

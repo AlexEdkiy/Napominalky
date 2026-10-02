@@ -15,6 +15,7 @@ import type { ShoppingList } from '@/types/shoppingList'
  */
 const isTaskFormOpen = ref(false)
 const taskFormList = ref<ShoppingList | null>(null)
+const taskFormItemUuid = ref<string | null>(null)
 
 const isNoteFormOpen = ref(false)
 const noteFormNote = ref<Note | null>(null)
@@ -33,8 +34,9 @@ const tasksVersion = ref(0)
 const notesVersion = ref(0)
 const remindersVersion = ref(0)
 
-function openTaskForm(list?: ShoppingList): void {
+function openTaskForm(list?: ShoppingList, itemUuid?: string): void {
   taskFormList.value = list ?? null
+  taskFormItemUuid.value = itemUuid ?? null
   isTaskFormOpen.value = true
 }
 
@@ -51,6 +53,7 @@ function openReminderForm(reminder?: Reminder): void {
 /** Закрывает все 3 модалки (крестик/Отмена/Esc/клик по scrim). */
 function closeForm(): void {
   isTaskFormOpen.value = false
+  taskFormItemUuid.value = null
   isNoteFormOpen.value = false
   isReminderFormOpen.value = false
 }
@@ -73,6 +76,7 @@ function notifyReminderSaved(): void {
  */
 export function resetLkFormsForTests(): void {
   isTaskFormOpen.value = false
+  taskFormItemUuid.value = null
   taskFormList.value = null
   isNoteFormOpen.value = false
   noteFormNote.value = null
@@ -87,6 +91,7 @@ export function useLkForms() {
   return {
     isTaskFormOpen,
     taskFormList,
+    taskFormItemUuid,
     isNoteFormOpen,
     noteFormNote,
     isReminderFormOpen,

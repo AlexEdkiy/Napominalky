@@ -23,6 +23,10 @@ import { getUserDisplayName } from '@/utils/user'
 
 const route = useRoute()
 const router = useRouter()
+const searchQuery = computed(() => route.name === 'lk-search' && typeof route.query.q === 'string' ? route.query.q : '')
+function search(query: string): void {
+  void router.push({ name: 'lk-search', query: query ? { q: query } : {} })
+}
 const today = useLkToday()
 function openToday(): void {
   void router.push({ name: 'lk-tasks', query: { deadline: 'today' } })
@@ -154,8 +158,8 @@ onUnmounted(() => {
     />
 
     <div class="lk-shell__main">
-      <LkTopbar v-if="isDesktop" :title="sectionMeta.title" :today-deadline-count="todayDeadlineCount" @open-today="openToday" @toggle-sidebar="toggleSidebar" />
-      <LkMobileHeader v-else :title="sectionMeta.title" :subtitle="sectionSubtitle" :today-deadline-count="todayDeadlineCount" @open-today="openToday" />
+      <LkTopbar :search-query="searchQuery" @search="search" v-if="isDesktop" :title="sectionMeta.title" :today-deadline-count="todayDeadlineCount" @open-today="openToday" @toggle-sidebar="toggleSidebar" />
+      <LkMobileHeader v-else :search-query="searchQuery" @search="search" :title="sectionMeta.title" :subtitle="sectionSubtitle" :today-deadline-count="todayDeadlineCount" @open-today="openToday" />
 
       <main class="lk-shell__content">
         <RouterView />

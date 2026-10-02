@@ -2,9 +2,11 @@
 import LkBreadcrumbs from '@/components/lk/LkBreadcrumbs.vue'
 import LkTodayBell from '@/components/lk/LkTodayBell.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
+import LkSearchForm from '@/components/lk/LkSearchForm.vue'
 
 interface Props {
   title: string
+  searchQuery?: string
   todayDeadlineCount?: number | null
 }
 
@@ -13,6 +15,7 @@ defineProps<Props>()
 const emit = defineEmits<{
   toggleSidebar: []
   openToday: []
+  search: [query: string]
 }>()
 </script>
 
@@ -32,10 +35,7 @@ const emit = defineEmits<{
       <h1 class="lk-topbar__title">{{ title }}</h1>
     </div>
 
-    <div class="lk-topbar__search">
-      <LkIcon name="search" :size="18" />
-      <input type="search" placeholder="Поиск по всему" aria-label="Поиск по всему" />
-    </div>
+    <LkSearchForm class="lk-topbar__search" :query="searchQuery ?? ''" @search="emit('search', $event)" />
 
     <LkTodayBell :count="todayDeadlineCount ?? null" @open="emit('openToday')" />
   </header>
@@ -92,24 +92,7 @@ const emit = defineEmits<{
 }
 
 .lk-topbar__search {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   width: 280px;
   flex: none;
-  padding: 10px 15px;
-  border-radius: 12px;
-  background: #f2f4f3;
-  color: #9aa39f;
 }
-
-.lk-topbar__search input {
-  border: none;
-  background: none;
-  outline: none;
-  width: 100%;
-  font-size: 14px;
-  color: #1f2622;
-}
-
 </style>

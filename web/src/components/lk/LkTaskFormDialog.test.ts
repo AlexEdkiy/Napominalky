@@ -1069,6 +1069,27 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it('expands the item selected in search and clears that selection for a new form', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([makeItem({ uuid: 'found-item', name: 'Найденный пункт' })])
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list, 'found-item')
+    await vi.waitFor(() => expect(wrapper.find('#task-item-found-item .lk-comments-thread').exists()).toBe(true))
+    useLkForms().closeForm()
+    useLkForms().openTaskForm()
+    await wrapper.vm.$nextTick()
+    expect(useLkForms().taskFormItemUuid.value).toBeNull()
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('reports an item removed after search instead of silently opening the parent', async () => {
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list, 'removed-item')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Пункт из результатов поиска больше недоступен.'))
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
   it('uses the 700px desktop panel width keeping the fluid width:100%', () => {
     // Стилевой регресс-тест по исходнику SFC (`?raw`): scoped-CSS в jsdom не
     // применяется, поэтому проверяем сами объявления. Ширина 700px — по

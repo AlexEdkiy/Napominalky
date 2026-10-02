@@ -23,6 +23,7 @@ const NOTES: LkBreadcrumbItem = { label: 'Заметки', routeName: 'lk-notes'
  */
 const CHAINS: Record<string, LkBreadcrumbItem[]> = {
   'lk-dashboard': [ROOT],
+  'lk-search': [ROOT, { label: 'Результаты поиска' }],
   'lk-tasks': [ROOT, TASKS],
   'lk-lists': [ROOT, TASKS],
   'lk-list-detail': [ROOT, TASKS],

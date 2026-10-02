@@ -78,6 +78,12 @@ const lkRoutes: RouteRecordRaw = {
       component: () => import('@/pages/lk/DashboardView.vue'),
       meta: { title: 'Личный кабинет' },
     },
+    {
+      path: 'search',
+      name: 'lk-search',
+      component: () => import('@/pages/lk/search/SearchView.vue'),
+      meta: { title: 'Результаты поиска' },
+    },
     // Account
     {
       path: 'account',

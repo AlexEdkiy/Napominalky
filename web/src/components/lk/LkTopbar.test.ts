@@ -68,6 +68,14 @@ describe('LkTopbar', () => {
     expect(bell.attributes('aria-label')).toBe('Открыть списки с дедлайном на сегодня')
   })
 
+  it('submits the search from the desktop header', async () => {
+    const wrapper = mountTopbar({ title: 'Обзор' })
+    await wrapper.get('input[type="search"]').setValue('  Работа  ')
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('search')).toEqual([['Работа']])
+    wrapper.unmount()
+  })
+
   it('keeps the breadcrumbs slot above the title inside the titles block', () => {
     const wrapper = mountTopbar({ title: 'Обзор' })
     const titles = wrapper.find('.lk-topbar__titles')

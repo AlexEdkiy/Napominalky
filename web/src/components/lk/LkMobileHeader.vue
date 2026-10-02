@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import LkBreadcrumbs from '@/components/lk/LkBreadcrumbs.vue'
 import LkTodayBell from '@/components/lk/LkTodayBell.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
+import LkSearchForm from '@/components/lk/LkSearchForm.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { getUserInitial } from '@/utils/user'
 
 interface Props {
   title: string
+  searchQuery?: string
   subtitle: string
   todayDeadlineCount?: number | null
 }
 
 defineProps<Props>()
-const emit = defineEmits<{ openToday: [] }>()
+const emit = defineEmits<{ openToday: []; search: [query: string] }>()
 
 const auth = useAuthStore()
 const isSearchOpen = ref(false)
+const searchForm = ref<InstanceType<typeof LkSearchForm> | null>(null)
 const userInitial = computed(() => getUserInitial(auth.user))
 
 function toggleSearch(): void {
   isSearchOpen.value = !isSearchOpen.value
+  if (isSearchOpen.value) void nextTick(() => searchForm.value?.focus())
 }
 </script>
 
@@ -38,6 +42,7 @@ function toggleSearch(): void {
         type="button"
         class="lk-mobile-header__icon-btn"
         aria-label="Поиск"
+        :aria-expanded="isSearchOpen"
         @click="toggleSearch"
       >
         <LkIcon name="search" :size="18" />
@@ -58,10 +63,7 @@ function toggleSearch(): void {
 
     <LkBreadcrumbs compact class="lk-mobile-header__breadcrumbs" />
 
-    <div v-if="isSearchOpen" class="lk-mobile-header__search">
-      <LkIcon name="search" :size="16" />
-      <input type="search" placeholder="Поиск по всему" aria-label="Поиск по всему" />
-    </div>
+    <LkSearchForm v-if="isSearchOpen" ref="searchForm" class="lk-mobile-header__search" dark :query="searchQuery ?? ''" @search="emit('search', $event); isSearchOpen = false" />
   </header>
 </template>
 
@@ -154,26 +156,5 @@ function toggleSearch(): void {
   color: rgba(255, 255, 255, 0.4);
 }
 
-.lk-mobile-header__search {
-  margin-top: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.lk-mobile-header__search input {
-  border: none;
-  background: none;
-  outline: none;
-  width: 100%;
-  color: #fff;
-  font-size: 0.85rem;
-}
-
-.lk-mobile-header__search input::placeholder {
-  color: rgba(255, 255, 255, 0.65);
-}
+.lk-mobile-header__search { margin-top: 0.75rem; }
 </style>
