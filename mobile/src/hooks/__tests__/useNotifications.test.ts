@@ -3,7 +3,7 @@
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }))
 
 jest.mock('@/services/notificationsBootstrap', () => ({
-  rescheduleAllNotificationsOnStart: jest.fn(async () => undefined),
+  reconcileNotificationSettings: jest.fn(async () => undefined),
 }))
 
 jest.mock('@/db/repositories/remindersRepo', () => ({
@@ -14,12 +14,13 @@ jest.mock('@/db/repositories/remindersRepo', () => ({
 }))
 
 import React from 'react'
+import { useSettingsStore } from '@/stores/settingsStore'
 import * as Notifications from 'expo-notifications'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook } from '@testing-library/react-native'
 import { router } from 'expo-router'
 import { remindersRepo } from '@/db/repositories/remindersRepo'
-import { rescheduleAllNotificationsOnStart } from '@/services/notificationsBootstrap'
+import { reconcileNotificationSettings } from '@/services/notificationsBootstrap'
 import {
   REMINDER_ACTION_COMPLETE,
   REMINDER_ACTION_SNOOZE_10M,
@@ -30,7 +31,7 @@ import { handleNotificationResponse, useNotifications } from '../useNotification
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(QueryClientProvider, { client: new QueryClient() }, children)
 
-const mockRescheduleAllOnStart = rescheduleAllNotificationsOnStart as jest.Mock
+const mockRescheduleAllOnStart = reconcileNotificationSettings as jest.Mock
 const mockGetPermissions = Notifications.getPermissionsAsync as jest.Mock
 const mockGetLastResponse = Notifications.getLastNotificationResponseAsync as jest.Mock
 const mockAddListener = Notifications.addNotificationResponseReceivedListener as jest.Mock
@@ -40,6 +41,7 @@ const mockRemove = jest.fn()
 
 beforeEach(() => {
   jest.clearAllMocks()
+  useSettingsStore.setState({ isHydrated: true, notificationsEnabled: true })
   mockGetPermissions.mockResolvedValue({ granted: true, status: 'granted', canAskAgain: true, expires: 'never' })
   mockGetLastResponse.mockResolvedValue(null)
   mockAddListener.mockReturnValue({ remove: mockRemove })
@@ -61,7 +63,7 @@ describe('useNotifications — настройка handler при старте (�
 })
 
 describe('useNotifications — переустановка расписания при старте', () => {
-  it('вызывает rescheduleAllNotificationsOnStart один раз при монтировании', async () => {
+  it('вызывает reconcileNotificationSettings один раз при монтировании', async () => {
     await renderHook(() => useNotifications(), { wrapper })
     await Promise.resolve()
     await Promise.resolve()

@@ -1,8 +1,8 @@
 // Exercise the real hook, sync queue, account reset and SQLite. Only external
 // APIs, routing, auth storage and the provider's DB connection are replaced.
-jest.mock('@/db/client', () => ({ db: {} }))
+jest.mock('@/db/client', () => ({ get db() { return mockDb } }))
+jest.mock('@/services/netStatus', () => ({ getIsOnline: jest.fn(async () => true) }))
 jest.mock('@/providers/DbProvider', () => ({ useDb: jest.fn() }))
-jest.mock('@/stores/authStore', () => ({ useAuthStore: jest.fn() }))
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }))
 jest.mock('@/api/authApi', () => ({
   authApi: { login: jest.fn(), register: jest.fn(), logout: jest.fn() },
@@ -20,6 +20,8 @@ import { router } from 'expo-router'
 import { authApi } from '@/api/authApi'
 import { syncApi } from '@/api/syncApi'
 import { useDb } from '@/providers/DbProvider'
+import { useSettingsStore } from '@/stores/settingsStore'
+import type { Database } from '@/db/client'
 import { useAuthStore } from '@/stores/authStore'
 import { NotesRepository } from '@/db/repositories/notesRepo'
 import { notes, syncOutbox } from '@/db/schema'
@@ -29,13 +31,14 @@ import type { AuthResponse } from '@/types/auth'
 import { useAuth } from '../useAuth'
 
 const mockedUseDb = useDb as jest.MockedFunction<typeof useDb>
-const mockedStore = useAuthStore as unknown as jest.Mock
+let mockDb: Database
+const originalAuth = useAuthStore.getState()
 const push = syncApi.pushChanges as jest.MockedFunction<typeof syncApi.pushChanges>
 const login = authApi.login as jest.MockedFunction<typeof authApi.login>
 const store = {
   token: 'test-token', user: null, guestMode: false,
-  setToken: jest.fn(async () => undefined), setUser: jest.fn(),
-  setGuestMode: jest.fn(), logout: jest.fn(async () => undefined),
+  setToken: jest.fn(originalAuth.setToken), setUser: jest.fn(originalAuth.setUser),
+  setGuestMode: jest.fn(), logout: jest.fn(originalAuth.logout),
 }
 let fixture: ReturnType<typeof createSqliteTestDb>
 let queryClient: QueryClient
@@ -65,13 +68,14 @@ const logout = async () => {
 beforeEach(() => {
   jest.clearAllMocks()
   fixture = createSqliteTestDb()
+  mockDb = fixture.db
+  useAuthStore.setState({ ...store, syncEnabled: true, isHydrated: true })
+  useSettingsStore.setState({ syncEnabled: true, isHydrated: true })
+  ;(syncApi.getChanges as jest.Mock).mockResolvedValue({ data: { notes: [], reminders: [], shopping_lists: [], shopping_list_items: [] }, meta: { cursor: 0, has_more: false } })
   queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false, gcTime: Infinity }, queries: { gcTime: Infinity } } })
   mockedUseDb.mockReturnValue(fixture.db)
-  mockedStore.mockImplementation(
-    (select: (state: typeof store) => unknown) => select(store),
-  )
-  store.setToken.mockReset().mockResolvedValue(undefined)
-  store.logout.mockReset().mockResolvedValue(undefined)
+  store.setToken.mockReset().mockImplementation(originalAuth.setToken)
+  store.logout.mockReset().mockImplementation(originalAuth.logout)
   push.mockReset().mockResolvedValue({ applied: [], conflicts: [], cursor: 0 })
   login.mockReset()
   alert = jest.spyOn(Alert, 'alert')
@@ -182,4 +186,15 @@ describe('useAuth login with persisted account metadata', () => {
     expect(router.replace).toHaveBeenCalledWith('/(tabs)')
     expect(queue()).toHaveLength(previous === 'old-user' ? 0 : 1)
   })
+})
+
+
+it('logout with sync OFF never sends pending edits and lets the user keep them', async () => {
+  await repo().createNote({ title: 'Offline draft' })
+  useSettingsStore.setState({ syncEnabled: false })
+  await logout()
+  expect(push).not.toHaveBeenCalled()
+  expect(alert).toHaveBeenCalledTimes(1)
+  expect(queue()).toHaveLength(1)
+  expect(useAuthStore.getState().token).toBe('test-token')
 })

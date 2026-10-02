@@ -24,8 +24,8 @@ export const authApi = {
     return data.data
   },
 
-  logout: async (): Promise<void> => {
-    await apiClient.delete('auth/logout')
+  logout: async (token?: string): Promise<void> => {
+    await apiClient.delete('auth/logout', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
   },
 
   getMe: async (): Promise<User> => {

@@ -104,13 +104,15 @@ describe('authStore — rehydrateUser — skips fetch when no token', () => {
     expect(useAuthStore.getState().user).toBeNull()
   })
 
-  it('does not call fetchUser when user already loaded', async () => {
+  it('refreshes an already loaded profile', async () => {
     useAuthStore.setState({ token: TEST_TOKEN, user: TEST_USER })
-    const fetchUser = jest.fn()
+    const fetchUser = jest.fn().mockResolvedValue({ ...TEST_USER, name: 'Updated', avatar: 'data:image/png;base64,fixture' })
 
     await useAuthStore.getState().rehydrateUser(fetchUser)
 
-    expect(fetchUser).not.toHaveBeenCalled()
+    expect(fetchUser).toHaveBeenCalledTimes(1)
+    expect(useAuthStore.getState().user?.name).toBe('Updated')
+    expect(useAuthStore.getState().user?.avatar).toContain('data:image/png')
   })
 })
 
@@ -242,4 +244,28 @@ describe('authStore — hydrate — token TTL', () => {
     // Тест просто проверяет, что hydrate резолвится без ошибок.
     await expect(useAuthStore.getState().hydrate()).resolves.toBeUndefined()
   })
+})
+
+
+it.each(['logout', 'switch'])('ignores an old profile response after %s', async (action) => {
+  useAuthStore.setState({ token: TEST_TOKEN, user: TEST_USER })
+  let resolve!: (user: User) => void
+  const pending = useAuthStore.getState().rehydrateUser(() => new Promise((done) => { resolve = done }))
+  if (action === 'logout') await useAuthStore.getState().logout()
+  else useAuthStore.setState({ token: 'another-token', user: null, syncEnabled: false })
+  resolve(TEST_USER)
+  await pending
+  expect(useAuthStore.getState().user).toBeNull()
+  expect(useAuthStore.getState().syncEnabled).toBe(false)
+})
+
+it('retries after an offline start and deduplicates simultaneous refreshes', async () => {
+  useAuthStore.setState({ token: TEST_TOKEN })
+  await useAuthStore.getState().rehydrateUser(jest.fn().mockRejectedValue(new Error('offline')))
+  expect(useAuthStore.getState().profileError).toBeTruthy()
+  const fetch = jest.fn().mockResolvedValue(TEST_USER)
+  await Promise.all([useAuthStore.getState().rehydrateUser(fetch), useAuthStore.getState().rehydrateUser(fetch)])
+  expect(fetch).toHaveBeenCalledTimes(1)
+  expect(useAuthStore.getState().profileError).toBeNull()
+  expect(useAuthStore.getState().user).toEqual(TEST_USER)
 })

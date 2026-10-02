@@ -2,7 +2,7 @@
   "expo": {
     "name": "Reminders App",
     "slug": "reminders-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "scheme": "remindersapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

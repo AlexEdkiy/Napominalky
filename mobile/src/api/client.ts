@@ -11,7 +11,7 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const { token } = useAuthStore.getState()
-  if (token) {
+  if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -20,7 +20,8 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && useAuthStore.getState().token !== null &&
+        error.config?.headers.Authorization === `Bearer ${useAuthStore.getState().token}`) {
       void useAuthStore.getState().logout()
     }
     return Promise.reject(error)

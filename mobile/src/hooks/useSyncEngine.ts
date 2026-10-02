@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useNetStatus } from '@/services/netStatus'
 import { syncEngine, type SyncResult } from '@/services/sync/syncEngine'
@@ -19,7 +20,10 @@ interface UseSyncEngineResult {
  */
 export const useSyncEngine = (): UseSyncEngineResult => {
   const token = useAuthStore((state) => state.token)
-  const syncEnabled = useAuthStore((state) => state.syncEnabled)
+  const serverEnabled = useAuthStore((state) => state.syncEnabled)
+  const localEnabled = useSettingsStore((state) => state.syncEnabled)
+  const settingsReady = useSettingsStore((state) => state.isHydrated)
+  const syncEnabled = serverEnabled && localEnabled && settingsReady
   const { isOnline } = useNetStatus()
 
   const queryClient = useQueryClient()
@@ -30,7 +34,8 @@ export const useSyncEngine = (): UseSyncEngineResult => {
 
   const apply = useCallback(
     (result: SyncResult): void => {
-      setError(result.ok ? null : (result.error ?? 'sync_failed'))
+      setError(result.ok || ['sync_disabled', 'sync_cancelled', 'unauthenticated'].includes(result.error ?? '')
+        ? null : (result.error ?? 'sync_failed'))
       if (result.lastSyncedAt !== undefined) setLastSyncedAt(result.lastSyncedAt)
       // pull пишет напрямую в SQLite мимо репозиториев/react-query. Без инвалидации
       // экраны показывают устаревший кэш (например, удалённые на другом устройстве

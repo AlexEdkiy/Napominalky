@@ -1,3 +1,4 @@
+import { useSettingsStore } from '@/stores/settingsStore'
 import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import { SchedulableTriggerInputTypes } from 'expo-notifications'
@@ -47,6 +48,12 @@ export interface SchedulableListItem {
 // SCHEDULE_EXACT_ALARM (API 31–32) и USE_EXACT_ALARM (API 33+). НЕ удалять их.
 // См. expo-notifications ExpoSchedulingDelegate.kt.
 
+let preferenceVersion = 0
+useSettingsStore.subscribe((state, previous) => {
+  if (state.notificationsEnabled !== previous.notificationsEnabled) preferenceVersion += 1
+})
+const notificationsAllowed = (): boolean => useSettingsStore.getState().notificationsEnabled
+
 let handlerConfigured = false
 let androidChannelConfigured = false
 let reminderCategoryConfigured = false
@@ -95,9 +102,9 @@ export const configureNotificationHandler = (): void => {
   handlerConfigured = true
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
+      shouldShowBanner: notificationsAllowed(),
+      shouldShowList: notificationsAllowed(),
+      shouldPlaySound: notificationsAllowed(),
       shouldSetBadge: false,
     }),
   })
@@ -153,16 +160,18 @@ const triggerDateIso = (reminder: SchedulableReminder): string =>
 export const scheduleReminder = async (
   reminder: SchedulableReminder,
 ): Promise<string | null> => {
+  if (!notificationsAllowed()) return null
+  const version = preferenceVersion
   const dateIso = triggerDateIso(reminder)
   const date = new Date(dateIso)
   if (date.getTime() <= Date.now()) return null
 
   await ensureAndroidNotificationChannel()
   await ensureReminderNotificationCategory()
-  if (!(await hasNotificationPermission())) return null
+  if (!(await hasNotificationPermission()) || !notificationsAllowed() || version !== preferenceVersion) return null
 
   const data: ReminderNotificationData = { type: 'reminder', uuid: reminder.uuid }
-  return Notifications.scheduleNotificationAsync({
+  const identifier = await Notifications.scheduleNotificationAsync({
     content: {
       title: reminder.title,
       body: reminder.notes ?? '',
@@ -171,6 +180,11 @@ export const scheduleReminder = async (
     },
     trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
+  if (!notificationsAllowed() || version !== preferenceVersion) {
+    await cancelReminder(identifier)
+    return null
+  }
+  return identifier
 }
 
 /**
@@ -209,21 +223,28 @@ export const rescheduleReminder = async (
 export const scheduleItemReminder = async (
   item: SchedulableListItem,
 ): Promise<string | null> => {
+  if (!notificationsAllowed()) return null
+  const version = preferenceVersion
   const date = new Date(item.reminderAt)
   if (date.getTime() <= Date.now()) return null
 
   await ensureAndroidNotificationChannel()
-  if (!(await hasNotificationPermission())) return null
+  if (!(await hasNotificationPermission()) || !notificationsAllowed() || version !== preferenceVersion) return null
 
   const data: ItemNotificationData = {
     type: 'list_item',
     itemUuid: item.uuid,
     listUuid: item.listUuid,
   }
-  return Notifications.scheduleNotificationAsync({
+  const identifier = await Notifications.scheduleNotificationAsync({
     content: { title: item.name, body: item.comment ?? '', data },
     trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
+  if (!notificationsAllowed() || version !== preferenceVersion) {
+    await cancelReminder(identifier)
+    return null
+  }
+  return identifier
 }
 
 /**

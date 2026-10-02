@@ -40,6 +40,7 @@ const applyRecord = async <TServer extends ServerRecord>(
   writer: Writer,
   mapper: EntityMapper<TServer>,
   server: TServer,
+  assertActive: () => void,
 ): Promise<void> => {
   const { table } = mapper
   const [existing] = await writer
@@ -53,6 +54,7 @@ const applyRecord = async <TServer extends ServerRecord>(
     return
   }
 
+  assertActive()
   const row = mapper.toRow(server)
   if (localUpdatedAt === undefined) {
     await writer.insert(table).values(row as never)
@@ -73,11 +75,14 @@ const applyBatch = async <TServer extends ServerRecord>(
   mapper: EntityMapper<TServer>,
   entity: string,
   records: TServer[],
+  assertActive: () => void,
 ): Promise<void> => {
   for (const record of records) {
     try {
-      await applyRecord(writer, mapper, record)
+      assertActive()
+      await applyRecord(writer, mapper, record, assertActive)
     } catch (err) {
+      assertActive()
       console.warn('[sync] skip record', entity, record.uuid, err)
     }
   }
@@ -102,19 +107,22 @@ const saveCursor = async (writer: Writer, cursor: number): Promise<void> => {
 const applyAll = async (
   writer: Writer,
   response: SyncChangesResponse,
+  assertActive: () => void,
 ): Promise<void> => {
   const { data, meta } = response
-  await applyBatch(writer, mappers.note, 'note', data.notes)
-  await applyBatch(writer, mappers.shopping_list, 'shopping_list', data.shopping_lists)
-  await applyBatch(writer, mappers.shopping_list_item, 'shopping_list_item', data.shopping_list_items)
+  await applyBatch(writer, mappers.note, 'note', data.notes, assertActive)
+  await applyBatch(writer, mappers.shopping_list, 'shopping_list', data.shopping_lists, assertActive)
+  await applyBatch(writer, mappers.shopping_list_item, 'shopping_list_item', data.shopping_list_items, assertActive)
   // `?? []` — устойчивость к старому серверу без сущности комментариев.
   await applyBatch(
     writer,
     mappers.shopping_list_item_comment,
     'shopping_list_item_comment',
     data.shopping_list_item_comments ?? [],
+    assertActive,
   )
-  await applyBatch(writer, mappers.reminder, 'reminder', data.reminders)
+  await applyBatch(writer, mappers.reminder, 'reminder', data.reminders, assertActive)
+  assertActive()
   await saveCursor(writer, meta.cursor)
 }
 
@@ -129,6 +137,8 @@ const applyAll = async (
 export const applyChanges = async (
   response: SyncChangesResponse,
   db: Database = defaultDb,
+  assertActive: () => void = () => {},
 ): Promise<void> => {
-  await applyAll(db, response)
+  assertActive()
+  await applyAll(db, response, assertActive)
 }

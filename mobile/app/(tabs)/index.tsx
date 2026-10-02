@@ -28,12 +28,6 @@ import type { Note } from '@/db/repositories/notesRepo'
 import type { Reminder } from '@/db/repositories/remindersRepo'
 import type { ShoppingList } from '@/db/repositories/shoppingListsRepo'
 
-const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] => {
-  const query = q.trim().toLowerCase()
-  if (query.length === 0) return items
-  return items.filter((i) => i.title.toLowerCase().includes(query))
-}
-
 const listIconName = (list: ShoppingList): 'bag-handle' | 'list' =>
   list.type === 'tasks' ? 'list' : 'bag-handle'
 
@@ -49,7 +43,6 @@ export default function HomeScreen(): React.JSX.Element {
   const { lists, isLoading: listsLoading } = useShoppingLists()
   const { isSyncing, syncNow } = useSyncEngine()
 
-  const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FeedFilter>('all')
 
   const handleNoteLongPress = useCallback(
@@ -73,11 +66,11 @@ export default function HomeScreen(): React.JSX.Element {
   const isLoading = notesLoading || remindersLoading || listsLoading
 
   const filteredNotes = useMemo(
-    () => sortNotesPinnedFirst(filterByTitle(notes, search)),
-    [notes, search],
+    () => sortNotesPinnedFirst(notes),
+    [notes],
   )
-  const filteredReminders = useMemo(() => filterByTitle(reminders, search), [reminders, search])
-  const filteredLists = useMemo(() => filterByTitle(lists, search), [lists, search])
+  const filteredReminders = reminders
+  const filteredLists = lists
 
   const counts = useMemo(
     () => ({
@@ -105,9 +98,7 @@ export default function HomeScreen(): React.JSX.Element {
         title="Вспомнить всё!"
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
-        searchValue={search}
-        onSearchChange={setSearch}
-        onGlobalSearch={(q) => router.push({ pathname: '/search', params: { q } })}
+        onSearchPress={() => router.push('/search')}
       />
 
       <FilterChips active={filter} onSelect={setFilter} colors={colors} counts={counts} />
@@ -192,12 +183,10 @@ export default function HomeScreen(): React.JSX.Element {
           {!hasContent && (
             <View style={styles.empty}>
               <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
-                {search.length > 0 ? 'Ничего не найдено' : 'Пока нет записей'}
+                Пока нет записей
               </Text>
               <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>
-                {search.length > 0
-                  ? 'Попробуйте изменить запрос или фильтр'
-                  : 'Нажмите «+», чтобы создать первую запись'}
+                Нажмите «+», чтобы создать первую запись
               </Text>
             </View>
           )}

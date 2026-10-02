@@ -1,5 +1,6 @@
 export interface User {
   uuid: string
+  avatar?: string | null
   name: string | null
   email: string
   is_admin: boolean

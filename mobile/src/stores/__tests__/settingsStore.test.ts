@@ -77,3 +77,17 @@ describe('settingsStore — hydrate', () => {
     expect(useSettingsStore.getState().theme).toBe('system')
   })
 })
+
+
+it('recovers from malformed persisted settings without enabling sync', async () => {
+  mockGetItem.mockResolvedValue('{broken')
+  await useSettingsStore.getState().hydrate()
+  expect(useSettingsStore.getState().isHydrated).toBe(true)
+  expect(useSettingsStore.getState().syncEnabled).toBe(false)
+})
+it('persists rapid toggle changes in order', async () => {
+  const off = useSettingsStore.getState().setSyncEnabled(false)
+  const on = useSettingsStore.getState().setSyncEnabled(true)
+  await Promise.all([off, on])
+  expect(JSON.parse(mockSetItem.mock.calls.at(-1)[1]).syncEnabled).toBe(true)
+})

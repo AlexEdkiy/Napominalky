@@ -23,6 +23,7 @@ const defaultSleep = (ms: number): Promise<void> =>
  * серверная 5xx. Клиентские 4xx и любые иные ошибки не повторяются.
  */
 export const isNetworkError = (error: unknown): boolean => {
+  if (axios.isCancel(error)) return false
   if (!axios.isAxiosError(error)) return false
   const status = error.response?.status
   if (status === undefined) return true

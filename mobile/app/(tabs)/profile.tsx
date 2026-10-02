@@ -1,9 +1,10 @@
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import Constants from 'expo-constants'
 import * as Application from 'expo-application'
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -14,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 
+import { useAuthStore } from '@/stores/authStore'
+import { authApi } from '@/api/authApi'
 import BaseButton from '@/components/common/BaseButton'
 import DarkHeader from '@/components/ui/DarkHeader'
 import IconSquare from '@/components/ui/IconSquare'
@@ -26,7 +29,13 @@ export default function ProfileScreen(): React.JSX.Element {
   const { colors } = useTheme()
   const { user, isAuthenticated, guestMode, logout } = useAuth()
 
-  const displayName = user?.name ?? user?.email ?? 'Гость'
+  const profileLoading = useAuthStore((s) => s.profileLoading)
+  const profileError = useAuthStore((s) => s.profileError)
+  const refresh = useCallback(() => {
+    void useAuthStore.getState().rehydrateUser(authApi.getMe)
+  }, [])
+  useFocusEffect(useCallback(() => { refresh() }, [refresh]))
+  const displayName = user?.name?.trim() || user?.email || (isAuthenticated ? 'Аккаунт' : 'Гость')
   const initial = displayName.charAt(0).toUpperCase()
   const isGuest = guestMode || !isAuthenticated
 
@@ -47,11 +56,20 @@ export default function ProfileScreen(): React.JSX.Element {
       <DarkHeader title="Профиль" onAvatarPress={() => {}} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AvatarSection
+          key={user?.uuid ?? 'guest'}
+          avatar={user?.avatar ?? null}
           initial={initial}
           displayName={displayName}
           email={user?.email}
           isGuest={isGuest}
         />
+
+        {isAuthenticated && (profileLoading || profileError) && <View style={styles.section}>
+          <Text accessibilityLiveRegion="polite" style={{ color: colors.textSecondary }}>
+            {profileLoading ? 'Обновляем профиль…' : profileError}
+          </Text>
+          {!profileLoading && <BaseButton label="Обновить профиль" onPress={refresh} variant="secondary" />}
+        </View>}
 
         <View style={styles.section}>
           <SectionLabel text="АККАУНТ" color={colors.textTertiary} />
@@ -102,6 +120,7 @@ export default function ProfileScreen(): React.JSX.Element {
 }
 
 interface AvatarSectionProps {
+  avatar: string | null
   initial: string
   displayName: string
   email: string | undefined
@@ -109,16 +128,23 @@ interface AvatarSectionProps {
 }
 
 const AvatarSection: React.FC<AvatarSectionProps> = ({
+  avatar,
   initial,
   displayName,
   email,
   isGuest,
-}) => (
+}) => {
+  const { colors } = useTheme()
+  const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [avatar])
+  return (
   <View style={styles.avatarSection}>
     <View style={styles.avatarWrap}>
-      <Text style={styles.avatarText}>{initial}</Text>
+      {avatar && !failed ? <Image accessibilityLabel="Фото профиля" source={{ uri: avatar }}
+        onError={() => setFailed(true)} style={{ width: '100%', height: '100%', borderRadius: 32 }} />
+        : <Text style={styles.avatarText}>{initial}</Text>}
     </View>
-    <Text style={styles.displayName}>{displayName}</Text>
+    <Text style={[styles.displayName, { color: colors.textPrimary }]}>{displayName}</Text>
     {email !== undefined ? <Text style={styles.email}>{email}</Text> : null}
     {isGuest ? (
       <View style={styles.guestBadge}>
@@ -127,6 +153,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
     ) : null}
   </View>
 )
+}
 
 interface MenuRowProps {
   icon: React.ComponentProps<typeof Ionicons>['name']
@@ -136,7 +163,9 @@ interface MenuRowProps {
   onPress: () => void
 }
 
-const MenuRow: React.FC<MenuRowProps> = ({ icon, iconBg, iconColor, label, onPress }) => (
+const MenuRow: React.FC<MenuRowProps> = ({ icon, iconBg, iconColor, label, onPress }) => {
+  const { colors } = useTheme()
+  return (
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={label}
@@ -150,10 +179,11 @@ const MenuRow: React.FC<MenuRowProps> = ({ icon, iconBg, iconColor, label, onPre
       size={38}
       radius={10}
     />
-    <Text style={styles.menuLabel}>{label}</Text>
+    <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{label}</Text>
     <Ionicons name="chevron-forward" size={18} color="#9AA6B2" />
   </Pressable>
 )
+}
 
 interface VersionLabelProps {
   colors: ReturnType<typeof import('@/theme').useTheme>['colors']

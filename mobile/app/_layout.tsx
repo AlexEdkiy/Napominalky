@@ -13,11 +13,11 @@ import LockProvider from '@/providers/LockProvider'
 import ThemeProvider from '@/theme/ThemeProvider'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useProfileRefresh } from '@/hooks/useProfileRefresh'
 import { useSyncEngine } from '@/hooks/useSyncEngine'
 import { useBackgroundSync } from '@/hooks/useBackgroundSync'
 import { useNotifications } from '@/hooks/useNotifications'
 import { installGlobalErrorHandler } from '@/services/globalErrorHandler'
-import { authApi } from '@/api/authApi'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +34,7 @@ const queryClient = new QueryClient({
  * приложения в фон. Ничего не рендерит.
  */
 function SyncBootstrap(): null {
+  useProfileRefresh()
   useSyncEngine()
   useBackgroundSync()
   return null
@@ -50,14 +51,13 @@ function NotificationsBootstrap(): null {
 
 function RootLayout(): React.JSX.Element {
   const hydrate = useAuthStore((state) => state.hydrate)
-  const rehydrateUser = useAuthStore((state) => state.rehydrateUser)
   const hydrateSettings = useSettingsStore((state) => state.hydrate)
   const [globalError, setGlobalError] = useState<Error | null>(null)
 
   useEffect(() => {
-    void hydrate().then(() => rehydrateUser(authApi.getMe))
+    void hydrate()
     void hydrateSettings()
-  }, [hydrate, rehydrateUser, hydrateSettings])
+  }, [hydrate, hydrateSettings])
 
   useEffect(() => {
     const uninstall = installGlobalErrorHandler((error) => {

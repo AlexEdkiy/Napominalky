@@ -6,6 +6,8 @@ import {
   View,
 } from 'react-native'
 
+import { useTheme } from '@/theme'
+
 interface SettingRowProps {
   label: string
   right?: ReactNode
@@ -14,11 +16,12 @@ interface SettingRowProps {
 }
 
 const SettingRow: React.FC<SettingRowProps> = ({ label, right, hint, onPress }) => {
+  const { colors } = useTheme()
   const content = (
     <View style={styles.row}>
       <View style={styles.labelBlock}>
-        <Text style={styles.label}>{label}</Text>
-        {hint !== undefined ? <Text style={styles.hint}>{hint}</Text> : null}
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+        {hint !== undefined ? <Text style={[styles.hint, { color: colors.textSecondary }]}>{hint}</Text> : null}
       </View>
       {right !== undefined ? <View style={styles.right}>{right}</View> : null}
     </View>

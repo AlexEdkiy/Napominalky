@@ -1,66 +1,49 @@
+import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 
 import { settingsApi } from '@/api/settingsApi'
 import { useAuthStore } from '@/stores/authStore'
-import { useSettingsStore, type Theme } from '@/stores/settingsStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 
-interface UseSettingsResult {
-  theme: Theme
-  notificationsEnabled: boolean
-  syncEnabled: boolean
-  isHydrated: boolean
-  setTheme: (theme: Theme) => Promise<void>
-  toggleNotifications: () => Promise<void>
-  toggleSync: () => void
-  isSyncUpdating: boolean
-}
-
-export function useSettings(): UseSettingsResult {
-  const theme = useSettingsStore((s) => s.theme)
-  const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled)
-  const syncEnabled = useSettingsStore((s) => s.syncEnabled)
-  const isHydrated = useSettingsStore((s) => s.isHydrated)
-  const setThemeStore = useSettingsStore((s) => s.setTheme)
-  const setNotificationsEnabled = useSettingsStore((s) => s.setNotificationsEnabled)
-  const setSyncEnabled = useSettingsStore((s) => s.setSyncEnabled)
+export function useSettings() {
+  const settings = useSettingsStore()
   const token = useAuthStore((s) => s.token)
-  const setUserInAuth = useAuthStore((s) => s.setUser)
-
+  const serverEnabled = useAuthStore((s) => s.syncEnabled)
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const syncEnabled = token !== null && serverEnabled && settings.isHydrated && settings.syncEnabled
   const syncMutation = useMutation({
-    mutationFn: (enabled: boolean) => settingsApi.updateSyncEnabled(enabled),
-    onSuccess: (user) => {
-      setUserInAuth(user)
-      void setSyncEnabled(user.sync_enabled)
+    mutationFn: ({ enabled }: { enabled: boolean; token: string }) => settingsApi.updateSyncEnabled(enabled),
+    onSuccess: (user, request) => {
+      if (useAuthStore.getState().token !== request.token) return
+      useAuthStore.getState().setUser(user)
     },
-    onError: () => {
-      void setSyncEnabled(!syncEnabled)
+    onError: (_error, request) => {
+      if (useAuthStore.getState().token !== request.token) return
+      // Failure must never undo the user's decision to stop data transfer.
+      void settings.setSyncEnabled(false).catch(() => {})
+      setSyncError(request.enabled
+        ? 'Не удалось включить синхронизацию. Проверьте подключение и повторите.'
+        : 'На устройстве синхронизация выключена. Настройку аккаунта на сервере обновить не удалось.')
     },
   })
 
-  const setTheme = async (next: Theme): Promise<void> => {
-    await setThemeStore(next)
+  const toggleSync = (): void => {
+    if (!token || !settings.isHydrated || syncMutation.isPending) return
+    setSyncError(null)
+    const next = !syncEnabled
+    void settings.setSyncEnabled(next).catch(() => setSyncError('Не удалось сохранить настройку на устройстве.'))
+    syncMutation.mutate({ enabled: next, token })
   }
 
   const toggleNotifications = async (): Promise<void> => {
-    await setNotificationsEnabled(!notificationsEnabled)
-  }
-
-  const toggleSync = (): void => {
-    const next = !syncEnabled
-    void setSyncEnabled(next)
-    if (token !== null) {
-      syncMutation.mutate(next)
-    }
+    useSettingsStore.setState({ notificationsError: null })
+    try { await settings.setNotificationsEnabled(!settings.notificationsEnabled) }
+    catch { useSettingsStore.setState({ notificationsError: 'Не удалось сохранить настройку уведомлений.' }) }
   }
 
   return {
-    theme,
-    notificationsEnabled,
-    syncEnabled,
-    isHydrated,
-    setTheme,
-    toggleNotifications,
-    toggleSync,
+    ...settings, syncEnabled, toggleNotifications, toggleSync, syncError,
+    canSync: token !== null && settings.isHydrated,
     isSyncUpdating: syncMutation.isPending,
   }
 }

@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/stores/authStore'
+import { createSyncSession, isSyncEnabled, type SyncSession } from './syncSession'
 import { getIsOnline } from '@/services/netStatus'
 import { pushChanges } from './pushChanges'
 import { pullChanges } from './pullChanges'
@@ -6,7 +6,7 @@ import { setLastSyncedAt } from './syncMeta'
 
 /** Опции запуска синхронизации. */
 export interface SyncOptions {
-  /** Игнорировать гейт (syncEnabled/online) — для ручного запуска. */
+  /** Ручной запуск; настройки и отсутствие сети по-прежнему учитываются. */
   force?: boolean
 }
 
@@ -24,6 +24,7 @@ const listeners = new Set<SyncListener>()
 
 /** Текущий промис синхронизации (анти-параллель): null, если не идёт. */
 let inFlight: Promise<SyncResult> | null = null
+let activeSession: SyncSession | undefined
 
 /** Подписка на завершение синхронизации. Возвращает функцию отписки. */
 const onChange = (listener: SyncListener): (() => void) => {
@@ -37,24 +38,12 @@ const emit = (result: SyncResult): void => {
   listeners.forEach((listener) => listener(result))
 }
 
-/**
- * Гейт синхронизации: нужен токен; при отсутствии force — также включённая
- * синхронизация и онлайн-статус. Возвращает null, если можно продолжать,
- * либо причину отказа.
- */
-const checkGate = async (force: boolean): Promise<string | null> => {
-  const { token, syncEnabled } = useAuthStore.getState()
-  if (token === null) return 'unauthenticated'
-  if (force) return null
-  if (!syncEnabled) return 'sync_disabled'
-  if (!(await getIsOnline())) return 'offline'
-  return null
-}
-
 /** Выполняет push → pull и фиксирует метку времени. Ошибки — наружу. */
-const runSync = async (): Promise<SyncResult> => {
-  const pushResult = await pushChanges()
-  await pullChanges()
+const runSync = async (session: SyncSession): Promise<SyncResult> => {
+  const pushResult = await pushChanges(undefined, session)
+  session.assertActive()
+  await pullChanges(undefined, session)
+  session.assertActive()
 
   const lastSyncedAt = new Date().toISOString()
   await setLastSyncedAt(lastSyncedAt)
@@ -65,25 +54,37 @@ const runSync = async (): Promise<SyncResult> => {
 const toError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
-const sync = (opts: SyncOptions = {}): Promise<SyncResult> => {
-  if (inFlight !== null) return inFlight
+const sync = (_opts: SyncOptions = {}): Promise<SyncResult> => {
+  if (inFlight !== null) {
+    // A new ON/account must wait for cancellation, then get its own session.
+    return activeSession?.signal.aborted && isSyncEnabled()
+      ? inFlight.then(() => sync(_opts)) : inFlight
+  }
 
   inFlight = (async (): Promise<SyncResult> => {
-    const denied = await checkGate(opts.force === true)
-    if (denied !== null) return { ok: false, error: denied }
+    let session: SyncSession | undefined
     try {
-      return await runSync()
+      session = createSyncSession()
+      activeSession = session
+      if (!(await getIsOnline())) return { ok: false, error: 'offline' }
+      session.assertActive()
+      return await runSync(session)
     } catch (error) {
-      return { ok: false, error: toError(error) }
+      return { ok: false, error: session?.signal.aborted ? 'sync_cancelled' : toError(error) }
+    } finally {
+      session?.dispose()
+      activeSession = undefined
     }
-  })()
-
-  return inFlight.then((result) => {
+  })().then((result) => {
     inFlight = null
     emit(result)
     return result
   })
+  return inFlight
 }
 
 /** Единый движок синхронизации приложения. */
-export const syncEngine = { sync, onChange }
+export const syncEngine = {
+  sync, onChange,
+  stop: async (): Promise<void> => { activeSession?.cancel(); await inFlight },
+}

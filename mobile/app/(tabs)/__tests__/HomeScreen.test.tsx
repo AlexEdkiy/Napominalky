@@ -85,7 +85,8 @@ jest.mock('@/theme/typography', () => ({
 }))
 
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { router } from 'expo-router'
+import { render, fireEvent } from '@testing-library/react-native'
 import HomeScreen from '../index'
 
 beforeEach(() => {
@@ -179,4 +180,11 @@ describe('HomeScreen — подпись статуса по типу задач�
     const { getByText } = await render(<HomeScreen />)
     expect(getByText('4 пунктов · 2 куплено')).toBeTruthy()
   })
+})
+
+it('opens global search directly from the home search icon without an extra action', async () => {
+  const screen = await render(<HomeScreen />)
+  await fireEvent.press(screen.getByLabelText('Поиск'))
+  expect(router.push).toHaveBeenCalledWith('/search')
+  expect(screen.queryByText('Искать везде →')).toBeNull()
 })

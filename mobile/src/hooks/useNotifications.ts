@@ -12,7 +12,8 @@ import {
   REMINDER_ACTION_COMPLETE,
   REMINDER_ACTION_SNOOZE_10M,
 } from '@/services/notifications'
-import { rescheduleAllNotificationsOnStart } from '@/services/notificationsBootstrap'
+import { reconcileNotificationSettings } from '@/services/notificationsBootstrap'
+import { useSettingsStore } from '@/stores/settingsStore'
 import {
   listRoute,
   parseNotificationData,
@@ -91,14 +92,6 @@ const dismissAndInvalidate = async (
   await queryClient.invalidateQueries({ queryKey: QueryKeys.reminders.all })
 }
 
-/** Запрашивает разрешения, повторно не дёргая системный диалог, если уже granted. */
-const ensurePermissions = async (): Promise<boolean> => {
-  const current = await Notifications.getPermissionsAsync()
-  if (current.granted) return true
-  const requested = await Notifications.requestPermissionsAsync()
-  return requested.granted
-}
-
 /**
  * Корневой хук уведомлений (FR-27): настраивает foreground-handler, Android-канал,
  * категорию с управляющими кнопками, запрашивает разрешения, переустанавливает
@@ -111,23 +104,30 @@ export const useNotifications = (): UseNotificationsResult => {
   const [granted, setGranted] = useState(false)
   const coldStartHandled = useRef(false)
   const queryClient = useQueryClient()
+  const ready = useSettingsStore((s) => s.isHydrated)
+  const enabled = useSettingsStore((s) => s.notificationsEnabled)
 
   useEffect(() => {
+    if (!ready) return
     let active = true
+    void reconcileNotificationSettings().then(() => {
+      if (active) setGranted(useSettingsStore.getState().notificationsEnabled)
+    }).catch(() => {
+      useSettingsStore.setState({ notificationsError: 'Не удалось обновить уведомления. Повторите попытку.' })
+    })
+    return () => { active = false }
+  }, [ready, enabled])
+
+  useEffect(() => {
     configureNotificationHandler()
     void ensureAndroidNotificationChannel()
     void ensureReminderNotificationCategory()
-
-    void ensurePermissions().then((value) => {
-      if (active) setGranted(value)
-    })
 
     if (!coldStartHandled.current) {
       coldStartHandled.current = true
       void Notifications.getLastNotificationResponseAsync().then((response) =>
         handleNotificationResponse(response, queryClient),
       )
-      void rescheduleAllNotificationsOnStart()
     }
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -135,7 +135,6 @@ export const useNotifications = (): UseNotificationsResult => {
     )
 
     return () => {
-      active = false
       subscription.remove()
     }
   }, [queryClient])

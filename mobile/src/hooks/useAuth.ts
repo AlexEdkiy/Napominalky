@@ -7,7 +7,7 @@ import { useDb } from '@/providers/DbProvider'
 import { resetLocalData } from '@/db/resetLocalData'
 import { syncOutbox } from '@/db/schema/syncOutbox'
 import { getMeta, setMeta, LAST_USER_ID, resetPullCursor } from '@/services/sync/syncMeta'
-import { pushChanges } from '@/services/sync/pushChanges'
+import { syncEngine } from '@/services/sync/syncEngine'
 import { useAuthStore } from '@/stores/authStore'
 import type { AuthResponse, LoginPayload, RegisterPayload } from '@/types/auth'
 import type { Database } from '@/db/client'
@@ -32,26 +32,29 @@ const confirmLogoutWithUnsaved = (): Promise<boolean> =>
  */
 const tryFlushSync = async (db: Database): Promise<boolean> => {
   try {
-    await pushChanges(db)
+    if (db.select({ id: syncOutbox.id }).from(syncOutbox).limit(1).get() === undefined) return true
+    await syncEngine.sync()
     return db.select({ id: syncOutbox.id }).from(syncOutbox).limit(1).get() === undefined
   } catch {
     return false
   }
 }
 
-/** Полный сброс: очистка данных → отзыв токена → очистка стора и кэша. */
+/** Остановить сессию/обмен → очистить данные → отозвать прежний токен. */
 const performLogout = async (
   db: Database,
   logoutStore: () => Promise<void>,
   clearQuery: () => void,
 ): Promise<void> => {
+  const token = useAuthStore.getState().token
+  await logoutStore()
+  await syncEngine.stop()
   await resetLocalData(db)
   try {
-    await authApi.logout()
+    if (token) await authApi.logout(token)
   } catch {
     // Офлайн-логаут допустим — токен просто протухнет на сервере.
   }
-  await logoutStore()
   clearQuery()
   router.replace('/(auth)/login')
 }
@@ -79,6 +82,8 @@ function useAuthSession(db: Database) {
 
   const onAuthSuccess = async (response: AuthResponse): Promise<void> => {
     const lastUserId = await getMeta(LAST_USER_ID, db)
+    useAuthStore.setState({ token: null, user: null, syncEnabled: false })
+    await syncEngine.stop()
     const incomingId = response.user.uuid
     if (lastUserId !== null && lastUserId !== incomingId) {
       await resetLocalData(db)

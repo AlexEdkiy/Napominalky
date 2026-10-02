@@ -15,6 +15,7 @@ interface DarkHeaderProps {
   collapsibleSearch?: boolean
   searchValue?: string
   onSearchChange?: (text: string) => void
+  onSearchPress?: () => void
   onGlobalSearch?: (text: string) => void
 }
 
@@ -36,11 +37,13 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
   searchValue = '',
   onSearchChange,
   onGlobalSearch,
+  onSearchPress,
 }) => {
   const insets = useSafeAreaInsets()
   const [searchOpen, setSearchOpen] = useState(false)
 
   const handleSearchToggle = (): void => {
+    if (onSearchPress) { onSearchPress(); return }
     setSearchOpen((prev) => !prev)
   }
 

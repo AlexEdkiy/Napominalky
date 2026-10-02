@@ -2,6 +2,7 @@ import { asc, inArray } from 'drizzle-orm'
 
 import { db as defaultDb, type Database } from '@/db/client'
 import { syncOutbox, type SyncOutboxRow } from '@/db/schema/syncOutbox'
+import type { SyncSession } from './syncSession'
 import { syncApi } from '@/api/syncApi'
 import type { SyncChange, SyncEntityType, SyncPushResult } from '@/types/sync'
 import { withBackoff } from './backoff'
@@ -45,9 +46,15 @@ const pushBatch = async (
   rows: readonly SyncOutboxRow[],
   deviceUuid: string,
   deviceName: string | null,
+  session?: SyncSession,
 ): Promise<SyncPushResult> => {
   const changes = rows.map(toChange)
-  const result = await withBackoff(() => syncApi.pushChanges(deviceUuid, deviceName, changes))
+  const result = await withBackoff(() => {
+    session?.assertActive()
+    return session ? syncApi.pushChanges(deviceUuid, deviceName, changes, session)
+      : syncApi.pushChanges(deviceUuid, deviceName, changes)
+  })
+  session?.assertActive()
   await clearOutbox(db, rows, result)
   return result
 }
@@ -59,7 +66,9 @@ const pushBatch = async (
  */
 export const pushChanges = async (
   db: Database = defaultDb,
+  session?: SyncSession,
 ): Promise<SyncPushResult | null> => {
+  session?.assertActive()
   const rows = await db.select().from(syncOutbox).orderBy(asc(syncOutbox.id))
   if (rows.length === 0) return null
 
@@ -67,7 +76,7 @@ export const pushChanges = async (
   const deviceName = await getDeviceName(db)
   const result: SyncPushResult = { applied: [], conflicts: [], cursor: 0 }
   for (let offset = 0; offset < rows.length; offset += PUSH_BATCH_SIZE) {
-    const batch = await pushBatch(db, rows.slice(offset, offset + PUSH_BATCH_SIZE), deviceUuid, deviceName)
+    const batch = await pushBatch(db, rows.slice(offset, offset + PUSH_BATCH_SIZE), deviceUuid, deviceName, session)
     result.applied.push(...batch.applied)
     result.conflicts.push(...batch.conflicts)
     result.cursor = Math.max(result.cursor, batch.cursor)

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native'
 
+import { useTheme } from '@/theme'
 import SettingRow from '@/components/settings/SettingRow'
 import { useSettings } from '@/hooks/useSettings'
 import type { Theme } from '@/stores/settingsStore'
@@ -28,8 +29,10 @@ export default function SettingsScreen() {
     setTheme,
     toggleNotifications,
     toggleSync,
-    isSyncUpdating,
+    isSyncUpdating, canSync, syncError, notificationsError, isHydrated,
   } = useSettings()
+
+  const { colors } = useTheme()
 
   const handleThemePress = (): void => {
     const currentIndex = THEME_CYCLE.indexOf(theme)
@@ -46,10 +49,10 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      style={styles.scroll}
+      style={[styles.scroll, { backgroundColor: colors.screenBg }]}
       contentContainerStyle={styles.container}
     >
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={styles.sectionTitle}>Внешний вид</Text>
         <SettingRow
           label="Тема"
@@ -58,13 +61,15 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={styles.sectionTitle}>Уведомления</Text>
         <SettingRow
-          label="Push-уведомления"
+          label="Уведомления"
+          hint={notificationsError ?? undefined}
           right={
             <Switch
               value={notificationsEnabled}
+              disabled={!isHydrated}
               onValueChange={() => { void toggleNotifications() }}
               accessibilityLabel="Push-уведомления"
             />
@@ -72,23 +77,23 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={styles.sectionTitle}>Синхронизация</Text>
         <SettingRow
           label="Синхронизация с сервером"
-          hint={isSyncUpdating ? 'Обновление...' : undefined}
+          hint={syncError ?? (!canSync ? 'Войдите в аккаунт для синхронизации.' : isSyncUpdating ? 'Обновление...' : !syncEnabled ? 'Выключена. Изменения сохраняются только на устройстве.' : undefined)}
           right={
             <Switch
               value={syncEnabled}
               onValueChange={toggleSync}
-              disabled={isSyncUpdating}
+              disabled={isSyncUpdating || !canSync}
               accessibilityLabel="Синхронизация с сервером"
             />
           }
         />
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={styles.sectionTitle}>Безопасность</Text>
         <SettingRow
           label="Блокировка и биометрия"

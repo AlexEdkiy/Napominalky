@@ -13,6 +13,7 @@ interface SettingsData {
 
 interface SettingsState extends SettingsData {
   isHydrated: boolean
+  notificationsError: string | null
   setTheme: (theme: Theme) => Promise<void>
   setNotificationsEnabled: (enabled: boolean) => Promise<void>
   setSyncEnabled: (enabled: boolean) => Promise<void>
@@ -25,13 +26,18 @@ const DEFAULTS: SettingsData = {
   syncEnabled: false,
 }
 
-async function persist(data: SettingsData): Promise<void> {
-  await SecureStore.setItemAsync(SETTINGS_KEY, JSON.stringify(data))
+let pendingWrite = Promise.resolve()
+function persist(data: SettingsData): Promise<void> {
+  const json = JSON.stringify(data)
+  const write = pendingWrite.then(() => SecureStore.setItemAsync(SETTINGS_KEY, json))
+  pendingWrite = write.catch(() => {})
+  return write
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   ...DEFAULTS,
   isHydrated: false,
+  notificationsError: null,
 
   setTheme: async (theme: Theme): Promise<void> => {
     set({ theme })
@@ -52,23 +58,29 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   hydrate: async (): Promise<void> => {
-    const raw = await SecureStore.getItemAsync(SETTINGS_KEY)
-    if (raw !== null) {
-      const parsed: unknown = JSON.parse(raw)
-      if (typeof parsed === 'object' && parsed !== null) {
-        const data = parsed as Partial<SettingsData>
-        set({
-          theme: isTheme(data.theme) ? data.theme : DEFAULTS.theme,
-          notificationsEnabled: typeof data.notificationsEnabled === 'boolean'
-            ? data.notificationsEnabled
-            : DEFAULTS.notificationsEnabled,
-          syncEnabled: typeof data.syncEnabled === 'boolean'
-            ? data.syncEnabled
-            : DEFAULTS.syncEnabled,
-        })
+    try {
+      const raw = await SecureStore.getItemAsync(SETTINGS_KEY)
+      if (raw !== null) {
+        const parsed: unknown = JSON.parse(raw)
+        if (typeof parsed === 'object' && parsed !== null) {
+          const data = parsed as Partial<SettingsData>
+          set({
+            theme: isTheme(data.theme) ? data.theme : DEFAULTS.theme,
+            notificationsEnabled: typeof data.notificationsEnabled === 'boolean'
+              ? data.notificationsEnabled
+              : DEFAULTS.notificationsEnabled,
+            syncEnabled: typeof data.syncEnabled === 'boolean'
+              ? data.syncEnabled
+              : DEFAULTS.syncEnabled,
+          })
+        }
       }
+    } catch {
+      // Corrupt/unavailable settings must not enable synchronization.
+      set({ ...DEFAULTS })
+    } finally {
+      set({ isHydrated: true })
     }
-    set({ isHydrated: true })
   },
 }))
 

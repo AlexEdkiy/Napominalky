@@ -51,7 +51,7 @@ function SearchContent(): React.JSX.Element {
         <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
           <TextInput accessibilityLabel="Поисковый запрос" placeholder="Название или текст"
             placeholderTextColor={colors.textSecondary} value={draft} onChangeText={setDraft}
-            onSubmitEditing={submit} returnKeyType="search" maxLength={200} autoCorrect={false}
+            onSubmitEditing={submit} autoFocus={!initial} returnKeyType="search" maxLength={200} autoCorrect={false}
             style={[styles.input, { color: colors.textPrimary }]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Найти" onPress={submit}
             style={[styles.button, { backgroundColor: colors.accent }]}>

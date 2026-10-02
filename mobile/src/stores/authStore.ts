@@ -8,28 +8,21 @@ export const TOKEN_SAVED_AT_KEY = 'auth_token_saved_at'
 /** Срок жизни токена в миллисекундах (24 часа). */
 export const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
+let profileRequest: { token: string; promise: Promise<void> } | null = null
+
 interface AuthState {
   token: string | null
   user: User | null
   guestMode: boolean
   syncEnabled: boolean
   isHydrated: boolean
+  profileLoading: boolean
+  profileError: string | null
   setToken: (token: string) => Promise<void>
   setUser: (user: User) => void
   setGuestMode: (guestMode: boolean) => void
   logout: () => Promise<void>
   hydrate: () => Promise<void>
-  /**
-   * After hydrate(), if token is present and user is null, call this with
-   * authApi.getMe to fetch the current user and set syncEnabled.
-   * Accepts the fetch function as a parameter to avoid circular imports
-   * (authApi → client → authStore) and to make the store easily testable.
-   *
-   * Error handling:
-   *  - 401: axios interceptor already calls logout(); isHydrated remains true.
-   *  - Network / transient errors: token kept, user stays null; sync skipped until
-   *    the next app session or manual trigger.
-   */
   rehydrateUser: (fetchUser: () => Promise<User>) => Promise<void>
 }
 
@@ -39,6 +32,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   guestMode: false,
   syncEnabled: false,
   isHydrated: false,
+  profileLoading: false,
+  profileError: null,
 
   setToken: async (token: string): Promise<void> => {
     await SecureStore.setItemAsync(TOKEN_KEY, token)
@@ -55,9 +50,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async (): Promise<void> => {
+    // Stop sync and invalidate profile replies before waiting for native storage.
+    set({ token: null, user: null, syncEnabled: false, profileLoading: false, profileError: null })
     await SecureStore.deleteItemAsync(TOKEN_KEY)
     await SecureStore.deleteItemAsync(TOKEN_SAVED_AT_KEY)
-    set({ token: null, user: null, syncEnabled: false })
   },
 
   hydrate: async (): Promise<void> => {
@@ -82,22 +78,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ token, isHydrated: true })
   },
 
-  rehydrateUser: async (fetchUser: () => Promise<User>): Promise<void> => {
-    const { token, user } = get()
-    if (token === null || user !== null) return
-
-    try {
-      const fetchedUser = await fetchUser()
-      set({ user: fetchedUser, syncEnabled: fetchedUser.sync_enabled })
-    } catch (error: unknown) {
-      const status =
-        (error as { response?: { status?: number } } | null)?.response?.status
-      if (status === 401) {
-        // Interceptor already called logout() → token and user cleared.
-        return
+  rehydrateUser: async (fetchUser) => {
+    const token = get().token
+    if (token === null) return
+    if (profileRequest?.token === token) return profileRequest.promise
+    const request = { token, promise: Promise.resolve() }
+    profileRequest = request
+    set({ profileLoading: true, profileError: null })
+    request.promise = (async () => {
+      try {
+        const user = await fetchUser()
+        if (get().token === token) set({ user, syncEnabled: user.sync_enabled })
+      } catch {
+        if (get().token === token) set({ profileError: 'Не удалось обновить профиль. Проверьте подключение.' })
+      } finally {
+        if (get().token === token) set({ profileLoading: false })
+        if (profileRequest === request) profileRequest = null
       }
-      // Network / transient error: keep token, leave user null.
-      // Sync engine will be skipped (syncEnabled stays false) until next session.
-    }
+    })()
+    return request.promise
   },
 }))
