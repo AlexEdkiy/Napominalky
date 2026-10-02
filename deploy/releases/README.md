@@ -1,10 +1,11 @@
 # Versioned releases (OPS-14)
 
-Production is active on **r0ecdf32-web59** since 2026-10-02, source SHA
-`0ecdf32da6532f97c2da583421dbfaa1d1b514af`. The owner explicitly approved WEB-59;
+Production is active on **rb4dc43b-web60** since 2026-10-02, source SHA
+`b4dc43b4b6bbaea3da3e300bff2a3632542ad99a`. The owner explicitly approved WEB-60;
 managed switch, public web/API, desktop/mobile browser loading and read-only mounts passed.
-No new migration. [WEB-59 deployment report](../../docs/reviews/web59-tooltip-statuses-2026-10-02.md#выпуск-2026-10-02).
-Keep r2d8e0ab-web58 for code rollback; retain the WEB-54 database columns (batch 16).
+Published mobile UI also passed browser checks with HTTP fixtures (no user data/writes).
+No new migration. [WEB-60 deployment report](../../docs/reviews/web60-mobile-create-2026-10-02.md#выпуск).
+Keep r0ecdf32-web59 for code rollback; retain the WEB-54 database columns (batch 16).
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
