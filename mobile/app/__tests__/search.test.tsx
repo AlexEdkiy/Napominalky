@@ -58,8 +58,10 @@ it('searches real local SQLite offline, filters, opens a note and preserves quer
   await act(changed)
   await waitFor(() => expect(screen.getByLabelText('Открыть: Исправлено')).toBeTruthy())
   await fireEvent.press(screen.getByLabelText('Искать: Напоминания'))
-  await waitFor(() => expect(screen.queryByLabelText('Открыть: Исправлено')).toBeNull())
-  expect(screen.getByText('Ничего не найдено. Измените запрос или выберите «Все».')).toBeTruthy()
+  // The previous row also disappears while the next query is still loading.
+  // Wait for the completed empty result, not merely for the old row to disappear.
+  await waitFor(() => expect(screen.getByText('Ничего не найдено. Измените запрос или выберите «Все».')).toBeTruthy())
+  expect(screen.queryByLabelText('Открыть: Исправлено')).toBeNull()
   await fireEvent.press(screen.getByLabelText('Назад'))
   expect(router.back).toHaveBeenCalled()
 })
