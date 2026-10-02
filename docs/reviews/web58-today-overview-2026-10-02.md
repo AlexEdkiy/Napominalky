@@ -58,7 +58,17 @@
 
 ## Выпуск
 
-Реализация локально проверена. Production остаётся на `r3fe9ff3-web57`.
-После CI точного коммита нужно подготовить и проверить неизменяемый артефакт;
-переключение сайта учитывается отдельно. Миграций нет, откат кода — WEB-57
-с актуальным production storage.
+Реализация завершена, коммит `2d8e0ab8e04cf22c12260637f00b6da7db008c95`.
+[CI 36982314700](https://github.com/AlexEdkiy/Napominalky/actions/runs/36982314700):
+backend, web checks, mobile checks — **success**.
+
+Артефакт: `/home/vselug/workspace/Napominalky-runtime/releases/r2d8e0ab-web58`.
+Manifest проверен, 9839 backend-файлов побайтово совпадают с `r3fe9ff3-web57`.
+Запуск готового артефакта на отдельном стенде и smoke (API 18056, web 18057) прошли.
+Доказательства CI/артефакта/стенда сохранены рядом с браузерными результатами.
+
+Production остаётся на `r3fe9ff3-web57`. Выпуск WEB-58 ожидает отдельного разрешения
+пользователя на замену production-контейнеров. Предыдущие подтверждения относились
+к предыдущим выпускам. Миграций нет; план — штатный `deploy/releases/switch.py`
+с production/target.json, затем проверка публичных web/API и release.json.
+Откат кода — WEB-57 с актуальным production storage, без отката данных.
