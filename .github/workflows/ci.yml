@@ -89,7 +89,22 @@ jobs:
         run: npm run typecheck
       - name: Run mobile tests
         if: matrix.layer == 'mobile'
-        run: npm test -- --ci --runInBand
+        run: |
+          if npm test -- --ci --runInBand --json --outputFile=/tmp/mobile-jest-results.json; then
+            exit 0
+          fi
+          node <<'NODE'
+          const fs = require('node:fs')
+          const file = '/tmp/mobile-jest-results.json'
+          if (fs.existsSync(file)) {
+            const result = JSON.parse(fs.readFileSync(file, 'utf8'))
+            const escape = (text) => text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+            for (const test of result.testResults.filter((item) => item.status === 'failed')) {
+              console.log('::error title=Mobile test failure::' + escape((test.message || test.name).slice(0, 6000)))
+            }
+          }
+          NODE
+          exit 1
       - name: Run web tests
         if: matrix.layer == 'web'
         run: npm test -- --maxWorkers=2
