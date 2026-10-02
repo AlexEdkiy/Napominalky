@@ -1,12 +1,13 @@
 # Versioned releases (OPS-14)
 
-Production is active on **rffa1723-web61** since 2026-10-02, source SHA
-`ffa172336af781a45e6601334e98b6c8b237dcef`. The owner explicitly approved WEB-61;
-managed switch, public web/API, desktop/mobile browser loading and read-only mounts passed.
-Published mobile task form passed 19 checks with simulated keyboard viewport and HTTP
-fixtures (no user data/server writes); physical device testing is still outstanding.
-No new migration. [WEB-61 deployment report](../../docs/reviews/web61-mobile-task-keyboard-2026-10-02.md#выпуск).
-Keep rb4dc43b-web60 for code rollback; retain the WEB-54 database columns (batch 16).
+Production is active on **r6e44b29-web62** since 2026-10-02, source SHA
+`6e44b29e3e912a9b5296d464b27f3b41d7935715`. The owner explicitly approved WEB-61
+and WEB-62; WEB-61 was already live and remains included. Managed switch, public
+web/API, desktop/mobile search UI and all 19 mobile keyboard regressions passed.
+Authenticated published UI checks used HTTP fixtures; real API search tests passed
+on isolated staging. Physical device testing is still outstanding. Backend adds
+read-only search; no new migration. [WEB-62 deployment report](../../docs/reviews/web62-search-2026-10-02.md#выпуск).
+Keep rffa1723-web61 for code rollback; retain the WEB-54 database columns (batch 16).
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
