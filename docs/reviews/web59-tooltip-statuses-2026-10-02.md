@@ -22,6 +22,14 @@
 
 Доказательства: `/home/vselug/workspace/Napominalky-artifacts/web59/` вне Git.
 
-Выпуск: подготовка коммита/CI и неизменяемого артефакта. Сайт остаётся на WEB-58;
-публикация WEB-59 учитывается отдельно. Backend и схема не менялись, миграций нет,
-откат кода — `r2d8e0ab-web58` с текущим production storage.
+Коммит: `0ecdf32da6532f97c2da583421dbfaa1d1b514af`.
+[CI 36983976421](https://github.com/AlexEdkiy/Napominalky/actions/runs/36983976421):
+backend, mobile checks, web checks — success, включая полный web-прогон.
+
+Артефакт `/home/vselug/workspace/Napominalky-runtime/releases/r0ecdf32-web59` проверен:
+manifest и изолированный smoke (API 18056, web 18057) прошли; 9839 backend-файлов
+совпадают с WEB-58. Журналы CI/артефакта/стенда сохранены рядом с браузерными результатами.
+
+Выпуск подготовлен и ожидает согласия на публикацию WEB-59. Сайт остаётся на WEB-58.
+Миграций нет; переключение через `deploy/releases/switch.py` по production/target.json
+с публичными web/API-проверками. Откат кода — `r2d8e0ab-web58` с текущим storage.
