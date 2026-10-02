@@ -1,10 +1,10 @@
 # Versioned releases (OPS-14)
 
-Production is active on **r3fe9ff3-web57** since 2026-10-01, source SHA
-`3fe9ff38a45c4154a0113d32ae53e2fdda1f2e1f`. The owner explicitly approved WEB-57;
-managed switch, public web/API and read-only mounts passed. No new migration.
-[WEB-57 deployment report](../../docs/reviews/web57-sorting-2026-10-01.md#выпуск-2026-10-01).
-Keep rd3d0797-web56 for code rollback; retain the WEB-54 database columns (batch 16).
+Production is active on **r2d8e0ab-web58** since 2026-10-02, source SHA
+`2d8e0ab8e04cf22c12260637f00b6da7db008c95`. The owner explicitly approved WEB-58;
+managed switch, public web/API, desktop/mobile browser loading and read-only mounts passed.
+No new migration. [WEB-58 deployment report](../../docs/reviews/web58-today-overview-2026-10-02.md#выпуск-2026-10-02).
+Keep r3fe9ff3-web57 for code rollback; retain the WEB-54 database columns (batch 16).
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
