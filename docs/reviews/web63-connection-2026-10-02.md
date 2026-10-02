@@ -3,8 +3,8 @@
 Ветка `manage-2026-09-30`. Самопроверка автора, не независимое ревью.
 Область подтверждена пользователем: сайт, включая мобильную версию.
 Код: `013d921b39277462c46ebc342db3a304b2c379c6`.
-Реализация, локальные проверки, CI и артефакт готовы к выпуску.
-Production остаётся на WEB-62 (`r6e44b29-web62`).
+После явного подтверждения пользователя выпуск завершён 2026-10-02 в 17:49 МСК.
+Production: **r013d921-web63**. Публичные desktop/mobile проверки прошли.
 
 ## Поведение
 
@@ -71,7 +71,7 @@ Service worker действует только в scope приложения (pr
 
 Доказательства вне Git: `/home/vselug/workspace/Napominalky-artifacts/web63/`.
 
-## План выпуска
+## Подготовка выпуска
 
 [CI 37021354872](https://github.com/AlexEdkiy/Napominalky/actions/runs/37021354872)
 успешен на точном SHA `013d921`: backend, mobile checks и web checks. Выполнены
@@ -89,9 +89,50 @@ offline reload, декодирование кешированного рисун
 и production не затрагивались. Доказательства `artifact-stage.log`, `artifact-http.json`,
 `artifact-browser.json` и `artifact-offline-390.png` сохранены вне Git.
 
-Артефакт готов к согласованному production-выпуску. Выпуск — штатный managed switch,
-без миграций; возможна краткая пауза при замене контейнеров. Откат кода — к
-`r6e44b29-web62` с актуальным production storage. Старый браузерный worker при таком
-откате продолжает обслуживать только публичный offline fallback, не старую SPA/API.
-Production-переключение WEB-63 пока не выполнялось; прежнее подтверждение относится
-к WEB-61/62.
+## Выпуск
+
+Пользователь явно разрешил выпуск WEB-63. Перед переключением повторно проверены
+manifest нового артефакта и WEB-62 для отката, успешный CI на точном source SHA и
+действующие labels/release.json. Diff backend между версиями пустой.
+
+Штатный `switch.py` завершился **2026-10-02 в 17:49 МСК**: активен **r013d921-web63**,
+source SHA `013d921b39277462c46ebc342db3a304b2c379c6`. Журнал `phase=active`;
+операция заняла 12,03 с — это длительность переключения, не измерение непрерывной
+недоступности. Backend и схема БД прежние; миграции и изменение пользовательских
+данных не выполнялись. `.env`, target.json
+и crontab не изменились; обе службы running, корни и code mounts read-only.
+
+После выпуска проверены публичные release.json/SHA, SPA 200, JSON auth/me и search
+без авторизации 401. Пять файлов offline-экрана совпадают с артефактом побайтно,
+отдаются с корректными MIME и `no-cache`. Штатный smoke также проверил health,
+валидацию входа, assets/cache/security headers.
+
+Chromium на **1365×900, 390×844, 320×568**, опубликованные бандлы:
+
+- Гостевой экран входа, настоящий публичный Service Worker и API-проверка соединения.
+  Offline/online сохраняют ввод email; offline reload показывает готовую страницу
+  по исходному URL, кешированный рисунок 1080×960 декодируется; после восстановления
+  снова открывается вход. В Cache Storage ровно четыре публичных файла fallback.
+- Отдельно с HTTP-фикстурами в памяти воспроизведён сбой GET списка на «Вспомнить все!»
+  при `navigator.onLine=true`: новый экран появляется, повтор возвращает обзор без
+  `Network Error`. В форме задачи offline/online и Esc сохраняют название, URL и токен.
+  Все **168 GET** авторизованного UI обслужены фикстурами с искусственными данными;
+  настоящий production-аккаунт не использовался, изменяющие запросы заблокированы.
+- Всего шесть браузерных сценариев, JS-ошибок и записей на сервер нет. Скриншоты
+  опубликованной страницы desktop/mobile просмотрены. Это эмуляция размеров браузера,
+  физический телефон не проверялся.
+
+Сохранены артефакт `r6e44b29-web62` и остановленная пара
+`reminders_serve-previous-13ac580e` / `reminders_web-previous-13ac580e`.
+Откат кода штатным switch использует актуальное storage, без отката данных:
+
+```bash
+python3 deploy/releases/switch.py \
+  --release /home/vselug/workspace/Napominalky-runtime/releases/r6e44b29-web62 \
+  --config /home/vselug/workspace/Napominalky-runtime/production/target.json
+```
+
+Браузерный worker при откате продолжает обслуживать только публичный offline fallback,
+не старую SPA/API. Журнал: `Napominalky-runtime/production/target.state.json`.
+Preflight/копия журнала/GET-проверки: `Napominalky-artifacts/web63/release/`;
+браузерные доказательства: `Napominalky-artifacts/web63/public-*`.

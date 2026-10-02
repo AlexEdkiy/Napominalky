@@ -1,13 +1,15 @@
 # Versioned releases (OPS-14)
 
-Production is active on **r6e44b29-web62** since 2026-10-02, source SHA
-`6e44b29e3e912a9b5296d464b27f3b41d7935715`. The owner explicitly approved WEB-61
-and WEB-62; WEB-61 was already live and remains included. Managed switch, public
-web/API, desktop/mobile search UI and all 19 mobile keyboard regressions passed.
-Authenticated published UI checks used HTTP fixtures; real API search tests passed
-on isolated staging. Physical device testing is still outstanding. Backend adds
-read-only search; no new migration. [WEB-62 deployment report](../../docs/reviews/web62-search-2026-10-02.md#выпуск).
-Keep rffa1723-web61 for code rollback; retain the WEB-54 database columns (batch 16).
+Production is active on **r013d921-web63** since 2026-10-02, source SHA
+`013d921b39277462c46ebc342db3a304b2c379c6`. The owner explicitly approved WEB-63.
+Managed switch, public web/API and desktop/mobile connection recovery checks passed:
+real public Service Worker/offline reload, plus dashboard network failure and preserved
+form draft with HTTP fixtures. No production user data or writes in browser tests.
+Physical device testing is still outstanding. Backend/schema are unchanged; no migration.
+[WEB-63 deployment report](../../docs/reviews/web63-connection-2026-10-02.md#выпуск).
+Keep r6e44b29-web62 for code rollback; retain the WEB-54 database columns (batch 16).
+The browser worker caches only four public fallback files, never the SPA/API. It may
+continue serving this public offline fallback after a code rollback to WEB-62.
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
