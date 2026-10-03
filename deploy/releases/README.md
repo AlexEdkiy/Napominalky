@@ -1,15 +1,17 @@
 # Versioned releases (OPS-14)
 
-Production is active on **r013d921-web63** since 2026-10-02, source SHA
-`013d921b39277462c46ebc342db3a304b2c379c6`. The owner explicitly approved WEB-63.
-Managed switch, public web/API and desktop/mobile connection recovery checks passed:
-real public Service Worker/offline reload, plus dashboard network failure and preserved
-form draft with HTTP fixtures. No production user data or writes in browser tests.
-Physical device testing is still outstanding. Backend/schema are unchanged; no migration.
-[WEB-63 deployment report](../../docs/reviews/web63-connection-2026-10-02.md#выпуск).
-Keep r6e44b29-web62 for code rollback; retain the WEB-54 database columns (batch 16).
-The browser worker caches only four public fallback files, never the SPA/API. It may
-continue serving this public offline fallback after a code rollback to WEB-62.
+Production is active on **rd98cbd6-web64** since 2026-10-03 21:52 MSK, source SHA
+`d98cbd687e4dd946e6f842e07891cc0615aad525`. WEB-64 implements the owner's corrected
+rule: the overview's red alarm follows today's deadline only and disappears after
+sync moves the deadline forward. All three CI jobs, manifest verification, managed
+switch and public desktop/mobile browser checks passed. Browser API replies used
+fixtures; no production user records were changed. Backend/schema are unchanged;
+there are no migrations. [WEB-64 report](../../docs/reviews/web64-deadline-alarm-2026-10-03.md).
+
+Keep **r013d921-web63** for code rollback; stopped containers are
+`reminders_serve-previous-7780871a` and `reminders_web-previous-7780871a`.
+The WEB-63 offline Service Worker remains in place: it caches only four public
+fallback files, never the SPA/API. Retain the WEB-54 database columns (batch 16).
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected
