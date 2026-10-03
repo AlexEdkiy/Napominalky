@@ -6,7 +6,7 @@ import LkTaskItemsPopover from '@/components/lk/tasks/LkTaskItemsPopover.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import { useLkToday } from '@/composables/useLkToday'
-import { hasScheduleToday } from '@/utils/lkToday'
+import { hasDeadlineToday } from '@/utils/lkToday'
 import type { LkListDerivedDates } from '@/composables/useLkTasksTable'
 import { useLkVisibleCount } from '@/composables/useLkVisibleCount'
 import type { ShoppingList } from '@/types/shoppingList'
@@ -109,11 +109,11 @@ function handleOpen(list: ShoppingList): void {
             </LkTaskItemsPopover>
             <span v-else class="lk-overview-tasks__item-title">{{ list.title }}</span>
             <span
-              v-if="hasScheduleToday(list, props.derivedDates.get(list.uuid), today)"
+              v-if="hasDeadlineToday(list, props.derivedDates.get(list.uuid), today)"
               class="lk-overview-tasks__alarm"
               role="img"
-              aria-label="Дедлайн или напоминание на сегодня"
-              title="Дедлайн или напоминание на сегодня"
+              aria-label="Дедлайн на сегодня"
+              title="Дедлайн на сегодня"
             ><LkIcon name="alarm" :size="18" /></span>
             <span class="lk-overview-tasks__count">
               {{ list.checked_items_count }} / {{ list.items_count }}

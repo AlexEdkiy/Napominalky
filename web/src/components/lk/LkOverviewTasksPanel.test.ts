@@ -12,7 +12,7 @@ enableAutoUnmount(afterEach)
 
 const ORIGINAL_INNER_HEIGHT = window.innerHeight
 
-// «Сейчас» для фильтра «Сделать сегодня» фиксировано, чтобы тесты
+// «Сейчас» для индикатора сегодняшнего дедлайна фиксировано, чтобы тесты
 // не зависели от реальной сегодняшней даты.
 const NOW = new Date(2026, 6, 6, 9, 0) // 2026-07-06 09:00 local
 
@@ -206,7 +206,7 @@ describe('LkOverviewTasksPanel', () => {
     expect(wrapper.find('.lk-overview-tasks__link').exists()).toBe(true)
   })
 
-  it('marks today deadlines/reminders without hiding other lists or showing the old filter', async () => {
+  it('marks only today deadlines without hiding other lists or showing the old filter', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(NOW)
     const derived = makeDerived({ 'l-1': '2026-07-06', 'l-2': null, 'l-3': '2026-07-07' })
@@ -215,7 +215,9 @@ describe('LkOverviewTasksPanel', () => {
     expect(wrapper.find('h2').text()).toBe('Задачи и покупки')
     expect(wrapper.find('.lk-overview-tasks__filter').exists()).toBe(false)
     expect(wrapper.findAll('.lk-overview-tasks__item')).toHaveLength(3)
-    expect(wrapper.findAll('.lk-overview-tasks__alarm')).toHaveLength(2)
+    expect(wrapper.findAll('.lk-overview-tasks__alarm')).toHaveLength(1)
+    expect(wrapper.find('.lk-overview-tasks__alarm').attributes('title')).toBe('Дедлайн на сегодня')
+    expect(wrapper.findAll('.lk-overview-tasks__item')[1]!.find('.lk-overview-tasks__alarm').exists()).toBe(false)
     expect(wrapper.findAll('.lk-overview-tasks__item')[2]!.find('.lk-overview-tasks__alarm').exists()).toBe(false)
   })
 

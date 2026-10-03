@@ -4,6 +4,8 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import type { VueWrapper } from '@vue/test-utils'
 
 import DashboardView from './DashboardView.vue'
+import { syncApi } from '@/api/syncApi'
+import { resetSyncMeterForTests, useSyncMeter } from '@/composables/useSyncMeter'
 import { notesApi } from '@/api/notesApi'
 import { remindersApi } from '@/api/remindersApi'
 import { shoppingListsApi } from '@/api/shoppingListsApi'
@@ -109,6 +111,7 @@ describe('DashboardView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetLkFormsForTests()
+    resetSyncMeterForTests()
     vi.useFakeTimers()
     vi.setSystemTime(TODAY)
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([])
@@ -334,6 +337,48 @@ describe('DashboardView', () => {
     expect(rows[1]?.find('.lk-overview-tasks__alarm').exists()).toBe(false)
   })
 
+  it.each(['tasks', 'goods'] as const)(
+    'removes the %s alarm after sync moves an item deadline forward, even with an unchanged reminder today',
+    async (type) => {
+      vi.setSystemTime(new Date(2026, 9, 3, 21, 0))
+      const reminder = '2026-10-03T20:00:00'
+      let deadline = '2026-10-03'
+      vi.mocked(shoppingListsApi.fetchLists).mockImplementation(async () => paginated([
+        makeShoppingList('l-1', { type, items_count: 1, checked_items_count: 0,
+          ...(type === 'tasks' ? { deadline, reminder_at: reminder } : {}) }),
+      ]))
+      vi.mocked(shoppingListsApi.fetchItems).mockImplementation(async () => [
+        makeItem('i-1', { deadline, reminder_at: reminder }),
+        makeItem('i-done', { deadline: '2026-10-03', is_checked: true, status: 'done' }),
+      ])
+      vi.mocked(remindersApi.fetchReminders).mockResolvedValue(paginated([]))
+      vi.mocked(notesApi.fetchNotes).mockResolvedValue(paginated([], 0))
+      vi.mocked(syncApi.fetchChanges).mockResolvedValue({
+        data: { notes: [], shopping_lists: [], shopping_list_items: [], reminders: [] },
+        meta: { cursor: 2, has_more: false },
+      })
+      const { wrapper } = await mountDashboard()
+      await vi.waitFor(() => expect(wrapper.find('.lk-overview-tasks__alarm').exists()).toBe(true))
+
+      deadline = '2026-10-13' // Server state after the mobile edit; no web reload/remount.
+      vi.mocked(shoppingListsApi.fetchItems).mockClear()
+      await useSyncMeter().runSync()
+      await vi.waitFor(() => {
+        expect(shoppingListsApi.fetchItems).toHaveBeenCalled()
+        expect(wrapper.find('.lk-overview-tasks__item').exists()).toBe(true)
+        expect(wrapper.find('.lk-overview-tasks__alarm').exists()).toBe(false)
+      })
+
+      // A different unfinished item due today still justifies the alarm.
+      vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+        makeItem('i-1', { deadline, reminder_at: reminder }),
+        makeItem('i-2', { deadline: '2026-10-03', is_checked: false }),
+      ])
+      await useSyncMeter().runSync()
+      await vi.waitFor(() => expect(wrapper.find('.lk-overview-tasks__alarm').exists()).toBe(true))
+    },
+  )
+
   it('opens the task form modal (not a route navigation) when clicking a tasks panel row', async () => {
     const taskList = makeShoppingList('l-1', { title: 'Продукты' })
     vi.mocked(shoppingListsApi.fetchLists).mockResolvedValue(paginated([taskList]))
@@ -400,3 +445,5 @@ vi.mock('@/api/notesApi', () => ({
     fetchNotes: vi.fn(),
   },
 }))
+
+vi.mock('@/api/syncApi', () => ({ syncApi: { fetchChanges: vi.fn() } }))
