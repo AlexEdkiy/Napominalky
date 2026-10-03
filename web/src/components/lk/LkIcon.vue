@@ -22,7 +22,10 @@ withDefaults(defineProps<Props>(), { size: 20 })
     aria-hidden="true"
     class="lk-icon"
   >
-    <template v-if="name === 'grid'">
+    <template v-if="name === 'share'">
+      <path d="M12 16V3m-4 4 4-4 4 4M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+    </template>
+    <template v-else-if="name === 'grid'">
       <rect x="3" y="3" width="7" height="7" rx="1.5" />
       <rect x="14" y="3" width="7" height="7" rx="1.5" />
       <rect x="3" y="14" width="7" height="7" rx="1.5" />

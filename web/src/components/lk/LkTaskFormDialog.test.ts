@@ -91,6 +91,58 @@ describe('LkTaskFormDialog', () => {
     vi.unstubAllGlobals()
   })
 
+  it.each(['tasks', 'goods'] as const)('shares all loaded %s items including completed items', async type => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { share })
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
+      makeItem({ uuid: 'done', name: 'Готово', is_checked: true, status: 'done', quantity: 2 }),
+      makeItem({ uuid: 'open', name: 'Осталось', status: 'in_progress', quantity: 1 }),
+    ])
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm({ ...list, type })
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(2))
+    await wrapper.get('[aria-label="Поделиться в Telegram"]').trigger('click')
+    expect(share).toHaveBeenCalledWith({ text: type === 'tasks'
+      ? 'Продукты\n\n☑ Готово — Выполнена\n☐ Осталось — В работе'
+      : 'Продукты\n\n☑ Готово × 2\n☐ Осталось' })
+    expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('waits for an item edit before sharing its updated checkmark', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { share })
+    const item = makeItem({ name: 'Молоко' })
+    vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
+    let finish!: (value: ShoppingListItem) => void
+    vi.mocked(shoppingListsApi.checkItem).mockReturnValue(new Promise(resolve => { finish = resolve }))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(1))
+    await wrapper.find('.lk-form-dialog__item-checkbox').setValue(true)
+    const button = wrapper.get('[aria-label="Поделиться в Telegram"]')
+    expect(button.attributes('disabled')).toBeDefined()
+    await button.trigger('click')
+    expect(share).not.toHaveBeenCalled()
+    finish({ ...item, is_checked: true })
+    await vi.waitFor(() => expect(button.attributes('disabled')).toBeUndefined())
+    await button.trigger('click')
+    expect(share).toHaveBeenCalledWith({ text: 'Продукты\n\n☑ Молоко' })
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('disables sharing while item loading fails, rather than exporting a partial list', async () => {
+    vi.mocked(shoppingListsApi.fetchItems).mockRejectedValue(new Error('Unavailable'))
+    const { wrapper } = await mountDialog()
+    useLkForms().openTaskForm(list)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Unavailable'))
+    expect(wrapper.get('[aria-label="Поделиться в Telegram"]').attributes('disabled')).toBeDefined()
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
   it('shows the list title, progress and loaded items in the edit mode', async () => {
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
       makeItem({ uuid: 'i-1', name: 'Молоко', is_checked: true }),

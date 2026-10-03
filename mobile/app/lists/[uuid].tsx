@@ -15,6 +15,8 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
+import ShareTextButton from '@/components/common/ShareTextButton'
+import { listShareText } from '@/utils/shareText'
 import AttributesSheet from '@/components/lists/AttributesSheet'
 import CommentsSheet from '@/components/lists/CommentsSheet'
 import ItemRow from '@/components/lists/ItemRow'
@@ -51,7 +53,7 @@ export default function ListDetailScreen() {
   const { colors } = useTheme()
   const { data: list, isLoading } = useShoppingList(listUuid)
   const { deleteList, setListStatus } = useShoppingLists()
-  const { items, isLoading: itemsLoading, addItem, updateItem, deleteItem, checkItem, setItemStatus } =
+  const { items, isLoading: itemsLoading, isError: itemsError, addItem, updateItem, deleteItem, checkItem, setItemStatus } =
     useShoppingListItems(listUuid)
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
@@ -169,6 +171,9 @@ export default function ListDetailScreen() {
       {/* DEF-06: кастомная шапка — ← + название + «Удалить» */}
       <CustomHeader
         title={list.title}
+        shareText={listShareText(list.title, listType, items)}
+        shareDisabled={itemsLoading || itemsError || addItem.isPending || updateItem.isPending
+          || checkItem.isPending || deleteItem.isPending || setItemStatus?.isPending}
         onBack={() => router.back()}
         onDelete={confirmDeleteList}
         deleteColor={colors.danger}
@@ -301,6 +306,8 @@ const buildAttributePatch = (
 
 interface CustomHeaderProps {
   title: string
+  shareText: string
+  shareDisabled: boolean
   onBack: () => void
   onDelete: () => void
   deleteColor: string
@@ -310,6 +317,8 @@ interface CustomHeaderProps {
 
 const CustomHeader: React.FC<CustomHeaderProps> = ({
   title,
+  shareText,
+  shareDisabled,
   onBack,
   onDelete,
   deleteColor,
@@ -330,6 +339,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
       <Text numberOfLines={1} style={[styles.headerTitle, { color: textPrimary }]}>
         {title}
       </Text>
+      <ShareTextButton text={shareText} disabled={shareDisabled} />
       <Pressable
         onPress={onDelete}
         accessibilityRole="button"

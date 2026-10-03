@@ -2,6 +2,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { isAxiosError } from 'axios'
 
+import LkShareButton from '@/components/lk/LkShareButton.vue'
+import { noteShareText } from '@/utils/shareText'
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import { useLkBreakpoint } from '@/composables/useLkBreakpoint'
@@ -208,6 +210,8 @@ async function confirmDelete(): Promise<void> {
           />
         </div>
 
+        <LkShareButton :text="noteShareText(form.title, form.body)" :disabled="isSubmitting || isDeleting" />
+
         <footer class="lk-form-dialog__footer">
           <button
             v-if="isEdit"
@@ -269,6 +273,9 @@ async function confirmDelete(): Promise<void> {
 
 .lk-form-dialog__panel {
   background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   width: 100%;
   max-height: 86%;
   overflow-y: auto;
@@ -459,5 +466,18 @@ async function confirmDelete(): Promise<void> {
   color: #cf5b4a;
   font-size: 0.8rem;
   margin-top: 4px;
+}
+@media (max-width: 767px) {
+  .lk-form-dialog__footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lk-form-dialog__footer > button {
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .lk-form-dialog__spacer { display: none; }
 }
 </style>

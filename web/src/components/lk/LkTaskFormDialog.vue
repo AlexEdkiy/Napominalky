@@ -3,6 +3,8 @@ import { useConnection } from '@/connection'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { isAxiosError } from 'axios'
 
+import LkShareButton from '@/components/lk/LkShareButton.vue'
+import { listShareText } from '@/utils/shareText'
 import LkConfirmDialog from '@/components/lk/LkConfirmDialog.vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 import LkStatusBadge from '@/components/lk/LkStatusBadge.vue'
@@ -59,6 +61,7 @@ const isTagCloudOpen = ref(false)
 const errors = ref<Record<string, string[]>>({})
 const generalError = ref<string | null>(null)
 const isSubmitting = ref(false)
+const pendingItemChanges = ref(0)
 const isDeleting = ref(false)
 const isConfirmingDelete = ref(false)
 /** Были ли изменения пунктов — чтобы перезагрузить таблицу при закрытии крестиком/Esc. */
@@ -258,6 +261,11 @@ async function ensureList(): Promise<ShoppingList | null> {
   }
 }
 
+async function withItemChange<Result>(change: () => Promise<Result>): Promise<Result> {
+  pendingItemChanges.value++
+  try { return await change() } finally { pendingItemChanges.value-- }
+}
+
 async function handleAddItem(): Promise<void> {
   const name = newItemName.value.trim()
   if (name === '') {
@@ -267,7 +275,7 @@ async function handleAddItem(): Promise<void> {
   if (list === null) {
     return
   }
-  const item = await addItem({ name })
+  const item = await withItemChange(() => addItem({ name }))
   if (item !== null) {
     newItemName.value = ''
     hasItemChanges.value = true
@@ -275,7 +283,7 @@ async function handleAddItem(): Promise<void> {
 }
 
 async function handleCheckItem(uuid: string, isChecked: boolean): Promise<void> {
-  await checkItem(uuid, isChecked)
+  await withItemChange(() => checkItem(uuid, isChecked))
   hasItemChanges.value = true
 }
 
@@ -294,7 +302,7 @@ async function confirmRemoveItem(): Promise<void> {
   if (target === null) {
     return
   }
-  const removed = await removeItem(target.uuid)
+  const removed = await withItemChange(() => removeItem(target.uuid))
   if (removed) {
     hasItemChanges.value = true
   }
@@ -319,7 +327,7 @@ function toggleItemExpand(uuid: string): void {
  * (`replaceItem` в composable), ошибка — в `itemsError` под списком.
  */
 async function handleUpdateItem(uuid: string, patch: UpdateShoppingListItemPayload): Promise<void> {
-  const updated = await updateItem(uuid, patch)
+  const updated = await withItemChange(() => updateItem(uuid, patch))
   if (updated !== null) {
     hasItemChanges.value = true
     if (patch.status !== undefined) {
@@ -513,6 +521,13 @@ async function confirmDelete(): Promise<void> {
       <form novalidate class="lk-form-dialog__form" @submit.prevent="handleSubmit">
         <div class="lk-form-dialog__body">
           <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
+
+          <LkShareButton
+            v-if="isEdit"
+            :key="currentList?.uuid ?? 'new'"
+            :text="listShareText(form.title, form.type, items)"
+            :disabled="isItemsLoading || !!itemsError || pendingItemChanges > 0 || isSubmitting || isDeleting"
+          />
 
           <template v-if="!isTypeLocked">
             <span class="lk-form-dialog__label">Тип</span>

@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import ShareTextButton from '@/components/common/ShareTextButton'
+import { noteShareText } from '@/utils/shareText'
 import SectionLabel from '@/components/ui/SectionLabel'
 import NoteColorPicker from '@/components/notes/NoteColorPicker'
 import type { NoteColor } from '@/db/repositories/notesRepo'
@@ -150,6 +152,8 @@ const NoteForm: React.FC<NoteFormProps> = ({
         >
           <Ionicons name="pin" size={20} color={isPinned ? colors.accent : colors.textSecondary} />
         </Pressable>
+
+        <ShareTextButton text={noteShareText(title, body)} />
 
         {mode === 'new' ? (
           <Pressable

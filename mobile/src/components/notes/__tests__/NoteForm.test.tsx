@@ -1,7 +1,8 @@
 jest.mock('@/db/client', () => ({ db: {} }))
 
 import React from 'react'
-import { render, fireEvent } from '@testing-library/react-native'
+import { Share } from 'react-native'
+import { render, fireEvent, act } from '@testing-library/react-native'
 
 import NoteForm from '../NoteForm'
 
@@ -84,7 +85,7 @@ describe('NoteForm — режим new', () => {
         onSave={onSave}
       />,
     )
-    fireEvent.press(getByLabelText('Сохранить'))
+    await fireEvent.press(getByLabelText('Сохранить'))
     expect(onSave).toHaveBeenCalled()
   })
 })
@@ -123,7 +124,7 @@ describe('NoteForm — режим existing', () => {
     const { getByLabelText } = await render(
       <NoteForm mode="existing" onAutoSave={jest.fn()} onDelete={onDelete} />,
     )
-    fireEvent.press(getByLabelText('Удалить заметку'))
+    await fireEvent.press(getByLabelText('Удалить заметку'))
     expect(onDelete).toHaveBeenCalled()
   })
 
@@ -144,7 +145,7 @@ describe('NoteForm — режим existing', () => {
         onDirtyChange={onDirtyChange}
       />,
     )
-    fireEvent.changeText(getByLabelText('Заголовок заметки'), 'Изменённый')
+    await fireEvent.changeText(getByLabelText('Заголовок заметки'), 'Изменённый')
     expect(onDirtyChange).toHaveBeenCalledWith(true)
   })
 
@@ -158,10 +159,25 @@ describe('NoteForm — режим existing', () => {
         onDirtyChange={onDirtyChange}
       />,
     )
-    fireEvent.changeText(getByLabelText('Заголовок заметки'), 'Изменённый')
-    fireEvent.changeText(getByLabelText('Заголовок заметки'), 'Исходный')
+    await fireEvent.changeText(getByLabelText('Заголовок заметки'), 'Изменённый')
+    await fireEvent.changeText(getByLabelText('Заголовок заметки'), 'Исходный')
     const calls = onDirtyChange.mock.calls
     expect(calls[calls.length - 1]).toEqual([false])
   })
 })
 
+
+
+it('shares the current note draft without implicitly saving it', async () => {
+  const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction })
+  const save = jest.fn()
+  try {
+    const view = await render(<NoteForm mode="existing" autoSaveText={false}
+      initialValues={{ title: 'Старый заголовок', body: 'Старый текст' }} onAutoSave={save} />)
+    await act(async () => { fireEvent.changeText(view.getByLabelText('Заголовок заметки'), 'Новый заголовок') })
+    await act(async () => { fireEvent.changeText(view.getByLabelText('Текст заметки'), 'Новый текст\nСтрока 2') })
+    await act(async () => { fireEvent.press(view.getByLabelText('Поделиться в Telegram')) })
+    expect(share).toHaveBeenCalledWith({ message: 'Новый заголовок\n\nНовый текст\nСтрока 2' }, expect.any(Object))
+    expect(save).not.toHaveBeenCalled()
+  } finally { share.mockRestore() }
+})

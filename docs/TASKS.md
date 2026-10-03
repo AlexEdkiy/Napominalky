@@ -10,8 +10,8 @@
 | ARCH    | 4            | architect                 |
 | DEV     | 25           | backend-developer         |
 | MBE     | 23           | mobile-backend-developer  |
-| MOB     | 71           | mobile-developer          |
-| WEB     | 64           | web-developer             |
+| MOB     | 72           | mobile-developer          |
+| WEB     | 65           | web-developer             |
 | TEST    | 19           | test-engineer             |
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
@@ -26,7 +26,7 @@
 | Статус | Количество |
 |--------|:----------:|
 | Completed | 173 |
-| In Progress | 1 |
+| In Progress | 2 |
 | Pending | 4 |
 | Blocked | 0 |
 | Cancelled | 0 |
@@ -3275,3 +3275,14 @@
 - **Создана:** 2026-10-03
 - **Отчёт:** [WEB-64](reviews/web64-deadline-alarm-2026-10-03.md); 709 web-тестов, CI всех слоёв, desktop/mobile browser прошли.
 - **Завершена:** 2026-10-03; `rd98cbd6-web64` выпущен в 21:52 МСК, публичная проверка прошла.
+
+
+### WEB-65 / MOB-72: Поделиться заметкой, задачей и покупками в Telegram
+- **Исполнитель:** Codex (web/mobile, самопроверка)
+- **Статус:** in_progress
+- **Приоритет:** high
+- **Зависимости:** WEB-64, MOB-70
+- **Описание:** Пользователь подтвердил оба клиента. Заметка передаёт заголовок и текст; задача — все пункты с отметками выполнения и статусами; покупки — пункты с отметками купленного и количеством. Получателя и отправку подтверждает пользователь в Telegram.
+- **Критерии приёмки:** plain text без добавленной ссылки/служебных полей; текущий текст заметки; все пункты вне зависимости от UI-фильтра; загрузка/ошибка не позволяют отправить неполный список; отмена share не является ошибкой; browser fallback копирования при отсутствии Web Share; desktop/mobile web и native bridge тесты.
+- **Создана:** 2026-10-03
+- **Отчёт:** [WEB-65 / MOB-72](reviews/share65-telegram-2026-10-03.md); локальные тесты/типы/build прошли, CI/выпуск сайта/APK готовятся.

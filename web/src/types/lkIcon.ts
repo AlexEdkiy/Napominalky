@@ -3,6 +3,7 @@
  * ограничен требованиями редизайна (сайдбар, topbar, нижняя навигация).
  */
 export type LkIconName =
+  | 'share'
   | 'grid'
   | 'list'
   | 'calendar'

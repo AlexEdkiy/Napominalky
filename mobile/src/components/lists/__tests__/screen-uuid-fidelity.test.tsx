@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import React from 'react'
+import { Share } from 'react-native'
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 
 // ---- Изменяемые синглтоны для управления данными -------------------------
@@ -528,4 +529,25 @@ describe('MOB-69 — opening a search item', () => {
     expect(screen.getByText('Пункт из результатов поиска больше недоступен.')).toBeTruthy()
     expect(screen.queryByTestId('attributes-sheet')).toBeNull()
   })
+})
+
+
+it.each(['tasks', 'goods'] as const)('shares the entire %s list despite an active UI filter', async type => {
+  resetToTasksEmpty()
+  mockListData.type = type
+  mockListData.title = 'Полный список'
+  mockItems = [
+    Object.assign(makeItem('Сделано', true, 'done'), { status: 'done', quantity: 2 }),
+    Object.assign(makeItem('Осталось', false, 'open'), { status: 'in_progress' }),
+  ]
+  const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction })
+  try {
+    const view = await render(<Screen />)
+    await act(async () => { fireEvent.press(view.getByText('Не выполнено')) })
+    expect(view.queryByText('Сделано')).toBeNull()
+    await act(async () => { fireEvent.press(view.getByLabelText('Поделиться в Telegram')) })
+    expect(share).toHaveBeenCalledWith({ message: type === 'tasks'
+      ? 'Полный список\n\n☑ Сделано — Выполнена\n☐ Осталось — В работе'
+      : 'Полный список\n\n☑ Сделано × 2\n☐ Осталось' }, expect.any(Object))
+  } finally { share.mockRestore() }
 })
