@@ -1,15 +1,13 @@
 # Versioned releases (OPS-14)
 
-Production is active on **rd98cbd6-web64** since 2026-10-03 21:52 MSK, source SHA
-`d98cbd687e4dd946e6f842e07891cc0615aad525`. WEB-64 implements the owner's corrected
-rule: the overview's red alarm follows today's deadline only and disappears after
-sync moves the deadline forward. All three CI jobs, manifest verification, managed
-switch and public desktop/mobile browser checks passed. Browser API replies used
-fixtures; no production user records were changed. Backend/schema are unchanged;
-there are no migrations. [WEB-64 report](../../docs/reviews/web64-deadline-alarm-2026-10-03.md).
+Production is active on **r75127c4-web65** since 2026-10-03 22:35 MSK, source SHA
+`75127c40c9074ea5e18ddc5fd96398c18966fef6`. WEB-65 adds plain-text sharing of notes,
+tasks and shopping lists for Telegram. All three CI jobs, artifact verification and
+the explicitly approved managed switch and nine public desktop/mobile browser checks passed. Backend/schema are unchanged;
+there are no migrations. [WEB-65 / MOB-72 report](../../docs/reviews/share65-telegram-2026-10-03.md).
 
-Keep **r013d921-web63** for code rollback; stopped containers are
-`reminders_serve-previous-7780871a` and `reminders_web-previous-7780871a`.
+Keep **rd98cbd6-web64** for code rollback; stopped containers are
+`reminders_serve-previous-dd6e41e2` and `reminders_web-previous-dd6e41e2`.
 The WEB-63 offline Service Worker remains in place: it caches only four public
 fallback files, never the SPA/API. Retain the WEB-54 database columns (batch 16).
 
