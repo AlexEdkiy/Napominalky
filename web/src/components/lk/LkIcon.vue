@@ -25,6 +25,10 @@ withDefaults(defineProps<Props>(), { size: 20 })
     <template v-if="name === 'share'">
       <path d="M12 16V3m-4 4 4-4 4 4M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
     </template>
+    <template v-else-if="name === 'telegram'">
+      <path fill="currentColor" stroke="none"
+        d="M20.4 4.1 17.3 19c-.2.9-.8 1.1-1.6.7L11 16.2l-2.3 2.2c-.3.2-.5.5-.9.5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L5.5 12.8 1 11.4c-1-.3-1-1 .2-1.5L18.8 3.1c.8-.3 1.7.2 1.6 1Z" />
+    </template>
     <template v-else-if="name === 'grid'">
       <rect x="3" y="3" width="7" height="7" rx="1.5" />
       <rect x="14" y="3" width="7" height="7" rx="1.5" />

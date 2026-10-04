@@ -4,6 +4,7 @@
  */
 export type LkIconName =
   | 'share'
+  | 'telegram'
   | 'grid'
   | 'list'
   | 'calendar'

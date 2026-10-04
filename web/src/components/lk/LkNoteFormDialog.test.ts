@@ -37,14 +37,15 @@ describe('LkNoteFormDialog', () => {
 
   it('shares the current unsaved title and body without saving or closing the note', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('navigator', { share })
+    vi.stubGlobal('navigator', { clipboard: { writeText: share } })
+    vi.stubGlobal('open', vi.fn().mockReturnValue(null))
     const wrapper = mountDialog()
     useLkForms().openNoteForm(note)
     await wrapper.vm.$nextTick()
     await wrapper.get('#note-form-title').setValue('Новый заголовок')
     await wrapper.get('#note-form-body').setValue('Новый текст\nВторая строка')
     await wrapper.get('[aria-label="Поделиться в Telegram"]').trigger('click')
-    expect(share).toHaveBeenCalledWith({ text: 'Новый заголовок\n\nНовый текст\nВторая строка' })
+    expect(share).toHaveBeenCalledWith('Новый заголовок\n\nНовый текст\nВторая строка')
     expect(notesApi.updateNote).not.toHaveBeenCalled()
     expect(useLkForms().isNoteFormOpen.value).toBe(true)
     wrapper.unmount()

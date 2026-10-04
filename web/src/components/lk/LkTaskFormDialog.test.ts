@@ -93,7 +93,8 @@ describe('LkTaskFormDialog', () => {
 
   it.each(['tasks', 'goods'] as const)('shares all loaded %s items including completed items', async type => {
     const share = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('navigator', { share })
+    vi.stubGlobal('navigator', { clipboard: { writeText: share } })
+    vi.stubGlobal('open', vi.fn().mockReturnValue(null))
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([
       makeItem({ uuid: 'done', name: 'Готово', is_checked: true, status: 'done', quantity: 2 }),
       makeItem({ uuid: 'open', name: 'Осталось', status: 'in_progress', quantity: 1 }),
@@ -102,9 +103,9 @@ describe('LkTaskFormDialog', () => {
     useLkForms().openTaskForm({ ...list, type })
     await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(2))
     await wrapper.get('[aria-label="Поделиться в Telegram"]').trigger('click')
-    expect(share).toHaveBeenCalledWith({ text: type === 'tasks'
+    expect(share).toHaveBeenCalledWith(type === 'tasks'
       ? 'Продукты\n\n☑ Готово — Выполнена\n☐ Осталось — В работе'
-      : 'Продукты\n\n☑ Готово × 2\n☐ Осталось' })
+      : 'Продукты\n\n☑ Готово × 2\n☐ Осталось')
     expect(shoppingListsApi.updateList).not.toHaveBeenCalled()
     wrapper.unmount()
     vi.unstubAllGlobals()
@@ -112,7 +113,8 @@ describe('LkTaskFormDialog', () => {
 
   it('waits for an item edit before sharing its updated checkmark', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('navigator', { share })
+    vi.stubGlobal('navigator', { clipboard: { writeText: share } })
+    vi.stubGlobal('open', vi.fn().mockReturnValue(null))
     const item = makeItem({ name: 'Молоко' })
     vi.mocked(shoppingListsApi.fetchItems).mockResolvedValue([item])
     let finish!: (value: ShoppingListItem) => void
@@ -128,7 +130,7 @@ describe('LkTaskFormDialog', () => {
     finish({ ...item, is_checked: true })
     await vi.waitFor(() => expect(button.attributes('disabled')).toBeUndefined())
     await button.trigger('click')
-    expect(share).toHaveBeenCalledWith({ text: 'Продукты\n\n☑ Молоко' })
+    expect(share).toHaveBeenCalledWith('Продукты\n\n☑ Молоко')
     wrapper.unmount()
     vi.unstubAllGlobals()
   })
