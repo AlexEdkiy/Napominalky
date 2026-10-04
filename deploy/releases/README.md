@@ -1,13 +1,14 @@
 # Versioned releases (OPS-14)
 
-Production is active on **r75127c4-web65** since 2026-10-03 22:35 MSK, source SHA
-`75127c40c9074ea5e18ddc5fd96398c18966fef6`. WEB-65 adds plain-text sharing of notes,
-tasks and shopping lists for Telegram. All three CI jobs, artifact verification and
-the explicitly approved managed switch and nine public desktop/mobile browser checks passed. Backend/schema are unchanged;
-there are no migrations. [WEB-65 / MOB-72 report](../../docs/reviews/share65-telegram-2026-10-03.md).
+Production is active on **r037580e-web66** since 2026-10-04 22:44 MSK, source SHA
+`037580e7e7161d4d17968e23cb2faf66cc8092d1`. WEB-66 replaces the OS share picker on
+web with a compact Telegram icon: copy full text and open Telegram Web directly.
+All three CI jobs, artifact verification, the explicitly approved managed switch
+and nine public desktop/mobile browser checks passed. Backend/schema are unchanged; there are no migrations.
+[WEB-66 report](../../docs/reviews/web66-telegram-icon-2026-10-04.md).
 
-Keep **rd98cbd6-web64** for code rollback; stopped containers are
-`reminders_serve-previous-dd6e41e2` and `reminders_web-previous-dd6e41e2`.
+Keep **r75127c4-web65** for code rollback; stopped containers are
+`reminders_serve-previous-d71fd063` and `reminders_web-previous-d71fd063`.
 The WEB-63 offline Service Worker remains in place: it caches only four public
 fallback files, never the SPA/API. Retain the WEB-54 database columns (batch 16).
 
