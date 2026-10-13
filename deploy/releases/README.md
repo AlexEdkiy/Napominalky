@@ -1,15 +1,15 @@
 # Versioned releases (OPS-14)
 
-Production is active on **rb911942-web68** since 2026-10-13 13:11 MSK, source SHA
-`b911942cdcc4b6b16a40096c7473ce3e798f90b5`. WEB-68 places the outline share icon
-in form headers and invokes Telegram's chat chooser with the full text and public
-website link. Oversized messages use full clipboard copy rather than truncated drafts.
-All three CI jobs, artifact verification, the explicitly approved managed switch
+Production is active on **rbe1f5eb-web69** since 2026-10-13 13:31 MSK, source SHA
+`be1f5eb875a6b284a4b29946e82908a379f8359d`. WEB-69 removes the persistent instructions
+and extra controls after Telegram sharing. Draft transfer is preserved; oversized
+messages and actual failures use feedback outside the main form.
+All three CI jobs, artifact verification, the managed switch for the requested correction
 and nine public desktop/mobile browser checks passed. Backend/schema are unchanged; there are no migrations.
-[WEB-68 report](../../docs/reviews/web68-share-header-2026-10-13.md).
+[WEB-69 report](../../docs/reviews/web69-quiet-share-2026-10-13.md).
 
-Keep **ra12c823-web67** for code rollback; stopped containers are
-`reminders_serve-previous-7d821fb9` and `reminders_web-previous-7d821fb9`.
+Keep **rb911942-web68** for code rollback; stopped containers are
+`reminders_serve-previous-e8586ee9` and `reminders_web-previous-e8586ee9`.
 The WEB-63 offline Service Worker remains in place: it caches only four public
 fallback files, never the SPA/API. Retain the WEB-54 database columns (batch 16).
 
