@@ -50,6 +50,7 @@ const form = reactive({ title: '', type: 'goods' as ShoppingListType })
  */
 const isTitleEditing = ref(false)
 const titleInput = ref<HTMLInputElement | null>(null)
+const shareFeedback = ref<HTMLElement | null>(null)
 /** Значение названия на момент входа в редактирование — откат по Esc. */
 const titleBeforeEdit = ref('')
 const tags = ref<string[]>([])
@@ -493,26 +494,36 @@ async function confirmDelete(): Promise<void> {
             errors.title[0]
           }}</span>
         </div>
-        <span v-if="isEdit" class="lk-form-dialog__progress">{{ checkedCount }} / {{ totalCount }}</span>
-        <!-- Статус задачи — компактный переключатель в шапке (только edit-режим
-             tasks-списка; у goods статусов нет). Точка слева — индикатор
-             ручного закрепления статуса; меню бейджа раскрывается вниз поверх
-             тела (шапка ничего не клипает — overflow у неё не задан). -->
-        <template v-if="currentList !== null && form.type === 'tasks'">
-          <span
-            v-if="currentList.status_is_manual"
-            class="lk-form-dialog__status-pin"
-            title="Статус закреплён вручную"
-            aria-label="Статус закреплён вручную"
-          />
-          <LkStatusBadge
-            class="lk-form-dialog__header-status"
-            :status="currentList.status"
-            interactive
-            with-auto
-            @select="handleSelectStatus"
-          />
-        </template>
+        <div v-if="isEdit" class="lk-form-dialog__meta">
+          <span class="lk-form-dialog__progress">{{ checkedCount }} / {{ totalCount }}</span>
+          <!-- Статус задачи — компактный переключатель в шапке (только edit-режим
+               tasks-списка; у goods статусов нет). Точка слева — индикатор
+               ручного закрепления статуса; меню бейджа раскрывается вниз поверх
+               тела (шапка ничего не клипает — overflow у неё не задан). -->
+          <template v-if="currentList !== null && form.type === 'tasks'">
+            <span
+              v-if="currentList.status_is_manual"
+              class="lk-form-dialog__status-pin"
+              title="Статус закреплён вручную"
+              aria-label="Статус закреплён вручную"
+            />
+            <LkStatusBadge
+              class="lk-form-dialog__header-status"
+              :status="currentList.status"
+              interactive
+              with-auto
+              @select="handleSelectStatus"
+            />
+          </template>
+        </div>
+        <LkShareButton
+          v-if="isEdit"
+          :key="currentList?.uuid ?? 'new'"
+          class="lk-form-dialog__share"
+          :text="listShareText(form.title, form.type, items)"
+          :disabled="isItemsLoading || !!itemsError || pendingItemChanges > 0 || isSubmitting || isDeleting"
+          :feedback-target="shareFeedback"
+        />
         <button type="button" class="lk-form-dialog__close" aria-label="Закрыть" @click="handleClose">
           &times;
         </button>
@@ -520,14 +531,8 @@ async function confirmDelete(): Promise<void> {
 
       <form novalidate class="lk-form-dialog__form" @submit.prevent="handleSubmit">
         <div class="lk-form-dialog__body">
+          <div ref="shareFeedback" />
           <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
-
-          <LkShareButton
-            v-if="isEdit"
-            :key="currentList?.uuid ?? 'new'"
-            :text="listShareText(form.title, form.type, items)"
-            :disabled="isItemsLoading || !!itemsError || pendingItemChanges > 0 || isSubmitting || isDeleting"
-          />
 
           <template v-if="!isTypeLocked">
             <span class="lk-form-dialog__label">Тип</span>
@@ -771,12 +776,30 @@ async function confirmDelete(): Promise<void> {
 }
 
 .lk-form-dialog__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "title share close" "meta meta meta";
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
   padding: 0 20px;
   margin-bottom: 4px;
+}
+
+.lk-form-dialog__meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lk-form-dialog__share { grid-area: share; }
+
+.lk-form-dialog__panel--desktop .lk-form-dialog__header {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "title meta share close";
 }
 
 .lk-form-dialog__panel--desktop .lk-form-dialog__header,
@@ -787,7 +810,7 @@ async function confirmDelete(): Promise<void> {
 }
 
 .lk-form-dialog__title-wrap {
-  flex: 1;
+  grid-area: title;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -868,6 +891,7 @@ async function confirmDelete(): Promise<void> {
 }
 
 .lk-form-dialog__close {
+  grid-area: close;
   width: 34px;
   height: 34px;
   flex-shrink: 0;

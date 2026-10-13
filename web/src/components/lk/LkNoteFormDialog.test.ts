@@ -44,7 +44,7 @@ describe('LkNoteFormDialog', () => {
     await wrapper.vm.$nextTick()
     await wrapper.get('#note-form-title').setValue('Новый заголовок')
     await wrapper.get('#note-form-body').setValue('Новый текст\nВторая строка')
-    await wrapper.get('[aria-label="Поделиться в Telegram"]').trigger('click')
+    await wrapper.get('.lk-form-dialog__header [aria-label="Поделиться в Telegram"]').trigger('click')
     expect(share).toHaveBeenCalledWith('Новый заголовок\n\nНовый текст\nВторая строка')
     expect(notesApi.updateNote).not.toHaveBeenCalled()
     expect(useLkForms().isNoteFormOpen.value).toBe(true)

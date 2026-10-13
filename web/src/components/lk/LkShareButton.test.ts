@@ -1,11 +1,12 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import LkShareButton from './LkShareButton.vue'
+import { telegramShareUrl } from '@/utils/telegramShare'
 
 enableAutoUnmount(afterEach)
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers() })
 
-it('renders only the Telegram icon with an accessible label', () => {
+it('renders the outline share icon with an accessible Telegram label', () => {
   const wrapper = mount(LkShareButton, { props: { text: 'Заметка' } })
   const button = wrapper.get('button')
   expect(button.attributes('aria-label')).toBe('Поделиться в Telegram')
@@ -25,7 +26,7 @@ it('starts copying before launching the installed app in the same tab, without O
   const button = wrapper.get('button')
   await button.trigger('click')
   expect(writeText).toHaveBeenCalledWith(text)
-  expect(open).toHaveBeenCalledWith('tg://', '_self')
+  expect(open).toHaveBeenCalledWith(telegramShareUrl(text), '_self')
   expect(writeText.mock.invocationCallOrder[0]).toBeLessThan(open.mock.invocationCallOrder[0]!)
   expect(button.attributes('disabled')).toBeDefined()
   await button.trigger('click')
@@ -91,7 +92,7 @@ it('keeps app retry and explicit Web fallback if the protocol launch throws', as
   const wrapper = mount(LkShareButton, { props: { text: 'Заметка' } })
   await wrapper.get('button').trigger('click')
   await flushPromises()
-  expect(wrapper.get('a[href="tg://"]').text()).toBe('Открыть приложение')
+  expect(wrapper.get('a').attributes('href')).toBe(telegramShareUrl('Заметка'))
   expect(wrapper.get('a[href="https://web.telegram.org/"]').text()).toBe('Telegram Web')
   expect(wrapper.get('[role="status"]').text()).toContain('скопирован')
 })
@@ -127,8 +128,30 @@ it('does not auto-open Web or claim a launched app when the protocol handler is 
   await wrapper.get('button').trigger('click')
   await vi.advanceTimersByTimeAsync(10000)
   expect(open).toHaveBeenCalledTimes(1)
-  expect(open).toHaveBeenCalledWith('tg://', '_self')
+  expect(open).toHaveBeenCalledWith(telegramShareUrl('Текст'), '_self')
   expect(wrapper.get('[role="status"]').text()).toContain('Текст скопирован')
   expect(wrapper.text()).not.toContain('Приложение открыто')
   expect(wrapper.get('a[href="https://web.telegram.org/"]').text()).toBe('Telegram Web')
+})
+
+
+it('places manual-copy feedback in the form body and removes it when the component closes', async () => {
+  const target = document.createElement('div')
+  document.body.appendChild(target)
+  vi.stubGlobal('navigator', {})
+  vi.spyOn(window, 'open').mockReturnValue(null)
+  const wrapper = mount(LkShareButton, { props: { text: 'Полный текст', feedbackTarget: target } })
+  try {
+    await wrapper.get('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('textarea').exists()).toBe(false)
+    const textarea = target.querySelector('textarea')!
+    expect(textarea.value).toBe('Полный текст')
+    expect(document.activeElement).toBe(textarea)
+    expect(textarea.selectionEnd - textarea.selectionStart).toBe(textarea.value.length)
+    wrapper.unmount()
+    expect(target.querySelector('textarea')).toBeNull()
+  } finally {
+    target.remove()
+  }
 })

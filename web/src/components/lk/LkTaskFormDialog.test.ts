@@ -102,7 +102,7 @@ describe('LkTaskFormDialog', () => {
     const { wrapper } = await mountDialog()
     useLkForms().openTaskForm({ ...list, type })
     await vi.waitFor(() => expect(wrapper.findAll('.lk-form-dialog__item')).toHaveLength(2))
-    await wrapper.get('[aria-label="Поделиться в Telegram"]').trigger('click')
+    await wrapper.get('.lk-form-dialog__header [aria-label="Поделиться в Telegram"]').trigger('click')
     expect(share).toHaveBeenCalledWith(type === 'tasks'
       ? 'Продукты\n\n☑ Готово — Выполнена\n☐ Осталось — В работе'
       : 'Продукты\n\n☑ Готово × 2\n☐ Осталось')
