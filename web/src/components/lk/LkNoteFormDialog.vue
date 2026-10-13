@@ -31,7 +31,6 @@ const isSubmitting = ref(false)
 const isDeleting = ref(false)
 const isArchiving = ref(false)
 const isConfirmingDelete = ref(false)
-const shareFeedback = ref<HTMLElement | null>(null)
 
 const isEdit = computed<boolean>(() => noteFormNote.value !== null)
 const title = computed<string>(() => (isEdit.value ? 'Редактирование заметки' : 'Новая заметка'))
@@ -166,15 +165,13 @@ async function confirmDelete(): Promise<void> {
     >
       <header class="lk-form-dialog__header">
         <h2 class="lk-form-dialog__title">{{ title }}</h2>
-        <LkShareButton :text="noteShareText(form.title, form.body)" :disabled="isSubmitting || isDeleting"
-          :feedback-target="shareFeedback" />
+        <LkShareButton :text="noteShareText(form.title, form.body)" :disabled="isSubmitting || isDeleting" />
         <button type="button" class="lk-form-dialog__close" aria-label="Закрыть" @click="handleClose">
           &times;
         </button>
       </header>
 
       <form novalidate @submit.prevent="handleSubmit">
-        <div ref="shareFeedback" />
         <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
 
         <label class="lk-form-dialog__label" for="note-form-title">Заголовок</label>

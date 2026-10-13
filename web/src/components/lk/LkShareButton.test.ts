@@ -15,7 +15,7 @@ it('renders the outline share icon with an accessible Telegram label', () => {
   expect(wrapper.find('a').exists()).toBe(false)
 })
 
-it('starts copying before launching the installed app in the same tab, without OS share', async () => {
+it('copies before launching Telegram and leaves only the icon after sharing', async () => {
   let finish!: () => void
   const writeText = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
   const osShare = vi.fn()
@@ -35,81 +35,101 @@ it('starts copying before launching the installed app in the same tab, without O
   finish()
   await flushPromises()
   expect(button.attributes('disabled')).toBeUndefined()
-  expect(wrapper.get('[role="status"]').text()).toContain('Текст скопирован')
-  expect(wrapper.find('textarea').exists()).toBe(false)
-  expect(wrapper.text()).not.toContain('Отправлено')
+  expect(wrapper.text()).toBe('')
+  expect(wrapper.findAll('button')).toHaveLength(1)
+  expect(wrapper.find('a').exists()).toBe(false)
+  expect(document.querySelector('.lk-share__notice, .lk-share__overlay')).toBeNull()
 })
 
-it('copies the full text without putting content or a website URL into the Telegram link', async () => {
+it.each(['missing', 'denied'])('shares quietly through the URI when the backup clipboard is %s', async state => {
+  vi.stubGlobal('navigator', state === 'missing' ? {} : {
+    clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+  })
+  const open = vi.spyOn(window, 'open').mockReturnValue(null)
+  const text = 'Полный текст & # ? 🚀'
+  const wrapper = mount(LkShareButton, { props: { text } })
+  await wrapper.get('button').trigger('click')
+  await flushPromises()
+  expect(new URL(open.mock.calls[0]![0] as string).searchParams.get('text')).toBe(text)
+  expect(wrapper.text()).toBe('')
+  expect(document.querySelector('.lk-share__notice, .lk-share__overlay')).toBeNull()
+})
+
+it('copies an oversized message without truncating and only shows a temporary notice outside the form', async () => {
+  vi.useFakeTimers()
   const writeText = vi.fn().mockResolvedValue(undefined)
   vi.stubGlobal('navigator', { clipboard: { writeText } })
   const open = vi.spyOn(window, 'open').mockReturnValue(null)
   const text = '<script>текст & # ?</script>\n'.repeat(500)
   const wrapper = mount(LkShareButton, { props: { text } })
   await wrapper.get('button').trigger('click')
-  await flushPromises()
+  await vi.advanceTimersByTimeAsync(1)
   expect(writeText).toHaveBeenCalledWith(text)
-  expect(open.mock.calls[0]?.[0]).toBe('tg://')
-  const appLink = wrapper.get('a[href="tg://"]')
-  expect(appLink.text()).toBe('Открыть приложение')
-  expect(appLink.attributes('target')).toBeUndefined()
-  const webLink = wrapper.get('a[href="https://web.telegram.org/"]')
-  expect(webLink.text()).toBe('Telegram Web')
-  expect(webLink.attributes('target')).toBe('_blank')
-  expect(webLink.attributes('rel')).toBe('noopener noreferrer')
-  expect(wrapper.find('script').exists()).toBe(false)
-  await wrapper.setProps({ text: 'Новая версия' })
-  expect(wrapper.find('[role="status"]').exists()).toBe(false)
+  expect(open).toHaveBeenCalledWith('tg://', '_self')
+  expect(wrapper.text()).toBe('')
+  expect(document.querySelector('[role="status"]')?.textContent).toContain('Полный текст скопирован')
+  expect(document.querySelector('.lk-share__overlay')).toBeNull()
+  await vi.advanceTimersByTimeAsync(6000)
+  expect(document.querySelector('[role="status"]')).toBeNull()
 })
 
-it.each(['missing', 'denied'])('keeps full text available for manual copying when clipboard is %s', async state => {
-  vi.stubGlobal('navigator', state === 'missing' ? {} : {
-    clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
-  })
-  const open = vi.spyOn(window, 'open').mockReturnValue(null)
-  const text = '<script>Скопировать вручную</script>\nПолный текст'
-  const wrapper = mount(LkShareButton, { props: { text } })
-  await wrapper.get('button').trigger('click')
-  await flushPromises()
-  expect(open).toHaveBeenCalledTimes(1)
-  expect(wrapper.get('[role="status"]').text()).toContain('Не удалось скопировать автоматически')
-  const textarea = wrapper.get('textarea').element as HTMLTextAreaElement
-  expect(textarea.value).toBe(text)
-  expect(textarea.selectionEnd - textarea.selectionStart).toBe(text.length)
-  expect(wrapper.find('script').exists()).toBe(false)
-  const writeText = vi.fn().mockResolvedValue(undefined)
-  vi.stubGlobal('navigator', { clipboard: { writeText } })
-  await wrapper.get('.lk-share__actions button').trigger('click')
-  await flushPromises()
-  expect(writeText).toHaveBeenCalledWith(text)
-  expect(open).toHaveBeenCalledTimes(1)
-  expect(wrapper.find('textarea').exists()).toBe(false)
-})
-
-it('keeps app retry and explicit Web fallback if the protocol launch throws', async () => {
+it('reports an actual launch error without inserting a block or links into the form', async () => {
   vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
-  vi.spyOn(window, 'open').mockImplementation(() => { throw new Error('Popup denied') })
+  vi.spyOn(window, 'open').mockImplementation(() => { throw new Error('Denied') })
   const wrapper = mount(LkShareButton, { props: { text: 'Заметка' } })
   await wrapper.get('button').trigger('click')
   await flushPromises()
-  expect(wrapper.get('a').attributes('href')).toBe(telegramShareUrl('Заметка'))
-  expect(wrapper.get('a[href="https://web.telegram.org/"]').text()).toBe('Telegram Web')
-  expect(wrapper.get('[role="status"]').text()).toContain('скопирован')
+  expect(wrapper.text()).toBe('')
+  expect(wrapper.find('a').exists()).toBe(false)
+  expect(document.querySelector('[role="status"]')?.textContent).toContain('Не удалось открыть Telegram')
 })
 
-it('does not confirm a stale copy when text changes while the clipboard is pending', async () => {
-  let finish!: () => void
-  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn(() => new Promise<void>(resolve => { finish = resolve })) } })
+it('offers the full text in a separate dismissible dialog only when both transfer paths fail', async () => {
+  vi.stubGlobal('navigator', {})
   vi.spyOn(window, 'open').mockReturnValue(null)
-  const wrapper = mount(LkShareButton, { props: { text: 'Старый текст' } })
+  const text = '<script>Полный текст</script>\n'.repeat(500)
+  const wrapper = mount(LkShareButton, { props: { text }, attachTo: document.body })
   await wrapper.get('button').trigger('click')
-  await wrapper.setProps({ text: 'Новый текст' })
-  finish()
   await flushPromises()
-  expect(wrapper.find('[role="status"]').exists()).toBe(false)
+  expect(wrapper.find('textarea').exists()).toBe(false)
+  const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!
+  const textarea = dialog.querySelector('textarea')!
+  const close = dialog.querySelector('button')!
+  expect(textarea.value).toBe(text)
+  expect(document.activeElement).toBe(textarea)
+  expect(textarea.selectionEnd - textarea.selectionStart).toBe(text.length)
+  expect(dialog.querySelector('script')).toBeNull()
+  textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }))
+  expect(document.activeElement).toBe(close)
+  close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))
+  expect(document.activeElement).toBe(textarea)
+  const parentEscape = vi.fn()
+  window.addEventListener('keydown', parentEscape)
+  try {
+    textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(wrapper.get('button').element)
+    expect(parentEscape).not.toHaveBeenCalled()
+  } finally {
+    window.removeEventListener('keydown', parentEscape)
+  }
 })
 
-it.each([{ text: '', disabled: false }, { text: 'Неполный список', disabled: true }])('does not copy or open Telegram for unavailable data', async props => {
+it.each(['changed', 'unmounted'] as const)('does not show stale feedback after the form is %s', async state => {
+  let finish!: (value: boolean) => void
+  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn(() => new Promise(resolve => { finish = resolve })) } })
+  vi.spyOn(window, 'open').mockReturnValue(null)
+  const wrapper = mount(LkShareButton, { props: { text: 'Старый текст'.repeat(1000) } })
+  await wrapper.get('button').trigger('click')
+  if (state === 'changed') await wrapper.setProps({ text: 'Новый текст' })
+  else wrapper.unmount()
+  finish(true)
+  await flushPromises()
+  expect(document.querySelector('.lk-share__notice, .lk-share__overlay')).toBeNull()
+})
+
+it.each([{ text: '', disabled: false }, { text: 'Неполный список', disabled: true }])('does not share unavailable data', async props => {
   const writeText = vi.fn()
   vi.stubGlobal('navigator', { clipboard: { writeText } })
   const open = vi.spyOn(window, 'open').mockReturnValue(null)
@@ -117,41 +137,4 @@ it.each([{ text: '', disabled: false }, { text: 'Неполный список',
   await wrapper.get('button').trigger('click')
   expect(writeText).not.toHaveBeenCalled()
   expect(open).not.toHaveBeenCalled()
-})
-
-
-it('does not auto-open Web or claim a launched app when the protocol handler is unavailable', async () => {
-  vi.useFakeTimers()
-  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
-  const open = vi.spyOn(window, 'open').mockReturnValue(null)
-  const wrapper = mount(LkShareButton, { props: { text: 'Текст' } })
-  await wrapper.get('button').trigger('click')
-  await vi.advanceTimersByTimeAsync(10000)
-  expect(open).toHaveBeenCalledTimes(1)
-  expect(open).toHaveBeenCalledWith(telegramShareUrl('Текст'), '_self')
-  expect(wrapper.get('[role="status"]').text()).toContain('Текст скопирован')
-  expect(wrapper.text()).not.toContain('Приложение открыто')
-  expect(wrapper.get('a[href="https://web.telegram.org/"]').text()).toBe('Telegram Web')
-})
-
-
-it('places manual-copy feedback in the form body and removes it when the component closes', async () => {
-  const target = document.createElement('div')
-  document.body.appendChild(target)
-  vi.stubGlobal('navigator', {})
-  vi.spyOn(window, 'open').mockReturnValue(null)
-  const wrapper = mount(LkShareButton, { props: { text: 'Полный текст', feedbackTarget: target } })
-  try {
-    await wrapper.get('button').trigger('click')
-    await flushPromises()
-    expect(wrapper.find('textarea').exists()).toBe(false)
-    const textarea = target.querySelector('textarea')!
-    expect(textarea.value).toBe('Полный текст')
-    expect(document.activeElement).toBe(textarea)
-    expect(textarea.selectionEnd - textarea.selectionStart).toBe(textarea.value.length)
-    wrapper.unmount()
-    expect(target.querySelector('textarea')).toBeNull()
-  } finally {
-    target.remove()
-  }
 })

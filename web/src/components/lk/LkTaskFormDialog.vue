@@ -50,7 +50,6 @@ const form = reactive({ title: '', type: 'goods' as ShoppingListType })
  */
 const isTitleEditing = ref(false)
 const titleInput = ref<HTMLInputElement | null>(null)
-const shareFeedback = ref<HTMLElement | null>(null)
 /** Значение названия на момент входа в редактирование — откат по Esc. */
 const titleBeforeEdit = ref('')
 const tags = ref<string[]>([])
@@ -522,7 +521,6 @@ async function confirmDelete(): Promise<void> {
           class="lk-form-dialog__share"
           :text="listShareText(form.title, form.type, items)"
           :disabled="isItemsLoading || !!itemsError || pendingItemChanges > 0 || isSubmitting || isDeleting"
-          :feedback-target="shareFeedback"
         />
         <button type="button" class="lk-form-dialog__close" aria-label="Закрыть" @click="handleClose">
           &times;
@@ -531,7 +529,6 @@ async function confirmDelete(): Promise<void> {
 
       <form novalidate class="lk-form-dialog__form" @submit.prevent="handleSubmit">
         <div class="lk-form-dialog__body">
-          <div ref="shareFeedback" />
           <p v-if="generalError" role="alert" class="lk-form-dialog__error">{{ generalError }}</p>
 
           <template v-if="!isTypeLocked">
