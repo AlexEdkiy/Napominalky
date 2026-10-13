@@ -3,7 +3,8 @@ import { nextTick, ref, watch } from 'vue'
 import LkIcon from '@/components/lk/LkIcon.vue'
 
 const props = defineProps<{ text: string; disabled?: boolean }>()
-const telegramUrl = 'https://web.telegram.org/'
+const telegramAppUrl = 'tg://'
+const telegramWebUrl = 'https://web.telegram.org/'
 const copying = ref(false)
 const attempted = ref(false)
 const manualCopy = ref(false)
@@ -38,14 +39,16 @@ async function share(openTelegram = true): Promise<void> {
   copying.value = true
   attempted.value = true
   feedback.value = ''
-  // Start copying while this document still has focus. Open the tab in the same
-  // click, before awaiting the clipboard, to preserve browser user activation.
+  // Start copying while this document still has focus. Invoke the OS protocol
+  // handler in the same click, before awaiting the clipboard. _self avoids an
+  // empty browser tab; tg:// only launches Telegram without selecting a chat.
   const copied = copyText(props.text)
   if (openTelegram) {
     try {
-      window.open(telegramUrl, '_blank', 'noopener,noreferrer')
+      window.open(telegramAppUrl, '_self')
     } catch {
-      // A direct link remains available if popup policy prevents opening a tab.
+      // Browsers cannot reliably report whether the app launched. Keep explicit
+      // retry and Web links; never open Web automatically or claim app success.
     }
   }
   try {
@@ -59,17 +62,19 @@ async function share(openTelegram = true): Promise<void> {
 <template>
   <div class="lk-share">
     <button type="button" class="lk-share__telegram" :disabled="disabled || !text.trim() || copying"
-      aria-label="Поделиться в Telegram" title="Скопировать текст и открыть Telegram" @click="share()">
+      aria-label="Поделиться в Telegram" title="Скопировать текст и открыть приложение Telegram" @click="share()">
       <LkIcon name="telegram" :size="24" />
     </button>
     <div v-if="attempted && !disabled" class="lk-share__result">
       <p v-if="feedback" role="status">{{ feedback }}</p>
       <textarea v-if="manualCopy" ref="preview" :value="text" readonly rows="6" aria-label="Текст сообщения" />
+      <p>Если приложение не открылось, повторите запуск или используйте Telegram Web.</p>
       <div class="lk-share__actions">
         <button v-if="manualCopy" type="button" class="lk-share__action" :disabled="copying"
           @click="share(false)">Скопировать ещё раз</button>
-        <a class="lk-share__action" :href="telegramUrl" target="_blank" rel="noopener noreferrer">
-          Открыть Telegram
+        <a class="lk-share__action" :href="telegramAppUrl">Открыть приложение</a>
+        <a class="lk-share__action" :href="telegramWebUrl" target="_blank" rel="noopener noreferrer">
+          Telegram Web
         </a>
       </div>
     </div>

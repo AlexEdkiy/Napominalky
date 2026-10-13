@@ -3,7 +3,7 @@ import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import LkShareButton from './LkShareButton.vue'
 
 enableAutoUnmount(afterEach)
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers() })
 
 it('renders only the Telegram icon with an accessible label', () => {
   const wrapper = mount(LkShareButton, { props: { text: 'Заметка' } })
@@ -14,7 +14,7 @@ it('renders only the Telegram icon with an accessible label', () => {
   expect(wrapper.find('a').exists()).toBe(false)
 })
 
-it('starts copying before directly opening Telegram in the click, without the OS share sheet', async () => {
+it('starts copying before launching the installed app in the same tab, without OS share', async () => {
   let finish!: () => void
   const writeText = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
   const osShare = vi.fn()
@@ -25,7 +25,7 @@ it('starts copying before directly opening Telegram in the click, without the OS
   const button = wrapper.get('button')
   await button.trigger('click')
   expect(writeText).toHaveBeenCalledWith(text)
-  expect(open).toHaveBeenCalledWith('https://web.telegram.org/', '_blank', 'noopener,noreferrer')
+  expect(open).toHaveBeenCalledWith('tg://', '_self')
   expect(writeText.mock.invocationCallOrder[0]).toBeLessThan(open.mock.invocationCallOrder[0]!)
   expect(button.attributes('disabled')).toBeDefined()
   await button.trigger('click')
@@ -48,10 +48,14 @@ it('copies the full text without putting content or a website URL into the Teleg
   await wrapper.get('button').trigger('click')
   await flushPromises()
   expect(writeText).toHaveBeenCalledWith(text)
-  expect(open.mock.calls[0]?.[0]).toBe('https://web.telegram.org/')
-  const link = wrapper.get('a')
-  expect(link.attributes('href')).toBe('https://web.telegram.org/')
-  expect(link.attributes('rel')).toBe('noopener noreferrer')
+  expect(open.mock.calls[0]?.[0]).toBe('tg://')
+  const appLink = wrapper.get('a[href="tg://"]')
+  expect(appLink.text()).toBe('Открыть приложение')
+  expect(appLink.attributes('target')).toBeUndefined()
+  const webLink = wrapper.get('a[href="https://web.telegram.org/"]')
+  expect(webLink.text()).toBe('Telegram Web')
+  expect(webLink.attributes('target')).toBe('_blank')
+  expect(webLink.attributes('rel')).toBe('noopener noreferrer')
   expect(wrapper.find('script').exists()).toBe(false)
   await wrapper.setProps({ text: 'Новая версия' })
   expect(wrapper.find('[role="status"]').exists()).toBe(false)
@@ -81,13 +85,14 @@ it.each(['missing', 'denied'])('keeps full text available for manual copying whe
   expect(wrapper.find('textarea').exists()).toBe(false)
 })
 
-it('keeps the direct link usable if opening the popup throws', async () => {
+it('keeps app retry and explicit Web fallback if the protocol launch throws', async () => {
   vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
   vi.spyOn(window, 'open').mockImplementation(() => { throw new Error('Popup denied') })
   const wrapper = mount(LkShareButton, { props: { text: 'Заметка' } })
   await wrapper.get('button').trigger('click')
   await flushPromises()
-  expect(wrapper.get('a').attributes('href')).toBe('https://web.telegram.org/')
+  expect(wrapper.get('a[href="tg://"]').text()).toBe('Открыть приложение')
+  expect(wrapper.get('a[href="https://web.telegram.org/"]').text()).toBe('Telegram Web')
   expect(wrapper.get('[role="status"]').text()).toContain('скопирован')
 })
 
@@ -111,4 +116,19 @@ it.each([{ text: '', disabled: false }, { text: 'Неполный список',
   await wrapper.get('button').trigger('click')
   expect(writeText).not.toHaveBeenCalled()
   expect(open).not.toHaveBeenCalled()
+})
+
+
+it('does not auto-open Web or claim a launched app when the protocol handler is unavailable', async () => {
+  vi.useFakeTimers()
+  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
+  const open = vi.spyOn(window, 'open').mockReturnValue(null)
+  const wrapper = mount(LkShareButton, { props: { text: 'Текст' } })
+  await wrapper.get('button').trigger('click')
+  await vi.advanceTimersByTimeAsync(10000)
+  expect(open).toHaveBeenCalledTimes(1)
+  expect(open).toHaveBeenCalledWith('tg://', '_self')
+  expect(wrapper.get('[role="status"]').text()).toContain('Текст скопирован')
+  expect(wrapper.text()).not.toContain('Приложение открыто')
+  expect(wrapper.get('a[href="https://web.telegram.org/"]').text()).toBe('Telegram Web')
 })
