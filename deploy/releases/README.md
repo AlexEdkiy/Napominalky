@@ -1,14 +1,15 @@
 # Versioned releases (OPS-14)
 
-Production is active on **ra12c823-web67** since 2026-10-13 12:43 MSK, source SHA
-`a12c823dc259885f8e8e8119ae377459e2667c92`. WEB-67 copies full text and invokes
-the installed Telegram application via `tg://`; Telegram Web is an explicit fallback link.
+Production is active on **rb911942-web68** since 2026-10-13 13:11 MSK, source SHA
+`b911942cdcc4b6b16a40096c7473ce3e798f90b5`. WEB-68 places the outline share icon
+in form headers and invokes Telegram's chat chooser with the full text and public
+website link. Oversized messages use full clipboard copy rather than truncated drafts.
 All three CI jobs, artifact verification, the explicitly approved managed switch
 and nine public desktop/mobile browser checks passed. Backend/schema are unchanged; there are no migrations.
-[WEB-67 report](../../docs/reviews/web67-telegram-desktop-2026-10-13.md).
+[WEB-68 report](../../docs/reviews/web68-share-header-2026-10-13.md).
 
-Keep **r037580e-web66** for code rollback; stopped containers are
-`reminders_serve-previous-b27387fe` and `reminders_web-previous-b27387fe`.
+Keep **ra12c823-web67** for code rollback; stopped containers are
+`reminders_serve-previous-7d821fb9` and `reminders_web-previous-7d821fb9`.
 The WEB-63 offline Service Worker remains in place: it caches only four public
 fallback files, never the SPA/API. Retain the WEB-54 database columns (batch 16).
 
