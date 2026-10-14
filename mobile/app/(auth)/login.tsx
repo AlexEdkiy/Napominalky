@@ -11,13 +11,14 @@ import {
 } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 
+import EmailVerificationNotice from '@/components/auth/EmailVerificationNotice'
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
-import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
+import { getApiErrorMessage, getFieldErrors, requiresEmailVerification } from '@/utils/apiError'
 
 const LAST_EMAIL_KEY = 'lk_last_email'
 
@@ -108,6 +109,10 @@ export default function LoginScreen() {
             trackColor={{ true: colors.accent }}
           />
         </View>
+
+        {requiresEmailVerification(login.error) && (
+          <EmailVerificationNotice key={email} email={email.trim()} password={password} />
+        )}
 
         <BaseButton label="Войти" onPress={handleSubmit} loading={login.isPending} />
         <BaseButton label="Продолжить как гость" variant="secondary" onPress={continueAsGuest} disabled={login.isPending} />

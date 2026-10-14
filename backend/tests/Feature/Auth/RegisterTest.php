@@ -3,42 +3,24 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Notifications\VerifyAccountNotification;
+use Illuminate\Support\Facades\Notification;
 
-it('registers a user and returns a bearer token', function (): void {
-    $response = $this->postJson('/api/v1/auth/register', [
-        'name' => 'Alice Example',
-        'email' => 'alice@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
-    ]);
-
-    $response->assertCreated()
-        ->assertJsonStructure([
-            'data' => [
-                'token',
-                'token_type',
-                'user' => ['uuid', 'name', 'email', 'is_admin', 'sync_enabled', 'created_at'],
-            ],
-        ])
-        ->assertJsonPath('data.token_type', 'Bearer')
-        ->assertJsonPath('data.user.email', 'alice@example.com');
-
-    expect($response->json('data.token'))->toBeString()->not->toBeEmpty();
-
-    $this->assertDatabaseHas('users', ['email' => 'alice@example.com']);
+beforeEach(function (): void {
+    Notification::fake();
 });
 
-it('never leaks the password or numeric id in the user payload', function (): void {
+it('registers an unverified account without issuing a session', function (): void {
     $response = $this->postJson('/api/v1/auth/register', [
-        'name' => 'Bob Example',
-        'email' => 'bob@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
-    ]);
-
-    $user = $response->json('data.user');
-
-    expect($user)->not->toHaveKeys(['password', 'id']);
+        'name' => 'Alice Example', 'email' => 'alice@example.com',
+        'password' => 'password123', 'password_confirmation' => 'password123',
+    ])->assertCreated()->assertJsonPath('data.verification_required', true)
+        ->assertJsonPath('data.email_sent', true)->assertJsonPath('data.email', 'alice@example.com');
+    expect($response->json('data'))->not->toHaveKeys(['token', 'user', 'password', 'id']);
+    $user = User::firstWhere('email', 'alice@example.com');
+    expect($user->needsEmailVerification())->toBeTrue();
+    expect($user->tokens()->count())->toBe(0);
+    Notification::assertSentTo($user, VerifyAccountNotification::class);
 });
 
 it('rejects a duplicate email with 422', function (): void {

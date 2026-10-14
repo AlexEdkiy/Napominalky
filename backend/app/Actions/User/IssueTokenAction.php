@@ -10,6 +10,8 @@ final class IssueTokenAction
 {
     public function __invoke(User $user, string $deviceName): string
     {
+        $user->ensureEmailVerified();
+
         return $user->createToken($deviceName)->plainTextToken;
     }
 }

@@ -213,3 +213,25 @@ it('restarts automatic sync after a fresh login to the same account', async () =
   })
   await waitFor(() => expect(syncApi.getChanges).toHaveBeenCalledTimes(2))
 })
+
+
+it('registration and unverified login never activate account storage or upload guest drafts', async () => {
+  useAuthStore.setState({ token: null, accountId: null, user: null, guestMode: true, navigationTarget: null })
+  const hook = await mount()
+  await waitFor(() => expect(hook.result.current?.auth.guestMode).toBe(true))
+  const guestDb = mockDb
+  const draft = await notesRepo.createNote({ title: 'Guest draft before registration' })
+  const before = queue(guestDb)
+  ;(authApi.register as jest.Mock).mockResolvedValue({ verification_required: true, email: 'new@example.com', email_sent: true, message: 'Подтвердите почту' })
+  await act(async () => { await hook.result.current.auth.register.mutateAsync({ name: 'New', email: 'new@example.com', password: 'password123', password_confirmation: 'password123' }) })
+  expect(useAuthStore.getState().token).toBeNull()
+  expect(useAuthStore.getState().navigationTarget).toBeNull()
+  expect(mockDb).toBe(guestDb)
+  expect(queue(guestDb)).toEqual(before)
+  expect(await notesRepo.getNoteByUuid(draft.uuid)).not.toBeNull()
+  loginApi.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403, data: { code: 'email_verification_required' } } })
+  await act(async () => { await expect(hook.result.current.auth.login.mutateAsync({ email: 'new@example.com', password: 'password123' })).rejects.toBeTruthy() })
+  expect(mockDb).toBe(guestDb)
+  expect(useAuthStore.getState().token).toBeNull()
+  expect(push).not.toHaveBeenCalled()
+})

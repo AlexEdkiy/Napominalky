@@ -145,3 +145,18 @@ describe('authApi.resetPassword', () => {
     ).rejects.toThrow('422')
   })
 })
+
+
+describe('email verification URLs', () => {
+  beforeEach(() => vi.clearAllMocks())
+  const path = `/api/v1/auth/email/verify/12345678-1234-1234-1234-123456789012/${'a'.repeat(40)}?expires=1234567890&signature=${'b'.repeat(64)}`
+  it('posts only the validated relative route under the configured API base', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { message: 'Подтверждено' } })
+    await authApi.verifyEmail(path)
+    expect(apiClient.post).toHaveBeenCalledWith(path.slice('/api/v1/'.length))
+  })
+  it.each(['https://evil.test/steal', '//evil.test/steal', '/api/v1/account', path + '&redirect=https://evil.test', path.replace('/auth/', '/%2e%2e/')])('rejects arbitrary or injected URLs: %s', async (url) => {
+    await expect(authApi.verifyEmail(url)).rejects.toThrow()
+    expect(apiClient.post).not.toHaveBeenCalled()
+  })
+})

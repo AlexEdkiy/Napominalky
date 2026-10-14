@@ -45,6 +45,10 @@ class AppServiceProvider extends ServiceProvider
     private function configureRateLimiting(): void
     {
         // Auth endpoints (register/login): 5 requests per minute per client IP.
-        RateLimiter::for('auth', static fn (Request $request): Limit => Limit::perMinute(5)->by($request->ip()));
+        RateLimiter::for('auth', static fn (Request $request): Limit => Limit::perMinute(5)
+            ->by($request->ip())
+            ->response(static fn (Request $request, array $headers) => response()->json([
+                'message' => 'Слишком много попыток. Подождите минуту и попробуйте снова.',
+            ], 429, $headers)));
     }
 }

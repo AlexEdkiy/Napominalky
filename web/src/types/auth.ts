@@ -47,3 +47,11 @@ export interface ResetPasswordPayload {
   password: string
   password_confirmation: string
 }
+
+/** Registration does not create a session until email ownership is confirmed. */
+export interface RegistrationResponse {
+  verification_required: true
+  email: string
+  email_sent: boolean
+  message: string
+}

@@ -21,3 +21,9 @@ export function getFieldErrors(error: unknown): Record<string, string[]> {
   }
   return error.response.data?.errors ?? {}
 }
+
+export function requiresEmailVerification(error: unknown): boolean {
+  return isAxiosError<{ code?: string }>(error)
+    && error.response?.status === 403
+    && error.response.data?.code === 'email_verification_required'
+}

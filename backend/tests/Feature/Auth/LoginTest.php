@@ -86,5 +86,6 @@ it('throttles login after 5 attempts and returns 429 on the 6th', function (): v
         $this->postJson('/api/v1/auth/login', $payload)->assertUnprocessable();
     }
 
-    $this->postJson('/api/v1/auth/login', $payload)->assertStatus(429);
+    $this->postJson('/api/v1/auth/login', $payload)->assertStatus(429)
+        ->assertJsonPath('message', 'Слишком много попыток. Подождите минуту и попробуйте снова.');
 });

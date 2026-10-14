@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { isAxiosError } from 'axios'
 
+import EmailVerificationNotice from '@/components/auth/EmailVerificationNotice.vue'
 import AuthCard from '@/components/auth/AuthCard.vue'
 import AuthPasswordField from '@/components/auth/AuthPasswordField.vue'
 import { useAuthStore } from '@/stores/authStore'
@@ -20,6 +21,7 @@ const form = reactive<LoginPayload>({ email: '', password: '' })
 const errors = ref<Record<string, string[]>>({})
 const generalError = ref<string | null>(null)
 const isSubmitting = ref(false)
+const verificationRequired = ref(false)
 const rememberMe = ref(true)
 
 onMounted(() => {
@@ -41,6 +43,7 @@ async function handleSubmit(): Promise<void> {
   isSubmitting.value = true
   errors.value = {}
   generalError.value = null
+  verificationRequired.value = false
   try {
     await auth.login({ email: form.email, password: form.password })
     persistRememberedEmail()
@@ -65,6 +68,7 @@ function handleError(error: unknown): void {
   // 403 — аккаунт заблокирован (is_active=false), показываем message из ответа
   if (isAxiosError(error) && error.response?.status === 403) {
     const body = error.response.data as Record<string, unknown>
+    verificationRequired.value = body.code === 'email_verification_required'
     const msg = typeof body.message === 'string' && body.message.length > 0
       ? body.message
       : 'Ваш аккаунт отключён. Обратитесь к администратору.'
@@ -101,6 +105,8 @@ function handleError(error: unknown): void {
         </label>
         <RouterLink class="auth-link" :to="{ name: 'forgot-password' }">Забыли пароль?</RouterLink>
       </div>
+
+      <EmailVerificationNotice v-if="verificationRequired" :key="form.email" :email="form.email" :password="form.password" />
 
       <button type="submit" class="auth-submit" :disabled="isSubmitting">
         {{ isSubmitting ? 'Вход…' : 'Войти' }}

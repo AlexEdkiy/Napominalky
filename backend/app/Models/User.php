@@ -13,16 +13,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements CanResetPasswordContract
 {
+    use CanResetPassword;
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens;
 
-    use CanResetPassword;
     use HasFactory;
     use Notifiable;
     use SoftDeletes;
@@ -66,6 +68,21 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification((string) $token));
+    }
+
+    public function needsEmailVerification(): bool
+    {
+        return $this->email_verification_required && $this->email_verified_at === null;
+    }
+
+    public function ensureEmailVerified(): void
+    {
+        if ($this->needsEmailVerification()) {
+            throw new HttpResponseException(response()->json([
+                'code' => 'email_verification_required',
+                'message' => 'Подтвердите почту по ссылке из письма, затем войдите в аккаунт.',
+            ], 403));
+        }
     }
 
     public function isSuperAdmin(): bool
@@ -143,6 +160,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_verification_required' => 'boolean',
             'password' => 'hashed',
             'sync_enabled' => 'boolean',
             'is_admin' => 'boolean',

@@ -11,11 +11,15 @@ final class RegisterUserAction
 {
     public function __invoke(RegisterData $data): User
     {
-        return User::create([
+        $user = new User([
             'name' => $data->name,
             'email' => $data->email,
             'password' => $data->password,
             'sync_enabled' => true,
         ]);
+        $user->email_verification_required = true;
+        $user->save();
+
+        return $user;
     }
 }

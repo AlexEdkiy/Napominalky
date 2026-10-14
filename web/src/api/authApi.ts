@@ -5,14 +5,29 @@ import type {
   ForgotPasswordPayload,
   LoginPayload,
   RegisterPayload,
+  RegistrationResponse,
   ResetPasswordPayload,
   User,
 } from '@/types/auth'
 
 export const authApi = {
-  register: async (payload: RegisterPayload): Promise<AuthResponse> => {
-    const { data } = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', payload)
+  register: async (payload: RegisterPayload): Promise<RegistrationResponse> => {
+    const { data } = await apiClient.post<ApiResponse<RegistrationResponse>>('/auth/register', payload)
     return data.data
+  },
+
+  resendVerification: async (payload: LoginPayload): Promise<{ message: string }> => {
+    const { data } = await apiClient.post<{ message: string }>('auth/email/resend', payload)
+    return data
+  },
+
+  verifyEmail: async (signedPath: string): Promise<{ message: string }> => {
+    // Accept only the signed relative API route, never an arbitrary URL from email/query.
+    if (!/^\/api\/v1\/auth\/email\/verify\/[a-f0-9-]{36}\/[a-f0-9]{40}\?expires=\d+&signature=[a-f0-9]{64}$/.test(signedPath)) {
+      throw new Error('Invalid verification link')
+    }
+    const { data } = await apiClient.post<{ message: string }>(signedPath.slice('/api/v1/'.length))
+    return data
   },
 
   login: async (payload: LoginPayload): Promise<AuthResponse> => {

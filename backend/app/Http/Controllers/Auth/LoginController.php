@@ -36,6 +36,8 @@ final class LoginController extends Controller
             abort(HttpResponse::HTTP_FORBIDDEN, 'Аккаунт отключён. Обратитесь к администратору.');
         }
 
+        $user->ensureEmailVerified();
+
         $deviceName = $request->filled('device_name')
             ? $request->string('device_name')->toString()
             : self::DEFAULT_DEVICE_NAME;

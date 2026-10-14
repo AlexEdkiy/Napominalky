@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { isAxiosError } from 'axios'
 
 import AuthCard from '@/components/auth/AuthCard.vue'
 import AuthPasswordField from '@/components/auth/AuthPasswordField.vue'
 import { useAuthStore } from '@/stores/authStore'
 import type { ValidationErrorResponse } from '@/types/api'
-import type { RegisterPayload } from '@/types/auth'
+import EmailVerificationNotice from '@/components/auth/EmailVerificationNotice.vue'
+import type { RegistrationResponse, RegisterPayload } from '@/types/auth'
 
-const router = useRouter()
 const auth = useAuthStore()
 
 const form = reactive<RegisterPayload>({
@@ -21,14 +20,14 @@ const form = reactive<RegisterPayload>({
 const errors = ref<Record<string, string[]>>({})
 const generalError = ref<string | null>(null)
 const isSubmitting = ref(false)
+const registration = ref<RegistrationResponse | null>(null)
 
 async function handleSubmit(): Promise<void> {
   isSubmitting.value = true
   errors.value = {}
   generalError.value = null
   try {
-    await auth.register({ ...form })
-    await router.push('/lk')
+    registration.value = await auth.register({ ...form })
   } catch (error) {
     handleError(error)
   } finally {
@@ -47,7 +46,8 @@ function handleError(error: unknown): void {
 
 <template>
   <AuthCard title="Регистрация">
-    <form class="auth-form" novalidate @submit.prevent="handleSubmit">
+    <EmailVerificationNotice v-if="registration" :email="registration.email" :password="form.password" :message="registration.message" />
+    <form v-else class="auth-form" novalidate @submit.prevent="handleSubmit">
       <p v-if="generalError" role="alert" class="auth-alert">{{ generalError }}</p>
 
       <div class="auth-field">

@@ -26,3 +26,11 @@ export interface LoginPayload {
   password: string
   device_name?: string
 }
+
+/** Registration does not create a session until email ownership is confirmed. */
+export interface RegistrationResponse {
+  verification_required: true
+  email: string
+  email_sent: boolean
+  message: string
+}

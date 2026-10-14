@@ -2,6 +2,9 @@ import { Link } from 'expo-router'
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native'
 
+import EmailVerificationNotice from '@/components/auth/EmailVerificationNotice'
+import { validateRegistrationPassword } from '@/utils/registrationValidation'
+
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import { useAuth } from '@/hooks/useAuth'
@@ -10,17 +13,22 @@ import { typography } from '@/theme/typography'
 import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
 
 export default function RegisterScreen() {
-  const { register } = useAuth()
+  const { register, login } = useAuth()
   const { colors } = useTheme()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
 
-  const fieldErrors = getFieldErrors(register.error)
-  const generalError = register.isError ? getApiErrorMessage(register.error) : null
+  const [localErrors, setLocalErrors] = useState<Record<string, string[]>>({})
+  const registration = register.data
+  const fieldErrors = { ...getFieldErrors(register.error), ...localErrors }
+  const generalError = register.isError ? (Object.keys(fieldErrors).length ? 'Проверьте заполнение полей.' : getApiErrorMessage(register.error)) : null
 
   const handleSubmit = (): void => {
+    const errors = validateRegistrationPassword(password, passwordConfirmation)
+    setLocalErrors(errors)
+    if (Object.keys(errors).length) return
     register.mutate({
       name: name.trim(),
       email: email.trim(),
@@ -35,30 +43,38 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Регистрация</Text>
+        {registration ? <>
+          <EmailVerificationNotice email={registration.email} password={password} message={registration.message} />
+          {login.isError && <Text style={[styles.generalError, { color: colors.danger }]}>{getApiErrorMessage(login.error)}</Text>}
+          <BaseButton label="Я подтвердил почту — войти" loading={login.isPending}
+            onPress={() => login.mutate({ email: registration.email, password })} />
+        </> : <>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Регистрация</Text>
 
         {generalError ? (
           <Text style={[styles.generalError, { color: colors.danger }]}>{generalError}</Text>
         ) : null}
 
-        <BaseInput label="Имя" value={name} onChangeText={setName}
+        <BaseInput editable={!register.isPending} label="Имя" value={name} onChangeText={setName}
           error={fieldErrors['name']?.[0]} autoComplete="name" textContentType="name" />
-        <BaseInput label="Email" value={email} onChangeText={setEmail}
+        <BaseInput editable={!register.isPending} label="Email" value={email} onChangeText={setEmail}
           error={fieldErrors['email']?.[0]} autoCapitalize="none"
           autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
-        <BaseInput label="Пароль" value={password} onChangeText={setPassword}
-          error={fieldErrors['password']?.[0]} secureTextEntry
+        <BaseInput editable={!register.isPending} label="Пароль" value={password} onChangeText={(value) => { setPassword(value); setLocalErrors({}) }}
+          error={fieldErrors['password']?.[0]} passwordToggle
           autoComplete="password-new" textContentType="newPassword" />
-        <BaseInput label="Повтор пароля" value={passwordConfirmation}
-          onChangeText={setPasswordConfirmation}
+        <BaseInput editable={!register.isPending} label="Повтор пароля" value={passwordConfirmation}
+          onChangeText={(value) => { setPasswordConfirmation(value); setLocalErrors({}) }}
           error={fieldErrors['password_confirmation']?.[0]}
-          secureTextEntry autoComplete="password-new" textContentType="newPassword" />
+          passwordToggle autoComplete="password-new" textContentType="newPassword" />
 
         <BaseButton
           label="Создать аккаунт"
           onPress={handleSubmit}
           loading={register.isPending}
         />
+
+        </>}
 
         <Link href="/(auth)/login" style={[styles.link, { color: colors.accent }]}>
           Уже есть аккаунт? Войти

@@ -7,6 +7,7 @@ import './types'
 // Auth routes
 // ---------------------------------------------------------------------------
 const authRoutes: RouteRecordRaw[] = [
+  { path: '/verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailView.vue'), meta: { title: 'Подтверждение почты' } },
   {
     path: '/login',
     name: 'login',

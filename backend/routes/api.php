@@ -15,9 +15,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\MeController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ResendVerificationController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\UpdateProfileController;
 use App\Http\Controllers\Auth\UploadAvatarController;
+use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Devices\DestroyController as DeviceDestroyController;
 use App\Http\Controllers\Devices\UpdateController as DeviceUpdateController;
 use App\Http\Controllers\Notes\ArchiveController as NoteArchiveController;
@@ -34,6 +36,7 @@ use App\Http\Controllers\Reminders\ShowController as ReminderShowController;
 use App\Http\Controllers\Reminders\SnoozeController as ReminderSnoozeController;
 use App\Http\Controllers\Reminders\StoreController as ReminderStoreController;
 use App\Http\Controllers\Reminders\UpdateController as ReminderUpdateController;
+use App\Http\Controllers\Search\IndexController;
 use App\Http\Controllers\Settings\ToggleSyncController;
 use App\Http\Controllers\ShoppingLists\DestroyController as ListDestroyController;
 use App\Http\Controllers\ShoppingLists\IndexController as ListIndexController;
@@ -51,6 +54,7 @@ use App\Http\Controllers\ShoppingLists\UpdateController as ListUpdateController;
 use App\Http\Controllers\Sync\ChangesController as SyncChangesController;
 use App\Http\Controllers\Sync\ConflictsController as SyncConflictsController;
 use App\Http\Controllers\Sync\PushController as SyncPushController;
+use App\Http\Middleware\EnsureAccountEmailVerified;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -88,6 +92,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::prefix('auth')->name('auth.')->middleware('throttle:auth')->group(function (): void {
         Route::post('register', RegisterController::class)->name('register');
         Route::post('login', LoginController::class)->name('login');
+        Route::post('email/resend', ResendVerificationController::class)->name('email.resend');
+        Route::post('email/verify/{uuid}/{hash}', VerifyEmailController::class)->name('email.verify');
 
         // Password reset (unauthenticated) — additional throttle:6,1 against brute force
         Route::post('password/forgot', ForgotPasswordController::class)
@@ -101,8 +107,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // ------------------------------------------------------------------
     // Authenticated endpoints — require valid Sanctum token
     // ------------------------------------------------------------------
-    Route::middleware('auth:sanctum')->group(function (): void {
-        Route::get('search', \App\Http\Controllers\Search\IndexController::class)
+    Route::middleware(['auth:sanctum', EnsureAccountEmailVerified::class])->group(function (): void {
+        Route::get('search', IndexController::class)
             ->middleware('throttle:60,1,search')->name('search');
 
         // Auth — authenticated actions

@@ -49,11 +49,6 @@ jest.mock('@/theme/typography', () => ({
   },
 }))
 
-jest.mock('@/utils/apiError', () => ({
-  getApiErrorMessage: jest.fn(() => null),
-  getFieldErrors: jest.fn(() => ({})),
-}))
-
 jest.mock('@/components/common/BaseButton', () => {
   const { TouchableOpacity, Text } = require('react-native')
   return {
@@ -70,30 +65,7 @@ jest.mock('@/components/common/BaseButton', () => {
   }
 })
 
-jest.mock('@/components/common/BaseInput', () => {
-  const { TextInput, Text, View } = require('react-native')
-  return {
-    __esModule: true,
-    default: ({ label, value, onChangeText, secureTextEntry, error }: {
-      label: string
-      value: string
-      onChangeText: (t: string) => void
-      secureTextEntry?: boolean
-      error?: string
-    }) => (
-      <View>
-        <Text>{label}</Text>
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          accessibilityLabel={label}
-        />
-        {error ? <Text>{error}</Text> : null}
-      </View>
-    ),
-  }
-})
+jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }))
 
 import React from 'react'
 import { render, fireEvent } from '@testing-library/react-native'
@@ -181,4 +153,15 @@ it('explains expired sessions and offers a separate guest session', async () => 
   fireEvent.press(screen.getByLabelText('Продолжить как гость'))
   expect(mockGuest).toHaveBeenCalledTimes(1)
   useAuthStore.setState({ sessionExpired: false })
+})
+
+it('shows and hides the actual password input without changing its value', async () => {
+  const screen = await render(<LoginScreen />)
+  await fireEvent.changeText(screen.getByLabelText('Пароль'), 'password123')
+  expect(screen.getByLabelText('Пароль').props.secureTextEntry).toBe(true)
+  await fireEvent.press(screen.getByLabelText('Показать пароль'))
+  expect(screen.getByLabelText('Пароль').props.secureTextEntry).toBe(false)
+  expect(screen.getByLabelText('Пароль').props.value).toBe('password123')
+  await fireEvent.press(screen.getByLabelText('Скрыть пароль'))
+  expect(screen.getByLabelText('Пароль').props.secureTextEntry).toBe(true)
 })
