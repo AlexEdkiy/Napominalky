@@ -17,7 +17,7 @@ const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient()
   const key = !isHydrated || isSwitching ? null : token ? `account:${accountId ?? 'legacy'}`
     : guestMode ? 'guest' : 'signed-out'
-  const [ready, setReady] = useState<{ key: string; storage: AccountDatabase } | null>(null)
+  const [ready, setReady] = useState<{ key: string; token: string | null; storage: AccountDatabase } | null>(null)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       await ensureSchemaPullVersion(storage.db)
       if (cancelled) return
       activateDatabase(storage.db, storage.name)
-      setReady({ key, storage })
+      setReady({ key, token, storage })
     }
     void prepare().catch((reason: unknown) => {
       if (!cancelled) setError(reason instanceof Error ? reason : new Error(String(reason)))
@@ -57,7 +57,7 @@ const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   }, [key, token, accountId, queryClient])
 
   if (error) return <ErrorScreen title="Ошибка открытия данных" message={error.message} stack={null} />
-  if (key === null || ready?.key !== key) {
+  if (key === null || ready?.key !== key || ready.token !== token) {
     return <View style={styles.center}><ActivityIndicator size="large" /></View>
   }
   return <DbContext.Provider key={key} value={ready.storage.db}>{children}</DbContext.Provider>

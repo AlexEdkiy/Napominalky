@@ -13,7 +13,7 @@ jest.mock('@/db/accountStorage', () => ({
   getAccountDatabase: (owner: string) => mockStorage.manager.getAccountDatabase(owner),
   getLegacyDatabase: () => mockStorage.manager.getLegacyDatabase(),
 }))
-jest.mock('@/services/netStatus', () => ({ getIsOnline: jest.fn(async () => true) }))
+jest.mock('@/services/netStatus', () => ({ getIsOnline: jest.fn(async () => true), useNetStatus: () => ({ isOnline: true }) }))
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }))
 jest.mock('@/api/authApi', () => ({ authApi: { login: jest.fn(), register: jest.fn(), logout: jest.fn() } }))
 jest.mock('@/api/syncApi', () => ({ syncApi: { pushChanges: jest.fn(), getChanges: jest.fn() } }))
@@ -40,6 +40,7 @@ import { syncEngine } from '@/services/sync/syncEngine'
 import type { AuthResponse } from '@/types/auth'
 import type { SyncPushResult } from '@/types/sync'
 import { useAuth } from '../useAuth'
+import { useSyncEngine } from '../useSyncEngine'
 
 let mockDb: Database
 let mockStorage: Awaited<ReturnType<typeof createAccountStorageFixture>>
@@ -52,9 +53,10 @@ const response = (uuid: string): AuthResponse => ({
     sync_enabled: true, created_at: '2026-01-01T00:00:00Z' },
 })
 const queue = (db: Database) => db.select().from(syncOutbox).all()
-const mount = () => renderHook(() => ({ auth: useAuth(), db: useDb() }), {
+const SyncProbe = () => { useSyncEngine(); return null }
+const mount = (autoSync = false) => renderHook(() => ({ auth: useAuth(), db: useDb() }), {
   wrapper: ({ children }: { children: ReactNode }) => createElement(QueryClientProvider,
-    { client: queryClient }, createElement(DbProvider, null, children)),
+    { client: queryClient }, createElement(DbProvider, null, autoSync ? createElement(SyncProbe) : null, children)),
 })
 const login = async (hook: Awaited<ReturnType<typeof mount>>, owner: string) => {
   loginApi.mockResolvedValue(response(owner))
@@ -199,4 +201,15 @@ it('explicit guest entry closes an existing account session before displaying gu
   expect(mockDb).not.toBe(account)
   expect(mockDb.select().from(notes).all()).toEqual([])
   expect(queue(account)).toHaveLength(1)
+})
+
+it('restarts automatic sync after a fresh login to the same account', async () => {
+  const hook = await mount(true)
+  await waitFor(() => expect(syncApi.getChanges).toHaveBeenCalledTimes(1))
+  await syncEngine.stop()
+  loginApi.mockResolvedValue({ ...response('alice'), token: 'fresh-alice-token' })
+  await act(async () => {
+    await hook.result.current.auth.login.mutateAsync({ email: 'alice@example.com', password: 'fixture' })
+  })
+  await waitFor(() => expect(syncApi.getChanges).toHaveBeenCalledTimes(2))
 })
