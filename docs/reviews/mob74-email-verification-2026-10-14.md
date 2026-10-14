@@ -1,6 +1,7 @@
 # MOB-74 / MBE-24: пароли и подтверждение почты
 
 Дата: 2026-10-14. Ветка: `manage-2026-09-30`. Автор и самопроверка: Codex.
+Исходный коммит: `b8191ede837f98e57b87ee2ce0339ccca6067e1f`.
 Решение: [ARCH-6](../architecture/email-verification.md).
 
 ## Реализация
@@ -41,6 +42,11 @@
 - Expo Android export/Hermes успешен; содержимое source map форм, BaseInput,
   EmailVerificationNotice и useAuth совпадает с рабочими исходниками. APK пока не собран.
 - `git diff --check` успешен. Серверные PHP-файлы отформатированы Pint.
+
+- [GitHub Actions 38563952050](https://github.com/AlexEdkiy/Napominalky/actions/runs/38563952050):
+  backend, mobile checks, web checks — success на указанном SHA.
+- Подготовлен неизменяемый артефакт `rb8191ed-mob74`; `runtime.py verify` прошёл.
+  Он не переключён на production. Временные тестовые контейнеры остановлены.
 
 Доказательства вне Git: `/home/vselug/workspace/Napominalky-artifacts/mob74/`.
 
