@@ -14,6 +14,7 @@ import * as SecureStore from 'expo-secure-store'
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
@@ -21,7 +22,8 @@ import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
 const LAST_EMAIL_KEY = 'lk_last_email'
 
 export default function LoginScreen() {
-  const { login } = useAuth()
+  const { login, continueAsGuest } = useAuth()
+  const sessionExpired = useAuthStore((state) => state.sessionExpired)
   const { colors } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -65,6 +67,11 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.title, { color: colors.textPrimary }]}>Вход</Text>
+        {sessionExpired && (
+          <Text style={[styles.generalError, { color: colors.textPrimary }]}>
+            Сессия истекла. Войдите снова. Ваши данные сохранены на устройстве и будут доступны после входа.
+          </Text>
+        )}
 
         {generalError ? (
           <Text style={[styles.generalError, { color: colors.danger }]}>{generalError}</Text>
@@ -103,6 +110,7 @@ export default function LoginScreen() {
         </View>
 
         <BaseButton label="Войти" onPress={handleSubmit} loading={login.isPending} />
+        <BaseButton label="Продолжить как гость" variant="secondary" onPress={continueAsGuest} disabled={login.isPending} />
 
         <Link href="/(auth)/register" style={[styles.link, { color: colors.accent }]}>
           Нет аккаунта? Зарегистрироваться

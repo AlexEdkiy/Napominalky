@@ -1,141 +1,58 @@
-import { Alert } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { router } from 'expo-router'
-
 import { authApi } from '@/api/authApi'
-import { useDb } from '@/providers/DbProvider'
-import { resetLocalData } from '@/db/resetLocalData'
-import { syncOutbox } from '@/db/schema/syncOutbox'
-import { getMeta, setMeta, LAST_USER_ID, resetPullCursor } from '@/services/sync/syncMeta'
+import { activateDatabase } from '@/db/client'
+import { getAccountDatabase } from '@/db/accountStorage'
+import { resetPullCursor } from '@/services/sync/syncMeta'
 import { syncEngine } from '@/services/sync/syncEngine'
 import { useAuthStore } from '@/stores/authStore'
 import type { AuthResponse, LoginPayload, RegisterPayload } from '@/types/auth'
-import type { Database } from '@/db/client'
-
-const ALERT_TITLE = 'Есть несинхронизированные изменения'
-const ALERT_MSG =
-  'Они не были отправлены на сервер. Выйти и удалить локальные данные с устройства?'
-
-/** Показывает guard и резолвит true (выйти) / false (отмена). */
-const confirmLogoutWithUnsaved = (): Promise<boolean> =>
-  new Promise((resolve) => {
-    Alert.alert(ALERT_TITLE, ALERT_MSG, [
-      { text: 'Отмена', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'Выйти', style: 'destructive', onPress: () => resolve(true) },
-    ])
-  })
-
-/**
- * Флашит push (пока токен валиден). Успех означает, что очередь действительно
- * пуста: HTTP 200 может оставить неподтверждённые или только что созданные правки.
- * При ошибке push/чтения очереди требуется подтверждение удаления данных.
- */
-const tryFlushSync = async (db: Database): Promise<boolean> => {
-  try {
-    if (db.select({ id: syncOutbox.id }).from(syncOutbox).limit(1).get() === undefined) return true
-    await syncEngine.sync()
-    return db.select({ id: syncOutbox.id }).from(syncOutbox).limit(1).get() === undefined
-  } catch {
-    return false
-  }
-}
-
-/** Остановить сессию/обмен → очистить данные → отозвать прежний токен. */
-const performLogout = async (
-  db: Database,
-  logoutStore: () => Promise<void>,
-  clearQuery: () => void,
-): Promise<void> => {
-  const token = useAuthStore.getState().token
-  await logoutStore()
-  await syncEngine.stop()
-  await resetLocalData(db)
-  try {
-    if (token) await authApi.logout(token)
-  } catch {
-    // Офлайн-логаут допустим — токен просто протухнет на сервере.
-  }
-  clearQuery()
-  router.replace('/(auth)/login')
-}
-
-function useLogout(db: Database) {
-  const logoutStore = useAuthStore((state) => state.logout)
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (): Promise<void> => {
-      const pushOk = await tryFlushSync(db)
-      if (!pushOk) {
-        const confirmed = await confirmLogoutWithUnsaved()
-        if (!confirmed) return
-      }
-      await performLogout(db, logoutStore, () => queryClient.clear())
-    },
-  })
-}
-
-function useAuthSession(db: Database) {
-  const queryClient = useQueryClient()
-  const setToken = useAuthStore((state) => state.setToken)
-  const setUser = useAuthStore((state) => state.setUser)
-
-  const onAuthSuccess = async (response: AuthResponse): Promise<void> => {
-    const lastUserId = await getMeta(LAST_USER_ID, db)
-    useAuthStore.setState({ token: null, user: null, syncEnabled: false })
-    await syncEngine.stop()
-    const incomingId = response.user.uuid
-    if (lastUserId !== null && lastUserId !== incomingId) {
-      await resetLocalData(db)
-    }
-    // ВАЖНО: sync-метаданные готовим и курсор сбрасываем в 0 ДО setToken/setUser.
-    // setToken/setUser запускают useSyncEngine (эффект по token+syncEnabled), и
-    // pull должен стартовать уже с курсором 0 (полная реконсиляция аккаунта).
-    // Иначе гонка: pull уходит со старым высоким курсором → пустой ответ → данные
-    // с сервера не подтягиваются.
-    await setMeta(LAST_USER_ID, incomingId, db)
-    await resetPullCursor(db)
-    queryClient.clear()
-    setUser(response.user)
-    await setToken(response.token)
-    router.replace('/(tabs)')
-  }
-
-  return { onAuthSuccess }
-}
 
 export function useAuth() {
-  const db = useDb()
+  const queryClient = useQueryClient()
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
   const guestMode = useAuthStore((state) => state.guestMode)
-  const setGuestMode = useAuthStore((state) => state.setGuestMode)
-  const { onAuthSuccess } = useAuthSession(db)
-  const logout = useLogout(db)
+
+  const onAuthSuccess = async (response: AuthResponse): Promise<void> => {
+    useAuthStore.setState({ isSwitching: true, token: null, user: null, syncEnabled: false })
+    try {
+      await syncEngine.stop()
+      const storage = await getAccountDatabase(response.user.uuid)
+      await resetPullCursor(storage.db)
+      await queryClient.cancelQueries()
+      queryClient.clear()
+      activateDatabase(storage.db, storage.name)
+      useAuthStore.getState().setUser(response.user)
+      await useAuthStore.getState().setToken(response.token)
+    } catch (error) {
+      await useAuthStore.getState().logout()
+      throw error
+    } finally {
+      useAuthStore.setState({ isSwitching: false })
+    }
+  }
 
   const login = useMutation({
-    mutationFn: (payload: LoginPayload) => authApi.login(payload),
-    onSuccess: onAuthSuccess,
+    mutationFn: (payload: LoginPayload) => authApi.login(payload), onSuccess: onAuthSuccess,
   })
-
   const register = useMutation({
-    mutationFn: (payload: RegisterPayload) => authApi.register(payload),
-    onSuccess: onAuthSuccess,
+    mutationFn: (payload: RegisterPayload) => authApi.register(payload), onSuccess: onAuthSuccess,
   })
-
-  const continueAsGuest = (): void => {
-    setGuestMode(true)
-    router.replace('/(tabs)')
+  const logout = useMutation({
+    mutationFn: async (): Promise<void> => {
+      const previousToken = useAuthStore.getState().token
+      await useAuthStore.getState().logout()
+      await syncEngine.stop()
+      await queryClient.cancelQueries()
+      queryClient.clear()
+      // Local drafts stay in the account's own database, even without a network.
+      if (previousToken) void authApi.logout(previousToken).catch(() => {})
+    },
+  })
+  const continueAsGuest = async (): Promise<void> => {
+    if (useAuthStore.getState().token) await useAuthStore.getState().logout()
+    await syncEngine.stop()
+    useAuthStore.getState().setGuestMode(true)
   }
-
-  return {
-    user,
-    token,
-    isAuthenticated: !!token,
-    guestMode,
-    continueAsGuest,
-    login,
-    register,
-    logout,
-  }
+  return { user, token, isAuthenticated: !!token, guestMode, continueAsGuest, login, register, logout }
 }

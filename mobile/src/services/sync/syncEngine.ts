@@ -3,6 +3,7 @@ import { getIsOnline } from '@/services/netStatus'
 import { pushChanges } from './pushChanges'
 import { pullChanges } from './pullChanges'
 import { setLastSyncedAt } from './syncMeta'
+import { db } from '@/db/client'
 
 /** Опции запуска синхронизации. */
 export interface SyncOptions {
@@ -40,13 +41,14 @@ const emit = (result: SyncResult): void => {
 
 /** Выполняет push → pull и фиксирует метку времени. Ошибки — наружу. */
 const runSync = async (session: SyncSession): Promise<SyncResult> => {
-  const pushResult = await pushChanges(undefined, session)
+  const database = db
+  const pushResult = await pushChanges(database, session)
   session.assertActive()
-  await pullChanges(undefined, session)
+  await pullChanges(database, session)
   session.assertActive()
 
   const lastSyncedAt = new Date().toISOString()
-  await setLastSyncedAt(lastSyncedAt)
+  await setLastSyncedAt(lastSyncedAt, database)
 
   return { ok: true, pushed: pushResult?.applied.length ?? 0, lastSyncedAt }
 }

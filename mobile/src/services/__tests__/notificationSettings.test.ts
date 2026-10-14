@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore'
 jest.mock('@/db/client', () => ({ db: {} }))
 jest.mock('@/db/repositories/remindersRepo', () => {
   const real = jest.requireActual('@/db/repositories/remindersRepo')
@@ -67,7 +68,9 @@ it('foreground handler reads the current switch each time', async () => {
   configureNotificationHandler()
   const handler = (Notifications.setNotificationHandler as jest.Mock).mock.calls[0][0]
   useSettingsStore.setState({ notificationsEnabled: false })
-  expect(await handler.handleNotification()).toMatchObject({ shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false })
+  expect(await handler.handleNotification({ request: { content: { data: {} } } })).toMatchObject({ shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false })
   useSettingsStore.setState({ notificationsEnabled: true })
-  expect(await handler.handleNotification()).toMatchObject({ shouldShowBanner: true, shouldPlaySound: true })
+  expect(await handler.handleNotification({ request: { content: { data: {} } } })).toMatchObject({ shouldShowBanner: true, shouldPlaySound: true })
 })
+
+beforeEach(() => { useAuthStore.setState({ isHydrated: true, guestMode: true, token: null, isSwitching: false }) })

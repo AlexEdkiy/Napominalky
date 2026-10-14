@@ -38,6 +38,7 @@ jest.mock('expo-notifications', () => ({
   getLastNotificationResponseAsync: jest.fn(async () => null),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   setNotificationCategoryAsync: jest.fn(async () => null),
+  dismissAllNotificationsAsync: jest.fn(async () => undefined),
   dismissNotificationAsync: jest.fn(async () => undefined),
   DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
   SchedulableTriggerInputTypes: { DATE: 'date' },

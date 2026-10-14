@@ -5,7 +5,7 @@ import { addDatabaseChangeListener } from 'expo-sqlite'
 
 import { useDb } from '@/providers/DbProvider'
 import { SearchRepository } from '@/db/repositories/searchRepo'
-import { DATABASE_NAME } from '@/db/client'
+import { activeDatabaseName } from '@/db/client'
 import { useAuthStore } from '@/stores/authStore'
 import type { SearchType } from '@/types/search'
 
@@ -32,7 +32,7 @@ export const useSearch = (text: string, type: SearchType, page: number) => {
     if (!enabled) return
     let timer: ReturnType<typeof setTimeout> | undefined
     const subscription = addDatabaseChangeListener((event) => {
-      if (!event.databaseFilePath.endsWith(`/${DATABASE_NAME}`) || !TABLES.has(event.tableName)) return
+      if (!event.databaseFilePath.endsWith(`/${activeDatabaseName}`) || !TABLES.has(event.tableName)) return
       clearTimeout(timer)
       timer = setTimeout(() => { void refetch() }, 100)
     })

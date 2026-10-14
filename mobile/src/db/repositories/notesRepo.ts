@@ -1,3 +1,4 @@
+import { activeRepository } from './activeRepository'
 import { and, desc, eq, isNull, like, or } from 'drizzle-orm'
 import { db as defaultDb, type Database } from '../client'
 import { notes, type NoteRow } from '../schema/notes'
@@ -146,4 +147,4 @@ export class NotesRepository {
 }
 
 /** Singleton поверх дефолтного клиента для использования в хуках/сторах. */
-export const notesRepo = new NotesRepository()
+export const notesRepo = activeRepository((database) => new NotesRepository(database))

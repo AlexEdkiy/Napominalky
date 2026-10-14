@@ -1,3 +1,5 @@
+import { databaseScope } from '../databaseScope'
+import { activeRepository } from './activeRepository'
 import { and, asc, between, eq, isNull, lt } from 'drizzle-orm'
 import { db as defaultDb, type Database } from '../client'
 import { reminders, type ReminderRow } from '../schema/reminders'
@@ -123,7 +125,7 @@ export class RemindersRepository {
       calendarEventId: null,
     } as never)
     const reminder = toReminder(row as ReminderRow)
-    const nid = await scheduleReminder(toSchedulable(reminder))
+    const nid = await scheduleReminder({ ...toSchedulable(reminder), scope: databaseScope(this.db) })
     if (nid !== null) await this.setNotificationId(reminder.uuid, nid)
     return { ...reminder, notificationId: nid }
   }
@@ -150,7 +152,7 @@ export class RemindersRepository {
     // Перепланируем, только если изменилась дата срабатывания.
     if (patch.remindAt === undefined) return reminder
     const nid = await rescheduleReminder(
-      toSchedulable(reminder),
+      { ...toSchedulable(reminder), scope: databaseScope(this.db) },
       oldNotificationId,
     )
     await this.setNotificationId(uuid, nid)
@@ -247,7 +249,7 @@ export class RemindersRepository {
     const reminder = toReminder(row as ReminderRow)
 
     const nid = await rescheduleReminder(
-      toSchedulable(reminder),
+      { ...toSchedulable(reminder), scope: databaseScope(this.db) },
       oldNotificationId,
     )
     await this.setNotificationId(uuid, nid)
@@ -316,7 +318,7 @@ export class RemindersRepository {
       const dateIso = reminder.snoozedUntil ?? reminder.remindAt
       if (new Date(dateIso).getTime() <= now.getTime()) continue
 
-      const nid = await rescheduleReminder(toSchedulable(reminder), reminder.notificationId)
+      const nid = await rescheduleReminder({ ...toSchedulable(reminder), scope: databaseScope(this.db) }, reminder.notificationId)
       await this.setNotificationId(reminder.uuid, nid)
       if (nid !== null) rescheduledCount += 1
     }
@@ -358,4 +360,4 @@ export class RemindersRepository {
 }
 
 /** Singleton поверх дефолтного клиента для использования в хуках/сторах. */
-export const remindersRepo = new RemindersRepository()
+export const remindersRepo = activeRepository((database) => new RemindersRepository(database))

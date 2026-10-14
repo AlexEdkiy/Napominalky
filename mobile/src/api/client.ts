@@ -22,7 +22,9 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401 && useAuthStore.getState().token !== null &&
         error.config?.headers.Authorization === `Bearer ${useAuthStore.getState().token}`) {
-      void useAuthStore.getState().logout()
+      void useAuthStore.getState().logout(true).catch(() => {
+        // The in-memory session is already closed; storage can be retried on next login.
+      })
     }
     return Promise.reject(error)
   },

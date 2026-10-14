@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { db } from '@/db/client'
 
 /** One session per exchange: disabling and re-enabling cannot revive an old request. */
 export interface SyncSession {
@@ -13,16 +14,20 @@ export interface SyncSession {
 export const isSyncEnabled = (): boolean => {
   const auth = useAuthStore.getState()
   const settings = useSettingsStore.getState()
-  return auth.token !== null && auth.syncEnabled && settings.isHydrated && settings.syncEnabled
+  return auth.token !== null && !auth.isSwitching && !auth.guestMode &&
+    auth.syncEnabled && settings.isHydrated && settings.syncEnabled
 }
 
 export const createSyncSession = (): SyncSession => {
   const token = useAuthStore.getState().token
+  const accountId = useAuthStore.getState().accountId
+  const database = db
   if (!token) throw new Error('unauthenticated')
   if (!isSyncEnabled()) throw new Error('sync_disabled')
   const controller = new AbortController()
   const check = (): void => {
-    if (useAuthStore.getState().token !== token || !isSyncEnabled()) controller.abort()
+    if (useAuthStore.getState().token !== token || useAuthStore.getState().accountId !== accountId ||
+        db !== database || !isSyncEnabled()) controller.abort()
   }
   const offAuth = useAuthStore.subscribe(check)
   const offSettings = useSettingsStore.subscribe(check)

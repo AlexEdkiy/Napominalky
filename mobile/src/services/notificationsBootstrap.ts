@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { ensureAndroidNotificationChannel } from './notifications'
+import { activeDatabaseScope } from '@/db/databaseScope'
+import { ensureAndroidNotificationChannel, notificationBelongsToSession } from './notifications'
 import { remindersRepo } from '@/db/repositories/remindersRepo'
 import { shoppingListsRepo } from '@/db/repositories/shoppingListsRepo'
 
@@ -23,15 +24,17 @@ export const rescheduleAllNotificationsOnStart = async (): Promise<void> => {
 let pendingReconcile = Promise.resolve()
 export const reconcileNotificationSettings = (): Promise<void> => {
   const run = async (): Promise<void> => {
+    const scope = activeDatabaseScope()
+    const active = () => notificationBelongsToSession({ scope })
     const settings = useSettingsStore.getState()
     if (!settings.isHydrated) return
     await Notifications.cancelAllScheduledNotificationsAsync()
-    if (!useSettingsStore.getState().notificationsEnabled) return
+    if (!useSettingsStore.getState().notificationsEnabled || !active()) return
     await ensureAndroidNotificationChannel()
     let permission = await Notifications.getPermissionsAsync()
-    if (!useSettingsStore.getState().notificationsEnabled) return
+    if (!useSettingsStore.getState().notificationsEnabled || !active()) return
     if (!permission.granted) permission = await Notifications.requestPermissionsAsync()
-    if (!useSettingsStore.getState().notificationsEnabled) return
+    if (!useSettingsStore.getState().notificationsEnabled || !active()) return
     if (!permission.granted) {
       await useSettingsStore.getState().setNotificationsEnabled(false)
       useSettingsStore.setState({ notificationsError: 'Разрешите уведомления в настройках телефона.' })

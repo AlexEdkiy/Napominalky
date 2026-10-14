@@ -1,3 +1,4 @@
+import { activeRepository } from './activeRepository'
 import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
 
 import { useAuthStore } from '@/stores/authStore'
@@ -147,4 +148,4 @@ export class ItemCommentsRepository {
 }
 
 /** Singleton поверх дефолтного клиента для использования в хуках. */
-export const itemCommentsRepo = new ItemCommentsRepository()
+export const itemCommentsRepo = activeRepository((database) => new ItemCommentsRepository(database))

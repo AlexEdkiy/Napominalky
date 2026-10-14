@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore'
 import { returningRows } from '../../testing/returningRows'
 
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
@@ -316,3 +317,5 @@ describe('RemindersRepository.rescheduleAllPending', () => {
     expect(count).toBe(0)
   })
 })
+
+beforeEach(() => { useAuthStore.setState({ isHydrated: true, guestMode: true, token: null, isSwitching: false }) })

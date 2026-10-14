@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store'
 
-import { useAuthStore, TOKEN_KEY, TOKEN_SAVED_AT_KEY, TOKEN_TTL_MS } from '../authStore'
+import { useAuthStore, TOKEN_KEY, TOKEN_SAVED_AT_KEY, ACCOUNT_KEY } from '../authStore'
 import type { User } from '@/types/auth'
 
 const mockGetItem = SecureStore.getItemAsync as jest.Mock
@@ -172,13 +172,13 @@ describe('authStore — rehydrateUser — network error (offline)', () => {
 // ---------------------------------------------------------------------------
 
 describe('authStore — setToken', () => {
-  it('saves token and timestamp to SecureStore', async () => {
+  it('saves token and owner to SecureStore', async () => {
+    useAuthStore.getState().setUser(TEST_USER)
     await useAuthStore.getState().setToken(TEST_TOKEN)
 
     expect(mockSetItem).toHaveBeenCalledWith(TOKEN_KEY, TEST_TOKEN)
     expect(mockSetItem).toHaveBeenCalledWith(
-      TOKEN_SAVED_AT_KEY,
-      expect.stringMatching(/^\d+$/),
+      ACCOUNT_KEY, TEST_USER.uuid,
     )
   })
 
@@ -189,63 +189,34 @@ describe('authStore — setToken', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// hydrate() — TTL 24ч
-// ---------------------------------------------------------------------------
-
-describe('authStore — hydrate — token TTL', () => {
-  it('restores fresh token (savedAt = now)', async () => {
-    // getItemAsync: первый вызов = токен, второй = метка времени
-    mockGetItem
-      .mockResolvedValueOnce(TEST_TOKEN)
-      .mockResolvedValueOnce(String(Date.now()))
-
+describe('authStore — server decides token validity', () => {
+  it.each([null, 'invalid', String(Date.now() - 24 * 60 * 60 * 1000 - 1),
+    String(Date.now() - 31 * 86400000)])('does not discard a token based on savedAt=%s', async (savedAt) => {
+    mockGetItem.mockImplementation(async (key: string) =>
+      key === TOKEN_KEY ? TEST_TOKEN : key === ACCOUNT_KEY ? TEST_USER.uuid : savedAt)
     await useAuthStore.getState().hydrate()
-
     expect(useAuthStore.getState().token).toBe(TEST_TOKEN)
-    expect(useAuthStore.getState().isHydrated).toBe(true)
+    expect(useAuthStore.getState().accountId).toBe(TEST_USER.uuid)
+    expect(mockDeleteItem).not.toHaveBeenCalled()
   })
 
-  it('expires token older than 24h: token=null, deletes SecureStore keys', async () => {
-    const expiredAt = Date.now() - TOKEN_TTL_MS - 1
-    mockGetItem
-      .mockResolvedValueOnce(TEST_TOKEN)
-      .mockResolvedValueOnce(String(expiredAt))
-
-    await useAuthStore.getState().hydrate()
-
-    const state = useAuthStore.getState()
-    expect(state.token).toBeNull()
-    expect(state.user).toBeNull()
-    expect(state.isHydrated).toBe(true)
-    expect(mockDeleteItem).toHaveBeenCalledWith(TOKEN_KEY)
-    expect(mockDeleteItem).toHaveBeenCalledWith(TOKEN_SAVED_AT_KEY)
+  it('401 closes account access immediately and requests reauthentication', async () => {
+    useAuthStore.setState({ token: TEST_TOKEN, user: TEST_USER, guestMode: false, accountId: TEST_USER.uuid })
+    const pending = useAuthStore.getState().logout(true)
+    expect(useAuthStore.getState()).toMatchObject({ token: null, user: null, guestMode: false, sessionExpired: true })
+    await pending
   })
 
-  it('expires token when savedAt is missing (no timestamp key)', async () => {
-    mockGetItem
-      .mockResolvedValueOnce(TEST_TOKEN)
-      .mockResolvedValueOnce(null)
-
-    await useAuthStore.getState().hydrate()
-
-    expect(useAuthStore.getState().token).toBeNull()
-    expect(mockDeleteItem).toHaveBeenCalledWith(TOKEN_KEY)
-  })
-
-  it('does NOT clear local DB on token expiry — only SecureStore keys removed', async () => {
-    // Истёкший токен → только ключи из SecureStore, не данные в SQLite.
-    const expiredAt = Date.now() - TOKEN_TTL_MS - 1
-    mockGetItem
-      .mockResolvedValueOnce(TEST_TOKEN)
-      .mockResolvedValueOnce(String(expiredAt))
-
-    // Если бы resetLocalData вызвался — он бросил бы, т.к. db не передаётся.
-    // Тест просто проверяет, что hydrate резолвится без ошибок.
-    await expect(useAuthStore.getState().hydrate()).resolves.toBeUndefined()
+  it('serializes native logout before writing a newer login', async () => {
+    const clearing = useAuthStore.getState().logout(true)
+    useAuthStore.getState().setUser(TEST_USER)
+    const login = useAuthStore.getState().setToken('new-token')
+    await Promise.all([clearing, login])
+    expect(useAuthStore.getState().token).toBe('new-token')
+    expect(mockSetItem).toHaveBeenLastCalledWith(TOKEN_KEY, 'new-token')
+    expect(useAuthStore.getState().sessionExpired).toBe(false)
   })
 })
-
 
 it.each(['logout', 'switch'])('ignores an old profile response after %s', async (action) => {
   useAuthStore.setState({ token: TEST_TOKEN, user: TEST_USER })

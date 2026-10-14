@@ -5,14 +5,25 @@ import type { User } from '@/types/auth'
 
 export const TOKEN_KEY = 'auth_token'
 export const TOKEN_SAVED_AT_KEY = 'auth_token_saved_at'
-/** Срок жизни токена в миллисекундах (24 часа). */
-export const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+export const ACCOUNT_KEY = 'auth_account_uuid'
+
+// Serialize native writes so an old logout cannot delete a newer login.
+let credentialsWrite = Promise.resolve()
+const writeCredentials = (write: () => Promise<void>): Promise<void> => {
+  const next = credentialsWrite.then(write)
+  credentialsWrite = next.catch(() => {})
+  return next
+}
 
 let profileRequest: { token: string; promise: Promise<void> } | null = null
 
 interface AuthState {
   token: string | null
   user: User | null
+  accountId: string | null
+  isSwitching: boolean
+  sessionExpired: boolean
+  navigationTarget: 'home' | 'login' | null
   guestMode: boolean
   syncEnabled: boolean
   isHydrated: boolean
@@ -21,7 +32,7 @@ interface AuthState {
   setToken: (token: string) => Promise<void>
   setUser: (user: User) => void
   setGuestMode: (guestMode: boolean) => void
-  logout: () => Promise<void>
+  logout: (expired?: boolean) => Promise<void>
   hydrate: () => Promise<void>
   rehydrateUser: (fetchUser: () => Promise<User>) => Promise<void>
 }
@@ -29,6 +40,10 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   user: null,
+  accountId: null,
+  isSwitching: false,
+  sessionExpired: false,
+  navigationTarget: null,
   guestMode: false,
   syncEnabled: false,
   isHydrated: false,
@@ -36,46 +51,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profileError: null,
 
   setToken: async (token: string): Promise<void> => {
-    await SecureStore.setItemAsync(TOKEN_KEY, token)
-    await SecureStore.setItemAsync(TOKEN_SAVED_AT_KEY, String(Date.now()))
-    set({ token, guestMode: false })
+    const accountId = get().accountId
+    await writeCredentials(async () => {
+      // Owner first: a crash must never pair a new token with the previous owner.
+      await SecureStore.deleteItemAsync(TOKEN_KEY)
+      if (accountId) await SecureStore.setItemAsync(ACCOUNT_KEY, accountId)
+      else await SecureStore.deleteItemAsync(ACCOUNT_KEY)
+      await SecureStore.setItemAsync(TOKEN_KEY, token)
+    })
+    set({ token, guestMode: false, sessionExpired: false, navigationTarget: 'home' })
   },
 
   setUser: (user: User): void => {
-    set({ user, syncEnabled: user.sync_enabled })
+    set({ user, accountId: user.uuid, syncEnabled: user.sync_enabled })
   },
 
   setGuestMode: (guestMode: boolean): void => {
-    set({ guestMode })
+    set({ guestMode, sessionExpired: false, navigationTarget: guestMode ? 'home' : null })
   },
 
-  logout: async (): Promise<void> => {
-    // Stop sync and invalidate profile replies before waiting for native storage.
-    set({ token: null, user: null, syncEnabled: false, profileLoading: false, profileError: null })
-    await SecureStore.deleteItemAsync(TOKEN_KEY)
-    await SecureStore.deleteItemAsync(TOKEN_SAVED_AT_KEY)
+  logout: async (expired = false): Promise<void> => {
+    set({ token: null, user: null, accountId: null, guestMode: false, syncEnabled: false,
+      profileLoading: false, profileError: null, sessionExpired: expired, navigationTarget: 'login' })
+    await writeCredentials(async () => {
+      await SecureStore.deleteItemAsync(TOKEN_KEY)
+      await SecureStore.deleteItemAsync(TOKEN_SAVED_AT_KEY)
+      await SecureStore.deleteItemAsync(ACCOUNT_KEY)
+    })
   },
 
   hydrate: async (): Promise<void> => {
+    await credentialsWrite
     const token = await SecureStore.getItemAsync(TOKEN_KEY)
-    if (token === null) {
-      set({ token: null, isHydrated: true })
-      return
-    }
-
-    const savedAtRaw = await SecureStore.getItemAsync(TOKEN_SAVED_AT_KEY)
-    const savedAt = savedAtRaw !== null ? Number(savedAtRaw) : null
-    const isExpired =
-      savedAt === null || Number.isNaN(savedAt) || Date.now() - savedAt > TOKEN_TTL_MS
-
-    if (isExpired) {
-      await SecureStore.deleteItemAsync(TOKEN_KEY)
-      await SecureStore.deleteItemAsync(TOKEN_SAVED_AT_KEY)
-      set({ token: null, user: null, isHydrated: true })
-      return
-    }
-
-    set({ token, isHydrated: true })
+    const accountId = token ? await SecureStore.getItemAsync(ACCOUNT_KEY) : null
+    // Only the server can reject an expired/revoked token. Offline is not logout.
+    set({ token, accountId, isHydrated: true })
   },
 
   rehydrateUser: async (fetchUser) => {

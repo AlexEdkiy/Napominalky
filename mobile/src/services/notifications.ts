@@ -1,4 +1,6 @@
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useAuthStore } from '@/stores/authStore'
+import { activeDatabaseScope } from '@/db/databaseScope'
 import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import { SchedulableTriggerInputTypes } from 'expo-notifications'
@@ -8,6 +10,7 @@ import { SchedulableTriggerInputTypes } from 'expo-notifications'
  * уведомления. snoozed_until имеет приоритет над remind_at (если задан).
  */
 export interface SchedulableReminder {
+  scope?: string | undefined
   uuid: string
   title: string
   notes?: string | null
@@ -32,6 +35,7 @@ interface ItemNotificationData {
 
 /** Минимальный набор полей пункта списка для планирования уведомления. */
 export interface SchedulableListItem {
+  scope?: string | undefined
   uuid: string
   listUuid: string
   name: string
@@ -52,7 +56,18 @@ let preferenceVersion = 0
 useSettingsStore.subscribe((state, previous) => {
   if (state.notificationsEnabled !== previous.notificationsEnabled) preferenceVersion += 1
 })
-const notificationsAllowed = (): boolean => useSettingsStore.getState().notificationsEnabled
+useAuthStore.subscribe((state, previous) => {
+  if (state.token !== previous.token || state.guestMode !== previous.guestMode ||
+      state.isSwitching !== previous.isSwitching) preferenceVersion += 1
+})
+export const notificationBelongsToSession = (data: unknown): boolean => {
+  const auth = useAuthStore.getState()
+  const allowed = auth.isHydrated && !auth.isSwitching && (!!auth.token || auth.guestMode)
+  return allowed && !!data && typeof data === 'object' &&
+    (data as { scope?: unknown }).scope === activeDatabaseScope()
+}
+const notificationsAllowed = (): boolean => useSettingsStore.getState().notificationsEnabled &&
+  notificationBelongsToSession({ scope: activeDatabaseScope() })
 
 let handlerConfigured = false
 let androidChannelConfigured = false
@@ -101,10 +116,10 @@ export const configureNotificationHandler = (): void => {
   if (handlerConfigured) return
   handlerConfigured = true
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: notificationsAllowed(),
-      shouldShowList: notificationsAllowed(),
-      shouldPlaySound: notificationsAllowed(),
+    handleNotification: async (notification) => ({
+      shouldShowBanner: notificationsAllowed() && notificationBelongsToSession(notification.request.content.data),
+      shouldShowList: notificationsAllowed() && notificationBelongsToSession(notification.request.content.data),
+      shouldPlaySound: notificationsAllowed() && notificationBelongsToSession(notification.request.content.data),
       shouldSetBadge: false,
     }),
   })
@@ -160,7 +175,7 @@ const triggerDateIso = (reminder: SchedulableReminder): string =>
 export const scheduleReminder = async (
   reminder: SchedulableReminder,
 ): Promise<string | null> => {
-  if (!notificationsAllowed()) return null
+  if (!notificationsAllowed() || reminder.scope !== activeDatabaseScope()) return null
   const version = preferenceVersion
   const dateIso = triggerDateIso(reminder)
   const date = new Date(dateIso)
@@ -168,9 +183,9 @@ export const scheduleReminder = async (
 
   await ensureAndroidNotificationChannel()
   await ensureReminderNotificationCategory()
-  if (!(await hasNotificationPermission()) || !notificationsAllowed() || version !== preferenceVersion) return null
+  if (!(await hasNotificationPermission()) || !notificationsAllowed() || version !== preferenceVersion || reminder.scope !== activeDatabaseScope()) return null
 
-  const data: ReminderNotificationData = { type: 'reminder', uuid: reminder.uuid }
+  const data: ReminderNotificationData = { type: 'reminder', uuid: reminder.uuid, scope: reminder.scope }
   const identifier = await Notifications.scheduleNotificationAsync({
     content: {
       title: reminder.title,
@@ -180,7 +195,7 @@ export const scheduleReminder = async (
     },
     trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
-  if (!notificationsAllowed() || version !== preferenceVersion) {
+  if (!notificationsAllowed() || version !== preferenceVersion || reminder.scope !== activeDatabaseScope()) {
     await cancelReminder(identifier)
     return null
   }
@@ -223,16 +238,17 @@ export const rescheduleReminder = async (
 export const scheduleItemReminder = async (
   item: SchedulableListItem,
 ): Promise<string | null> => {
-  if (!notificationsAllowed()) return null
+  if (!notificationsAllowed() || item.scope !== activeDatabaseScope()) return null
   const version = preferenceVersion
   const date = new Date(item.reminderAt)
   if (date.getTime() <= Date.now()) return null
 
   await ensureAndroidNotificationChannel()
-  if (!(await hasNotificationPermission()) || !notificationsAllowed() || version !== preferenceVersion) return null
+  if (!(await hasNotificationPermission()) || !notificationsAllowed() || version !== preferenceVersion || item.scope !== activeDatabaseScope()) return null
 
   const data: ItemNotificationData = {
     type: 'list_item',
+    scope: item.scope,
     itemUuid: item.uuid,
     listUuid: item.listUuid,
   }
@@ -240,7 +256,7 @@ export const scheduleItemReminder = async (
     content: { title: item.name, body: item.comment ?? '', data },
     trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: DEFAULT_ANDROID_CHANNEL_ID },
   })
-  if (!notificationsAllowed() || version !== preferenceVersion) {
+  if (!notificationsAllowed() || version !== preferenceVersion || item.scope !== activeDatabaseScope()) {
     await cancelReminder(identifier)
     return null
   }

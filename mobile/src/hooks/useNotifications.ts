@@ -7,6 +7,7 @@ import { QueryKeys } from '@/constants/QueryKeys'
 import { remindersRepo } from '@/db/repositories/remindersRepo'
 import {
   configureNotificationHandler,
+  notificationBelongsToSession,
   ensureAndroidNotificationChannel,
   ensureReminderNotificationCategory,
   REMINDER_ACTION_COMPLETE,
@@ -35,7 +36,7 @@ const responseData = (response: Notifications.NotificationResponse): unknown =>
 const navigateFromResponse = (
   response: Notifications.NotificationResponse | null,
 ): void => {
-  if (response === null) return
+  if (response === null || !notificationBelongsToSession(responseData(response))) return
   const link = parseNotificationData(responseData(response))
   if (link === null) return
 
@@ -60,7 +61,7 @@ export const handleNotificationResponse = async (
   response: Notifications.NotificationResponse | null,
   queryClient: QueryClient,
 ): Promise<void> => {
-  if (response === null) return
+  if (response === null || !notificationBelongsToSession(responseData(response))) return
   const link = parseNotificationData(responseData(response))
 
   if (link?.type === 'reminder' && response.actionIdentifier === REMINDER_ACTION_COMPLETE) {

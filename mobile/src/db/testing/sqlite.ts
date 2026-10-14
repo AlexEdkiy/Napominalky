@@ -9,10 +9,10 @@ import * as schema from '../schema'
  * Only the Expo statement bridge is adapted. Transactions and SQL run unchanged.
  * Requires Node >=22.16 (CI uses Node 22). Never imported by application code.
  */
-export const createSqliteTestDb = () => {
+export const createSqliteTestDb = (applyMigrations = true) => {
   const sqlite = new DatabaseSync(':memory:')
   const directory = join(__dirname, '../migrations')
-  for (const file of readdirSync(directory).filter((name) => name.endsWith('.sql')).sort()) {
+  for (const file of (applyMigrations ? readdirSync(directory) : []).filter((name) => name.endsWith('.sql')).sort()) {
     sqlite.exec(readFileSync(join(directory, file), 'utf8'))
   }
 

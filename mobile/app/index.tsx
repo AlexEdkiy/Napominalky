@@ -7,6 +7,7 @@ export default function Index() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const token = useAuthStore((state) => state.token)
   const guestMode = useAuthStore((state) => state.guestMode)
+  const sessionExpired = useAuthStore((state) => state.sessionExpired)
 
   if (!isHydrated) {
     return (
@@ -20,7 +21,7 @@ export default function Index() {
     return <Redirect href="/(tabs)" />
   }
 
-  return <Redirect href="/(onboarding)" />
+  return <Redirect href={sessionExpired ? '/(auth)/login' : '/(onboarding)'} />
 }
 
 const styles = StyleSheet.create({

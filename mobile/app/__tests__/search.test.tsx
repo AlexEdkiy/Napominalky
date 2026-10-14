@@ -1,4 +1,4 @@
-jest.mock('@/db/client', () => ({ db: {}, DATABASE_NAME: 'napominalki.db' }))
+jest.mock('@/db/client', () => ({ db: {}, DATABASE_NAME: 'napominalki.db', activeDatabaseName: 'napominalki.db' }))
 jest.mock('@/providers/DbProvider', () => ({ useDb: jest.fn() }))
 jest.mock('expo-sqlite', () => ({ addDatabaseChangeListener: jest.fn(() => ({ remove: jest.fn() })) }))
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }))

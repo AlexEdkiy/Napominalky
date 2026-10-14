@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore'
 // Моки до импортов
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }))
@@ -156,3 +157,5 @@ describe('handleNotificationResponse — управляющие кнопки н�
     expect(mockPush).toHaveBeenCalledWith('/lists/l-1')
   })
 })
+
+beforeEach(() => { useAuthStore.setState({ isHydrated: true, guestMode: true, token: null, isSwitching: false }) })

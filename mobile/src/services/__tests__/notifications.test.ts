@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore'
 import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import {
@@ -279,3 +280,5 @@ describe('ensureAndroidNotificationChannel', () => {
     )
   })
 })
+
+beforeEach(() => { useAuthStore.setState({ isHydrated: true, guestMode: true, token: null, isSwitching: false }) })

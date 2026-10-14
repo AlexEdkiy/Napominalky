@@ -1,3 +1,5 @@
+import { databaseScope } from '../databaseScope'
+import { activeRepository } from './activeRepository'
 import { and, asc, eq, isNull, like, max, min, sql } from 'drizzle-orm'
 import { forChecked, isDone, normalizeTaskStatus, type TaskStatus } from '../../constants/taskStatus'
 import { deriveListStatus } from '../../utils/deriveListStatus'
@@ -168,7 +170,7 @@ export class ShoppingListsRepository {
     await this.recalcListStatus(listUuid)
 
     if (item.reminderAt !== null) {
-      const nid = await scheduleItemReminder(toSchedulableItem(item))
+      const nid = await scheduleItemReminder({ ...toSchedulableItem(item), scope: databaseScope(this.db) })
       if (nid !== null) await this.setItemNotificationId(item.uuid, nid)
       return { ...item, notificationId: nid }
     }
@@ -220,7 +222,7 @@ export class ShoppingListsRepository {
       return { ...item, notificationId: null }
     }
 
-    const nid = await rescheduleItemReminder(toSchedulableItem(item), oldNid)
+    const nid = await rescheduleItemReminder({ ...toSchedulableItem(item), scope: databaseScope(this.db) }, oldNid)
     await this.setItemNotificationId(uuid, nid)
     return { ...item, notificationId: nid }
   }
@@ -299,7 +301,7 @@ export class ShoppingListsRepository {
     }
 
     if (item.reminderAt !== null) {
-      const nid = await rescheduleItemReminder(toSchedulableItem(item), oldNid)
+      const nid = await rescheduleItemReminder({ ...toSchedulableItem(item), scope: databaseScope(this.db) }, oldNid)
       await this.setItemNotificationId(item.uuid, nid)
       return { ...item, notificationId: nid }
     }
@@ -458,7 +460,7 @@ export class ShoppingListsRepository {
       if (item.reminderAt === null) continue
       if (new Date(item.reminderAt).getTime() <= now.getTime()) continue
 
-      const nid = await rescheduleItemReminder(toSchedulableItem(item), item.notificationId)
+      const nid = await rescheduleItemReminder({ ...toSchedulableItem(item), scope: databaseScope(this.db) }, item.notificationId)
       await this.setItemNotificationId(item.uuid, nid)
       if (nid !== null) rescheduledCount += 1
     }
@@ -496,4 +498,4 @@ export class ShoppingListsRepository {
 }
 
 /** Singleton поверх дефолтного клиента для использования в хуках/сторах. */
-export const shoppingListsRepo = new ShoppingListsRepository()
+export const shoppingListsRepo = activeRepository((database) => new ShoppingListsRepository(database))

@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore'
 /**
  * Smoke-тесты app/(auth)/login.tsx:
  * - рендерит поле Email, поле Пароль, кнопку «Войти»
@@ -16,9 +17,11 @@ jest.mock('expo-router', () => ({
 }))
 
 const mockLoginMutate = jest.fn()
+const mockGuest = jest.fn()
 
 jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
+    continueAsGuest: mockGuest,
     login: {
       mutate: mockLoginMutate,
       isPending: false,
@@ -169,4 +172,13 @@ describe('LoginScreen — запоминание email', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('lk_last_email')
     expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
   })
+})
+
+it('explains expired sessions and offers a separate guest session', async () => {
+  useAuthStore.setState({ sessionExpired: true })
+  const screen = await render(<LoginScreen />)
+  expect(screen.getByText(/Сессия истекла.*данные сохранены/)).toBeTruthy()
+  fireEvent.press(screen.getByLabelText('Продолжить как гость'))
+  expect(mockGuest).toHaveBeenCalledTimes(1)
+  useAuthStore.setState({ sessionExpired: false })
 })

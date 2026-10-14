@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useEffect, useState } from 'react'
 
 import ErrorBoundary from '@/components/ErrorBoundary'
+import SessionNavigation from '@/components/SessionNavigation'
 import ErrorScreen from '@/components/ErrorScreen'
 import DbProvider from '@/providers/DbProvider'
 import LockProvider from '@/providers/LockProvider'
@@ -50,6 +51,7 @@ function NotificationsBootstrap(): null {
 }
 
 function RootLayout(): React.JSX.Element {
+  const hasSession = useAuthStore((state) => !!state.token || state.guestMode)
   const hydrate = useAuthStore((state) => state.hydrate)
   const hydrateSettings = useSettingsStore((state) => state.hydrate)
   const [globalError, setGlobalError] = useState<Error | null>(null)
@@ -86,12 +88,13 @@ function RootLayout(): React.JSX.Element {
         <ThemeProvider>
           <LockProvider>
             <SyncBootstrap />
-            <NotificationsBootstrap />
+            {hasSession && <NotificationsBootstrap />}
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Protected guard={hasSession}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="notes" options={{ headerShown: false }} />
               <Stack.Screen name="lists" options={{ headerShown: false }} />
               <Stack.Screen name="reminders" options={{ headerShown: false }} />
@@ -99,7 +102,9 @@ function RootLayout(): React.JSX.Element {
               <Stack.Screen name="lock" options={{ headerShown: false }} />
               <Stack.Screen name="search" options={{ headerShown: false }} />
               <Stack.Screen name="create" options={{ presentation: 'modal', headerShown: false }} />
+              </Stack.Protected>
             </Stack>
+            <SessionNavigation />
             <StatusBar style="auto" />
           </LockProvider>
         </ThemeProvider>

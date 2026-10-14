@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore'
 import { returningRows } from '../../testing/returningRows'
 
 // Изолируем тест от нативного expo-sqlite: репозиторий принимает db явно.
@@ -700,3 +701,5 @@ describe('ShoppingListsRepository.updateItem — мета-патч', () => {
     expect(outbox.operation).toBe('update')
   })
 })
+
+beforeEach(() => { useAuthStore.setState({ isHydrated: true, guestMode: true, token: null, isSwitching: false }) })
