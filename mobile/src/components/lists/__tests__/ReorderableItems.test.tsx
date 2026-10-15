@@ -2,7 +2,7 @@ import React from 'react'
 import { FlatList, PanResponder, Text, View, type GestureResponderEvent, type PanResponderCallbacks,
   type PanResponderGestureState } from 'react-native'
 import { act, fireEvent, render } from '@testing-library/react-native'
-import ReorderableItems from '../ReorderableItems'
+import ReorderableItems, { type RenderDragHandle } from '../ReorderableItems'
 
 const rows = [{ uuid: 'a' }, { uuid: 'b' }, { uuid: 'c' }]
 let gestures: PanResponderCallbacks[]
@@ -16,7 +16,7 @@ beforeEach(() => {
   })
 })
 afterEach(() => { jest.restoreAllMocks(); jest.useRealTimers() })
-const Row = (item: { uuid: string }, handle: React.ReactNode) => <View><Text>{item.uuid}</Text>{handle}</View>
+const Row = (item: { uuid: string }, handle: RenderDragHandle) => <View><Text>{item.uuid}</Text>{handle(<View />)}</View>
 const setup = async (data = rows) => {
   const save = jest.fn()
   const view = await render(<ReorderableItems data={data} onReorder={save} renderRow={Row} />)
@@ -77,4 +77,31 @@ it('scrolls at the viewport edge and stops the timer when dragging ends', async 
   const calls = scroll.mock.calls.length
   await act(async () => jest.advanceTimersByTime(96))
   expect(scroll).toHaveBeenCalledTimes(calls)
+})
+
+
+it('highlights the grabbed strip, restores scrolling after a tap and does not save an unchanged order', async () => {
+  const { view, save } = await setup()
+  const handle = gestures[0]!
+  await act(async () => handle.onPanResponderGrant?.(event(50), state))
+  expect(view.getByTestId('drag-handle-a').props.accessibilityState.selected).toBe(true)
+  expect(view.getByTestId('reorder-list').props.scrollEnabled).toBe(false)
+  await act(async () => handle.onPanResponderRelease?.(event(50), state))
+  expect(view.getByTestId('drag-handle-a').props.accessibilityState.selected).toBe(false)
+  expect(view.getByTestId('reorder-list').props.scrollEnabled).toBe(true)
+  expect(save).not.toHaveBeenCalled()
+})
+
+it('cancels when editing disables dragging and ignores accessibility moves while disabled', async () => {
+  const { view, save } = await setup()
+  const handle = gestures[0]!
+  await act(async () => handle.onPanResponderGrant?.(event(50), state))
+  await act(async () => handle.onPanResponderMove?.(event(250), { ...state, moveY: 250 }))
+  await view.rerender(<ReorderableItems data={rows} onReorder={save} renderRow={Row} disabled />)
+  expect(view.getByTestId('drag-handle-a').props.accessibilityState).toEqual({ disabled: true, selected: false })
+  expect(view.getByTestId('reorder-list').props.scrollEnabled).toBe(true)
+  expect(handle.onStartShouldSetPanResponder?.(event(50), state)).toBe(false)
+  await act(async () => handle.onPanResponderRelease?.(event(250), state))
+  await fireEvent(view.getByTestId('drag-handle-a'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } })
+  expect(save).not.toHaveBeenCalled()
 })

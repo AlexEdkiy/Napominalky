@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 
+import type { RenderDragHandle } from '@/components/lists/ReorderableItems'
 import MetaLine from '@/components/lists/ItemRowMetaLine'
 import SwipeDeleteAction from '@/components/lists/SwipeDeleteAction'
 import type { ListType, ShoppingListItem } from '@/db/repositories/shoppingListsRepo'
@@ -11,7 +12,7 @@ import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
 interface ItemRowProps {
-  dragHandle?: React.ReactNode
+  dragHandle?: RenderDragHandle
   dragging?: boolean
   onIncreaseQuantity?: ((uuid: string) => void) | undefined
   item: ShoppingListItem
@@ -78,6 +79,12 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
     ),
   }
 
+  const accent = <View pointerEvents="none" style={[
+    styles.accent,
+    { backgroundColor: accentColor, opacity: dragging ? 1 : done ? 0.4 : 1 },
+    dragging && styles.accentGrabbed,
+  ]} />
+
   return (
     <Swipeable
       ref={swipeableRef}
@@ -90,29 +97,26 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
     >
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
       <View style={styles.row}>
-        <View
-          style={[
-            styles.accent,
-            { backgroundColor: accentColor, opacity: done ? 0.4 : 1 },
-          ]}
-        />
+        {dragHandle ? dragHandle(accent) : accent}
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: done }}
           accessibilityLabel={`Отметить ${item.name}`}
           onPress={() => onToggle(item.uuid, !done)}
-          style={[
+          style={styles.checkboxTap}
+        >
+          <View style={[
             styles.checkbox,
             {
               borderRadius: checkboxRadius,
               backgroundColor: done ? accentColor : 'transparent',
               borderColor: done ? accentColor : colors.textTertiary,
             },
-          ]}
-        >
-          {done && <Ionicons name="checkmark" size={14} color="#fff" />}
+          ]}>
+            {done && <Ionicons name="checkmark" size={14} color="#fff" />}
+          </View>
         </Pressable>
-        {/* Действия — соседи названия: тап и жест не открывают друг друга. */}
+        {/* Название и метаданные — одна колонка, действия справа от неё. */}
         <View style={styles.main}>
           <View style={styles.headline}>
             <Pressable
@@ -129,9 +133,6 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
                 {item.name}
               </Text>
             </Pressable>
-            {dragHandle}
-          </View>
-          <View style={styles.details}>
             {listType === 'goods' && (
               <View style={[styles.quantity, { backgroundColor: accentBg }]}>
                 <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
@@ -146,29 +147,27 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
                 </Pressable>
               </View>
             )}
-            <View style={styles.meta}>
-              {hasMetaLine && (
-                <MetaLine
-                  item={item}
-                  isTask={isTask}
-                  tags={tags}
-                  accentColor={accentColor}
-                  accentBg={accentBg}
-                  commentsCount={commentsCount}
-                  onOpenStatus={onOpenStatus}
-                  onOpenComments={onOpenComments}
-                />
-              )}
-            </View>
-            <RowControls
-              uuid={item.uuid}
-              hasAttributes={hasAttributes}
-              commentsCount={commentsCount}
-              onOpenComments={onOpenComments}
-              onOpenAttributes={onOpenAttributes}
-            />
           </View>
+          {hasMetaLine && (
+            <MetaLine
+              item={item}
+              isTask={isTask}
+              tags={tags}
+              accentColor={accentColor}
+              accentBg={accentBg}
+              commentsCount={commentsCount}
+              onOpenStatus={onOpenStatus}
+              onOpenComments={onOpenComments}
+            />
+          )}
         </View>
+        <RowControls
+          uuid={item.uuid}
+          hasAttributes={hasAttributes}
+          commentsCount={commentsCount}
+          onOpenComments={onOpenComments}
+          onOpenAttributes={onOpenAttributes}
+        />
       </View>
     </View>
     </Swipeable>
@@ -205,7 +204,6 @@ const RowControls: React.FC<RowControlsProps> = ({
           onPress={() => onOpenComments(uuid)}
           accessibilityRole="button"
           accessibilityLabel="Комментарии"
-          hitSlop={6}
           style={styles.controlBtn}
         >
           <Ionicons name="chatbubble-outline" size={16} color={colors.textTertiary} />
@@ -216,7 +214,6 @@ const RowControls: React.FC<RowControlsProps> = ({
           onPress={() => onOpenAttributes(uuid)}
           accessibilityRole="button"
           accessibilityLabel="Допатрибуты"
-          hitSlop={6}
           style={styles.controlBtn}
         >
           <Ionicons name="options-outline" size={16} color={colors.textTertiary} />
@@ -244,7 +241,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 52,
-    paddingRight: 12,
+    paddingRight: 8,
   },
   accent: {
     width: 4,
@@ -252,33 +249,33 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 14,
     borderBottomLeftRadius: 14,
   },
+  accentGrabbed: { width: 8 },
+  checkboxTap: {
+    width: 32, height: 44, marginRight: 4, flexShrink: 0,
+    alignItems: 'center', justifyContent: 'center',
+  },
   checkbox: {
     width: 22,
     height: 22,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 10,
-    marginTop: 15,
-    alignSelf: 'flex-start',
     flexShrink: 0,
   },
-  main: { flex: 1, minWidth: 0, paddingVertical: 4 },
-  headline: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
-  nameTap: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
+  main: { flex: 1, minWidth: 0, paddingVertical: 12 },
+  headline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nameTap: { flex: 1, minWidth: 0, minHeight: 24, justifyContent: 'center' },
   name: { ...typography.body, flexShrink: 1 },
   nameDone: { textDecorationLine: 'line-through' },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
-  details: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  meta: { flex: 1, minWidth: 0 },
-  quantity: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingLeft: 10 },
-  quantityPlus: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  controlBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  quantity: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingLeft: 6 },
+  quantityPlus: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
+  controls: { flexDirection: 'row', alignItems: 'center', marginLeft: 4 },
+  controlBtn: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
   dot: {
     position: 'absolute',
-    top: 2,
-    right: 2,
+    top: 9,
+    right: 5,
     width: 7,
     height: 7,
     borderRadius: 3.5,
