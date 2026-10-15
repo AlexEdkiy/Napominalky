@@ -37,7 +37,7 @@ beforeEach(() => {
 })
 afterEach(() => fixture.close())
 
-it('stars all four entity types offline, prioritizes them and preserves pin/completion flags', async () => {
+it('preserves legacy favorite payloads for all types but prioritizes only whole records', async () => {
   const nr = new NotesRepository(fixture.db)
   const rr = new RemindersRepository(fixture.db)
   const pinned = await nr.createNote({ title: 'Alpha', isPinned: true })
@@ -57,9 +57,9 @@ it('stars all four entity types offline, prioritizes them and preserves pin/comp
   expect(queue().every((entry) => JSON.parse(entry.payload).is_favorite === 1)).toBe(true)
   expect((await nr.listNotes()).map((row) => row.uuid)).toEqual([note.uuid, pinned.uuid])
   expect((await lists.listLists())[0]?.uuid).toBe(list.uuid)
-  expect((await lists.listItems(list.uuid)).map((row) => row.uuid)).toEqual([last.uuid, first.uuid])
+  expect((await lists.listItems(list.uuid)).map((row) => row.uuid)).toEqual([first.uuid, last.uuid])
   expect((await rr.listReminders())[0]?.uuid).toBe(reminder.uuid)
-  expect((await lists.listItems(list.uuid))[0]?.isChecked).toBe(true)
+  expect((await lists.listItems(list.uuid)).find((row) => row.uuid === last.uuid)?.isChecked).toBe(true)
   expect((await nr.getNoteByUuid(pinned.uuid))?.isPinned).toBe(true)
   await favorites.toggle('shopping_list_item', last.uuid)
   expect((await lists.listItems(list.uuid))[0]?.uuid).toBe(first.uuid)
@@ -94,7 +94,8 @@ it('reorders a filtered subset in one transaction, retaining hidden slots and re
   await expect(order.reorder(list.uuid, [a.uuid, 'foreign'])).rejects.toThrow()
   expect(queue()).toEqual(before)
   await favorites.toggle('shopping_list_item', a.uuid)
-  await expect(order.reorder(list.uuid, [b.uuid, a.uuid])).rejects.toThrow()
+  await order.reorder(list.uuid, [b.uuid, a.uuid])
+  expect((await lists.listItems(list.uuid)).map((row) => row.uuid)).toEqual([c.uuid, hidden.uuid, b.uuid, a.uuid])
   await lists.deleteItem(b.uuid)
   await expect(order.reorder(list.uuid, [b.uuid, c.uuid])).rejects.toThrow()
   expect((await lists.listItems(list.uuid)).some((row) => row.uuid === b.uuid)).toBe(false)
@@ -143,6 +144,7 @@ it('pull applies flags/order/quantity to a second device, preserves absent legac
   const b = await lists.addItem(list.uuid, { name: 'B' })
   await order.incrementQuantity(list.uuid, b.uuid)
   await favorites.toggle('shopping_list_item', b.uuid)
+  await order.reorder(list.uuid, [b.uuid, a.uuid])
   const second = createSqliteTestDb()
   try {
     const incoming = emptyPull()
@@ -195,4 +197,21 @@ it('upgrades legacy rows without losing timestamps or an unsent outbox', () => {
     expect(old.db.select().from(notes).get()).toMatchObject({ uuid: 'legacy', isFavorite: 0, isPinned: 1, updatedAt: '2026-01-01' })
     expect(old.db.select().from(syncOutbox).all()).toHaveLength(1)
   } finally { old.close() }
+})
+
+
+it('does not promote an old favorite item in search or when the list is reopened', async () => {
+  const list = await lists.createList({ title: 'Tasks', type: 'tasks' })
+  const a = await lists.addItem(list.uuid, { name: 'Entry A' })
+  const b = await lists.addItem(list.uuid, { name: 'Entry B' })
+  await favorites.toggle('shopping_list_item', a.uuid)
+  fixture.sqlite.exec(`UPDATE shopping_list_items SET updated_at = '2026-10-15T12:00:00Z' WHERE uuid = '${a.uuid}';
+    UPDATE shopping_list_items SET updated_at = '2026-10-15T13:00:00Z' WHERE uuid = '${b.uuid}';`)
+  const results = new SearchRepository(fixture.db).search('Entry', 'item', 1, { guest: true, userId: null }).results
+  expect(results.map((row) => row.uuid)).toEqual([b.uuid, a.uuid])
+  expect(results.every((row) => !row.isFavorite)).toBe(true)
+  await order.reorder(list.uuid, [b.uuid, a.uuid])
+  const reopened = new ShoppingListsRepository(fixture.db)
+  expect((await reopened.listItems(list.uuid)).map((row) => row.uuid)).toEqual([b.uuid, a.uuid])
+  expect((await reopened.listItems(list.uuid))[1]?.isFavorite).toBe(true)
 })

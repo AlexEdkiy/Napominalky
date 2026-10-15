@@ -36,7 +36,7 @@ it('moves the grabbed row down and persists the resulting visible order only on 
   expect(save).toHaveBeenCalledWith(['b', 'c', 'a'])
 })
 
-it('does not save a cancelled gesture or move an ordinary item across the favorites group', async () => {
+it('ignores legacy item favorites when dragging or using accessibility actions, and never saves cancellation', async () => {
   const data = [{ uuid: 'a', isFavorite: true }, { uuid: 'b', isFavorite: false }, { uuid: 'c', isFavorite: false }]
   const { view, save } = await setup(data)
   const handle = gestures[2]!
@@ -47,10 +47,10 @@ it('does not save a cancelled gesture or move an ordinary item across the favori
   await act(async () => handle.onPanResponderGrant?.(event(250), state))
   await act(async () => handle.onPanResponderMove?.(event(0), { ...state, moveY: 0 }))
   await act(async () => handle.onPanResponderRelease?.(event(0), state))
-  expect(save).toHaveBeenCalledWith(['c', 'b'])
+  expect(save).toHaveBeenCalledWith(['c', 'a', 'b'])
   save.mockClear()
   await fireEvent(view.getByTestId('drag-handle-a'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } })
-  expect(save).not.toHaveBeenCalled()
+  expect(save).toHaveBeenCalledWith(['b', 'a', 'c'])
 })
 
 it('cancels if sync changes the visible data mid-drag', async () => {

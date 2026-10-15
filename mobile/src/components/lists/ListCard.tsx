@@ -1,4 +1,3 @@
-import FavoriteButton from '@/components/ui/FavoriteButton'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -82,7 +81,6 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
         )}
       </View>
     </Pressable>
-    <FavoriteButton entity="shopping_list" uuid={list.uuid} title={title} favorite={list.isFavorite} />
     </View>
   )
 }

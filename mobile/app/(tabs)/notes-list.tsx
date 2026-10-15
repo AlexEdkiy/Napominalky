@@ -59,7 +59,6 @@ export default function NotesListScreen(): React.JSX.Element {
     ({ item }: { item: Note }) => (
       <FeedCard
         uuid={item.uuid}
-        entity="note" favorite={item.isFavorite}
         title={item.title.trim().length > 0 ? item.title : 'Без названия'}
         subtitle={formatUpdatedAt(item.updatedAt)}
         iconName="document-text"

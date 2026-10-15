@@ -25,7 +25,7 @@ export class ItemOrderRepository {
     })
   }
 
-  /** Reorder one visible favorite group; hidden rows retain their slots.
+  /** Reorder visible items; hidden rows retain their slots.
    * Read and write synchronously in one transaction: no partial outbox or stale snapshots.
    */
   public async reorder(listUuid: string, orderedUuids: string[]): Promise<void> {
@@ -39,8 +39,7 @@ export class ItemOrderRepository {
         eq(shoppingListItems.shoppingListUuid, listUuid), isNull(shoppingListItems.deletedAt)))
         .orderBy(asc(shoppingListItems.position), asc(shoppingListItems.uuid)).all()
       const byId = new Map(rows.map((row) => [row.uuid, row]))
-      const group = byId.get(orderedUuids[0] ?? '')?.isFavorite
-      if (orderedUuids.some((uuid) => !byId.has(uuid) || byId.get(uuid)?.isFavorite !== group)) {
+      if (orderedUuids.some((uuid) => !byId.has(uuid))) {
         throw new Error('Список изменился. Повторите перемещение')
       }
       const moving = new Set(orderedUuids)

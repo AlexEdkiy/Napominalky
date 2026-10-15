@@ -113,6 +113,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chip: {
+    maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
+  chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600', flexShrink: 1 },
   indicators: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -21,8 +21,8 @@ const FavoriteButton: React.FC<Props> = ({ entity, uuid, title, favorite = false
       setPending(true)
       void toggle(entity, uuid).finally(() => setPending(false))
     }}>
-    <Ionicons name={favorite ? 'star' : 'star-outline'} size={21}
-      color={favorite ? colors.amber : colors.textSecondary} />
+    <Ionicons name={favorite ? 'star' : 'star-outline'} size={favorite ? 21 : 15}
+      color={favorite ? colors.amber : colors.textTertiary} />
   </Pressable>
 }
 const styles = StyleSheet.create({ button: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' } })

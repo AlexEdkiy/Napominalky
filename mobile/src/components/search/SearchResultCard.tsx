@@ -1,4 +1,3 @@
-import FavoriteButton from '@/components/ui/FavoriteButton'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
@@ -36,10 +35,6 @@ const SearchResultCard: React.FC<Props> = ({ result, query }) => {
   const { colors } = useTheme()
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
-    <View style={styles.favorite}>
-      <FavoriteButton entity={result.type === 'list' ? 'shopping_list' : result.type === 'item'
-        ? 'shopping_list_item' : result.type} uuid={result.uuid} title={result.title} favorite={result.isFavorite} />
-    </View>
     <Pressable accessibilityRole="button" accessibilityLabel={`Открыть: ${result.title || 'Без названия'}`}
       onPress={() => openSearchResult(result)} style={styles.body}>
       <Text style={[styles.meta, { color: colors.textSecondary }]}>
@@ -60,8 +55,7 @@ const SearchResultCard: React.FC<Props> = ({ result, query }) => {
 }
 
 const styles = StyleSheet.create({
-  body: { gap: 8, paddingRight: 38 },
-  favorite: { position: 'absolute', right: 4, top: 4, zIndex: 1 },
+  body: { gap: 8 },
   card: { padding: 16, borderRadius: 16, gap: 8, marginBottom: 12 },
   title: { fontSize: 18, fontWeight: '700' },
   meta: { fontSize: 13 },
