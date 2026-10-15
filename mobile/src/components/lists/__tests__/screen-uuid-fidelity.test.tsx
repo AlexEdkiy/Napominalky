@@ -405,7 +405,7 @@ describe('Экран [uuid] — keyboardShouldPersistTaps (тап срабаты
   // и «съедается», контрол срабатывает лишь со второго раза.
   it('FlatList экрана имеет keyboardShouldPersistTaps="handled" (структурно, по исходнику)', () => {
     const source = fs.readFileSync(path.resolve(__dirname, '../../../../app/lists/[uuid].tsx'), 'utf-8')
-    expect(source).toMatch(/<FlatList[\s\S]*?keyboardShouldPersistTaps="handled"/)
+    expect(source).toMatch(/<ReorderableItems[\s\S]*?keyboardShouldPersistTaps="handled"/)
   })
 
   it('FlatList треда CommentsSheet имеет keyboardShouldPersistTaps="handled" (структурно)', () => {

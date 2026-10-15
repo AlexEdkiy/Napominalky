@@ -13,6 +13,7 @@ export const shoppingListItems = sqliteTable(
   'shopping_list_items',
   {
     uuid: text('uuid').primaryKey(),
+    isFavorite: integer('is_favorite').notNull().default(0),
     shoppingListUuid: text('shopping_list_uuid').notNull(),
     userId: text('user_id'),
     name: text('name').notNull(),

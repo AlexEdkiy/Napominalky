@@ -92,6 +92,13 @@
       "when": 1787392800000,
       "tag": "0012_status_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792022400000,
+      "tag": "0013_favorites",
+      "breakpoints": true
     }
   ]
 }

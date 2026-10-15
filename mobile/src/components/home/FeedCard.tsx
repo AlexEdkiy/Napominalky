@@ -1,3 +1,5 @@
+import FavoriteButton from '@/components/ui/FavoriteButton'
+import type { FavoriteEntity } from '@/db/repositories/favoritesRepo'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -15,6 +17,8 @@ export interface FeedCardProgress {
 
 interface FeedCardProps {
   uuid: string
+  entity?: FavoriteEntity
+  favorite?: boolean | undefined
   title: string
   subtitle: string
   subtitleColor?: string | undefined
@@ -37,6 +41,8 @@ const ringProgressValue = (progress: FeedCardProgress): number =>
 
 const FeedCard: React.FC<FeedCardProps> = ({
   uuid,
+  entity,
+  favorite,
   title,
   subtitle,
   subtitleColor,
@@ -50,6 +56,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   pinned = false,
   progress,
 }) => (
+  <View style={[styles.outer, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={title}
@@ -102,14 +109,17 @@ const FeedCard: React.FC<FeedCardProps> = ({
       />
     ) : null}
   </Pressable>
+  {entity && <FavoriteButton entity={entity} uuid={uuid} title={title} favorite={favorite} />}
+  </View>
 )
 
 const styles = StyleSheet.create({
+  outer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
   card: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
-    borderWidth: 1,
     borderRadius: 16,
     padding: 13,
     overflow: 'hidden',

@@ -86,6 +86,7 @@ class ShoppingListItem extends Model
     protected function casts(): array
     {
         return [
+            'is_favorite' => 'boolean',
             'category' => ShoppingCategory::class,
             'is_checked' => 'boolean',
             'status' => TaskStatus::class,

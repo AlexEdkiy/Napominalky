@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native'
 import { router } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
 import FeedCard from '@/components/home/FeedCard'
@@ -60,6 +59,7 @@ export default function NotesListScreen(): React.JSX.Element {
     ({ item }: { item: Note }) => (
       <FeedCard
         uuid={item.uuid}
+        entity="note" favorite={item.isFavorite}
         title={item.title.trim().length > 0 ? item.title : 'Без названия'}
         subtitle={formatUpdatedAt(item.updatedAt)}
         iconName="document-text"
@@ -79,7 +79,6 @@ export default function NotesListScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <StatusBar style="light" />
       <DarkHeader
         title="Заметки"
         onAvatarPress={handleAvatarPress}

@@ -63,9 +63,9 @@ final class SyncEntities
      * @var array<string, list<string>>
      */
     public const FIELDS = [
-        'note' => ['title', 'body', 'is_pinned', 'is_archived', 'color'],
-        'shopping_list' => ['title', 'type', 'tags', 'is_completed', 'status', 'status_is_manual', 'deadline', 'reminder_at'],
-        'shopping_list_item' => [
+        'note' => ['is_favorite', 'title', 'body', 'is_pinned', 'is_archived', 'color'],
+        'shopping_list' => ['is_favorite', 'title', 'type', 'tags', 'is_completed', 'status', 'status_is_manual', 'deadline', 'reminder_at'],
+        'shopping_list_item' => ['is_favorite',
             'name',
             'category',
             'is_checked',
@@ -79,7 +79,7 @@ final class SyncEntities
             'tags',
         ],
         'shopping_list_item_comment' => ['author_name', 'body'],
-        'reminder' => [
+        'reminder' => ['is_favorite',
             'title',
             'notes',
             'remind_at',

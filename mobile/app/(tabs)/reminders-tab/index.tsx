@@ -7,7 +7,6 @@ import {
   View,
 } from 'react-native'
 import { router } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
 import ReminderListItem from '@/components/reminders/ReminderListItem'
@@ -47,9 +46,13 @@ export default function RemindersScreen(): React.JSX.Element {
   const { overdue, planned } = splitByOverdue(filterByTitle(reminders, search), now)
   // По макету над карточками просроченных есть секционный лейбл «ПРОСРОЧЕННЫЕ»
   // (uppercase даёт typography.sectionLabel).
-  const sections: ListSection[] = segment === 'overdue'
-    ? (overdue.length > 0 ? [{ title: 'Просроченные', data: overdue }] : [])
-    : groupPlanned(planned, now)
+  const selected = segment === 'overdue' ? overdue : planned
+  const favorites = selected.filter((r) => r.isFavorite)
+  const rest = selected.filter((r) => !r.isFavorite)
+  const regularSections: ListSection[] = segment === 'overdue'
+    ? (rest.length > 0 ? [{ title: 'Просроченные', data: rest }] : [])
+    : groupPlanned(rest, now)
+  const sections = [...(favorites.length ? [{ title: 'Избранное', data: favorites }] : []), ...regularSections]
   const empty = EMPTY_TEXT[segment]
 
   const handleOpen = (uuid: string): void => {
@@ -63,7 +66,6 @@ export default function RemindersScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <StatusBar style="light" />
       <DarkHeader
         title="Напоминания"
         onAvatarPress={() => router.push('/(tabs)/profile')}

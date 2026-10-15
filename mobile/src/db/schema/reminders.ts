@@ -17,6 +17,7 @@ export const reminders = sqliteTable(
   'reminders',
   {
     uuid: text('uuid').primaryKey(),
+    isFavorite: integer('is_favorite').notNull().default(0),
     userId: text('user_id'),
     title: text('title').notNull(),
     notes: text('notes'),

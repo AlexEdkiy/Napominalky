@@ -26,6 +26,7 @@ final class ReminderResource extends JsonResource
     {
         return [
             'uuid' => $this->uuid,
+            'is_favorite' => (bool) $this->is_favorite,
             'title' => $this->title,
             'notes' => $this->notes,
             'remind_at' => $this->remind_at?->toISOString(),

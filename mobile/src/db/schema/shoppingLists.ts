@@ -10,6 +10,7 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
  */
 export const shoppingLists = sqliteTable('shopping_lists', {
   uuid: text('uuid').primaryKey(),
+  isFavorite: integer('is_favorite').notNull().default(0),
   userId: text('user_id'),
   title: text('title').notNull(),
   type: text('type').notNull().default('goods'),

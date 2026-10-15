@@ -1,6 +1,6 @@
 import { databaseScope } from '../databaseScope'
 import { activeRepository } from './activeRepository'
-import { and, asc, eq, isNull, like, max, min, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, like, max, min, sql } from 'drizzle-orm'
 import { forChecked, isDone, normalizeTaskStatus, type TaskStatus } from '../../constants/taskStatus'
 import { deriveListStatus } from '../../utils/deriveListStatus'
 import { db as defaultDb, type Database } from '../client'
@@ -135,7 +135,7 @@ export class ShoppingListsRepository {
       .select()
       .from(shoppingLists)
       .where(isNull(shoppingLists.deletedAt))
-      .orderBy(asc(shoppingLists.title))
+      .orderBy(desc(shoppingLists.isFavorite), asc(shoppingLists.title), asc(shoppingLists.uuid))
 
     return Promise.all(rows.map((row) => this.withProgress(row)))
   }
@@ -326,7 +326,7 @@ export class ShoppingListsRepository {
       .select()
       .from(shoppingListItems)
       .where(and(...filters))
-      .orderBy(asc(shoppingListItems.position))
+      .orderBy(desc(shoppingListItems.isFavorite), asc(shoppingListItems.position), asc(shoppingListItems.uuid))
     return rows.map(toItem)
   }
 
@@ -346,7 +346,7 @@ export class ShoppingListsRepository {
           like(shoppingListItems.name, pattern),
         ),
       )
-      .orderBy(asc(shoppingListItems.position))
+      .orderBy(desc(shoppingListItems.isFavorite), asc(shoppingListItems.position), asc(shoppingListItems.uuid))
     return rows.map(toItem)
   }
 

@@ -3,7 +3,6 @@ import { ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
 import SearchResultCard from '@/components/search/SearchResultCard'
@@ -45,7 +44,6 @@ function SearchContent(): React.JSX.Element {
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.screenBg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar style="light" />
       <DarkHeader title="Поиск" onBack={() => router.back()} />
       <View style={styles.controls}>
         <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>

@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native'
 import { router } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
 import ListCard from '@/components/lists/ListCard'
@@ -78,7 +77,6 @@ export default function ListsScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <StatusBar style="light" />
       <DarkHeader
         title="Задачи"
         onAvatarPress={handleAvatarPress}

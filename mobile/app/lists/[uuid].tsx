@@ -1,12 +1,11 @@
+import ReorderableItems from '@/components/lists/ReorderableItems'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -53,7 +52,7 @@ export default function ListDetailScreen() {
   const { colors } = useTheme()
   const { data: list, isLoading } = useShoppingList(listUuid)
   const { deleteList, setListStatus } = useShoppingLists()
-  const { items, isLoading: itemsLoading, isError: itemsError, addItem, updateItem, deleteItem, checkItem, setItemStatus } =
+  const { items, isLoading: itemsLoading, isError: itemsError, addItem, updateItem, deleteItem, checkItem, setItemStatus, reorderItems, incrementQuantity } =
     useShoppingListItems(listUuid)
 
   const [itemFilter, setItemFilter] = useState<ItemFilter>('all')
@@ -167,7 +166,7 @@ export default function ListDetailScreen() {
     listType === 'tasks' ? 'Добавьте первую задачу' : 'Добавьте первый товар'
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.screenBg }]}>
+    <View style={[styles.safeArea, { backgroundColor: colors.screenBg }]}>
       {/* DEF-06: кастомная шапка — ← + название + «Удалить» */}
       <CustomHeader
         title={list.title}
@@ -185,13 +184,17 @@ export default function ListDetailScreen() {
         style={[styles.container, { backgroundColor: colors.screenBg }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <FlatList
+        <ReorderableItems
           data={filtered}
-          keyExtractor={(item) => item.uuid}
+          onReorder={(uuids) => reorderItems.mutate(uuids)}
+          disabled={Boolean(reorderItems?.isPending || attributesItemUuid || commentsItemUuid || statusTarget)}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
+          renderRow={(item, handle, dragging) => (
             <ItemRow
               item={item}
+              dragHandle={handle}
+              dragging={dragging}
+              onIncreaseQuantity={(uuid) => incrementQuantity.mutate(uuid)}
               listType={listType}
               onToggle={(itemUuid, checked) => checkItem.mutate({ uuid: itemUuid, checked })}
               onOpenStatus={
@@ -286,7 +289,7 @@ export default function ListDetailScreen() {
           onClose={() => setStatusTarget(null)}
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   )
 }
 

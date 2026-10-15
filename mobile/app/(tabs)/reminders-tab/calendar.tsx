@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
 import CalendarCollapseHandle from '@/components/calendar/CalendarCollapseHandle'
@@ -53,7 +52,6 @@ export default function CalendarScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <StatusBar style="light" />
       <DarkHeader
         title="Календарь"
         onBack={() => router.back()}

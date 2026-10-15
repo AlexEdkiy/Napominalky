@@ -29,6 +29,7 @@ import DbProvider, { useDb } from '@/providers/DbProvider'
 import { useSettingsStore } from '@/stores/settingsStore'
 import type { Database } from '@/db/client'
 import { useAuthStore } from '@/stores/authStore'
+import { FavoritesRepository } from '@/db/repositories/favoritesRepo'
 import { NotesRepository, notesRepo } from '@/db/repositories/notesRepo'
 import { ShoppingListsRepository } from '@/db/repositories/shoppingListsRepo'
 import { RemindersRepository } from '@/db/repositories/remindersRepo'
@@ -91,6 +92,7 @@ afterEach(async () => {
 it('offline logout preserves account records/outbox and opens an empty guest database', async () => {
   const account = mockDb
   const note = await new NotesRepository(account).createNote({ title: 'Private unsent draft' })
+  await new FavoritesRepository(account).toggle('note', note.uuid)
   const before = queue(account)
   useSettingsStore.setState({ syncEnabled: false })
   ;(authApi.logout as jest.Mock).mockRejectedValue(new Error('offline'))
@@ -106,7 +108,7 @@ it('offline logout preserves account records/outbox and opens an empty guest dat
   expect(Notifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalled()
   await login(hook, 'alice')
   expect(mockDb).toBe(account)
-  expect((await notesRepo.getNoteByUuid(note.uuid))?.title).toBe('Private unsent draft')
+  expect(await notesRepo.getNoteByUuid(note.uuid)).toMatchObject({ title: 'Private unsent draft', isFavorite: true })
   expect(queue(account)).toEqual(before)
 })
 
