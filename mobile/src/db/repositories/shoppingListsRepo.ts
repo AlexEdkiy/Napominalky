@@ -326,7 +326,7 @@ export class ShoppingListsRepository {
       .select()
       .from(shoppingListItems)
       .where(and(...filters))
-      .orderBy(desc(shoppingListItems.isFavorite), asc(shoppingListItems.position), asc(shoppingListItems.uuid))
+      .orderBy(asc(shoppingListItems.position), asc(shoppingListItems.uuid))
     return rows.map(toItem)
   }
 
@@ -346,7 +346,7 @@ export class ShoppingListsRepository {
           like(shoppingListItems.name, pattern),
         ),
       )
-      .orderBy(desc(shoppingListItems.isFavorite), asc(shoppingListItems.position), asc(shoppingListItems.uuid))
+      .orderBy(asc(shoppingListItems.position), asc(shoppingListItems.uuid))
     return rows.map(toItem)
   }
 

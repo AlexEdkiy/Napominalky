@@ -1,4 +1,3 @@
-import FavoriteButton from '@/components/ui/FavoriteButton'
 import { favoritesFirst } from '@/utils/favorites'
 import React from 'react'
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -44,7 +43,6 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, timeColor, dotColor
       </View>
       <View testID={`row-dot-${reminder.uuid}`} style={[styles.dot, { backgroundColor: dotColor }]} />
     </Pressable>
-    <FavoriteButton entity="reminder" uuid={reminder.uuid} title={title} favorite={reminder.isFavorite} />
     </View>
   )
 }

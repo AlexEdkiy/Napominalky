@@ -1,4 +1,3 @@
-import FavoriteButton from '@/components/ui/FavoriteButton'
 import React, { useRef } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
@@ -113,64 +112,63 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
         >
           {done && <Ionicons name="checkmark" size={14} color="#fff" />}
         </Pressable>
-        {/* Фикс «второго тапа»: metaLine — сестра Pressable названия, не потомок */}
+        {/* Действия — соседи названия: тап и жест не открывают друг друга. */}
         <View style={styles.main}>
-          <Pressable
-            style={styles.nameTap}
-            hitSlop={{ top: 12, bottom: hasMetaLine ? 0 : 12 }}
-            onPress={
-              onOpenAttributes !== undefined ? () => onOpenAttributes(item.uuid) : undefined
-            }
-            accessibilityRole="button"
-            accessibilityLabel={item.name}
-          >
-            <View style={styles.nameRow}>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.name,
-                  { color: done ? colors.textTertiary : colors.textPrimary },
-                  done && styles.nameDone,
-                ]}
-              >
+          <View style={styles.headline}>
+            <Pressable
+              style={styles.nameTap}
+              onPress={onOpenAttributes !== undefined ? () => onOpenAttributes(item.uuid) : undefined}
+              accessibilityRole="button"
+              accessibilityLabel={item.name}
+            >
+              <Text numberOfLines={1} style={[
+                styles.name,
+                { color: done ? colors.textTertiary : colors.textPrimary },
+                done && styles.nameDone,
+              ]}>
                 {item.name}
               </Text>
+            </Pressable>
+            {dragHandle}
+          </View>
+          <View style={styles.details}>
+            {listType === 'goods' && (
+              <View style={[styles.quantity, { backgroundColor: accentBg }]}>
+                <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Увеличить количество: ${item.name}`}
+                  disabled={!onIncreaseQuantity || item.quantity >= 9999}
+                  style={styles.quantityPlus}
+                  onPress={() => onIncreaseQuantity?.(item.uuid)}
+                >
+                  <Ionicons name="add" size={22} color={accentColor} />
+                </Pressable>
+              </View>
+            )}
+            <View style={styles.meta}>
+              {hasMetaLine && (
+                <MetaLine
+                  item={item}
+                  isTask={isTask}
+                  tags={tags}
+                  accentColor={accentColor}
+                  accentBg={accentBg}
+                  commentsCount={commentsCount}
+                  onOpenStatus={onOpenStatus}
+                  onOpenComments={onOpenComments}
+                />
+              )}
             </View>
-          </Pressable>
-          {/* 3: ТОЛЬКО заполненные атрибуты чипами + жёлтый чип комментариев */}
-          {hasMetaLine && (
-            <MetaLine
-              item={item}
-              isTask={isTask}
-              tags={tags}
-              accentColor={accentColor}
-              accentBg={accentBg}
+            <RowControls
+              uuid={item.uuid}
+              hasAttributes={hasAttributes}
               commentsCount={commentsCount}
-              onOpenStatus={onOpenStatus}
               onOpenComments={onOpenComments}
+              onOpenAttributes={onOpenAttributes}
             />
-          )}
+          </View>
         </View>
-        {dragHandle}
-      </View>
-      <View style={styles.toolbar}>
-        <FavoriteButton entity="shopping_list_item" uuid={item.uuid} title={item.name} favorite={item.isFavorite} />
-        {listType === 'goods' && <View style={[styles.quantity, { backgroundColor: accentBg }]}>
-          <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Увеличить количество: ${item.name}`}
-            disabled={!onIncreaseQuantity || item.quantity >= 9999} style={styles.quantityPlus}
-            onPress={() => onIncreaseQuantity?.(item.uuid)}>
-            <Ionicons name="add" size={22} color={accentColor} />
-          </Pressable>
-        </View>}
-        <View style={styles.spacer} />
-        <RowControls
-          uuid={item.uuid}
-          hasAttributes={hasAttributes}
-          commentsCount={commentsCount}
-          onOpenComments={onOpenComments}
-          onOpenAttributes={onOpenAttributes}
-        />
       </View>
     </View>
     </Swipeable>
@@ -261,26 +259,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 10,
+    marginTop: 15,
+    alignSelf: 'flex-start',
     flexShrink: 0,
   },
-  main: { flex: 1, paddingVertical: 12 },
-  nameTap: { justifyContent: 'center' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  main: { flex: 1, minWidth: 0, paddingVertical: 4 },
+  headline: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  nameTap: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   name: { ...typography.body, flexShrink: 1 },
   nameDone: { textDecorationLine: 'line-through' },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
-  toolbar: { flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingRight: 12 },
+  details: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  meta: { flex: 1, minWidth: 0 },
   quantity: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingLeft: 10 },
   quantityPlus: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  spacer: { flex: 1 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   controlBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dot: {

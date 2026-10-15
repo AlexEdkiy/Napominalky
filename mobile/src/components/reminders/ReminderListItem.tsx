@@ -1,4 +1,3 @@
-import FavoriteButton from '@/components/ui/FavoriteButton'
 import React from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -74,7 +73,6 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
         </View>
       </Pressable>
 
-      <FavoriteButton entity="reminder" uuid={reminder.uuid} title={title} favorite={reminder.isFavorite} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Выполнить: ${title}`}

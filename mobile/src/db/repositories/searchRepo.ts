@@ -77,7 +77,7 @@ export class SearchRepository {
           const parent = parents.get(row.shoppingListUuid)
           if (!parent) continue
           const comment = comments.get(row.uuid)
-          add({ ...base, type: 'item', uuid: row.uuid, isFavorite: row.isFavorite === 1, title: row.name, updatedAt: row.updatedAt,
+          add({ ...base, type: 'item', uuid: row.uuid, isFavorite: false, title: row.name, updatedAt: row.updatedAt,
             listUuid: parent.uuid, listTitle: parent.title, listType: parent.type,
             isCompleted: row.isChecked === 1, matchInComments: comment !== undefined },
           [comment ?? '', row.comment ?? '', readableTags(row.tags)])

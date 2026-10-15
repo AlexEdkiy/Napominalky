@@ -4,7 +4,7 @@ import { Animated, FlatList, Keyboard, PanResponder, StyleSheet, View,
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/theme'
 
-interface OrderedItem { uuid: string; isFavorite?: boolean; updatedAt?: string }
+interface OrderedItem { uuid: string; updatedAt?: string }
 interface Props<T> extends Omit<FlatListProps<T>, 'data' | 'renderItem' | 'keyExtractor'> {
   data: T[]; onReorder: (uuids: string[]) => void; disabled?: boolean
   renderRow: (item: T, handle: React.ReactNode, dragging: boolean) => React.ReactElement
@@ -58,7 +58,7 @@ export default function ReorderableItems<T extends OrderedItem>({
   const translation = useRef(new Animated.Value(0)).current
   const [active, setActive] = useState('')
   const [target, setTarget] = useState('')
-  const signature = data.map((item) => `${item.uuid}:${item.isFavorite}:${item.updatedAt}`).join('|')
+  const signature = data.map((item) => `${item.uuid}:${item.updatedAt}`).join('|')
 
   const Cell = useMemo(() => function Cell({ item, children, onLayout, style }: CellProps<T>) {
     const state = useContext(CellDrag)
@@ -78,8 +78,7 @@ export default function ReorderableItems<T extends OrderedItem>({
     drag.current = null
     translation.setValue(0); setActive(''); setTarget('')
     if (!save || !moving || moving.signature !== signature || current.current.disabled) return
-    const ids = current.current.data.filter((item) => Boolean(item.isFavorite) === Boolean(moving.item.isFavorite))
-      .map((item) => item.uuid)
+    const ids = current.current.data.map((item) => item.uuid)
     const from = ids.indexOf(moving.item.uuid)
     const to = ids.indexOf(moving.target)
     if (from < 0 || to < 0 || from === to) return
@@ -98,7 +97,6 @@ export default function ReorderableItems<T extends OrderedItem>({
     let closest = moving.item.uuid
     let distance = Infinity
     for (const item of current.current.data) {
-      if (Boolean(item.isFavorite) !== Boolean(moving.item.isFavorite)) continue
       const box = layouts.current.get(item.uuid)
       if (!box) continue
       const delta = Math.abs(center - (box.y + box.height / 2))
@@ -151,7 +149,7 @@ export default function ReorderableItems<T extends OrderedItem>({
               grab: pointer - bounds.current.top + bounds.current.offset - cell.y }
             setActive(item.uuid); setTarget(item.uuid)
           }} move={move} finish={finish} step={(delta) => {
-            const ids = data.filter((row) => Boolean(row.isFavorite) === Boolean(item.isFavorite)).map((row) => row.uuid)
+            const ids = data.map((row) => row.uuid)
             const from = ids.indexOf(item.uuid)
             const to = from + delta
             if (to < 0 || to >= ids.length) return
@@ -162,7 +160,7 @@ export default function ReorderableItems<T extends OrderedItem>({
 }
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  handle: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  handle: { width: 44, height: 44, flexShrink: 0, justifyContent: 'center', alignItems: 'center' },
   lifted: { zIndex: 10, elevation: 8, opacity: 0.92 },
   cell: { position: 'relative' },
   target: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: '#138F83' },

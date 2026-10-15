@@ -49,7 +49,7 @@ const MetaLine: React.FC<MetaLineProps> = ({
       )}
       {tags.map((tag) => (
         <View key={tag} style={[styles.chip, { backgroundColor: colors.borderSubtle }]}>
-          <Text style={[styles.chipText, { color: colors.textSecondary }]}>#{tag}</Text>
+          <Text numberOfLines={1} style={[styles.chipText, { color: colors.textSecondary }]}>#{tag}</Text>
         </View>
       ))}
       {/* DEF-05: форматированная дата вместо raw YYYY-MM-DD */}
@@ -113,6 +113,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chip: {
+    maxWidth: '100%',
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
+  chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600', flexShrink: 1 },
   indicators: {
     flexDirection: 'row',
     alignItems: 'center',
