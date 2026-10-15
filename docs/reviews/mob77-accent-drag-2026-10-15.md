@@ -51,5 +51,38 @@ Swipeable/SVG/окружение темы заменены адаптерами;
 EAS archive: 373 файла, 355 мобильных файлов побайтно совпали с исходником;
 секреты/зависимости/код backend и web исключены. Основная рабочая ветка:
 **113 файлов / 1196 тестов** и typecheck прошли (разница — отложенная MOB-74).
-CI кандидата: https://github.com/AlexEdkiy/Napominalky/actions/runs/38750556522.
-Сборка и проверка APK — следующие шаги.
+[CI кандидата](https://github.com/AlexEdkiy/Napominalky/actions/runs/38750556522)
+успешен по всем трём слоям. Реализация основной ветки: `382437b`,
+[её CI](https://github.com/AlexEdkiy/Napominalky/actions/runs/38750852043) также успешен.
+EAS build `36b302a4-fb0b-4a2c-91a2-abad8b87c798`, версия 1.0.8 (52), запущен с
+`--freeze-credentials`, прежняя keystore `4miH_5pN9B`. Сборка и проверка APK завершены.
+
+## Приёмка на телефоне
+
+Установить 1.0.8 поверх предыдущего APK. В редакторе задачи и покупки проверить:
+1. Название в одну строку, метаданные ниже, комментарии и свойства справа.
+2. Захват левой плашки делает её шире; движение вверх/вниз и отпускание меняют порядок.
+3. Прокрутка за название, отметка выполнения, комментарии, свойства и «+» количества
+   работают отдельно. При длинном списке захват у края экрана прокручивает список.
+4. После закрытия и открытия редактора порядок сохранён; после синхронизации он
+   появляется на втором устройстве. Прежние отметки избранного пунктов его не меняют.
+5. В обеих темах и с длинными именами/тегами кнопки остаются доступны.
+
+
+## Проверенный APK
+
+[Скачать **1.0.8 (52)**](https://expo.dev/artifacts/eas/ssqZ5Jko2SJvRPIGfhbUYRrfpq_tekYx1L9DDJC3j4g.apk) ·
+[Expo build](https://expo.dev/accounts/alex_edkiy/projects/reminders-app/builds/36b302a4-fb0b-4a2c-91a2-abad8b87c798).
+Сборка завершена 2026-10-15 в 17:44 МСК, исходник `d418d595fbdf21d0dfc005c8ba28891810e87193`.
+APK скачан: ZIP CRC, manifest package `com.remindersapp.mobile`, versionName/code,
+production API URL без localhost fallback, SQLite/SecureStore/FontLoader/Share,
+маркеры новой области захвата и совместимых данных проверены. Сертификат APK v2
+совпадает с предыдущим: `c53a2d3d9c97028c1b81739b5de86eea7be1e89f9c703f707abeb21242e41c2b`.
+Отдельная криптографическая проверка apksigner и установка на Android не выполнялись.
+
+Размер: 121111666 байт. SHA-256:
+`2e5d4a79c26a883bf6f8687bc8eab4e002bb8c94af2aafbb393063801d89f69d`.
+Локальный файл: `Napominalky-artifacts/mob77/napominalky-1.0.8-52.apk`;
+проверка рядом в `.apk.json`, `apk-verification.log`, `archive-verification.json`,
+`ci-verification.json`, `mobile-tests.log`, `control-tests.log`, `preview/`.
+Обновление поверх текущего приложения. Production и БД не изменялись.
