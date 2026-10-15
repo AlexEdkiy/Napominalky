@@ -12,6 +12,7 @@ export type ListType = 'goods' | 'tasks'
 /** Доменный список покупок с рассчитанным прогрессом (checked/total). */
 export interface ShoppingList {
   uuid: string
+  isFavorite?: boolean
   userId: string | null
   title: string
   type: ListType
@@ -34,6 +35,7 @@ export interface ShoppingList {
 /** Доменный элемент списка: boolean is_checked вместо 0/1. */
 export interface ShoppingListItem {
   uuid: string
+  isFavorite?: boolean
   shoppingListUuid: string
   userId: string | null
   name: string
@@ -128,6 +130,7 @@ export const flag = (value: boolean): number => (value ? 1 : 0)
 /** Строка SQLite → доменный элемент (0/1 → boolean, статус нормализуется). */
 export const toItem = (row: ShoppingListItemRow): ShoppingListItem => ({
   uuid: row.uuid,
+  isFavorite: row.isFavorite === 1,
   shoppingListUuid: row.shoppingListUuid,
   userId: row.userId,
   name: row.name,
@@ -155,6 +158,7 @@ export const toList = (
   checkedItemsCount: number,
 ): ShoppingList => ({
   uuid: row.uuid,
+  isFavorite: row.isFavorite === 1,
   userId: row.userId,
   title: row.title,
   type: (row.type as ListType) ?? 'goods',

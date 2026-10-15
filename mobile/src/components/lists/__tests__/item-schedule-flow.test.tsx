@@ -19,6 +19,11 @@ jest.mock('@react-native-community/datetimepicker', () => {
     <View testID={`picker-${mode}`} onChange={onChange} />
 })
 
+jest.mock('@/hooks/useSyncEngine', () => ({ useSyncEngine: () => ({ isSyncing: false, syncNow: jest.fn() }) }))
+
+import { eq } from 'drizzle-orm'
+import FavoritesProvider from '@/providers/FavoritesProvider'
+import HomeScreen from '../../../../app/(tabs)/index'
 import React from 'react'
 import { Platform } from 'react-native'
 import { act, fireEvent, render, waitFor, cleanup } from '@testing-library/react-native'
@@ -131,4 +136,48 @@ it('keeps a queued reminder edit through an old pull and a failed push, then ret
   await pushChanges(db)
   expect(push.mock.calls[1]![2][0]?.payload.reminder_at).toBe(movedReminder)
   expect(db.select().from(syncOutbox).all()).toHaveLength(0)
+})
+
+it('changes favorites, quantity and order through the real list screen into SQLite/outbox', async () => {
+  db.update(shoppingLists).set({ type: 'goods' }).run()
+  db.insert(shoppingListItems).values({ uuid: 'second', shoppingListUuid: 'list', name: 'Bread',
+    position: 1, updatedAt: '2026-01-01T00:00:00Z' }).run()
+  const view = await render(<QueryClientProvider client={queryClient}>
+    <FavoritesProvider><ListDetailScreen /></FavoritesProvider>
+  </QueryClientProvider>)
+  await waitFor(() => expect(view.getAllByText('×1')).toHaveLength(2))
+  await act(async () => {
+    await fireEvent.press(view.getByLabelText('Увеличить количество: Bread'))
+    await fireEvent.press(view.getByLabelText('Увеличить количество: Bread'))
+    await fireEvent.press(view.getByLabelText('Увеличить количество: Bread'))
+  })
+  await waitFor(() => expect(view.getByText('×4')).toBeTruthy())
+  await act(async () => fireEvent.press(view.getByLabelText('В избранное: Bread'), { stopPropagation: jest.fn() }))
+  await waitFor(() => expect(view.getByLabelText('Убрать из избранного: Bread')).toBeTruthy())
+  expect((await shoppingListsRepo.listItems('list'))[0]).toMatchObject({ uuid: 'second', quantity: 4, isFavorite: true })
+  await act(async () => fireEvent.press(view.getByLabelText('Убрать из избранного: Bread'), { stopPropagation: jest.fn() }))
+  await waitFor(() => expect(view.getByLabelText('В избранное: Bread')).toBeTruthy())
+  await act(async () => fireEvent(view.getByTestId('drag-handle-second'), 'accessibilityAction',
+    { nativeEvent: { actionName: 'decrement' } }))
+  await waitFor(() => expect(db.select().from(shoppingListItems).where(eq(shoppingListItems.uuid, 'second')).get()?.position).toBe(0))
+  expect((await shoppingListsRepo.listItems('list')).map((row) => row.uuid)).toEqual(['second', 'item'])
+  expect(db.select().from(syncOutbox).all().map((row) => JSON.parse(row.payload)))
+    .toEqual(expect.arrayContaining([expect.objectContaining({ uuid: 'second', position: 0, quantity: 4, is_favorite: 0 })]))
+})
+
+it('stars a task from the home page without opening it and places it first', async () => {
+  await shoppingListsRepo.createList({ title: 'Alpha' })
+  const view = await render(<QueryClientProvider client={queryClient}>
+    <FavoritesProvider><HomeScreen /></FavoritesProvider>
+  </QueryClientProvider>)
+  await waitFor(() => expect(view.getByLabelText('В избранное: Schedule test')).toBeTruthy())
+  const { router } = jest.requireMock('expo-router')
+  router.push.mockClear()
+  await act(async () => fireEvent.press(view.getByLabelText('В избранное: Schedule test'), { stopPropagation: jest.fn() }))
+  await waitFor(() => expect(view.getByLabelText('Убрать из избранного: Schedule test')).toBeTruthy())
+  const titles = view.getAllByRole('button').map((node) => node.props.accessibilityLabel)
+    .filter((title) => title === 'Schedule test' || title === 'Alpha')
+  expect(titles).toEqual(['Schedule test', 'Alpha'])
+  expect(router.push).not.toHaveBeenCalled()
+  expect((await shoppingListsRepo.getListByUuid('list'))?.isFavorite).toBe(true)
 })

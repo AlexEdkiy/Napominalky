@@ -30,6 +30,7 @@ final class ShoppingListResource extends JsonResource
     {
         return [
             'uuid' => $this->uuid,
+            'is_favorite' => (bool) $this->is_favorite,
             'title' => $this->title,
             'type' => $this->type,
             'tags' => $this->tags,

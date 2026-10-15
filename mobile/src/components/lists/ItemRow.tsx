@@ -1,3 +1,4 @@
+import FavoriteButton from '@/components/ui/FavoriteButton'
 import React, { useRef } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
@@ -11,6 +12,9 @@ import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
 interface ItemRowProps {
+  dragHandle?: React.ReactNode
+  dragging?: boolean
+  onIncreaseQuantity?: ((uuid: string) => void) | undefined
   item: ShoppingListItem
   listType: ListType
   onToggle: (uuid: string, checked: boolean) => void
@@ -34,6 +38,9 @@ interface ItemRowProps {
 
 const ItemRowComponent: React.FC<ItemRowProps> = ({
   item,
+  dragHandle,
+  dragging = false,
+  onIncreaseQuantity,
   listType,
   onToggle,
   onOpenStatus,
@@ -75,6 +82,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   return (
     <Swipeable
       ref={swipeableRef}
+      enabled={!dragging}
       {...swipeProps}
       overshootRight={false}
       friction={2}
@@ -127,11 +135,6 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
               >
                 {item.name}
               </Text>
-              {listType === 'goods' && item.quantity > 1 && (
-                <View style={[styles.chip, { backgroundColor: accentBg }]}>
-                  <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
-                </View>
-              )}
             </View>
           </Pressable>
           {/* 3: ТОЛЬКО заполненные атрибуты чипами + жёлтый чип комментариев */}
@@ -148,6 +151,19 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
             />
           )}
         </View>
+        {dragHandle}
+      </View>
+      <View style={styles.toolbar}>
+        <FavoriteButton entity="shopping_list_item" uuid={item.uuid} title={item.name} favorite={item.isFavorite} />
+        {listType === 'goods' && <View style={[styles.quantity, { backgroundColor: accentBg }]}>
+          <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Увеличить количество: ${item.name}`}
+            disabled={!onIncreaseQuantity || item.quantity >= 9999} style={styles.quantityPlus}
+            onPress={() => onIncreaseQuantity?.(item.uuid)}>
+            <Ionicons name="add" size={22} color={accentColor} />
+          </Pressable>
+        </View>}
+        <View style={styles.spacer} />
         <RowControls
           uuid={item.uuid}
           hasAttributes={hasAttributes}
@@ -261,8 +277,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chipText: { ...typography.bodySm, fontSize: 12, fontWeight: '600' },
+  toolbar: { flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingRight: 12 },
+  quantity: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingLeft: 10 },
+  quantityPlus: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  spacer: { flex: 1 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  controlBtn: { padding: 5 },
+  controlBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dot: {
     position: 'absolute',
     top: 2,

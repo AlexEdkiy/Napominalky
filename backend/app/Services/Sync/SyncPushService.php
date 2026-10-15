@@ -9,6 +9,7 @@ use App\Data\SyncPushResultData;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Delta-push синхронизации: применяет клиентский батч изменений по правилу
@@ -56,6 +57,11 @@ final class SyncPushService
                 $existing = $this->findExisting($user, $change);
 
                 if ($existing === null) {
+                    $class = SyncEntities::modelFor($change->entityType);
+                    if ($class::withTrashed()->where('uuid', $change->uuid)->exists()) {
+                        // A UUID owned by another account must never be reassigned or acknowledged.
+                        throw ValidationException::withMessages(['changes' => 'Невозможно применить изменения.']);
+                    }
                     $model = $this->applier->create($user, $change);
                     $applied[] = $change->uuid;
 

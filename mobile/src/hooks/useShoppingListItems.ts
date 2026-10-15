@@ -1,3 +1,5 @@
+import { Alert } from 'react-native'
+import { itemOrderRepo } from '@/db/repositories/itemOrderRepo'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { QueryKeys } from '@/constants/QueryKeys'
@@ -33,6 +35,7 @@ export function useShoppingListItems(listUuid: string) {
   const invalidate = (): void => {
     void queryClient.invalidateQueries({ queryKey: QueryKeys.lists.items(listUuid) })
     void queryClient.invalidateQueries({ queryKey: QueryKeys.lists.all })
+    void queryClient.invalidateQueries({ queryKey: ['local-search'] })
   }
 
   const query = useQuery<ShoppingListItem[]>({
@@ -69,8 +72,21 @@ export function useShoppingListItems(listUuid: string) {
     onSuccess: invalidate,
   })
 
+  const orderError = (): void => {
+    invalidate()
+    Alert.alert('Не удалось изменить список', 'Повторите попытку. Пункты сохранены.')
+  }
+  const reorderItems = useMutation({
+    mutationFn: (uuids: string[]) => itemOrderRepo.reorder(listUuid, uuids),
+    onSuccess: invalidate, onError: orderError,
+  })
+  const incrementQuantity = useMutation({
+    mutationFn: (uuid: string) => itemOrderRepo.incrementQuantity(listUuid, uuid),
+    onSuccess: invalidate, onError: orderError,
+  })
+
   return {
-    items: query.data ?? [],
+    reorderItems, incrementQuantity,    items: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     addItem,

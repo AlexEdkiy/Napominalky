@@ -13,7 +13,6 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { StatusBar } from 'expo-status-bar'
 
 import { useAuthStore } from '@/stores/authStore'
 import { authApi } from '@/api/authApi'
@@ -52,7 +51,6 @@ export default function ProfileScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <StatusBar style="light" />
       <DarkHeader title="Профиль" onAvatarPress={() => {}} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AvatarSection

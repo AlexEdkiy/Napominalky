@@ -1,5 +1,6 @@
+import FavoriteButton from '@/components/ui/FavoriteButton'
 import React from 'react'
-import { Pressable, StyleSheet, Text } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 
 import { useTheme } from '@/theme'
@@ -34,8 +35,13 @@ const label = (result: SearchResult): string => {
 const SearchResultCard: React.FC<Props> = ({ result, query }) => {
   const { colors } = useTheme()
   return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+    <View style={styles.favorite}>
+      <FavoriteButton entity={result.type === 'list' ? 'shopping_list' : result.type === 'item'
+        ? 'shopping_list_item' : result.type} uuid={result.uuid} title={result.title} favorite={result.isFavorite} />
+    </View>
     <Pressable accessibilityRole="button" accessibilityLabel={`Открыть: ${result.title || 'Без названия'}`}
-      onPress={() => openSearchResult(result)} style={[styles.card, { backgroundColor: colors.surface }]}>
+      onPress={() => openSearchResult(result)} style={styles.body}>
       <Text style={[styles.meta, { color: colors.textSecondary }]}>
         {label(result)}{result.isArchived ? ' · В архиве' : ''}{result.isCompleted ? ' · Выполнено' : ''}
       </Text>
@@ -49,10 +55,13 @@ const SearchResultCard: React.FC<Props> = ({ result, query }) => {
         <Highlight text={result.excerpt} query={query} color={colors.accent} />
       </Text>}
     </Pressable>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  body: { gap: 8, paddingRight: 38 },
+  favorite: { position: 'absolute', right: 4, top: 4, zIndex: 1 },
   card: { padding: 16, borderRadius: 16, gap: 8, marginBottom: 12 },
   title: { fontSize: 18, fontWeight: '700' },
   meta: { fontSize: 13 },

@@ -30,6 +30,7 @@ const noteMapper: EntityMapper<ServerNote> = {
   table: notes as unknown as SyncTable,
   toRow: (s) => ({
     uuid: s.uuid,
+    ...(s.is_favorite === undefined ? {} : { isFavorite: flag(s.is_favorite) }),
     title: s.title ?? '',
     body: s.body,
     color: s.color ?? null,
@@ -45,6 +46,7 @@ const shoppingListMapper: EntityMapper<ServerShoppingList> = {
   table: shoppingLists as unknown as SyncTable,
   toRow: (s) => ({
     uuid: s.uuid,
+    ...(s.is_favorite === undefined ? {} : { isFavorite: flag(s.is_favorite) }),
     title: s.title ?? '',
     type: s.type ?? 'goods',
     tags: s.tags ?? null,
@@ -61,6 +63,7 @@ const shoppingListItemMapper: EntityMapper<ServerShoppingListItem> = {
   table: shoppingListItems as unknown as SyncTable,
   toRow: (s) => ({
     uuid: s.uuid,
+    ...(s.is_favorite === undefined ? {} : { isFavorite: flag(s.is_favorite) }),
     shoppingListUuid: s.shopping_list_uuid,
     name: s.name ?? '',
     category: s.category ?? 'other',
@@ -98,6 +101,7 @@ const reminderMapper: EntityMapper<ServerReminder> = {
   table: reminders as unknown as SyncTable,
   toRow: (s) => ({
     uuid: s.uuid,
+    ...(s.is_favorite === undefined ? {} : { isFavorite: flag(s.is_favorite) }),
     title: s.title ?? '',
     notes: s.notes,
     remindAt: s.remind_at ?? s.updated_at,

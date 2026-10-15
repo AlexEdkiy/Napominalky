@@ -6,6 +6,7 @@ namespace App\Http\Requests\Sync;
 
 use App\Data\SyncChangeData;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * Валидация delta-push запроса /sync/push.
@@ -45,6 +46,28 @@ final class PushRequest extends FormRequest
             'changes.*.payload' => ['nullable', 'array'],
             'changes.*.updated_at' => ['required', 'date'],
         ];
+    }
+
+    /** Validate an optional new field without narrowing the legacy full payload array.
+     * Nested wildcard rules would silently strip existing fields from validated().
+     *
+     * @return array<callable>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            $changes = $this->input('changes', []);
+            if (! is_array($changes)) {
+                return;
+            }
+            foreach ($changes as $index => $change) {
+                $payload = is_array($change) ? ($change['payload'] ?? null) : null;
+                if (is_array($payload) && array_key_exists('is_favorite', $payload)
+                    && ! in_array($payload['is_favorite'], [true, false, 0, 1, '0', '1'], true)) {
+                    $validator->errors()->add("changes.{$index}.payload.is_favorite", 'Некорректная отметка избранного.');
+                }
+            }
+        }];
     }
 
     /**

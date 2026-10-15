@@ -26,6 +26,7 @@ final class NoteResource extends JsonResource
     {
         return [
             'uuid' => $this->uuid,
+            'is_favorite' => (bool) $this->is_favorite,
             'title' => $this->title,
             'body' => $this->body,
             'is_pinned' => $this->is_pinned,

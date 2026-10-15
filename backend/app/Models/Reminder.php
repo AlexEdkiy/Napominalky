@@ -19,6 +19,7 @@ class Reminder extends Model
 {
     /** @use HasFactory<ReminderFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
     use TracksSyncRevision;
@@ -67,7 +68,7 @@ class Reminder extends Model
     /**
      * Активные (невыполненные) напоминания.
      *
-     * @param Builder<Reminder> $query
+     * @param  Builder<Reminder>  $query
      * @return Builder<Reminder>
      */
     public function scopePending(Builder $query): Builder
@@ -76,7 +77,7 @@ class Reminder extends Model
     }
 
     /**
-     * @param Builder<Reminder> $query
+     * @param  Builder<Reminder>  $query
      * @return Builder<Reminder>
      */
     public function scopeCompleted(Builder $query): Builder
@@ -87,7 +88,7 @@ class Reminder extends Model
     /**
      * Напоминания со сроком срабатывания в интервале [$from, $to].
      *
-     * @param Builder<Reminder> $query
+     * @param  Builder<Reminder>  $query
      * @return Builder<Reminder>
      */
     public function scopeDueBetween(Builder $query, CarbonInterface $from, CarbonInterface $to): Builder
@@ -103,6 +104,7 @@ class Reminder extends Model
     protected function casts(): array
     {
         return [
+            'is_favorite' => 'boolean',
             'remind_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
             'snoozed_until' => 'immutable_datetime',

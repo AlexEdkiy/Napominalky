@@ -1,6 +1,7 @@
+import AppStatusBar from '@/components/ui/AppStatusBar'
+import FavoritesProvider from '@/providers/FavoritesProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 import { StyleSheet } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -86,6 +87,7 @@ function RootLayout(): React.JSX.Element {
       <QueryClientProvider client={queryClient}>
         <DbProvider>
         <ThemeProvider>
+          <FavoritesProvider>
           <LockProvider>
             <SyncBootstrap />
             {hasSession && <NotificationsBootstrap />}
@@ -105,8 +107,9 @@ function RootLayout(): React.JSX.Element {
               </Stack.Protected>
             </Stack>
             <SessionNavigation />
-            <StatusBar style="auto" />
+            <AppStatusBar />
           </LockProvider>
+        </FavoritesProvider>
         </ThemeProvider>
         </DbProvider>
       </QueryClientProvider>

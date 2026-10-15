@@ -110,6 +110,7 @@ class ShoppingList extends Model
     protected function casts(): array
     {
         return [
+            'is_favorite' => 'boolean',
             'is_completed' => 'boolean',
             'status' => TaskStatus::class,
             'status_is_manual' => 'boolean',

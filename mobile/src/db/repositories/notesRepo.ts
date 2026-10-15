@@ -1,5 +1,5 @@
 import { activeRepository } from './activeRepository'
-import { and, desc, eq, isNull, like, or } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, like, or } from 'drizzle-orm'
 import { db as defaultDb, type Database } from '../client'
 import { notes, type NoteRow } from '../schema/notes'
 import { BaseRepository, type SyncTable } from './baseRepo'
@@ -10,6 +10,7 @@ export type NoteColor = '#ea899a' | '#ffebb8' | '#91d177' | '#afdafc'
 /** Доменная заметка: booleans вместо 0/1, как наружу отдаёт репозиторий. */
 export interface Note {
   uuid: string
+  isFavorite?: boolean
   userId: string | null
   title: string
   body: string | null
@@ -49,6 +50,7 @@ const isNoteColor = (value: string | null | undefined): value is NoteColor =>
 /** Преобразует строку SQLite (0/1) в доменную заметку с booleans. */
 const toNote = (row: NoteRow): Note => ({
   uuid: row.uuid,
+  isFavorite: row.isFavorite === 1,
   userId: row.userId,
   title: row.title,
   body: row.body,
@@ -117,7 +119,7 @@ export class NotesRepository {
       .select()
       .from(notes)
       .where(and(isNull(notes.deletedAt), eq(notes.isArchived, archived)))
-      .orderBy(desc(notes.isPinned), desc(notes.updatedAt))
+      .orderBy(desc(notes.isFavorite), desc(notes.isPinned), desc(notes.updatedAt), asc(notes.uuid))
     return rows.map(toNote)
   }
 
@@ -133,7 +135,7 @@ export class NotesRepository {
           or(like(notes.title, pattern), like(notes.body, pattern)),
         ),
       )
-      .orderBy(desc(notes.isPinned), desc(notes.updatedAt))
+      .orderBy(desc(notes.isFavorite), desc(notes.isPinned), desc(notes.updatedAt), asc(notes.uuid))
     return rows.map(toNote)
   }
 

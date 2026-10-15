@@ -50,6 +50,7 @@ final class SyncSerializer
     {
         return [
             'uuid' => $note->uuid,
+            'is_favorite' => (bool) $note->is_favorite,
             'title' => $note->title,
             'body' => $note->body,
             'color' => $note->color,
@@ -66,6 +67,7 @@ final class SyncSerializer
     {
         return [
             'uuid' => $list->uuid,
+            'is_favorite' => (bool) $list->is_favorite,
             'title' => $list->title,
             'type' => $list->type,
             // tags — непрозрачная JSON-строка (как в sync-whitelist SyncEntities);
@@ -91,6 +93,7 @@ final class SyncSerializer
     {
         return [
             'uuid' => $item->uuid,
+            'is_favorite' => (bool) $item->is_favorite,
             'shopping_list_uuid' => $item->shoppingList?->uuid,
             'name' => $item->name,
             'category' => $item->category->value,
@@ -132,6 +135,7 @@ final class SyncSerializer
     {
         return [
             'uuid' => $reminder->uuid,
+            'is_favorite' => (bool) $reminder->is_favorite,
             'title' => $reminder->title,
             'notes' => $reminder->notes,
             'remind_at' => $reminder->remind_at?->toISOString(),

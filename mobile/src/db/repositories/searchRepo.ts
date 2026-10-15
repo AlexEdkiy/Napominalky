@@ -50,14 +50,14 @@ export class SearchRepository {
 
     if (type === 'all' || type === 'note') {
       for (const row of this.db.select().from(notes).where(owned(notes.userId, notes.deletedAt, owner)).all()) {
-        add({ ...base, type: 'note', uuid: row.uuid, title: row.title, updatedAt: row.updatedAt,
+        add({ ...base, type: 'note', uuid: row.uuid, isFavorite: row.isFavorite === 1, title: row.title, updatedAt: row.updatedAt,
           isArchived: row.isArchived === 1 }, [row.body ?? ''])
       }
     }
     if (type === 'all' || type === 'reminder') {
       const table = reminders
       for (const row of this.db.select().from(table).where(owned(table.userId, table.deletedAt, owner)).all()) {
-        add({ ...base, type: 'reminder', uuid: row.uuid, title: row.title, updatedAt: row.updatedAt,
+        add({ ...base, type: 'reminder', uuid: row.uuid, isFavorite: row.isFavorite === 1, title: row.title, updatedAt: row.updatedAt,
           isCompleted: row.isCompleted === 1 }, [row.notes ?? ''])
       }
     }
@@ -66,7 +66,7 @@ export class SearchRepository {
       const lists = this.db.select().from(table).where(owned(table.userId, table.deletedAt, owner)).all()
       const parents = new Map(lists.map((list) => [list.uuid, list]))
       if (type !== 'item') {
-        for (const row of lists) add({ ...base, type: 'list', uuid: row.uuid, title: row.title,
+        for (const row of lists) add({ ...base, type: 'list', uuid: row.uuid, isFavorite: row.isFavorite === 1, title: row.title,
           updatedAt: row.updatedAt, listType: row.type, isCompleted: row.isCompleted === 1 }, [readableTags(row.tags)])
       }
       if (type !== 'list') {
@@ -77,14 +77,15 @@ export class SearchRepository {
           const parent = parents.get(row.shoppingListUuid)
           if (!parent) continue
           const comment = comments.get(row.uuid)
-          add({ ...base, type: 'item', uuid: row.uuid, title: row.name, updatedAt: row.updatedAt,
+          add({ ...base, type: 'item', uuid: row.uuid, isFavorite: row.isFavorite === 1, title: row.name, updatedAt: row.updatedAt,
             listUuid: parent.uuid, listTitle: parent.title, listType: parent.type,
             isCompleted: row.isChecked === 1, matchInComments: comment !== undefined },
           [comment ?? '', row.comment ?? '', readableTags(row.tags)])
         }
       }
     }
-    results.sort((a, b) => Number(matches(b.title)) - Number(matches(a.title))
+    results.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite)
+      || Number(matches(b.title)) - Number(matches(a.title))
       || (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0)
       || a.type.localeCompare(b.type) || a.uuid.localeCompare(b.uuid))
     const lastPage = Math.max(1, Math.ceil(results.length / PAGE_SIZE))

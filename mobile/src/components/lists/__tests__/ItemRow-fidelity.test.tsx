@@ -153,11 +153,11 @@ describe('ItemRow — порядок чипов (макет)', () => {
     expect(getByText('×3')).toBeTruthy()
   })
 
-  it('[goods] чип ×N НЕ показывается при quantity=1', async () => {
+  it('[goods] чип ×1 показывается при quantity=1', async () => {
     const { queryByText } = await render(
       <ItemRow item={{ ...base(), quantity: 1 }} listType="goods" onToggle={jest.fn()} />,
     )
-    expect(queryByText(/^×/)).toBeNull()
+    expect(queryByText('×1')).toBeTruthy()
   })
 
   it('[tasks] чип дедлайна присутствует при наличии deadline (локализованный формат)', async () => {

@@ -1,3 +1,4 @@
+import { favoritesFirst } from '@/utils/favorites'
 import React, { useState, useMemo, useCallback } from 'react'
 import {
   ActivityIndicator,
@@ -9,7 +10,6 @@ import {
   View,
 } from 'react-native'
 import { router } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 
 import DarkHeader from '@/components/ui/DarkHeader'
 import FeedCard from '@/components/home/FeedCard'
@@ -69,8 +69,8 @@ export default function HomeScreen(): React.JSX.Element {
     () => sortNotesPinnedFirst(notes),
     [notes],
   )
-  const filteredReminders = reminders
-  const filteredLists = lists
+  const filteredReminders = favoritesFirst(reminders)
+  const filteredLists = favoritesFirst(lists)
 
   const counts = useMemo(
     () => ({
@@ -93,7 +93,6 @@ export default function HomeScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <StatusBar style="light" />
       <DarkHeader
         title="Вспомнить всё!"
         onAvatarPress={handleAvatarPress}
@@ -127,6 +126,7 @@ export default function HomeScreen(): React.JSX.Element {
                 <FeedCard
                   key={list.uuid}
                   uuid={list.uuid}
+                  entity="shopping_list" favorite={list.isFavorite}
                   title={list.title}
                   subtitle={listStatusLabel(list)}
                   iconName={listIconName(list)}
@@ -146,6 +146,7 @@ export default function HomeScreen(): React.JSX.Element {
                 <FeedCard
                   key={reminder.uuid}
                   uuid={reminder.uuid}
+                  entity="reminder" favorite={reminder.isFavorite}
                   title={reminder.title}
                   subtitle={formatRelativeReminder(reminder.remindAt)}
                   subtitleColor={isReminderUrgent(reminder.remindAt) ? colors.amber : undefined}
@@ -165,6 +166,7 @@ export default function HomeScreen(): React.JSX.Element {
                 <FeedCard
                   key={note.uuid}
                   uuid={note.uuid}
+                  entity="note" favorite={note.isFavorite}
                   title={note.title.trim().length > 0 ? note.title : 'Без названия'}
                   subtitle={formatUpdatedAt(note.updatedAt)}
                   iconName="document-text"

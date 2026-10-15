@@ -60,6 +60,9 @@ it('preserves all writable sync fields and parent references through push and pu
             'source_type' => 'note',
         ],
     ];
+    foreach (['note', 'shopping_list', 'shopping_list_item', 'reminder'] as $type) {
+        $payloads[$type]['is_favorite'] = true;
+    }
     $device = (string) Str::uuid();
     $push = function (array $payloads, string $operation, string $updatedAt) use ($uuids, $device): void {
         $changes = [];
@@ -78,6 +81,9 @@ it('preserves all writable sync fields and parent references through push and pu
     $push($payloads, 'create', '2026-09-30T10:00:00Z');
 
     if ($clearOptional) {
+        foreach (['note', 'shopping_list', 'shopping_list_item', 'reminder'] as $type) {
+            $payloads[$type]['is_favorite'] = false;
+        }
         $payloads['note']['color'] = null;
         $payloads['shopping_list']['tags'] = null;
         $payloads['shopping_list']['deadline'] = null;

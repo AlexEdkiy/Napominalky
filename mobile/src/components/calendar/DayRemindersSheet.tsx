@@ -1,3 +1,5 @@
+import FavoriteButton from '@/components/ui/FavoriteButton'
+import { favoritesFirst } from '@/utils/favorites'
 import React from 'react'
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -25,11 +27,12 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, timeColor, dotColor
   const title = reminder.title.trim().length > 0 ? reminder.title : 'Без названия'
 
   return (
+    <View style={styles.row}>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={() => onPress(reminder.uuid)}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
     >
       <View style={styles.timeCol}>
         <Text style={[styles.time, { color: timeColor }]}>{formatTime(reminder.remindAt)}</Text>
@@ -41,6 +44,8 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, timeColor, dotColor
       </View>
       <View testID={`row-dot-${reminder.uuid}`} style={[styles.dot, { backgroundColor: dotColor }]} />
     </Pressable>
+    <FavoriteButton entity="reminder" uuid={reminder.uuid} title={title} favorite={reminder.isFavorite} />
+    </View>
   )
 }
 
@@ -60,7 +65,7 @@ const DayRemindersSheet: React.FC<DayRemindersSheetProps> = ({
         </Text>
       </View>
       <FlatList
-        data={reminders}
+        data={favoritesFirst(reminders)}
         keyExtractor={(item) => item.uuid}
         renderItem={({ item }) => (
           <ReminderRow
@@ -98,6 +103,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   list: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

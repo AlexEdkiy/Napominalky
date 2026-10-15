@@ -10,6 +10,7 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
  */
 export const notes = sqliteTable('notes', {
   uuid: text('uuid').primaryKey(),
+  isFavorite: integer('is_favorite').notNull().default(0),
   userId: text('user_id'),
   title: text('title').notNull(),
   body: text('body'),

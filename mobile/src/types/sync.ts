@@ -21,6 +21,7 @@ export interface SyncChange {
  * tombstone.
  */
 export interface ServerNote {
+  is_favorite?: boolean
   uuid: string
   title: string
   body: string | null
@@ -39,6 +40,7 @@ export interface ServerNote {
  * вручную, is_completed ⇔ status='done' (сервер нормализует инвариант).
  */
 export interface ServerShoppingList {
+  is_favorite?: boolean
   uuid: string
   title: string
   type: string
@@ -57,6 +59,7 @@ export interface ServerShoppingList {
  * link/comment/tags — мета-поля пункта (tags — JSON-строка, как и локально).
  */
 export interface ServerShoppingListItem {
+  is_favorite?: boolean
   uuid: string
   shopping_list_uuid: string
   name: string
@@ -94,6 +97,7 @@ export interface ServerShoppingListItemComment {
 
 /** Серверная запись напоминания (pull). */
 export interface ServerReminder {
+  is_favorite?: boolean
   uuid: string
   title: string
   notes: string | null

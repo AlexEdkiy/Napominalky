@@ -1,6 +1,6 @@
 import { databaseScope } from '../databaseScope'
 import { activeRepository } from './activeRepository'
-import { and, asc, between, eq, isNull, lt } from 'drizzle-orm'
+import { and, asc, desc, between, eq, isNull, lt } from 'drizzle-orm'
 import { db as defaultDb, type Database } from '../client'
 import { reminders, type ReminderRow } from '../schema/reminders'
 import { nextOccurrence, type RecurrenceType } from '../../utils/recurrence'
@@ -15,6 +15,7 @@ import {
 /** Доменное напоминание: boolean is_completed вместо 0/1. */
 export interface Reminder {
   uuid: string
+  isFavorite?: boolean
   userId: string | null
   title: string
   notes: string | null
@@ -78,6 +79,7 @@ const toSchedulable = (reminder: Reminder): SchedulableReminder => ({
 /** Преобразует строку SQLite (0/1) в доменное напоминание с booleans. */
 const toReminder = (row: ReminderRow): Reminder => ({
   uuid: row.uuid,
+  isFavorite: row.isFavorite === 1,
   userId: row.userId,
   title: row.title,
   notes: row.notes,
@@ -188,7 +190,7 @@ export class RemindersRepository {
       .select()
       .from(reminders)
       .where(and(...filters))
-      .orderBy(asc(reminders.remindAt))
+      .orderBy(desc(reminders.isFavorite), asc(reminders.remindAt), asc(reminders.uuid))
     return rows.map(toReminder)
   }
 
@@ -274,7 +276,7 @@ export class RemindersRepository {
           between(reminders.remindAt, fromIso, toIso),
         ),
       )
-      .orderBy(asc(reminders.remindAt))
+      .orderBy(desc(reminders.isFavorite), asc(reminders.remindAt), asc(reminders.uuid))
     return rows.map(toReminder)
   }
 
@@ -293,7 +295,7 @@ export class RemindersRepository {
           lt(reminders.remindAt, nowIso()),
         ),
       )
-      .orderBy(asc(reminders.remindAt))
+      .orderBy(desc(reminders.isFavorite), asc(reminders.remindAt), asc(reminders.uuid))
     return rows.map(toReminder)
   }
 

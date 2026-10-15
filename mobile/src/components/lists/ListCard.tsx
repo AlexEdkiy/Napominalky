@@ -1,3 +1,4 @@
+import FavoriteButton from '@/components/ui/FavoriteButton'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -38,6 +39,7 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
   const cfg = useTypeConfig(list.type)
 
   return (
+    <View style={[styles.outer, { backgroundColor: colors.surface }]}>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
@@ -80,11 +82,15 @@ const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) =
         )}
       </View>
     </Pressable>
+    <FavoriteButton entity="shopping_list" uuid={list.uuid} title={title} favorite={list.isFavorite} />
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  outer: { flexDirection: 'row', alignItems: 'center' },
   card: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,

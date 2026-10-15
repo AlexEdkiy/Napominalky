@@ -3,6 +3,7 @@ export type SearchType = 'all' | 'list' | 'item' | 'note' | 'reminder'
 export interface SearchResult {
   type: Exclude<SearchType, 'all'>
   uuid: string
+  isFavorite?: boolean
   title: string
   excerpt: string
   listUuid: string | null

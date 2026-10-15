@@ -106,6 +106,7 @@ class Note extends Model
     protected function casts(): array
     {
         return [
+            'is_favorite' => 'boolean',
             'is_pinned' => 'boolean',
             'is_archived' => 'boolean',
             'server_revision' => 'integer',
