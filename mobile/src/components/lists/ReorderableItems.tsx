@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, FlatList, Keyboard, PanResponder, StyleSheet, View,
   type FlatListProps, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { useTheme } from '@/theme'
+
+export type RenderDragHandle = (accent: React.ReactNode) => React.ReactElement
 
 interface OrderedItem { uuid: string; updatedAt?: string }
 interface Props<T> extends Omit<FlatListProps<T>, 'data' | 'renderItem' | 'keyExtractor'> {
   data: T[]; onReorder: (uuids: string[]) => void; disabled?: boolean
-  renderRow: (item: T, handle: React.ReactNode, dragging: boolean) => React.ReactElement
+  renderRow: (item: T, handle: RenderDragHandle, dragging: boolean) => React.ReactElement
 }
 interface CellProps<T> {
   item: T; children?: React.ReactNode; onLayout?: ((event: LayoutChangeEvent) => void) | undefined
@@ -15,13 +15,13 @@ interface CellProps<T> {
 }
 interface Drag<T> { item: T; target: string; pointer: number; grab: number; signature: string }
 interface HandleProps {
+  children: React.ReactNode; active: boolean
   uuid: string; disabled: boolean; start: (y: number) => void; move: (y: number) => void
   finish: (save: boolean) => void; step: (delta: number) => void
 }
 const CellDrag = createContext({ uuid: '', target: '', translation: new Animated.Value(0) })
 
 const DragHandle: React.FC<HandleProps> = (props) => {
-  const { colors } = useTheme()
   const latest = useRef(props)
   latest.current = props
   const responder = useMemo(() => PanResponder.create({
@@ -34,13 +34,13 @@ const DragHandle: React.FC<HandleProps> = (props) => {
     onPanResponderTerminationRequest: () => false,
   }), [])
   return <View {...responder.panHandlers} style={styles.handle} accessible accessibilityRole="adjustable"
-    accessibilityLabel="Порядок пункта" accessibilityHint="Перетащите вверх или вниз за ручку"
-    accessibilityState={{ disabled: props.disabled }} testID={`drag-handle-${props.uuid}`}
+    accessibilityLabel="Порядок пункта" accessibilityHint="Перетащите вверх или вниз за левую цветную плашку"
+    accessibilityState={{ disabled: props.disabled, selected: props.active }} testID={`drag-handle-${props.uuid}`}
     accessibilityActions={[{ name: 'increment', label: 'Ниже' }, { name: 'decrement', label: 'Выше' }]}
     onAccessibilityAction={(event) => {
       if (!props.disabled) props.step(event.nativeEvent.actionName === 'increment' ? 1 : -1)
     }}>
-    <Ionicons name="reorder-three-outline" size={26} color={colors.textSecondary} />
+    {props.children}
   </View>
 }
 
@@ -140,7 +140,8 @@ export default function ReorderableItems<T extends OrderedItem>({
         disableVirtualization={active.length > 0} extraData={active}
         onContentSizeChange={(_width, height) => { bounds.current.content = height }}
         onScroll={(event) => { bounds.current.offset = event.nativeEvent.contentOffset.y }} scrollEventThrottle={16}
-        renderItem={({ item }) => renderRow(item, <DragHandle uuid={item.uuid} disabled={disabled}
+        renderItem={({ item }) => renderRow(item, (accent) => <DragHandle
+          uuid={item.uuid} disabled={disabled} active={active === item.uuid}
           start={(pointer) => {
             const cell = layouts.current.get(item.uuid)
             if (!cell || disabled || bounds.current.height <= 0) return
@@ -154,13 +155,13 @@ export default function ReorderableItems<T extends OrderedItem>({
             const to = from + delta
             if (to < 0 || to >= ids.length) return
             ids.splice(from, 1); ids.splice(to, 0, item.uuid); onReorder(ids)
-          }} />, active === item.uuid)} />
+          }}>{accent}</DragHandle>, active === item.uuid)} />
     </CellDrag.Provider>
   </View>
 }
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  handle: { width: 44, height: 44, flexShrink: 0, justifyContent: 'center', alignItems: 'center' },
+  handle: { width: 18, minHeight: 44, flexShrink: 0, alignSelf: 'stretch', flexDirection: 'row' },
   lifted: { zIndex: 10, elevation: 8, opacity: 0.92 },
   cell: { position: 'relative' },
   target: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: '#138F83' },
