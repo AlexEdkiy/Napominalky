@@ -37,7 +37,7 @@ final class RecalculateListStatusAction
             }
 
             if ($locked->isDirty(['deadline', 'reminder_at', 'status', 'is_completed'])) {
-                $locked->save();
+                $locked->saveDerivedState();
             }
 
             $list->setRawAttributes($locked->getAttributes(), true);

@@ -24,6 +24,35 @@ class ShoppingList extends Model
     use SoftDeletes;
     use TracksSyncRevision;
 
+    private bool $savingDerivedState = false;
+
+    protected $hidden = ['user_updated_at'];
+
+    protected static function booted(): void
+    {
+        static::saving(static function (self $list): void {
+            if (! $list->savingDerivedState) {
+                // Sync explicitly sets updated_at with timestamps disabled;
+                // REST/model writes use Eloquent's ordinary timestamp rules.
+                if ($list->usesTimestamps()) {
+                    $list->updateTimestamps();
+                }
+                $list->user_updated_at = $list->updated_at ?? $list->freshTimestamp();
+            }
+        });
+    }
+
+    /** Publish derived fields without inventing a new parent user mutation. */
+    public function saveDerivedState(): void
+    {
+        $this->savingDerivedState = true;
+        try {
+            $this->save();
+        } finally {
+            $this->savingDerivedState = false;
+        }
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -110,6 +139,7 @@ class ShoppingList extends Model
     protected function casts(): array
     {
         return [
+            'user_updated_at' => 'immutable_datetime',
             'is_favorite' => 'boolean',
             'is_completed' => 'boolean',
             'status' => TaskStatus::class,
