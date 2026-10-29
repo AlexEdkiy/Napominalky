@@ -1,17 +1,20 @@
 # Versioned releases (OPS-14)
 
-Production is active on **rbe1f5eb-web69** since 2026-10-13 13:31 MSK, source SHA
-`be1f5eb875a6b284a4b29946e82908a379f8359d`. WEB-69 removes the persistent instructions
-and extra controls after Telegram sharing. Draft transfer is preserved; oversized
-messages and actual failures use feedback outside the main form.
-All three CI jobs, artifact verification, the managed switch for the requested correction
-and nine public desktop/mobile browser checks passed. Backend/schema are unchanged; there are no migrations.
-[WEB-69 report](../../docs/reviews/web69-quiet-share-2026-10-13.md).
+Production is active on **r57d35d7-dev26** since 2026-10-29 11:59 MSK, source SHA
+`57d35d7b437af3605c94daf0a92f3ed9b7fe08ea`. DEV-26 separates the parent user-edit
+clock from derived updates when applying list deletion. Existing APKs remain compatible.
+Only additive migration `2026_10_29_000001_add_user_updated_at_to_shopping_lists`
+was applied (batch 18). Backup, exact-SHA CI, 465 artifact backend tests, nine real
+mobile SQLite/API scenarios, managed switch and public smoke all passed.
+[DEV-26 report](../../docs/reviews/dev26-list-deletion-2026-10-29.md).
 
-Keep **rb911942-web68** for code rollback; stopped containers are
-`reminders_serve-previous-e8586ee9` and `reminders_web-previous-e8586ee9`.
-The WEB-63 offline Service Worker remains in place: it caches only four public
-fallback files, never the SPA/API. Retain the WEB-54 database columns (batch 16).
+Keep **r3bb319c-mob75** for code rollback; stopped containers are
+`reminders_serve-previous-af97ba2b` and `reminders_web-previous-af97ba2b`.
+Retain the new column on rollback. If the old code accepted writes after rollback,
+repeat `user_updated_at = updated_at` backfill with writes stopped before enabling
+DEV-26 again. See [ARCH-8](../../docs/architecture/list-deletion-clock.md).
+Do not restore the database backup automatically. Retain earlier favorites/schedule
+columns and shared storage. MOB-74 email verification was not included in this release.
 
 The initial OPS-14 migration on 2026-09-30
 automatically recovered to baseline after a transient proxy 502; the corrected

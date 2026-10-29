@@ -244,8 +244,8 @@ final class SyncChangeApplier
 
     /**
      * Пересчёт статуса родительской задачи после применения изменения пункта.
-     * Обычный save (timestamps now, свой server_revision) — отдельно от
-     * LWW-persist пункта: серверная деривация новее клиентской версии списка.
+     * updated_at/server_revision доставляют производные поля прежним клиентам;
+     * user_updated_at сохраняет версию прямой правки для удаления (DEV-26).
      * Guard'ы (goods / закреплённый ручной статус) — внутри Recalculate.
      */
     private function recalculateParent(Model $model): void

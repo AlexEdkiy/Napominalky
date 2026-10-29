@@ -6,6 +6,7 @@ namespace App\Services\Sync;
 
 use App\Data\SyncChangeData;
 use App\Data\SyncPushResultData;
+use App\Models\ShoppingList;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +73,14 @@ final class SyncPushService
                     continue;
                 }
 
-                if ($change->updatedAt->gte($existing->updated_at)) {
+                // Child tombstones recalculate the active parent before its
+                // deletion arrives, possibly in a later batch. Only an actual
+                // newer parent mutation should defeat that deletion. Keep the
+                // existing LWW rule for updates and already-deleted parents.
+                $version = $change->operation === 'delete' && $existing instanceof ShoppingList && ! $existing->trashed()
+                    ? ($existing->user_updated_at ?? $existing->updated_at)
+                    : $existing->updated_at;
+                if ($change->updatedAt->gte($version)) {
                     $this->applier->apply($user, $existing, $change);
                     $applied[] = $change->uuid;
                     $maxRevision = max($maxRevision, (int) $existing->server_revision);

@@ -64,6 +64,24 @@ jobs:
           php artisan key:generate --env=testing
       - name: Run backend tests
         run: php artisan test --compact
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install mobile integration dependencies
+        run: npm ci --prefix ../mobile
+      - name: Check mobile SQLite against the real backend
+        run: |
+          php tests/Support/seedSyncIntegration.php
+          php artisan serve --host=127.0.0.1 --port=18026 > /tmp/sync-integration-api.log 2>&1 &
+          sync_api_pid=$!
+          trap 'kill "$sync_api_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18026/up > /dev/null; then break; fi
+            sleep 1
+          done
+          SYNC_INTEGRATION_URL=http://127.0.0.1:18026 npm test --prefix ../mobile -- --runInBand listDeletionBackend.integration.test.ts
 
   clients:
     name: ${{ matrix.layer }} checks
