@@ -65,10 +65,10 @@ def prepare(args):
         files = {str(p.relative_to(artifact)): digest(p) for p in sorted(artifact.rglob('*')) if p.is_file()}
         (artifact / 'manifest.json').write_text(json.dumps(dict(info, files=files), indent=2) + '\n')
         verify(artifact)
-        for item in artifact.rglob('*'):
-            item.chmod(0o555 if item.is_dir() else 0o444)
-        artifact.chmod(0o555)
         artifact.rename(target)
+    for item in target.rglob('*'):
+        item.chmod(0o555 if item.is_dir() else 0o444)
+    target.chmod(0o555)
     print(json.dumps({'artifact': str(target), **info}))
 
 
