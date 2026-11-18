@@ -34,6 +34,14 @@ class PublicReadinessTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'before timeout'):
                 wait_public(self.config, 'new', timeout=0.01)
 
+    def test_dedicated_domain_checks_root_marker_and_api(self):
+        config = {'public_web_url': 'https://lk.example.test', 'public_web_base': '/'}
+        with patch('runtime.request', side_effect=[(b'{"release":"new"}', {}), (b'', {})]) as request:
+            wait_public(config, 'new')
+        self.assertEqual([call.args[0] for call in request.call_args_list], [
+            'https://lk.example.test/release.json', 'https://lk.example.test/api/v1/auth/me',
+        ])
+
 
 if __name__ == '__main__':
     unittest.main()

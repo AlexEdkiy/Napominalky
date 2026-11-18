@@ -1,5 +1,14 @@
 # Versioned releases (OPS-14)
 
+OPS-16 adds two web bundles to each new artifact: `web/` for `/napominalki/`
+and `web-root/` for `https://lk.napominalky.ru/`. Both share the same source SHA;
+the root bundle uses `VITE_API_URL=''`, so API calls use `/api/v1` on its own origin.
+Manifest flag `root_web` enables the additional read-only mount and both smoke checks.
+Older artifacts without the flag remain supported. For a root-domain public probe,
+set `public_web_url` to `https://lk.napominalky.ru` and `public_web_base` to `/`.
+Do this only after DNS and TLS are live. Migration and rollback:
+[OPS-16 report](../../docs/reviews/ops16-domain-2026-11-18.md).
+
 Production is active on **r57d35d7-dev26** since 2026-10-29 11:59 MSK, source SHA
 `57d35d7b437af3605c94daf0a92f3ed9b7fe08ea`. DEV-26 separates the parent user-edit
 clock from derived updates when applying list deletion. Existing APKs remain compatible.

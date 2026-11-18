@@ -75,10 +75,17 @@ def prepare(args):
         subprocess.run(['npm', 'run', 'build', '--', '--base=/napominalki/'],
                        cwd=source / 'web', env=env, check=True)
         shutil.copytree(source / 'web/dist', output / 'web')
+        # Dedicated domain and the historical /napominalki/ entry share one SHA.
+        # Keep both bundles so installed clients and old bookmarks stay usable.
+        env['VITE_API_URL'] = ''
+        subprocess.run(['npm', 'run', 'build', '--', '--base=/', '--outDir=dist-root'],
+                       cwd=source / 'web', env=env, check=True)
+        shutil.copytree(source / 'web/dist-root', output / 'web-root')
         shutil.copyfile(source / 'deploy/reminders-web.nginx.conf', output / 'nginx.conf')
         info = {'release': release_id, 'source_sha': sha, 'images': image_ids,
-                'packager_sha256': checksum(Path(__file__))}
+                'root_web': True, 'packager_sha256': checksum(Path(__file__))}
         (output / 'web/release.json').write_text(json.dumps(info, indent=2) + '\n')
+        (output / 'web-root/release.json').write_text(json.dumps(info, indent=2) + '\n')
         files = {str(path.relative_to(output)): checksum(path)
                  for path in sorted(output.rglob('*')) if path.is_file()}
         (output / 'manifest.json').write_text(json.dumps(dict(info, files=files), indent=2) + '\n')

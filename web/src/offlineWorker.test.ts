@@ -2,7 +2,7 @@
 import source from '../public/offline-worker.js?raw'
 import { expect, it, vi } from 'vitest'
 
-async function worker() {
+async function worker(scope = 'https://example.test/napominalki/') {
   const handlers = new Map<string, (event: unknown) => void>()
   const stored = new Map<string, Response>()
   const cache = {
@@ -11,7 +11,7 @@ async function worker() {
   }
   const caches = { open: async () => cache, keys: async () => ['another-app', 'napominalki-offline:/napominalki/:v0', 'napominalki-offline:/napominalki/:v1'], delete: vi.fn() }
   const fetch = vi.fn(async () => new Response('<head></head><body>Offline</body>', { headers: { 'content-type': 'text/html', 'content-length': '100', 'content-encoding': 'gzip' } }))
-  const self = { registration: { scope: 'https://example.test/napominalki/' }, addEventListener: (type: string, fn: (event: unknown) => void) => handlers.set(type, fn), skipWaiting: vi.fn(), clients: { claim: vi.fn() } }
+  const self = { registration: { scope }, addEventListener: (type: string, fn: (event: unknown) => void) => handlers.set(type, fn), skipWaiting: vi.fn(), clients: { claim: vi.fn() } }
   // Execute the actual browser script with isolated worker/cache/network dependencies.
   new Function('self', 'fetch', 'caches', 'URL', 'Response', 'Headers', source)(self, fetch, caches, URL, Response, Headers)
   let installed: Promise<unknown> | undefined
@@ -66,4 +66,16 @@ it('serves the cached illustration offline and cleans up only its own old cache'
   handlers.get('activate')?.({ waitUntil: (p: Promise<unknown>) => { activated = p } })
   await activated
   expect(caches.delete).toHaveBeenCalledExactlyOnceWith('napominalki-offline:/napominalki/:v0')
+})
+
+it('supports the dedicated domain root and excludes its API and static bundles from offline HTML', async () => {
+  const origin = 'https://lk.napominalky.ru'
+  const { request, fetch, stored } = await worker(origin + '/')
+  expect(await stored.get(origin + '/offline.html')!.clone().text()).toContain('<base href="/">')
+  fetch.mockRejectedValueOnce(new TypeError('offline'))
+  expect(await (await request(origin + '/lk/notes'))?.text()).toContain('Offline')
+  for (const path of ['/api/v1/notes', '/assets/app.js', '/release.json']) {
+    expect(request(origin + path)).toBeUndefined()
+  }
+  expect(stored.size).toBe(4)
 })

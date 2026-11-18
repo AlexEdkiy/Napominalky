@@ -1,5 +1,5 @@
 /** Public landing page only: never attach a private entity URL or account token. */
-export const telegramShareWebsite = 'https://jemsoft.ru/napominalki/'
+export const telegramShareWebsite = 'https://lk.napominalky.ru/'
 
 /** Telegram Desktop truncates external URIs to 8192 characters. Fall back to
  * copying the full message instead of opening a silently truncated draft.

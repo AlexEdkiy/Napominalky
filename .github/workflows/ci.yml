@@ -131,3 +131,8 @@ jobs:
         env:
           VITE_API_URL: /napominalki
         run: npm run build -- --base=/napominalki/
+      - name: Build web for dedicated domain
+        if: matrix.layer == 'web'
+        env:
+          VITE_API_URL: ''
+        run: npm run build -- --base=/ --outDir=dist-root
