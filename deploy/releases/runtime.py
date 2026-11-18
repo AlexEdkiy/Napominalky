@@ -56,12 +56,13 @@ def wait_public(config, release_id, timeout=20):
     while time.monotonic() < deadline:
         try:
             remaining = max(0.01, min(3, deadline - time.monotonic()))
-            body, _ = request(config['public_web_url'] + '/napominalki/release.json',
+            base = config.get('public_web_base', '/napominalki/')
+            body, _ = request(config['public_web_url'] + base + 'release.json',
                               200, timeout=remaining)
             if json.loads(body)['release'] != release_id:
                 raise RuntimeError('Public proxy serves a different release')
             remaining = max(0.01, min(3, deadline - time.monotonic()))
-            request(config['public_web_url'] + '/napominalki/api/v1/auth/me',
+            request(config['public_web_url'] + base + 'api/v1/auth/me',
                     401, timeout=remaining)
             return
         except (OSError, RuntimeError, ValueError, KeyError) as error:
@@ -70,16 +71,16 @@ def wait_public(config, release_id, timeout=20):
     raise RuntimeError('Public proxy did not become ready before timeout') from last_error
 
 
-def smoke(api_url, web_url, release_id):
+def smoke(api_url, web_url, release_id, web_base='/napominalki/'):
     request(api_url + '/up', 200)
     request(api_url + '/api/v1/auth/me', 401)
     request(api_url + '/api/v1/auth/login', 422, 'POST', b'{}')
-    body, headers = request(web_url + '/napominalki/', 200)
+    body, headers = request(web_url + web_base, 200)
     if 'no-cache' not in headers.get('Cache-Control', ''):
         raise RuntimeError('SPA entry must revalidate')
     if headers.get('X-Content-Type-Options') != 'nosniff':
         raise RuntimeError('Missing security headers')
-    asset = re.search(rb'src="(/napominalki/assets/[^"<>]+\.js)"', body)
+    asset = re.search(rb'src="(' + re.escape(web_base.encode()) + rb'assets/[^"<>]+\.js)"', body)
     if not asset:
         raise RuntimeError('SPA entry does not reference a JavaScript bundle')
     _, headers = request(web_url + asset[1].decode(), 200)
@@ -87,8 +88,8 @@ def smoke(api_url, web_url, release_id):
         raise RuntimeError('Bundle must be served as JavaScript')
     if 'max-age=31536000' not in headers.get('Cache-Control', ''):
         raise RuntimeError('Hashed assets must be cacheable')
-    request(web_url + '/napominalki/assets/nonexistent-ops14.js', 404)
-    body, _ = request(web_url + '/napominalki/release.json', 200)
+    request(web_url + web_base + 'assets/nonexistent-ops14.js', 404)
+    body, _ = request(web_url + web_base + 'release.json', 200)
     if json.loads(body)['release'] != release_id:
         raise RuntimeError('Unexpected served release')
 
@@ -114,6 +115,8 @@ def container_args(config, release, manifest, role):
                  manifest['images']['api'], 'php', 'artisan', 'serve', '--no-reload',
                  '--host=0.0.0.0', '--port=8000']
     else:
+        if manifest.get('root_web'):
+            args += ['--mount', f'type=bind,src={release / "web-root"},dst=/usr/share/nginx/root-web,readonly']
         args += ['--mount', f'type=bind,src={release / "web"},dst=/usr/share/nginx/html/napominalki,readonly',
                  '--mount', f'type=bind,src={release / "nginx.conf"},dst=/etc/nginx/nginx.conf,readonly',
                  '--tmpfs', '/var/cache/nginx:rw,size=16m', '--tmpfs', '/var/run:rw,size=4m',
@@ -149,6 +152,8 @@ def start(config, release):
         if last_error:
             raise last_error
         smoke(config['api_url'], config['web_url'], manifest['release'])
+        if manifest.get('root_web'):
+            smoke(config['api_url'], config['web_url'], manifest['release'], '/')
     except BaseException:
         for name in reversed(created):
             docker('rm', '-f', name)
@@ -173,5 +178,8 @@ if __name__ == '__main__':
         if args.command == 'start':
             start(config, release)
         else:
-            smoke(config['api_url'], config['web_url'], verify(release)['release'])
+            manifest = verify(release)
+            smoke(config['api_url'], config['web_url'], manifest['release'])
+            if manifest.get('root_web'):
+                smoke(config['api_url'], config['web_url'], manifest['release'], '/')
             print('Smoke passed')
