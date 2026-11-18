@@ -1,0 +1,36 @@
+name: napominalky-landing
+services:
+  web:
+    image: sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+    container_name: napominalky_landing
+    restart: unless-stopped
+    read_only: true
+    entrypoint: [nginx, -g, "daemon off;"]
+    labels:
+      napominalky.managed: landing
+      napominalky.release: ${LANDING_RELEASE_ID:?Specify LANDING_RELEASE_ID}
+    ports:
+      - 127.0.0.1:18089:8080
+    volumes:
+      - type: bind
+        source: ${LANDING_RELEASE_DIR:?Specify immutable LANDING_RELEASE_DIR}/public
+        target: /usr/share/nginx/html
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${LANDING_RELEASE_DIR:?Specify immutable LANDING_RELEASE_DIR}/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /var/cache/nginx:rw,size=16m
+      - /var/run:rw,size=4m
+      - /tmp:rw,noexec,nosuid,size=8m
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true
+    name: insure-platform_default
