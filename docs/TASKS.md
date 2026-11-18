@@ -16,7 +16,7 @@
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 1            | security-auditor          |
-| OPS     | 15           | devops-engineer           |
+| OPS     | 16           | devops-engineer           |
 | DOC     | 61           | technical-writer          |
 
 ## Сводка
@@ -26,7 +26,7 @@
 | Статус | Количество |
 |--------|:----------:|
 | Completed | 186 |
-| In Progress | 2 |
+| In Progress | 3 |
 | Pending | 4 |
 | Blocked | 0 |
 | Cancelled | 0 |
@@ -34,6 +34,15 @@
 ---
 
 ## Feature: Архитектура MVP
+
+### OPS-16: Основной веб-домен lk.napominalky.ru
+- **Исполнитель:** Codex (web/ops, самопроверка)
+- **Статус:** in_progress
+- **Приоритет:** high
+- **Описание:** Опубликовать веб-приложение в корне https://lk.napominalky.ru/; DNS, HTTPS, маршрутизация SPA/API, ссылки, восстановление пароля и offline-страница.
+- **Критерии приёмки:** login/API/deep links/static assets/offline на desktop/mobile web; валидный TLS и продление; сохранение старого API для APK; immutable artifact/CI/публичная проверка, сохранённый откат.
+- **Зависимость:** у lk отсутствует DNS-запись; пользователю передана A lk → 94.103.15.24 (DNS nic.ru).
+- **Создана:** 2026-11-18
 
 ### WEB-70: Диагностика и завершение прерванного удаления задачи
 - **Исполнитель:** Codex (координатор, самопроверка)
