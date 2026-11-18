@@ -44,13 +44,13 @@ OPS-17: хостинг `https://www.napominalky.ru/` включён 2026-11-18 1
 проверки и renewal dry-run прошли; OPS-17 завершён.
 [Публикация и состояние](reviews/ops17-landing-domain-2026-11-18.md).
 
-OPS-16: перенос веба на `https://lk.napominalky.ru/`, отдельная ветка
-`release-ops16` от production `57d35d7`, без MOB-74. Подготовлены сборки для корня
-домена и прежнего `/napominalki/`, API старых APK сохраняется. Артефакт
-`r9e7ac28-ops16`, CI, 736 web-тестов, оба smoke и desktop/mobile browser прошли.
-ACME-host настроен. Публичное включение зависит от DNS A `lk → 94.103.15.24`
-и сертификата; production ещё `r57d35d7-dev26`. Статус и порядок переключения:
-[OPS-16](reviews/ops16-domain-2026-11-18.md).
+OPS-16 выпущен 2026-11-18 17:57 МСК: кабинет `https://lk.napominalky.ru/`,
+production `r9e7ac28-ops16` / `9e7ac28`, без MOB-74 и миграций. Старый
+`/napominalki/` и API мобильных сборок сохранены. DNS, TLS/renewal dry-run,
+CI, 736 web-тестов, оба smoke и desktop/mobile browser прошли. Новый origin
+требует повторного входа. Провайдерский DNS-кэш при выпуске ещё хранил NXDOMAIN;
+публичная проверка выполнена через подтверждённый Google/Cloudflare адрес с TLS.
+[Выпуск и откат OPS-16](reviews/ops16-domain-2026-11-18.md).
 
 Выпущен DEV-26 / ARCH-8: `r57d35d7-dev26`, source `57d35d7`, 2026-10-29 11:59 МСК.
 Удаление списка сравнивается с прямой правкой родителя, а не с пересчётом пунктов.

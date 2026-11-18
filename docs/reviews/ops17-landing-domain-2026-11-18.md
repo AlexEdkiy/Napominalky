@@ -20,9 +20,8 @@
   `/home/vselug/workspace/Napominalky-runtime/landing/releases/ops17-bootstrap`.
   Файлы и контейнер readonly, проверочный порт только `127.0.0.1:18089`.
 - Кабинет/БД/API не менялись; активная версия по прежнему адресу `r57d35d7-dev26`.
-  Домен lk остаётся отдельной задачей OPS-16: NXDOMAIN подтверждён авторитетным DNS.
-  Скриншот показал запись lk в отдельной зоне lk.napominalky.ru; пользователю
-  передано исправление — создать A lk в основной зоне napominalky.ru.
+  Позднее в 17:57 МСК отдельно завершён OPS-16: кабинет теперь на lk, production
+  `r9e7ac28-ops16`; landing-контейнер и артефакт при этом сохранены.
 
 ## Проверки
 
@@ -49,15 +48,15 @@
 проверить на отдельном порту, сохранить старый `landing/target.env`, переключить
 только landing Compose и reload proxy. Предыдущий артефакт сохранять для отката.
 Приложение и БД в этих командах не участвуют. Ссылка «Войти» будущего лендинга —
-`https://lk.napominalky.ru/`, после завершения OPS-16.
+`https://lk.napominalky.ru/` (OPS-16 завершён в тот же день).
 
 Согласованные конфиги внешнего nginx находятся в
 `/home/vselug/workspace/Napominalky-artifacts/ops17/`:
 
 - `proxy.before.conf` — до добавления лендинга, с bootstrap lk;
 - `proxy.bootstrap.conf` — bootstrap всех трёх имён;
-- `proxy.www-only-https.conf` — текущая конфигурация: HTTPS лендинга + bootstrap lk;
-- `proxy.all-https.conf` — кандидат после готовности сертификата lk;
+- `proxy.www-only-https.conf` — состояние до OPS-16: HTTPS лендинга + bootstrap lk;
+- `proxy.all-https.conf` — текущая конфигурация с 17:57 МСК, HTTPS кабинета и лендинга;
 - `proxy.lk-only-https.conf` — резервный вариант lk HTTPS + bootstrap лендинга.
 
 При продолжении OPS-16 не устанавливать старый `ops16/proxy.https.conf` целиком:

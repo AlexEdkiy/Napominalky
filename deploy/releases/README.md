@@ -9,7 +9,21 @@ set `public_web_url` to `https://lk.napominalky.ru` and `public_web_base` to `/`
 Do this only after DNS and TLS are live. Migration and rollback:
 [OPS-16 report](../../docs/reviews/ops16-domain-2026-11-18.md).
 
-Production is active on **r57d35d7-dev26** since 2026-10-29 11:59 MSK, source SHA
+Production is active on **r9e7ac28-ops16** since 2026-11-18 17:57 MSK, source SHA
+`9e7ac28bcb382898ae458837363b51240a1eb17a`, at `https://lk.napominalky.ru/`.
+Both root/legacy bundles and the old APK API are served. APP_URL/FRONTEND_URL and
+the production public probe now use the new origin. There were no migrations.
+CI, artifact, root/legacy smoke, public desktop/mobile guest flows, TLS and renewal
+dry-run passed. Authenticated flows were tested only on isolated staging.
+During release the server provider still cached NXDOMAIN; scoped DNS lookup used
+the A record verified through Google/Cloudflare, retaining normal TLS verification.
+Keep **r57d35d7-dev26** for rollback and stopped `*-previous-f1d1598c` containers.
+Before switching back, restore proxy/env/target from the private backup
+`production/backups/ops16-20261118T145714Z/` (under Napominalky-runtime).
+This proxy backup preserves the www landing host; do not use older OPS-16 snapshots.
+[OPS-16 release and rollback](../../docs/reviews/ops16-domain-2026-11-18.md).
+
+The previous DEV-26 release was **r57d35d7-dev26**, 2026-10-29 11:59 MSK, source SHA
 `57d35d7b437af3605c94daf0a92f3ed9b7fe08ea`. DEV-26 separates the parent user-edit
 clock from derived updates when applying list deletion. Existing APKs remain compatible.
 Only additive migration `2026_10_29_000001_add_user_updated_at_to_shopping_lists`
