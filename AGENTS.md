@@ -17,18 +17,21 @@ web Vue — личный кабинет и админку. Сохранност�
 
 ## Работа с репозиторием
 
-- Production отделён от Git: `reminders_serve` и `reminders_web` читают
-  неизменяемые артефакты `/home/vselug/workspace/Napominalky-runtime/releases/`.
-  `.env`, пользовательские файлы и логи — в `Napominalky-runtime/production/`.
-  Активный релиз определяй по container labels и `/napominalki/release.json`.
+- С OPS-18 production находится на `devops@195.206.252.160`: `reminders_serve`
+  и `reminders_web` читают неизменяемые `/srv/napominalky/releases/`;
+  `.env`, пользовательские файлы и логи — `/srv/napominalky/production/`.
+  Локальный `Napominalky-runtime` — прежняя площадка/артефакты для упаковки,
+  не активный production. Активный релиз определяй по labels на новом VPS
+  и `https://lk.napominalky.ru/release.json`. Сверяй состояние DNS по OPS-18.
 - Разрабатывай в отдельном worktree. Выпуск выполняется только через
   `deploy/releases/` по проверенному SHA; merge/сборка в dev не выкладывают код.
   Сначала подготовь diff и план выпуска; учитывай разрешение пользователя.
   Команды, результаты и откат: `deploy/releases/README.md`.
 - Старые контейнеры `*-legacy-*` остановлены. После переноса не запускай их:
   там прежнее хранилище. Откат кода использует baseline-артефакт и актуальные данные.
-  Рабочие DB/Redis по-прежнему относятся к исходному Compose-проекту: не выполняй
-  `docker compose down` и не используй их для тестов. Для проверок нужна отдельная БД.
+  Старые writers/scheduler выключены, старая БД read-only: не возвращай ей запись.
+  Рабочие DB/Redis на новом VPS выделены отдельно; не выполняй `docker compose down`
+  и не используй production для тестов. Для проверок нужна отдельная БД.
 - Сохраняй текущие API-контракты и семантику SQLite/outbox/LWW/tombstone.
   Новые контракты и схемы сначала опиши как отдельное архитектурное решение.
 - ID резервируй в TASKS.md перед работой. У реестра один автор на цикл;

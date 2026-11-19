@@ -1,5 +1,33 @@
 # Versioned releases (OPS-14)
 
+## Current production after OPS-18
+
+Since **2026-11-19 15:07 UTC**, production is on **195.206.252.160**, release
+**r9e7ac28-ops18**, unchanged application SHA `9e7ac28bcb382898ae458837363b51240a1eb17a`.
+Connect as `devops`; runtime tools are `/srv/napominalky/tools/`, immutable releases
+`/srv/napominalky/releases/`, current config `/srv/napominalky/production/target.json`.
+The host nginx uses fixed loopback upstreams, so container DNS reload is unnecessary
+for `switch.py`. New releases still require verified artifacts, target configuration
+and current authorization; temporary migration sudo is removed after deployment.
+
+The old host only forwards Napominalky HTTPS requests to the new host. Its API/app/
+web/landing containers are stopped with restart=no, scheduler removed, old DB read-only.
+**Never restore writes to the old database after the target accepted changes.**
+Use current target data for a code rollback. A return migration requires a fresh
+reverse snapshot with writes stopped; historical OPS-14/16 rollback instructions
+below must not restore old proxy routes or old production data after OPS-18.
+
+The old PHP image embeds historical environment/log files and must not be exported.
+Use clean API image `sha256:b544765a589a3088996a4cb26b7ca6b502401a972a0afee191f45db31f0586a4`
+and web image `sha256:bef154735288bc38d99fac41ae63730684bcc661503673a04a0f9bc526ba8598`.
+The application bytes are identical; only runtime/release metadata changed.
+Fresh DB/Redis credentials are private on the target; APP_KEY and all user data survived.
+Only the target scheduler is active. No notification queue worker was added.
+
+[Migration, evidence, pending DNS and host nginx limitation](../../docs/reviews/ops18-target-migration-2026-11-19.md).
+
+## Previous releases and original local layout
+
 OPS-16 adds two web bundles to each new artifact: `web/` for `/napominalki/`
 and `web-root/` for `https://lk.napominalky.ru/`. Both share the same source SHA;
 the root bundle uses `VITE_API_URL=''`, so API calls use `/api/v1` on its own origin.
@@ -9,7 +37,7 @@ set `public_web_url` to `https://lk.napominalky.ru` and `public_web_base` to `/`
 Do this only after DNS and TLS are live. Migration and rollback:
 [OPS-16 report](../../docs/reviews/ops16-domain-2026-11-18.md).
 
-Production is active on **r9e7ac28-ops16** since 2026-11-18 17:57 MSK, source SHA
+Before OPS-18, production was **r9e7ac28-ops16** from 2026-11-18 17:57 MSK, source SHA
 `9e7ac28bcb382898ae458837363b51240a1eb17a`, at `https://lk.napominalky.ru/`.
 Both root/legacy bundles and the old APK API are served. APP_URL/FRONTEND_URL and
 the production public probe now use the new origin. There were no migrations.
