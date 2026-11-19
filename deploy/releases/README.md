@@ -293,3 +293,18 @@ an ordinary retained container; it intentionally refuses the suspicious old Redi
 Never start `insure_redis-before-ops20`; retain it offline for investigation.
 A rollback must preserve current data and should leave the firewall protection in
 place. Do not restore a full historical iptables snapshot over new Docker state.
+
+
+## OPS-21: Insure Platform выведен из эксплуатации
+
+2026-11-19 владелец разрешил отключение Insure Platform. Все `insure_*` контейнеры,
+включая `*-before-ops20`, остановлены, `restart=no`, без сетей. Их Compose-сервисы
+находятся в профиле `retired`; не включать этот профиль. Старые OPS-20 снимки и
+утилиту rebind/rollback не использовать для возвращения Insure в работу.
+
+Общий nginx-proxy продолжает работать; Insure upstream удалены, прежние маршруты
+возвращают 410. Конфигурация всё ещё смонтирована из
+`/home/vselug/.openclaw/workspace/insure-platform/nginx.conf`: не удалять этот файл
+или каталог до отдельного переноса mount. `insure-platform_default` остаётся общей
+сетью других сайтов; удалять её нельзя. Данные/журналы сохранены в приватном runtime.
+Подробности: [SEC-2/OPS-21](../../docs/reviews/sec2-redis-incident-2026-11-19.md).
