@@ -308,3 +308,50 @@ place. Do not restore a full historical iptables snapshot over new Docker state.
 или каталог до отдельного переноса mount. `insure-platform_default` остаётся общей
 сетью других сайтов; удалять её нельзя. Данные/журналы сохранены в приватном runtime.
 Подробности: [SEC-2/OPS-21](../../docs/reviews/sec2-redis-incident-2026-11-19.md).
+
+
+## OPS-22: Redis patch upgrade
+
+Target: `reminders_redis`, Redis 7.4.8 → 7.4.12-alpine, official digest
+`sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe`.
+Use `upgrade_redis.py` only for the private OPS-22 snapshot directory; it refuses
+other image references and requires successful candidate and Laravel checks.
+The candidate loads a copy of the RDB without a network. `redis_probe.php` checks
+Laravel cache/locks/session and push/pop/delete in a unique disposable queue;
+it does not execute jobs. Run the isolated PHP probe with a temporary writable
+package cache and a separate Redis key prefix.
+
+Cutover plan: queue writes briefly, capture fingerprints, stop Redis gracefully,
+copy its final RDB, retain the stopped old container, replace only Redis with the
+same volume/IP/aliases, and compare data. Preserve the same named volume during
+an emergency executable rollback; never overwrite it with an earlier snapshot.
+A rollback to 7.4.8 reintroduces known vulnerabilities and is only an emergency step.
+Do not start Insure containers or run compose down. Pin the image in both repository
+Compose files and the active Compose source recorded in the container labels.
+Postchecks: Redis health/persistence and no published ports, Laravel integration,
+production runtime smoke, existing HTTP/TLS checks, scheduler definition/cron,
+unchanged neighboring container IDs and start times.
+
+
+Executed on 2026-11-19: all three original keys preserved, cutover 3.4 seconds,
+Redis healthy; candidate and production Laravel probes passed, production smoke
+and 41 HTTP/TLS checks passed. The temporary candidate was removed; its data copy
+and two RDB backups remain in the private runtime `redis-security-20261119/`.
+`reminders_redis-before-ops22` is stopped, disconnected, restart=no. It shares the
+current volume: never start it alongside the active Redis. Automatic failure
+recovery was not needed; no production downgrade was exercised.
+
+Executed commands from the OPS-22 worktree (not an instruction to repeat the upgrade):
+
+```sh
+sudo python3 deploy/releases/upgrade_redis.py candidate --root /home/vselug/workspace/Napominalky-runtime/redis-security-20261119 --image redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+# Between candidate and apply: isolated Laravel probe; matching result recorded privately.
+sudo python3 deploy/releases/upgrade_redis.py apply --root /home/vselug/workspace/Napominalky-runtime/redis-security-20261119 --image redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+sudo docker exec -i reminders_serve php < deploy/releases/redis_probe.php
+python3 deploy/releases/runtime.py smoke --release /home/vselug/workspace/Napominalky-runtime/releases/r9e7ac28-ops16 --config /home/vselug/workspace/Napominalky-runtime/production/target.json
+```
+
+The snapshot directory is a required precondition, not created by these commands.
+It contains the inspected old container specification, preflight RDB and integration
+results. The guard rejects re-applying after the container identity changes.
+[Execution report and remaining scope](../../docs/reviews/ops22-redis-security-2026-11-19.md).

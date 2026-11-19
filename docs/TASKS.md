@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-11-19 (SEC-2/OPS-21: проверены границы инцидента, Insure Platform отключён)
+> Последнее обновление: 2026-11-19 (OPS-22: Redis Напоминалок обновлён до 7.4.12)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -16,7 +16,7 @@
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 2            | security-auditor          |
-| OPS     | 21           | devops-engineer           |
+| OPS     | 22           | devops-engineer           |
 | DOC     | 61           | technical-writer          |
 
 ## Сводка
@@ -25,7 +25,7 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 192 |
+| Completed | 193 |
 | In Progress | 3 |
 | Pending | 4 |
 | Blocked | 0 |
@@ -34,6 +34,17 @@
 ---
 
 ## Feature: Архитектура MVP
+
+### OPS-22: Обновить Redis Напоминалок до исправленного patch release
+- **Исполнитель:** Codex (ops, самопроверка)
+- **Статус:** completed
+- **Приоритет:** critical
+- **Описание:** Разрешённое пользователем обновление reminders_redis в ветке 7.4 с сохранением данных, очередей, сетевого адреса и изоляции. Insure Platform не запускать.
+- **Критерии приёмки:** официальный образ закреплён digest; резервная копия и проверка загрузки отдельно от production; данные сохранены, Redis/API/cache/queue-проверки успешны, конфигурация следующего запуска закреплена.
+- **Результат:** reminders_redis 7.4.8 → 7.4.12-alpine, официальный образ закреплён digest в двух Compose-файлах и активном источнике Compose. Сохранены том project_redis_data, IP и три исходных ключа; переключение 3,4 секунды. Порт не опубликован; старый контейнер остановлен, restart=no, без сетей.
+- **Проверки:** изолированная загрузка RDB; Laravel cache/lock/session/queue на копии и production; Redis healthy; штатный production smoke; 41 HTTP/TLS-проверка; cron и отсутствие перезапусков соседних контейнеров. Резервные RDB и SHA-256 сохранены.
+- **Отчёт:** [OPS-22, самопроверка и ограничения](reviews/ops22-redis-security-2026-11-19.md). ACL остаётся следующим этапом.
+- **Создана / завершена:** 2026-11-19
 
 ### OPS-21: Вывести Insure Platform из эксплуатации
 - **Исполнитель:** Codex (ops, самопроверка)
