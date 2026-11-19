@@ -174,3 +174,14 @@ Hetzner — ожидаемый 401 с валидным TLS. Подтвержде
 Артефакты вне Git: Napominalky-artifacts/ops18/dns-cutover-* — ответы DNS,
 HTTPS/API, внешний замер, Chromium и скриншоты. Проверка и отчёт — самопроверка;
 рабочий diff в ops18-network, приложение остаётся 9e7ac28 / r9e7ac28-ops18.
+
+
+## Завершение DNS, 19 ноября, 23:03 МСК
+
+При подготовке WEB-71 публичный DNS подтвердил 195.206.252.160 и для jemsoft.ru,
+и для www.jemsoft.ru. [Старый API APK по обычному DNS](https://api.globalping.io/v1/measurements/2RjJTwBrAJjs8XwmH00021XCl)
+проверен из Timeweb AS9123, Selectel AS49505, Yandex.Cloud AS200350: все получили
+новый IP, HTTP 401 без токена и валидный TLS. Доступ кабинета из домашней сети
+пользователь подтвердил ранее. **OPS-18 completed**: критерии сетевой миграции
+выполнены. Ограничение пакета host nginx панели, описанное выше, этим не устраняется.
+Доказательства: `Napominalky-artifacts/web71/mobile-api-{created,result}.json`.

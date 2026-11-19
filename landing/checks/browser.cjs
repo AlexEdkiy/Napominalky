@@ -46,6 +46,7 @@ const output = process.env.CHECK_OUTPUT;
         assert.equal(await menu.getAttribute('aria-expanded'), 'false');
       }
       await page.locator('#start').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => { const image = document.querySelector('#start img'); return image.complete && image.naturalWidth > 0; });
       assert.equal(await page.locator('#start img').evaluate(i => i.complete && i.naturalWidth > 0), true);
       assert.equal(await page.locator('a[download]').getAttribute('href'), '/downloads/napominalky-1.0.8-52.apk');
       const apk = await context.request.head(origin + '/downloads/napominalky-1.0.8-52.apk');
