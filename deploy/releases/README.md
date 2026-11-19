@@ -355,3 +355,58 @@ The snapshot directory is a required precondition, not created by these commands
 It contains the inspected old container specification, preflight RDB and integration
 results. The guard rejects re-applying after the container identity changes.
 [Execution report and remaining scope](../../docs/reviews/ops22-redis-security-2026-11-19.md).
+
+
+## OPS-23: authenticated Redis ACL
+
+Plan: generate separate app/operator/health credentials outside Git; test the
+explicit Laravel command allowlist against an isolated RDB copy; test persistence
+across candidate restart. Stage the named app user while legacy connections still
+work, update the mounted production and dev .env files in place, reload PHP, and
+verify real Laravel operations. Then replace only Redis with the same volume/IP
+and a read-only ACL bind mount; default user is disabled. Keep the old container
+stopped and disconnected for emergency recovery using current data.
+
+`redis_acl.py` is a host-specific OPS-23 rollout tool, not a generic installer.
+It requires private snapshots in runtime `redis-acl-20261119/`. Steps: `prepare`,
+`candidate`, `redis_acl_candidate.py`, `stage`, staged application verification,
+then `apply` and final checks. Do not repeat steps on an already migrated server.
+`redis_acl_probe.php` uses unique disposable keys and a queue; it never executes jobs.
+
+Both Compose definitions require `REDIS_ACL_DIR` pointing to the provisioned
+runtime `production/redis-acl/` directory. It contains password hashes in users.acl
+and a ping-only health password; it is mounted read-only. Application plaintext
+credentials stay in existing private .env files, operator credentials only in the
+private evidence directory. Do not print or commit either. Back up ACL configuration
+and credentials separately from RDB: ACLs are not stored in RDB.
+
+Allowlist covers current Laravel cache/session/rate limiter and Redis queue usage;
+FLUSHDB/FLUSHALL, CONFIG, replication, MODULE, ACL, RESTORE, MIGRATE and arbitrary
+key access are denied to the app. `cache:clear`/`optimize:clear` can therefore fail
+on the Redis-wide cache flush step. Use scoped key invalidation. Horizon is not
+running: its management commands need a separate ACL review before enabling it.
+
+
+Executed 2026-11-19: named credentials active in both PHP clients, default disabled,
+Redis healthy, same three original keys/volume/IP, no published ports. Redis cutover
+was 1.58 seconds (separate from PHP reload); production smoke and 41 HTTP/TLS checks
+passed. Candidate restart retained ACLs; temporary candidate removed after testing.
+Dev .env is 0640, owner unchanged, group 82 for the verified PHP-FPM worker identity;
+production .env remains 0600. Update this ownership if the PHP image UID/GID changes.
+
+Operational admin access: from the trusted host/worktree, root can import
+`redis_acl.py` and call `cli(NAME, ...)`, which reads the operator credential from
+private runtime and authenticates over the local Docker bridge. Never pass passwords
+as command-line arguments or copy operator credentials into app environments.
+The Python helper targets this exact host/IP and is not a public Redis client API.
+
+`reminders_redis-before-ops23` (and OPS-22 snapshots) remain stopped, restart=no,
+without networks. They share the current data volume. Never start them alongside
+active Redis or use old Compose snapshots: those configurations lack the ACL mount.
+Automatic cutover failure recovery was not exercised. It restores the previous
+container/current data and staged app account, with legacy default access temporarily
+open; reapply the protected ACL configuration before considering recovery complete.
+A repair of the mounted ACL file on the current Redis is preferable to rolling back
+security. No RDB restoration over current data is part of this workflow.
+
+[Execution evidence, command scope and limitations](../../docs/reviews/ops23-redis-acl-2026-11-19.md).

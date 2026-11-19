@@ -1,6 +1,6 @@
 # Реестр задач
 
-> Последнее обновление: 2026-11-19 (OPS-22: Redis Напоминалок обновлён до 7.4.12)
+> Последнее обновление: 2026-11-19 (OPS-23: включены аутентификация и ограниченные Redis ACL)
 > Стандарт: `/home/vselug/workspace/Napominalky/docs/07-task-management.md`
 
 ## Счётчики
@@ -16,7 +16,7 @@
 | UITEST  | 13           | ux-ui-test-engineer       |
 | REVIEW  | 1            | code-reviewer             |
 | SEC     | 2            | security-auditor          |
-| OPS     | 22           | devops-engineer           |
+| OPS     | 23           | devops-engineer           |
 | DOC     | 61           | technical-writer          |
 
 ## Сводка
@@ -25,7 +25,7 @@
 
 | Статус | Количество |
 |--------|:----------:|
-| Completed | 193 |
+| Completed | 194 |
 | In Progress | 3 |
 | Pending | 4 |
 | Blocked | 0 |
@@ -34,6 +34,17 @@
 ---
 
 ## Feature: Архитектура MVP
+
+### OPS-23: Ограничить Redis ACL Напоминалок
+- **Исполнитель:** Codex (ops, самопроверка)
+- **Статус:** completed
+- **Приоритет:** critical
+- **Описание:** Именованный пользователь приложения с аутентификацией и разрешёнными командами/ключами; запрет административных команд; сохранение Laravel cache/session/queue.
+- **Критерии приёмки:** изолированные положительные и отрицательные проверки; ACL сохраняется после рестарта; production smoke успешен; данные сохранены, секреты вне Git.
+- **Результат:** default off; app с отдельным паролем, явным списком команд и ключами reminders-app-database-*; operator отдельно, health только PING. ACL-файл смонтирован read-only, Compose закреплён; PHP-клиенты переведены на app. Сохранены три ключа, том и IP; Redis healthy.
+- **Проверки:** изолированный RDB/ACL и рестарт кандидата; cache/add/counters/transactions/rate limiter/lock/session/queue/delay/retry на копии и обоих PHP-клиентах; отдельно PHP-FPM UID 82. 21 ACL DRYRUN-запрет, реальные проверки анонимного/неверного входа, чужих ключей и Lua. Production smoke и 41 HTTP/TLS-проверка успешны.
+- **Отчёт:** [OPS-23, самопроверка, эксплуатационные ограничения](reviews/ops23-redis-acl-2026-11-19.md). Полная очистка кеша требует operator; Horizon требует отдельной проверки ACL.
+- **Создана / завершена:** 2026-11-19
 
 ### OPS-22: Обновить Redis Напоминалок до исправленного patch release
 - **Исполнитель:** Codex (ops, самопроверка)
