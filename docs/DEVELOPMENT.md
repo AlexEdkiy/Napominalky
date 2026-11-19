@@ -1,6 +1,6 @@
 # Управление разработкой Napominalky
 
-Дата среза: 2026-11-18. Исходная версия: `main` @ `96e0568`.
+Дата среза: 2026-11-19. Исходная версия: `main` @ `96e0568`.
 Рабочая ветка: `manage-2026-09-30`, worktree: `/home/vselug/workspace/Napominalky-control`.
 Координатор текущего цикла: Codex. Аудит: [development-audit-2026-09-30.md](reviews/development-audit-2026-09-30.md).
 
@@ -37,6 +37,17 @@ TASKS.md обновляет один координатор. ID резервир
 одной записью. Рекомендации и незавершённый релиз не записываются как выполненные.
 
 ## Очередь
+
+OPS-19 завершён 2026-11-19: шесть Nginx на основном сервере обновлены до
+1.30.7-alpine, digest `sha256:bef154735288bc38d99fac41ae63730684bcc661503673a04a0f9bc526ba8598`.
+Production code release остаётся `r9e7ac28-ops16`; `production/target.json` и
+`stage/target.json` закрепляют исправленный `web_image` отдельно от артефактов.
+Для landing использовать `Napominalky-control/deploy/landing/compose.yml`.
+41 HTTP/TLS/asset-проверка и оба production smoke прошли; откат staging проверен.
+Полный staging API smoke обнаружил отдельную ошибку 500: staging Redis/DB давно
+остановлены. Эти сервисы не запускались и не изменялись в рамках обновления Nginx.
+Остальные пункты аудита (SCTP, firewall/порты, изоляция) остаются отдельной работой.
+
 
 OPS-18, critical: внешняя недоступность `94.103.15.24:443` из нескольких сетей РФ
 подтверждена 2026-11-18 18:13 МСК. Из Германии HTTPS 200; серверные порты/firewall
