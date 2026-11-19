@@ -3,7 +3,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from runtime import wait_public
+from pathlib import Path
+from runtime import wait_public, container_args
 
 
 class PublicReadinessTest(unittest.TestCase):
@@ -41,6 +42,25 @@ class PublicReadinessTest(unittest.TestCase):
         self.assertEqual([call.args[0] for call in request.call_args_list], [
             'https://lk.example.test/release.json', 'https://lk.example.test/api/v1/auth/me',
         ])
+
+
+class SecurityImageOverrideTest(unittest.TestCase):
+    def test_override_updates_web_without_changing_api_image_or_release(self):
+        old, fixed = 'sha256:' + 'a' * 64, 'sha256:' + 'b' * 64
+        config = {'web_name': 'web', 'api_name': 'api', 'network': 'test',
+                  'env_file': '/env', 'storage': '/storage', 'web_image': fixed}
+        manifest = {'release': 'same-code', 'source_sha': 'abc',
+                    'images': {'web': old, 'api': old}}
+        _, web = container_args(config, Path('/release'), manifest, 'web')
+        _, api = container_args(config, Path('/release'), manifest, 'api')
+        self.assertIn(fixed, web)
+        self.assertNotIn(old, web)
+        self.assertIn(old, api)
+        self.assertNotIn(fixed, api)
+        self.assertIn('napominalky.release=same-code', web)
+        config['web_image'] = 'nginx:latest'
+        with self.assertRaises(ValueError):
+            container_args(config, Path('/release'), manifest, 'web')
 
 
 if __name__ == '__main__':

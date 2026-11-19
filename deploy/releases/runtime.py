@@ -96,6 +96,9 @@ def smoke(api_url, web_url, release_id, web_base='/napominalki/'):
 
 def container_args(config, release, manifest, role):
     name = config[role + '_name']
+    web_image = config.get('web_image', manifest['images']['web'])
+    if not re.fullmatch(r'sha256:[0-9a-f]{64}', web_image):
+        raise ValueError('Target web_image must be pinned by image ID')
     args = ['create', '--name', name, '--restart', 'unless-stopped', '--read-only',
             '--label', 'napominalky.managed=release',
             '--label', 'com.docker.compose.project=napominalky-release',
@@ -120,7 +123,7 @@ def container_args(config, release, manifest, role):
         args += ['--mount', f'type=bind,src={release / "web"},dst=/usr/share/nginx/html/napominalki,readonly',
                  '--mount', f'type=bind,src={release / "nginx.conf"},dst=/etc/nginx/nginx.conf,readonly',
                  '--tmpfs', '/var/cache/nginx:rw,size=16m', '--tmpfs', '/var/run:rw,size=4m',
-                 '--entrypoint', 'nginx', manifest['images']['web'], '-g', 'daemon off;']
+                 '--entrypoint', 'nginx', web_image, '-g', 'daemon off;']
     return name, args
 
 

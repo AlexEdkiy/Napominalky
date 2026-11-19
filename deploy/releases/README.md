@@ -249,3 +249,21 @@ required checks and PR rule. The JSON file alone does not enable protection.
 References: [Docker mounts](https://docs.docker.com/engine/storage/bind-mounts/),
 [nginx reload](https://nginx.org/en/docs/control.html),
 [Laravel deployment](https://laravel.com/docs/12.x/deployment).
+
+## Security-only nginx image overrides (OPS-19)
+
+A target may set `web_image` to an inspected immutable `sha256:` image ID.
+It overrides only the web runtime; artifact hashes, release markers, source SHA
+and API image remain unchanged. Use this to retain an nginx security update across
+code releases and rollbacks. Never modify an existing artifact manifest in place.
+The current fixed image is `nginx:1.30.7-alpine@sha256:bef154735288bc38d99fac41ae63730684bcc661503673a04a0f9bc526ba8598`.
+
+`upgrade_nginx.py` snapshots the six known nginx containers privately, preflights
+candidates on loopback ports, then replaces one selected container while preserving
+ports, mounts, restrictions and addresses on user-defined networks. It retains the
+old container disconnected and stopped as `<name>-before-ops19`, automatically
+restoring it on a startup error. HTTP checks must also pass; on a failed HTTP check
+run its `rollback --root <snapshot-dir> --name <name>` command immediately.
+Do not restart a retained old container directly. Snapshot `*.desired.json` files
+are the exact digest-pinned Docker create specifications for unmanaged edge services.
+Private execution evidence and HTTP verification: runtime `nginx-security-20261119/`.
