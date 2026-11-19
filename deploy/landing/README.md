@@ -40,6 +40,11 @@ loopback upstream: менять/reload его, API, БД, Redis и scheduler н�
 Итог — `/srv/napominalky/landing/deployments/<ID>.json` и `target.env`.
 После запуска проверить публичный release.json, HTTPS/редирект, ресурсы и кабинет.
 
+Nginx закреплён по локальному image ID `sha256:bef154735288bc38d99fac41ae63730684bcc661503673a04a0f9bc526ba8598`.
+OPS-18 переносил образы через `docker save/load` по ID; ссылка с именем репозитория
+на целевом VPS отсутствует. Скрипт проверяет точный ID перед переключением,
+`--pull=never` (в Compose — `pull_policy: never`) исключает скачивание другого образа.
+
 ## Ручной откат
 
 Только если public smoke выявил проблему после успешного переключения: проверить

@@ -13,7 +13,9 @@ import time
 import urllib.error
 import urllib.request
 
-IMAGE = 'nginx:1.30.7-alpine@sha256:bef154735288bc38d99fac41ae63730684bcc661503673a04a0f9bc526ba8598'
+# OPS-18 imported this exact image with docker save/load. Repository names and
+# RepoDigests are not preserved for an image exported by ID; use its local ID.
+IMAGE = 'sha256:bef154735288bc38d99fac41ae63730684bcc661503673a04a0f9bc526ba8598'
 ROOT = Path('/srv/napominalky/landing')
 NAME = 'napominalky_landing'
 NETWORK = 'napominalky_frontend'
@@ -85,7 +87,7 @@ def smoke(port, release):
 
 
 def start(name, port, artifact, release):
-    return docker('run', '-d', '--name', name, '--restart', 'unless-stopped', '--read-only',
+    return docker('run', '-d', '--pull=never', '--name', name, '--restart', 'unless-stopped', '--read-only',
                   '--network', NETWORK, '--publish', f'127.0.0.1:{port}:8080',
                   '--label', 'napominalky.managed=landing', '--label', f'napominalky.release={release}',
                   '--mount', f'type=bind,src={artifact}/public,dst=/usr/share/nginx/html,readonly',
@@ -119,7 +121,8 @@ def publish(source):
     existing = docker('ps', '-a', '--format', '{{.Names}}').splitlines()
     if backup in existing or candidate in existing:
         raise ValueError('Previous deployment attempt exists; inspect it before retrying')
-    docker('image', 'inspect', IMAGE)
+    if json.loads(docker('image', 'inspect', IMAGE))[0]['Id'] != IMAGE:
+        raise ValueError('Installed nginx image differs from the verified OPS-18 image')
     docker('network', 'inspect', NETWORK)
     app_before = get(18082, '/release.json')[1]
     target = ROOT / 'releases' / release
