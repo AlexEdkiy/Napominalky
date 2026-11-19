@@ -55,3 +55,7 @@ Thumbs.db
 
 # Release tooling bytecode
 deploy/releases/__pycache__/
+
+# Local Python validation cache
+__pycache__/
+*.py[cod]
