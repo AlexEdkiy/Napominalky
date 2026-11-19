@@ -171,7 +171,7 @@ Example target (actual file lives outside Git):
   "proxy_container": "nginx-proxy",
   "env_file": "/home/vselug/workspace/Napominalky-runtime/production/.env",
   "storage": "/home/vselug/workspace/Napominalky-runtime/production/storage",
-  "api_port": "18000",
+  "api_port": "127.0.0.1:18000",
   "web_port": "127.0.0.1:18082",
   "api_url": "http://127.0.0.1:18000",
   "web_url": "http://127.0.0.1:18082",
@@ -179,8 +179,8 @@ Example target (actual file lives outside Git):
 }
 ```
 
-Existing API port exposure is preserved for compatibility. The new web probe is
-loopback only. cron_file is a rehearsal-only target option, redirecting cron changes
+Since OPS-20 the API and web probes are loopback only. Published mobile clients
+use the HTTPS /napominalki API through nginx; direct Internet port 18000 is closed. cron_file is a rehearsal-only target option, redirecting cron changes
 to a fixture instead of the host crontab.
 
 ## Subsequent release / rollback
@@ -267,3 +267,29 @@ run its `rollback --root <snapshot-dir> --name <name>` command immediately.
 Do not restart a retained old container directly. Snapshot `*.desired.json` files
 are the exact digest-pinned Docker create specifications for unmanaged edge services.
 Private execution evidence and HTTP verification: runtime `nginx-security-20261119/`.
+
+## Private service ports (OPS-20)
+
+Runtime `production/target.json` pins `api_port` to `127.0.0.1:18000`.
+Insure Compose binds its five ports to loopback and explicitly reuses the existing
+Redis volume as an external volume. Do not remove that volume or recreate Redis
+with a new anonymous volume. The unmanaged jemsoft landing create specification
+is runtime `ports-security-20261119/jemsoft-landing.desired.json`.
+
+Root-owned `/usr/local/sbin/ops20-private-ports` enforces IPv4/IPv6 Docker ingress
+restrictions on ens3, matching ORIGINAL conntrack destination ports. It is installed
+from `deploy/security/private-ports.sh` and invoked by systemd, Docker ExecStartPost
+and the UFW start hook. The UFW public VNC/X11 allow rules are removed.
+VNC is available through a user-established SSH tunnel to localhost:5901; the
+existing desktop was not restarted. Its systemd override restricts future starts
+to localhost and disables TCP X11. Keep the user's normal SSH jump/proxy settings.
+
+Example client tunnel: `ssh -N -L 15901:127.0.0.1:5901 vselug@94.103.15.24`.
+Connect the VNC viewer to localhost:15901. SSH authentication is still required.
+
+The private evidence directory includes before/desired Docker specifications, data
+backups, external probes and verification. `restrict_ports.py rollback` can restore
+an ordinary retained container; it intentionally refuses the suspicious old Redis.
+Never start `insure_redis-before-ops20`; retain it offline for investigation.
+A rollback must preserve current data and should leave the firewall protection in
+place. Do not restore a full historical iptables snapshot over new Docker state.
