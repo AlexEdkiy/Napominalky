@@ -1,71 +1,50 @@
-# OPS-17: статический хостинг лендинга
+# Статический хостинг лендинга
 
-Публичный адрес: `https://www.napominalky.ru/`. Домен `napominalky.ru`
-перенаправляется на www с сохранением пути и query. Кабинет — отдельный
-`https://lk.napominalky.ru/`; контейнеры, артефакты и API не смешиваются.
+После OPS-18 production — **195.206.252.160**, SSH `devops`, host nginx →
+`127.0.0.1:18089` → readonly-контейнер `napominalky_landing` в сети
+`napominalky_frontend`. Артефакты: `/srv/napominalky/landing/releases/`.
+Канонический адрес https://www.napominalky.ru/, apex → www; кабинет отдельно на lk.
+Новый сертификат Let's Encrypt для apex/www — до 2027-02-17, certbot.timer,
+webroot `/var/www/napominalky-acme`, deploy hook проверяет и перечитывает host nginx.
+Предыдущая площадка и история: [OPS-17](../../docs/reviews/ops17-landing-domain-2026-11-18.md),
+[перенос и ограничения](../../docs/reviews/ops18-target-migration-2026-11-19.md).
+Не запускать прежние контейнеры или Compose из старой среды.
 
-DNS: A `@` и A `www` → `94.103.15.24`. Сертификат Let's Encrypt отдельный,
-cert-name `napominalky.ru`, SAN `napominalky.ru` и `www.napominalky.ru`.
-Webroot `/var/www/certbot`; общий существующий certbot cron продлевает сертификаты
-и reload nginx. HTTPS-шаблон: `../www.napominalky.ru.nginx.conf`.
-Не включать HTTPS до появления DNS и выпуска корректного сертификата.
+## Артефакт
 
-Runtime: `/home/vselug/workspace/Napominalky-runtime/landing/`; releases вне Git.
-Контейнер `napominalky_landing`, readonly nginx, loopback `127.0.0.1:18089`;
-наружу маршрутизирует существующий `nginx-proxy`. Пин образа относится к текущему
-серверу: для переноса хостинга потребуется экспорт/доставка этого образа.
+Исходники WEB-71 находятся в `landing/site/`; сборка — [landing/README.md](../../landing/README.md).
+`prepare.py --ref <SHA> --root <вне-Git> --release-id <ID> --content <сборка>`
+создаёт `public/`, nginx.conf, release.json и manifest с хешами. `--verify <артефакт>`
+сверяет содержимое. Без --content получается прежняя заглушка 503/noindex.
+В исходники/сборку не включать .env, .git, node_modules или пользовательские данные.
 
-## Подготовка и публикация
+## Публикация на текущем VPS
 
-`prepare.py` без `--content` создаёт подготовительный артефакт: корень отвечает 503,
-`X-Robots-Tag: noindex, nofollow`, `Retry-After`, robots запрещает обход. Это готовность
-хостинга, не опубликованный лендинг. `/release.json` подтверждает версию.
-
-Для публикации нужны готовые статические файлы с `index.html` в корне. Собирать
-исходники отдельно; в каталог публикации не класть `.env`, `.git` и node_modules.
-Подготовить правильные title/description/canonical на www, robots/sitemap, а ссылки
-входа/регистрации направить на lk. Скрипт не добавляет блокирующий robots в готовую
-сборку и не включает в неё свой подготовительный robots.
-
-```bash
-python3 deploy/landing/prepare.py --ref HEAD \
-  --root /home/vselug/workspace/Napominalky-runtime/landing/releases \
-  --release-id landing-YYYYMMDD-N --content /absolute/path/to/built-site
-python3 deploy/landing/prepare.py --verify \
-  /home/vselug/workspace/Napominalky-runtime/landing/releases/landing-YYYYMMDD-N
-```
-
-Сначала запустить тестовый nginx на отдельном loopback-порту с двумя readonly
-mounts артефакта, проверить HTML/CSS/JS, ссылки, реальные 404 и мобильный экран.
-До переключения сохранить runtime `target.env` и предыдущий артефакт.
-После проверки в `landing/target.env` указать только:
-
-```dotenv
-LANDING_RELEASE_ID=landing-YYYYMMDD-N
-LANDING_RELEASE_DIR=/home/vselug/workspace/Napominalky-runtime/landing/releases/landing-YYYYMMDD-N
-```
+Передать проверенный артефакт и `publish_vps.py` в отдельную папку внутри
+`/home/devops/napominalky-deploy/`. Проверить SHA-256 переданных файлов.
+Публикация разрешена пользователем в задаче WEB-71; повторное согласие на тот же
+выпуск не требуется. Временный полный sudo после миграции удалён: административную
+команду выполняет владелец в своей SSH-сессии либо согласованный исполнитель.
 
 ```bash
-docker compose --env-file /home/vselug/workspace/Napominalky-runtime/landing/target.env \
-  -f deploy/landing/compose.yml up -d
-docker exec nginx-proxy nginx -t
-docker exec nginx-proxy nginx -s reload
+sudo python3 /home/devops/napominalky-deploy/web71/publish_vps.py \
+  --artifact /home/devops/napominalky-deploy/web71/landing-web71-20261119
 ```
 
-Проверить публичный `/release.json`, HTML, ресурсы, HTTPS, редирект без www и
-доступность личного кабинета. Reload необходим после пересоздания контейнера:
-nginx должен заново разрешить его Docker-адрес. При ошибке вернуть прежний
-`target.env`, выполнить те же команды и проверки. Данные приложения и БД не трогать.
+Скрипт проверяет manifest, копирует артефакт в root-owned releases, запускает
+отдельный тестовый контейнер на 127.0.0.1:18090, проверяет конфигурацию, HTML,
+ресурсы, 404 и частичное скачивание APK. Затем заменяет только landing-контейнер
+на порту 18089, сохраняет предыдущий и выполняет smoke приложения/API.
+При ошибке переключения возвращает прежний контейнер. Host nginx имеет постоянный
+loopback upstream: менять/reload его, API, БД, Redis и scheduler не требуется.
+Итог — `/srv/napominalky/landing/deployments/<ID>.json` и `target.env`.
+После запуска проверить публичный release.json, HTTPS/редирект, ресурсы и кабинет.
 
-При изменении внешнего nginx сохранять исходный файл, проверять отсутствие чужих
-правок, писать содержимое на месте (bind mount отдельного файла), проверять `nginx -t`
-и только затем reload. При ошибке вернуть исходное содержимое и перечитать nginx.
+## Ручной откат
 
-## Статус
-
-Хостинг включён 2026-11-18 17:42 МСК, `release-ops17` / `24e1fd3`, артефакт
-`ops17-bootstrap`. HTTPS www доступен; HTTP и HTTPS без www перенаправляются на www.
-Сертификат содержит оба имени, действителен до 2027-02-16. До загрузки готового
-лендинга корень возвращает ожидаемый 503 без индексации. Публичные проверки
-и пробное продление сертификата (`certbot renew --dry-run`) прошли.
-[Отчёт OPS-17](../../docs/reviews/ops17-landing-domain-2026-11-18.md).
+Только если public smoke выявил проблему после успешного переключения: проверить
+ID текущего и сохранённого контейнеров по deployment JSON, остановить текущий
+landing и сохранить его под другим именем, переименовать `previous_container`
+обратно в `napominalky_landing`, вернуть ему `restart=unless-stopped` и запустить.
+Проверить прежний release.json и обновить target.env. Не менять данные приложения.
+Предыдущая заглушка `ops17-bootstrap` возвращает 503 намеренно; для неё это норма.

@@ -1,0 +1,6 @@
+{
+  "file": "web/design/Напоминалки — лендинг.html",
+  "sha256": "bb8b2ebcce1609f05f22a5e302fa81b8c4b01522b81410ce7c16c4e9b493a0dc",
+  "assets": "Illustration and Roboto font files extracted unchanged from the user-supplied design.",
+  "runtime": "Editor/React/bundler scripts removed; static HTML and local JavaScript."
+}

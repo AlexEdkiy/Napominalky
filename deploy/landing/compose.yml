@@ -33,4 +33,4 @@ services:
 networks:
   proxy:
     external: true
-    name: insure-platform_default
+    name: napominalky_frontend
