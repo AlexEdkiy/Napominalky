@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import React from 'react'
 
 import ErrorScreen from './ErrorScreen'
@@ -36,7 +37,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (error !== null) {
       return (
         <ErrorScreen
-          title="Ошибка приложения"
+          title={t("Ошибка приложения")}
           message={error.message}
           stack={error.stack ?? null}
           extra={info}

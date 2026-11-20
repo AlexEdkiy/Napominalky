@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import FavoriteButton from '@/components/ui/FavoriteButton'
 import type { FavoriteEntity } from '@/db/repositories/favoritesRepo'
 import React from 'react'
@@ -105,7 +106,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
         name="pin"
         size={14}
         color={colors.accent}
-        accessibilityLabel="Закреплено"
+        accessibilityLabel={t("Закреплено")}
       />
     ) : null}
   </Pressable>

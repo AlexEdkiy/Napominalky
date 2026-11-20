@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -36,6 +37,7 @@ const MetaLine: React.FC<MetaLineProps> = ({
   onOpenStatus,
   onOpenComments,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={styles.metaLine}>
@@ -66,7 +68,7 @@ const MetaLine: React.FC<MetaLineProps> = ({
         <Pressable
           onPress={onOpenComments !== undefined ? () => onOpenComments(item.uuid) : undefined}
           accessibilityRole="button"
-          accessibilityLabel={`Комментарии: ${commentsCount}`}
+          accessibilityLabel={t("Комментарии: {0}", [commentsCount])}
           hitSlop={6}
           testID="item-comments-chip"
           style={[styles.chip, { backgroundColor: colors.amberBg }]}
@@ -88,6 +90,7 @@ interface MetaIndicatorsProps {
 
 /** Иконки-индикаторы заполненных атрибутов пункта: напоминание и ссылка. */
 const MetaIndicators: React.FC<MetaIndicatorsProps> = ({ item }) => {
+  useLanguage()
   const { colors } = useTheme()
   const hasReminder = item.reminderAt !== null
   const hasLink = item.link !== null && item.link.length > 0

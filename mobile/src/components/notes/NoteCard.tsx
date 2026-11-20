@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -15,17 +16,18 @@ interface NoteCardProps {
 const SNIPPET_LENGTH = 120
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onPress, onDelete }) => {
+  useLanguage()
   const { colors } = useTheme()
   const colorHex = note.color ?? null
   const snippet = (note.body ?? '').slice(0, SNIPPET_LENGTH).trim()
-  const title = note.title.trim().length > 0 ? note.title : 'Без названия'
+  const title = note.title.trim().length > 0 ? note.title : t("Без названия")
 
   const handleLongPress = (): void => {
     if (onDelete === undefined) return
-    Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
-      { text: 'Нет', style: 'cancel' },
+    Alert.alert(t("Удалить заметку?"), t("Действие нельзя отменить."), [
+      { text: t("Нет"), style: 'cancel' },
       {
-        text: 'Да',
+        text: t("Да"),
         style: 'destructive',
         onPress: () => onDelete(note.uuid),
       },
@@ -50,7 +52,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onPress, onDelete }) => {
           </Text>
           {note.isPinned ? (
             <View style={[styles.pinBadge, { backgroundColor: colors.coralSoftBg }]}>
-              <Ionicons name="pin" size={14} color={colors.coral} accessibilityLabel="Закреплено" />
+              <Ionicons name="pin" size={14} color={colors.coral} accessibilityLabel={t("Закреплено")} />
             </View>
           ) : null}
         </View>

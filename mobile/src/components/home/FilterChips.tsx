@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { typography } from '@/theme/typography'
@@ -26,11 +27,12 @@ interface FilterChipsProps {
 }
 
 const FilterChips: React.FC<FilterChipsProps> = ({ active, onSelect, colors, counts }) => {
+  useLanguage()
   const tabs: readonly TabConfig[] = [
-    { key: 'all', label: 'Все' },
-    { key: 'lists', label: 'Задачи', dotColor: colors.accent },
-    { key: 'reminders', label: 'Напоминания', dotColor: colors.amber },
-    { key: 'notes', label: 'Заметки', dotColor: colors.noteBlue },
+    { key: 'all', label: t("Все") },
+    { key: 'lists', label: t("Задачи"), dotColor: colors.accent },
+    { key: 'reminders', label: t("Напоминания"), dotColor: colors.amber },
+    { key: 'notes', label: t("Заметки"), dotColor: colors.noteBlue },
   ]
 
   const underlineColors: Record<FeedFilter, string> = {

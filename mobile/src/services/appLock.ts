@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import * as Crypto from 'expo-crypto'
 import * as LocalAuthentication from 'expo-local-authentication'
 import * as SecureStore from 'expo-secure-store'
@@ -88,7 +89,7 @@ export const isBiometricAvailable = async (): Promise<boolean> => {
  */
 export const authenticateBiometric = async (): Promise<boolean> => {
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: BIOMETRIC_PROMPT,
+    promptMessage: t(BIOMETRIC_PROMPT),
   })
   return result.success
 }

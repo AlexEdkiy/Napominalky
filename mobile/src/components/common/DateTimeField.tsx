@@ -1,3 +1,4 @@
+import { t, useLanguage, dateLocale } from '@/i18n'
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker'
@@ -23,6 +24,7 @@ const mergeDateTime = (datePart: Date, timePart: Date): Date => {
 }
 
 const DateTimeField: React.FC<DateTimeFieldProps> = ({ label, value, onChange, error }) => {
+  useLanguage()
   const hasValue = value.trim().length > 0 && isValidIso(value)
   const baseDate = hasValue ? new Date(value) : new Date()
 
@@ -68,7 +70,7 @@ const DateTimeField: React.FC<DateTimeFieldProps> = ({ label, value, onChange, e
         style={({ pressed }) => [styles.field, error ? styles.fieldError : null, pressed && styles.pressed]}
       >
         <Text style={hasValue ? styles.value : styles.placeholder}>
-          {hasValue ? formatDateTime(value) : 'Выбрать дату и время'}
+          {hasValue ? formatDateTime(value) : t("Выбрать дату и время")}
         </Text>
       </Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -76,7 +78,7 @@ const DateTimeField: React.FC<DateTimeFieldProps> = ({ label, value, onChange, e
         <DateTimePicker
           value={draftDate}
           mode="datetime"
-          display="spinner"
+          display="spinner" locale={dateLocale()}
           onChange={handleIosChange}
         />
       ) : null}

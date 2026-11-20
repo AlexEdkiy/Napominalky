@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useEffect, useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -43,10 +44,11 @@ const AttributesSheetRow: React.FC<AttributesSheetRowProps> = ({
   onCommit,
   onClear,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const [pendingTag, setPendingTag] = useState('')
   const isSet = isAttributeSet(attribute, values)
-  const label = ATTRIBUTE_LABELS[attribute]
+  const label = t(ATTRIBUTE_LABELS[attribute] ?? '')
   const token = formatAttributeToken(attribute, values)
 
   // «Висящий» текст нового тега подтверждается при сворачивании строки —
@@ -64,7 +66,7 @@ const AttributesSheetRow: React.FC<AttributesSheetRowProps> = ({
       <Pressable
         onPress={onToggle}
         accessibilityRole="button"
-        accessibilityLabel={isSet ? `${label}: ${token}` : `Добавить: ${label}`}
+        accessibilityLabel={isSet ? `${label}: ${token}` : t("Добавить: {0}", [label])}
         style={styles.header}
       >
         <View style={[styles.headerIcon, { backgroundColor: accentBg }]}>
@@ -79,13 +81,13 @@ const AttributesSheetRow: React.FC<AttributesSheetRowProps> = ({
           numberOfLines={1}
           style={[styles.value, { color: isSet ? accentColor : colors.textTertiary }]}
         >
-          {isSet ? token : 'Не задано'}
+          {isSet ? token : t("Не задано")}
         </Text>
         {isSet && (
           <Pressable
             onPress={onClear}
             accessibilityRole="button"
-            accessibilityLabel={`Удалить ${label.toLowerCase()}`}
+            accessibilityLabel={t("Удалить {0}", [label.toLowerCase()])}
             hitSlop={8}
             style={styles.clearBtn}
           >
@@ -135,6 +137,7 @@ interface LinkEditorProps {
 
 /** Поле ссылки: черновик локально, коммит по blur/Enter (пустое = снять ссылку). */
 const LinkEditor: React.FC<LinkEditorProps> = ({ current, accentColor, onCommit }) => {
+  useLanguage()
   const { colors } = useTheme()
   const [draft, setDraft] = useState(current ?? '')
 
@@ -154,13 +157,13 @@ const LinkEditor: React.FC<LinkEditorProps> = ({ current, accentColor, onCommit 
       onChangeText={setDraft}
       onBlur={commit}
       onSubmitEditing={commit}
-      placeholder="Вставьте ссылку"
+      placeholder={t("Вставьте ссылку")}
       placeholderTextColor={colors.textTertiary}
       autoCapitalize="none"
       keyboardType="url"
       returnKeyType="done"
       style={[styles.linkInput, { borderColor: colors.borderInput, color: colors.textPrimary }]}
-      accessibilityLabel="Ссылка"
+      accessibilityLabel={t("Ссылка")}
       selectionColor={accentColor}
     />
   )

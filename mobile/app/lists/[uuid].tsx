@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import ReorderableItems from '@/components/lists/ReorderableItems'
 import React, { useEffect, useRef, useState } from 'react'
 import {
@@ -45,6 +46,7 @@ const filterItems = (items: ShoppingListItem[], filter: ItemFilter): ShoppingLis
 type StatusSheetTarget = { kind: 'list' } | { kind: 'item'; itemUuid: string }
 
 export default function ListDetailScreen() {
+  useLanguage()
   const { uuid, itemUuid, showComments } = useLocalSearchParams<{
     uuid: string; itemUuid?: string; showComments?: string
   }>()
@@ -130,10 +132,10 @@ export default function ListDetailScreen() {
   }
 
   const confirmDeleteList = (): void => {
-    Alert.alert('Удалить задачу?', 'Задача и все пункты будут удалены.', [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t("Удалить задачу?"), t("Задача и все пункты будут удалены."), [
+      { text: t("Отмена"), style: 'cancel' },
       {
-        text: 'Удалить',
+        text: t("Удалить"),
         style: 'destructive',
         onPress: () => deleteList.mutate(listUuid, { onSuccess: () => router.back() }),
       },
@@ -155,15 +157,15 @@ export default function ListDetailScreen() {
   if (list == null) {
     return (
       <View style={[styles.center, { backgroundColor: colors.screenBg }]}>
-        <Text style={[styles.missing, { color: colors.textSecondary }]}>Задача не найдена</Text>
+        <Text style={[styles.missing, { color: colors.textSecondary }]}>{t("Задача не найдена")}</Text>
       </View>
     )
   }
 
   const filtered = filterItems(items, itemFilter)
-  const emptyHint = listType === 'tasks' ? 'Задач пока нет' : 'Пусто пока'
+  const emptyHint = listType === 'tasks' ? t("Задач пока нет") : t("Пусто пока")
   const emptySubHint =
-    listType === 'tasks' ? 'Добавьте первую задачу' : 'Добавьте первый товар'
+    listType === 'tasks' ? t("Добавьте первую задачу") : t("Добавьте первый товар")
 
   return (
     <View style={[styles.safeArea, { backgroundColor: colors.screenBg }]}>
@@ -215,9 +217,7 @@ export default function ListDetailScreen() {
             // (16), поэтому компенсируем внешний паддинг здесь, чтобы не удвоить его.
             <View style={styles.headerOffset}>
               {searchTargetMissing && <Text accessibilityRole="alert"
-                style={[styles.searchMissing, { color: colors.textSecondary }]}>
-                Пункт из результатов поиска больше недоступен.
-              </Text>}
+                style={[styles.searchMissing, { color: colors.textSecondary }]}>{t("Пункт из результатов поиска больше недоступен.")}</Text>}
               <ListDetailHeader
                 listType={listType}
                 accentColor={accentColor}
@@ -237,9 +237,7 @@ export default function ListDetailScreen() {
           ListEmptyComponent={
             items.length > 0 ? (
               <View style={styles.emptyFilter}>
-                <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
-                  Нет пунктов в этой категории
-                </Text>
+                <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>{t("Нет пунктов в этой категории")}</Text>
               </View>
             ) : null
           }
@@ -279,7 +277,7 @@ export default function ListDetailScreen() {
         {/* Шторка статуса: задача — 4 статуса + «Авто»; пункт — без «Авто» */}
         <StatusSheet
           visible={statusTarget !== null}
-          title={statusTarget?.kind === 'list' ? 'Статус задачи' : 'Статус пункта'}
+          title={statusTarget?.kind === 'list' ? t("Статус задачи") : t("Статус пункта")}
           current={
             statusTarget?.kind === 'list' ? list.status : statusItem?.status ?? 'new'
           }
@@ -328,13 +326,14 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
   bg,
   textPrimary,
 }) => {
+  useLanguage()
   const insets = useSafeAreaInsets()
   return (
     <View style={[styles.customHeader, { backgroundColor: bg, paddingTop: insets.top + 10 }]}>
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
-        accessibilityLabel="Назад"
+        accessibilityLabel={t("Назад")}
         style={styles.headerBack}
       >
         <Ionicons name="chevron-back" size={24} color={textPrimary} />
@@ -346,10 +345,10 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
       <Pressable
         onPress={onDelete}
         accessibilityRole="button"
-        accessibilityLabel="Удалить задачу"
+        accessibilityLabel={t("Удалить задачу")}
         style={styles.headerDelete}
       >
-        <Text style={[styles.headerDeleteText, { color: deleteColor }]}>Удалить</Text>
+        <Text style={[styles.headerDeleteText, { color: deleteColor }]}>{t("Удалить")}</Text>
       </Pressable>
     </View>
   )

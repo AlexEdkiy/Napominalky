@@ -1,3 +1,4 @@
+import { t, getLanguage } from '@/i18n'
 /**
  * Хелперы отображения/валидации даты-времени напоминаний. Чистые функции,
  * без сторонних зависимостей (datetimepicker в проекте не установлен).
@@ -24,7 +25,8 @@ export const formatDateTime = (iso: string): string => {
   const month = pad(date.getMonth() + 1)
   const hours = pad(date.getHours())
   const minutes = pad(date.getMinutes())
-  return `${day}.${month}.${date.getFullYear()} ${hours}:${minutes}`
+  const separator = getLanguage() === 'en' ? '/' : '.'
+  return `${day}${separator}${month}${separator}${date.getFullYear()} ${hours}:${minutes}`
 }
 
 /** Локальное «чч:мм» для отображения. Для невалидного входа — исходная строка. */
@@ -44,9 +46,9 @@ export const formatRelativeReminder = (iso: string): string => {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const tomorrowStart = new Date(todayStart.getTime() + 86_400_000)
   const dayAfter = new Date(todayStart.getTime() + 2 * 86_400_000)
-  if (date >= todayStart && date < tomorrowStart) return `Сегодня · ${time}`
-  if (date >= tomorrowStart && date < dayAfter) return `Завтра · ${time}`
-  const month = MONTH_NAMES[date.getMonth()]
+  if (date >= todayStart && date < tomorrowStart) return t("Сегодня · {0}", [time])
+  if (date >= tomorrowStart && date < dayAfter) return t("Завтра · {0}", [time])
+  const month = t(MONTH_NAMES[date.getMonth()] ?? '')
   const year = sameYear ? '' : ` ${date.getFullYear()}`
   return `${date.getDate()} ${month ?? ''}${year} · ${time}`
 }
@@ -68,7 +70,8 @@ export const formatCommentTimestamp = (iso: string): string => {
   if (!Number.isFinite(date.getTime())) return iso
   const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
   const yy = pad(date.getFullYear() % 100)
-  return `${time} ${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${yy}`
+  const separator = getLanguage() === 'en' ? '/' : '.'
+  return `${time} ${pad(date.getDate())}${separator}${pad(date.getMonth() + 1)}${separator}${yy}`
 }
 
 /** «Изменено дд.мм.гггг» для подзаголовка заметки. */
@@ -77,7 +80,7 @@ export const formatUpdatedAt = (iso: string): string => {
   if (!Number.isFinite(date.getTime())) return ''
   const day = pad(date.getDate())
   const month = pad(date.getMonth() + 1)
-  return `Изменено ${day}.${month}.${date.getFullYear()}`
+  return t("Изменено {0}.{1}.{2}", [day, month, date.getFullYear()])
 }
 
 const MONTH_NAMES = [
@@ -89,7 +92,7 @@ const MONTH_NAMES = [
 export const formatReminderChip = (iso: string): string => {
   const date = new Date(iso)
   if (!Number.isFinite(date.getTime())) return iso
-  const month = MONTH_NAMES[date.getMonth()] ?? ''
+  const month = t(MONTH_NAMES[date.getMonth()] ?? '') ?? ''
   const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
   return `${date.getDate()} ${month} ${date.getFullYear()}, ${time}`
 }
@@ -102,8 +105,8 @@ export const formatReminderChip = (iso: string): string => {
 export const formatDeadlineChip = (dateStr: string): string => {
   const date = new Date(dateStr)
   if (!Number.isFinite(date.getTime())) return dateStr
-  const month = MONTH_NAMES[date.getMonth()]
-  return `до ${date.getDate()} ${month ?? ''}`
+  const month = t(MONTH_NAMES[date.getMonth()] ?? '')
+  return t("до {0} {1}", [date.getDate(), month ?? ''])
 }
 
 /**
@@ -118,7 +121,7 @@ export const formatDeadlineDisplay = (dateStr: string): string => {
   const normalized = dateOnly ? `${dateStr}T00:00:00` : dateStr
   const date = new Date(normalized)
   if (!Number.isFinite(date.getTime())) return dateStr
-  const month = MONTH_NAMES[date.getMonth()]
+  const month = t(MONTH_NAMES[date.getMonth()] ?? '')
   const day = date.getDate()
   const year = date.getFullYear()
   const currentYear = new Date().getFullYear()

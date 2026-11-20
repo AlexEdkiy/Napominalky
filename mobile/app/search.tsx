@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useState } from 'react'
 import { ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
@@ -18,6 +19,7 @@ const FILTERS: { value: SearchType; label: string }[] = [
 ]
 
 function SearchContent(): React.JSX.Element {
+  useLanguage()
   const params = useLocalSearchParams<{ q?: string }>()
   const initial = typeof params.q === 'string' ? params.q.slice(0, 200) : ''
   const [draft, setDraft] = useState(initial)
@@ -36,63 +38,63 @@ function SearchContent(): React.JSX.Element {
     setPage(1)
   }
   const selectType = (value: SearchType): void => { setType(value); setPage(1) }
-  const message = !query ? 'Введите название или текст для поиска.'
-    : !search.enabled ? 'Введите от 2 до 200 символов.'
-      : search.isError ? 'Не удалось выполнить поиск. Попробуйте ещё раз.'
-        : 'Ничего не найдено. Измените запрос или выберите «Все».'
+  const message = !query ? t("Введите название или текст для поиска.")
+    : !search.enabled ? t("Введите от 2 до 200 символов.")
+      : search.isError ? t("Не удалось выполнить поиск. Попробуйте ещё раз.")
+        : t("Ничего не найдено. Измените запрос или выберите «Все».")
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.screenBg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <DarkHeader title="Поиск" onBack={() => router.back()} />
+      <DarkHeader title={t("Поиск")} onBack={() => router.back()} />
       <View style={styles.controls}>
         <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
-          <TextInput accessibilityLabel="Поисковый запрос" placeholder="Название или текст"
+          <TextInput accessibilityLabel={t("Поисковый запрос")} placeholder={t("Название или текст")}
             placeholderTextColor={colors.textSecondary} value={draft} onChangeText={setDraft}
             onSubmitEditing={submit} autoFocus={!initial} returnKeyType="search" maxLength={200} autoCorrect={false}
             style={[styles.input, { color: colors.textPrimary }]} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Найти" onPress={submit}
+          <Pressable accessibilityRole="button" accessibilityLabel={t("Найти")} onPress={submit}
             style={[styles.button, { backgroundColor: colors.accent }]}>
-            <Text style={styles.buttonText}>Найти</Text>
+            <Text style={styles.buttonText}>{t("Найти")}</Text>
           </Pressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.filters}>
           {FILTERS.map((filter) => <Pressable key={filter.value} accessibilityRole="button"
-            accessibilityLabel={`Искать: ${filter.label}`} accessibilityState={{ selected: type === filter.value }}
+            accessibilityLabel={t("Искать: {0}", [t(filter.label)])} accessibilityState={{ selected: type === filter.value }}
             onPress={() => selectType(filter.value)}
             style={[styles.chip, { backgroundColor: type === filter.value ? colors.accent : colors.surface }]}>
-            <Text style={{ color: type === filter.value ? '#fff' : colors.textPrimary }}>{filter.label}</Text>
+            <Text style={{ color: type === filter.value ? '#fff' : colors.textPrimary }}>{t(filter.label)}</Text>
           </Pressable>)}
         </ScrollView>
       </View>
-      {search.enabled && search.isPending ? <ActivityIndicator accessibilityLabel="Ищем" color={colors.accent} />
+      {search.enabled && search.isPending ? <ActivityIndicator accessibilityLabel={t("Ищем")} color={colors.accent} />
         : <FlatList key={`${query}:${type}:${currentPage}`} data={search.isError ? [] : search.data?.results ?? []}
           keyExtractor={(item) => `${item.type}:${item.uuid}`} keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag" contentContainerStyle={[styles.results, { paddingBottom: insets.bottom + 24 }]}
           renderItem={({ item }) => <SearchResultCard result={item} query={query} />}
           ListHeaderComponent={search.enabled && !search.isError ? <Text
             accessibilityLiveRegion="polite" style={[styles.summary, { color: colors.textSecondary }]}>
-            Найдено: {search.data?.total ?? 0} · На устройстве
+            {t('Найдено: {0} · На устройстве', [search.data?.total ?? 0])}
           </Text> : null}
           ListEmptyComponent={<View style={styles.empty}>
             <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
             {search.isError && <Pressable accessibilityRole="button" onPress={() => { void search.refetch() }}
               style={[styles.button, { backgroundColor: colors.accent }]}>
-              <Text style={styles.buttonText}>Повторить поиск</Text>
+              <Text style={styles.buttonText}>{t("Повторить поиск")}</Text>
             </Pressable>}
           </View>}
           ListFooterComponent={lastPage > 1 && !search.isError ? <View style={styles.pages}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Предыдущая страница"
+            <Pressable accessibilityRole="button" accessibilityLabel={t("Предыдущая страница")}
               disabled={currentPage <= 1} accessibilityState={{ disabled: currentPage <= 1 }}
               onPress={() => setPage(currentPage - 1)} style={styles.pageButton}>
-              <Text style={{ color: currentPage <= 1 ? colors.textTertiary : colors.accent }}>Назад</Text>
+              <Text style={{ color: currentPage <= 1 ? colors.textTertiary : colors.accent }}>{t("Назад")}</Text>
             </Pressable>
             <Text style={{ color: colors.textPrimary }}>{currentPage} / {lastPage}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Следующая страница"
+            <Pressable accessibilityRole="button" accessibilityLabel={t("Следующая страница")}
               disabled={currentPage >= lastPage} accessibilityState={{ disabled: currentPage >= lastPage }}
               onPress={() => setPage(currentPage + 1)} style={styles.pageButton}>
-              <Text style={{ color: currentPage >= lastPage ? colors.textTertiary : colors.accent }}>Далее</Text>
+              <Text style={{ color: currentPage >= lastPage ? colors.textTertiary : colors.accent }}>{t("Далее")}</Text>
             </Pressable>
           </View> : null} />}
     </KeyboardAvoidingView>
@@ -100,6 +102,7 @@ function SearchContent(): React.JSX.Element {
 }
 
 export default function SearchScreen(): React.JSX.Element {
+  useLanguage()
   const token = useAuthStore((state) => state.token)
   const guest = useAuthStore((state) => state.guestMode)
   const userId = useAuthStore((state) => state.user?.uuid ?? '')

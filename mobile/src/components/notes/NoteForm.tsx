@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -68,6 +69,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
   onDirtyChange,
   autoSaveText = true,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const [title, setTitle] = useState(initialValues?.title ?? '')
@@ -127,7 +129,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
         <Pressable
           onPress={onBack}
           accessibilityRole="button"
-          accessibilityLabel="Назад"
+          accessibilityLabel={t("Назад")}
           style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
         >
           <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
@@ -135,7 +137,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
 
         <View style={styles.appBarTitle}>
           <SectionLabel
-            text={mode === 'new' ? 'Новая заметка' : 'Заметка'}
+            text={mode === 'new' ? t("Новая заметка") : t("Заметка")}
             color={colors.textPrimary}
           />
         </View>
@@ -143,7 +145,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
         <Pressable
           onPress={onTogglePin}
           accessibilityRole="button"
-          accessibilityLabel={isPinned ? 'Открепить' : 'Закрепить'}
+          accessibilityLabel={isPinned ? t("Открепить") : t("Закрепить")}
           style={[
             styles.iconBtn,
             { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
@@ -159,7 +161,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
           <Pressable
             onPress={handleSave}
             accessibilityRole="button"
-            accessibilityLabel="Сохранить"
+            accessibilityLabel={t("Сохранить")}
             style={[styles.iconBtn, styles.saveBtnIcon, { backgroundColor: colors.accent }]}
           >
             <Ionicons name="checkmark" size={20} color="#FFFFFF" />
@@ -168,26 +170,26 @@ const NoteForm: React.FC<NoteFormProps> = ({
       </View>
 
       {/* Заголовок */}
-      <SectionLabel text="Заголовок" />
+      <SectionLabel text={t("Заголовок")} />
       <TextInput
         value={title}
         onChangeText={handleTitle}
-        placeholder="Заголовок"
+        placeholder={t("Заголовок")}
         placeholderTextColor={colors.textTertiary}
         style={[
           styles.titleInput,
           { backgroundColor: colors.surface, borderColor: colors.borderInput, color: colors.textPrimary },
         ]}
         returnKeyType="next"
-        accessibilityLabel="Заголовок заметки"
+        accessibilityLabel={t("Заголовок заметки")}
       />
 
       {/* Текст */}
-      <SectionLabel text="Текст" />
+      <SectionLabel text={t("Текст")} />
       <TextInput
         value={body}
         onChangeText={handleBody}
-        placeholder="Начните писать…"
+        placeholder={t("Начните писать…")}
         placeholderTextColor={colors.textTertiary}
         multiline
         style={[
@@ -195,11 +197,11 @@ const NoteForm: React.FC<NoteFormProps> = ({
           { backgroundColor: colors.surface, borderColor: colors.borderInput, color: colors.textPrimary },
         ]}
         textAlignVertical="top"
-        accessibilityLabel="Текст заметки"
+        accessibilityLabel={t("Текст заметки")}
       />
 
       {/* Цвет метки */}
-      <SectionLabel text="Цвет метки" />
+      <SectionLabel text={t("Цвет метки")} />
       <NoteColorPicker value={color} onChange={handleColor} />
 
       {/* Кнопка Создать — только для новой заметки */}
@@ -207,7 +209,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
         <Pressable
           onPress={handleSave}
           accessibilityRole="button"
-          accessibilityLabel="Создать заметку"
+          accessibilityLabel={t("Создать заметку")}
           style={({ pressed }) => [
             styles.createBtn,
             { backgroundColor: colors.accent },
@@ -215,7 +217,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
           ]}
         >
           <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-          <SectionLabel text="Создать" color="#FFFFFF" />
+          <SectionLabel text={t("Создать")} color="#FFFFFF" />
         </Pressable>
       ) : null}
 
@@ -224,7 +226,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
         <Pressable
           onPress={onDelete}
           accessibilityRole="button"
-          accessibilityLabel="Удалить заметку"
+          accessibilityLabel={t("Удалить заметку")}
           style={({ pressed }) => [
             styles.deleteBtn,
             { borderColor: colors.danger },
@@ -232,7 +234,7 @@ const NoteForm: React.FC<NoteFormProps> = ({
           ]}
         >
           <Ionicons name="trash-outline" size={20} color={colors.danger} />
-          <SectionLabel text="Удалить заметку" color={colors.danger} />
+          <SectionLabel text={t("Удалить заметку")} color={colors.danger} />
         </Pressable>
       ) : null}
     </View>

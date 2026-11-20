@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
@@ -13,6 +14,7 @@ const DbContext = createContext<Database | null>(null)
 
 /** Never render old-account screens while storage for the next session is loading. */
 const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  useLanguage()
   const { token, guestMode, accountId, isHydrated, isSwitching } = useAuthStore()
   const queryClient = useQueryClient()
   const key = !isHydrated || isSwitching ? null : token ? `account:${accountId ?? 'legacy'}`
@@ -56,7 +58,7 @@ const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     return () => { cancelled = true }
   }, [key, token, accountId, queryClient])
 
-  if (error) return <ErrorScreen title="Ошибка открытия данных" message={error.message} stack={null} />
+  if (error) return <ErrorScreen title={t("Ошибка открытия данных")} message={error.message} stack={null} />
   if (key === null || ready?.key !== key || ready.token !== token) {
     return <View style={styles.center}><ActivityIndicator size="large" /></View>
   }

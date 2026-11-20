@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { favoritesFirst } from '@/utils/favorites'
 import React, { useState, useMemo, useCallback } from 'react'
 import {
@@ -37,6 +38,7 @@ const listAccentColor = (
 ): string => (list.type === 'tasks' ? colors.amber : colors.accent)
 
 export default function HomeScreen(): React.JSX.Element {
+  useLanguage()
   const { colors } = useTheme()
   const { notes, isLoading: notesLoading, deleteNote } = useNotes()
   const { reminders, isLoading: remindersLoading } = useReminders({ status: 'pending' })
@@ -47,10 +49,10 @@ export default function HomeScreen(): React.JSX.Element {
 
   const handleNoteLongPress = useCallback(
     (noteUuid: string): void => {
-      Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
-        { text: 'Отмена', style: 'cancel' },
+      Alert.alert(t("Удалить заметку?"), t("Действие нельзя отменить."), [
+        { text: t("Отмена"), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t("Удалить"),
           style: 'destructive',
           onPress: () => deleteNote.mutate(noteUuid),
         },
@@ -94,7 +96,7 @@ export default function HomeScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <DarkHeader
-        title="Вспомнить всё!"
+        title={t("Вспомнить всё!")}
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
         onSearchPress={() => router.push('/search')}
@@ -121,7 +123,7 @@ export default function HomeScreen(): React.JSX.Element {
           }
         >
           {showLists && filteredLists.length > 0 && (
-            <FeedSection title="Задачи" dotColor={colors.accent} colors={colors}>
+            <FeedSection title={t("Задачи")} dotColor={colors.accent} colors={colors}>
               {filteredLists.map((list: ShoppingList) => (
                 <FeedCard
                   key={list.uuid}
@@ -141,7 +143,7 @@ export default function HomeScreen(): React.JSX.Element {
           )}
 
           {showReminders && filteredReminders.length > 0 && (
-            <FeedSection title="Напоминания" dotColor={colors.amber} colors={colors}>
+            <FeedSection title={t("Напоминания")} dotColor={colors.amber} colors={colors}>
               {filteredReminders.map((reminder: Reminder) => (
                 <FeedCard
                   key={reminder.uuid}
@@ -161,13 +163,13 @@ export default function HomeScreen(): React.JSX.Element {
           )}
 
           {showNotes && filteredNotes.length > 0 && (
-            <FeedSection title="Заметки" dotColor={colors.noteBlue} colors={colors}>
+            <FeedSection title={t("Заметки")} dotColor={colors.noteBlue} colors={colors}>
               {filteredNotes.map((note: Note) => (
                 <FeedCard
                   key={note.uuid}
                   uuid={note.uuid}
                   entity="note" favorite={note.isFavorite}
-                  title={note.title.trim().length > 0 ? note.title : 'Без названия'}
+                  title={note.title.trim().length > 0 ? note.title : t("Без названия")}
                   subtitle={formatUpdatedAt(note.updatedAt)}
                   iconName="document-text"
                   iconColor={colors.noteBlue}
@@ -184,12 +186,8 @@ export default function HomeScreen(): React.JSX.Element {
 
           {!hasContent && (
             <View style={styles.empty}>
-              <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
-                Пока нет записей
-              </Text>
-              <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>
-                Нажмите «+», чтобы создать первую запись
-              </Text>
+              <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>{t("Пока нет записей")}</Text>
+              <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>{t("Нажмите «+», чтобы создать первую запись")}</Text>
             </View>
           )}
         </ScrollView>

@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { create } from 'zustand'
 import * as SecureStore from 'expo-secure-store'
 
@@ -100,7 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const user = await fetchUser()
         if (get().token === token) set({ user, syncEnabled: user.sync_enabled })
       } catch {
-        if (get().token === token) set({ profileError: 'Не удалось обновить профиль. Проверьте подключение.' })
+        if (get().token === token) set({ profileError: t("Не удалось обновить профиль. Проверьте подключение.") })
       } finally {
         if (get().token === token) set({ profileLoading: false })
         if (profileRequest === request) profileRequest = null

@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 
@@ -22,8 +23,8 @@ export function useSettings() {
       // Failure must never undo the user's decision to stop data transfer.
       void settings.setSyncEnabled(false).catch(() => {})
       setSyncError(request.enabled
-        ? 'Не удалось включить синхронизацию. Проверьте подключение и повторите.'
-        : 'На устройстве синхронизация выключена. Настройку аккаунта на сервере обновить не удалось.')
+        ? t("Не удалось включить синхронизацию. Проверьте подключение и повторите.")
+        : t("На устройстве синхронизация выключена. Настройку аккаунта на сервере обновить не удалось."))
     },
   })
 
@@ -31,14 +32,14 @@ export function useSettings() {
     if (!token || !settings.isHydrated || syncMutation.isPending) return
     setSyncError(null)
     const next = !syncEnabled
-    void settings.setSyncEnabled(next).catch(() => setSyncError('Не удалось сохранить настройку на устройстве.'))
+    void settings.setSyncEnabled(next).catch(() => setSyncError(t("Не удалось сохранить настройку на устройстве.")))
     syncMutation.mutate({ enabled: next, token })
   }
 
   const toggleNotifications = async (): Promise<void> => {
     useSettingsStore.setState({ notificationsError: null })
     try { await settings.setNotificationsEnabled(!settings.notificationsEnabled) }
-    catch { useSettingsStore.setState({ notificationsError: 'Не удалось сохранить настройку уведомлений.' }) }
+    catch { useSettingsStore.setState({ notificationsError: t("Не удалось сохранить настройку уведомлений.") }) }
   }
 
   return {

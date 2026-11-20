@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -19,6 +20,7 @@ const PALETTE: ReadonlyArray<NoteColor | null> = [
 ] as const
 
 const NoteColorPicker: React.FC<NoteColorPickerProps> = ({ value, onChange }) => {
+  useLanguage()
   const { colors } = useTheme()
 
   return (
@@ -33,7 +35,7 @@ const NoteColorPicker: React.FC<NoteColorPickerProps> = ({ value, onChange }) =>
             key={String(color)}
             accessibilityRole="radio"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={color ?? 'без цвета'}
+            accessibilityLabel={color ?? t("без цвета")}
             onPress={() => onChange(color)}
             style={[
               styles.swatch,

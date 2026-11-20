@@ -1,8 +1,10 @@
+import { t, getLanguage } from '@/i18n'
 /**
  * Русская плюрализация числительных. Правило: 11–14 всегда «много»,
  * иначе выбор по последней цифре (1 → один, 2–4 → несколько, иначе → много).
  */
 const pluralForm = (count: number, one: string, few: string, many: string): string => {
+  if (getLanguage() === 'en') return count === 1 ? one : many
   const mod10 = count % 10
   const mod100 = count % 100
   if (mod100 >= 11 && mod100 <= 14) return many
@@ -13,8 +15,8 @@ const pluralForm = (count: number, one: string, few: string, many: string): stri
 
 /** «N событие» / «N события» / «N событий» — заголовок списка дня в календаре. */
 export const pluralizeEvents = (count: number): string =>
-  `${count} ${pluralForm(count, 'событие', 'события', 'событий')}`
+  `${count} ${pluralForm(count, t("событие"), t("события"), t("событий"))}`
 
 /** «N день» / «N дня» / «N дней» — например, для «просрочено на N дней». */
 export const pluralizeDays = (count: number): string =>
-  `${count} ${pluralForm(count, 'день', 'дня', 'дней')}`
+  `${count} ${pluralForm(count, t("день"), t("дня"), t("дней"))}`

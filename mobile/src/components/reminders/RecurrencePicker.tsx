@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -16,9 +17,10 @@ const LABELS: Record<RecurrenceType, string> = {
 }
 
 const RecurrencePicker: React.FC<RecurrencePickerProps> = ({ value, onChange }) => {
+  useLanguage()
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Повтор</Text>
+      <Text style={styles.label}>{t("Повтор")}</Text>
       <View style={styles.row}>
         {RECURRENCE_TYPES.map((type) => {
           const active = type === value
@@ -27,7 +29,7 @@ const RecurrencePicker: React.FC<RecurrencePickerProps> = ({ value, onChange }) 
               key={type}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
-              accessibilityLabel={LABELS[type]}
+              accessibilityLabel={t(LABELS[type] ?? '')}
               onPress={() => onChange(type)}
               style={({ pressed }) => [
                 styles.segment,
@@ -36,7 +38,7 @@ const RecurrencePicker: React.FC<RecurrencePickerProps> = ({ value, onChange }) 
               ]}
             >
               <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
-                {LABELS[type]}
+                {t(LABELS[type] ?? '')}
               </Text>
             </Pressable>
           )

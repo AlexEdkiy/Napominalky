@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { Alert } from 'react-native'
 import { router } from 'expo-router'
 
@@ -21,13 +22,14 @@ const exportThenGoBack = async (
   })
   if (eventId !== null) onExported(eventId)
   Alert.alert(
-    eventId ? 'Добавлено в календарь' : 'Не удалось',
-    eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
+    eventId ? t("Добавлено в календарь") : t("Не удалось"),
+    eventId ? t("Напоминание экспортировано.") : t("Нет разрешения или произошла ошибка."),
     [{ text: 'OK', onPress: () => router.back() }],
   )
 }
 
 export default function NewReminderScreen() {
+  useLanguage()
   const { createReminder, setCalendarEventId } = useReminders()
 
   const handleCreated = (values: ReminderFormValues, createdUuid: string): void => {
@@ -54,7 +56,7 @@ export default function NewReminderScreen() {
 
   return (
     <ReminderForm
-      submitLabel="Создать"
+      submitLabel={t("Создать")}
       isSaving={createReminder.isPending}
       onSubmit={handleSubmit}
       onBack={() => router.back()}

@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Animated, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 
@@ -9,6 +10,7 @@ import { useAppLock } from '@/hooks/useAppLock'
 const PIN_LENGTH = 4
 
 const LockScreen: React.FC = () => {
+  useLanguage()
   const { verifyAndUnlock, unlockWithBiometric, biometricEnabled } = useAppLock()
 
   const [pin, setPin] = useState('')
@@ -30,7 +32,7 @@ const LockScreen: React.FC = () => {
     const ok = await verifyAndUnlock(candidate)
     setLoading(false)
     if (!ok) {
-      setError('Неверный PIN-код')
+      setError(t("Неверный PIN-код"))
       triggerShake()
       setPin('')
     }
@@ -59,7 +61,7 @@ const LockScreen: React.FC = () => {
     const ok = await unlockWithBiometric()
     setLoading(false)
     if (!ok) {
-      setError('Биометрия не подтверждена')
+      setError(t("Биометрия не подтверждена"))
     }
   }, [unlockWithBiometric])
 
@@ -73,8 +75,8 @@ const LockScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Приложение заблокировано</Text>
-        <Text style={styles.subtitle}>Введите PIN-код для входа</Text>
+        <Text style={styles.title}>{t("Приложение заблокировано")}</Text>
+        <Text style={styles.subtitle}>{t("Введите PIN-код для входа")}</Text>
 
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <PinDots length={PIN_LENGTH} filled={pin.length} />
@@ -86,7 +88,7 @@ const LockScreen: React.FC = () => {
 
         {biometricEnabled ? (
           <BaseButton
-            label="Войти по биометрии"
+            label={t("Войти по биометрии")}
             onPress={() => { void handleBiometric() }}
             variant="secondary"
             loading={loading}

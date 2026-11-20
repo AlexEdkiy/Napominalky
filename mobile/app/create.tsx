@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import {
   Platform,
@@ -62,6 +63,7 @@ interface OptionCardProps {
 }
 
 const OptionCard: React.FC<OptionCardProps> = ({ option, colors }) => {
+  useLanguage()
   const handlePress = (): void => {
     router.back()
     router.push(option.route)
@@ -70,7 +72,7 @@ const OptionCard: React.FC<OptionCardProps> = ({ option, colors }) => {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={option.label}
+      accessibilityLabel={t(option.label)}
       onPress={handlePress}
       style={({ pressed }) => [
         styles.card,
@@ -86,8 +88,8 @@ const OptionCard: React.FC<OptionCardProps> = ({ option, colors }) => {
         )}
       </View>
       <View style={styles.texts}>
-        <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{option.label}</Text>
-        <Text style={[styles.optionHint, { color: colors.textSecondary }]}>{option.hint}</Text>
+        <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{t(option.label)}</Text>
+        <Text style={[styles.optionHint, { color: colors.textSecondary }]}>{t(option.hint)}</Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color="#9AA6B2" />
     </Pressable>
@@ -95,6 +97,7 @@ const OptionCard: React.FC<OptionCardProps> = ({ option, colors }) => {
 }
 
 export default function CreateScreen() {
+  useLanguage()
   const { colors } = useTheme()
 
   return (
@@ -109,13 +112,13 @@ export default function CreateScreen() {
       <View style={styles.appBar}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Назад"
+          accessibilityLabel={t("Назад")}
           onPress={() => router.back()}
           style={[styles.backBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
         >
           <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </Pressable>
-        <Text style={[styles.appBarTitle, { color: colors.textPrimary }]}>Создать</Text>
+        <Text style={[styles.appBarTitle, { color: colors.textPrimary }]}>{t("Создать")}</Text>
         <View style={styles.appBarSpacer} />
       </View>
       <View style={styles.list}>

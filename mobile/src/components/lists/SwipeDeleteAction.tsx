@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -16,17 +17,18 @@ interface SwipeDeleteActionProps {
  * тап по кнопке (onConfirm). Смахивание строки назад — отмена.
  */
 const SwipeDeleteAction: React.FC<SwipeDeleteActionProps> = ({ itemName, onConfirm }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <Pressable
       onPress={onConfirm}
       testID="item-swipe-delete"
       accessibilityRole="button"
-      accessibilityLabel={`Удалить ${itemName}`}
+      accessibilityLabel={t("Удалить {0}", [itemName])}
       style={[styles.action, { backgroundColor: colors.danger }]}
     >
       <Ionicons name="trash-outline" size={18} color="#fff" />
-      <Text style={styles.label}>Удалить</Text>
+      <Text style={styles.label}>{t("Удалить")}</Text>
     </Pressable>
   )
 }

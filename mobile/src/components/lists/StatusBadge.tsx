@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -39,9 +40,10 @@ export const statusBadgeColors = (
 
 /** Компактная пилюля статуса задачи/пункта (только для type='tasks'). */
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, onPress, testID }) => {
+  useLanguage()
   const { colors } = useTheme()
   const { fg, bg } = statusBadgeColors(status, colors)
-  const label = TASK_STATUS_LABELS[status]
+  const label = t(TASK_STATUS_LABELS[status] ?? '')
 
   const pill = (
     <View style={[styles.pill, { backgroundColor: bg }]} testID={testID}>
@@ -56,7 +58,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, onPress, testID }) =>
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Статус: ${label}`}
+      accessibilityLabel={t("Статус: {0}", [label])}
       hitSlop={6}
     >
       {pill}

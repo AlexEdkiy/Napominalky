@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -20,17 +21,18 @@ const PRESETS: readonly Preset[] = [
 ]
 
 const QuickTimePresets: React.FC<QuickTimePresetsProps> = ({ onSelect }) => {
+  useLanguage()
   return (
     <View style={styles.row}>
       {PRESETS.map((preset) => (
         <Pressable
           key={preset.key}
           accessibilityRole="button"
-          accessibilityLabel={preset.label}
+          accessibilityLabel={t(preset.label)}
           onPress={() => onSelect(preset.compute())}
           style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
         >
-          <Text style={styles.label}>{preset.label}</Text>
+          <Text style={styles.label}>{t(preset.label)}</Text>
         </Pressable>
       ))}
     </View>

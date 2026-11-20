@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, FlatList, Keyboard, PanResponder, StyleSheet, View,
   type FlatListProps, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
@@ -22,6 +23,7 @@ interface HandleProps {
 const CellDrag = createContext({ uuid: '', target: '', translation: new Animated.Value(0) })
 
 const DragHandle: React.FC<HandleProps> = (props) => {
+  useLanguage()
   const latest = useRef(props)
   latest.current = props
   const responder = useMemo(() => PanResponder.create({
@@ -34,9 +36,9 @@ const DragHandle: React.FC<HandleProps> = (props) => {
     onPanResponderTerminationRequest: () => false,
   }), [])
   return <View {...responder.panHandlers} style={styles.handle} accessible accessibilityRole="adjustable"
-    accessibilityLabel="Порядок пункта" accessibilityHint="Перетащите вверх или вниз за левую цветную плашку"
+    accessibilityLabel={t("Порядок пункта")} accessibilityHint={t("Перетащите вверх или вниз за левую цветную плашку")}
     accessibilityState={{ disabled: props.disabled, selected: props.active }} testID={`drag-handle-${props.uuid}`}
-    accessibilityActions={[{ name: 'increment', label: 'Ниже' }, { name: 'decrement', label: 'Выше' }]}
+    accessibilityActions={[{ name: 'increment', label: t("Ниже") }, { name: 'decrement', label: t("Выше") }]}
     onAccessibilityAction={(event) => {
       if (!props.disabled) props.step(event.nativeEvent.actionName === 'increment' ? 1 : -1)
     }}>
@@ -48,6 +50,7 @@ const DragHandle: React.FC<HandleProps> = (props) => {
 export default function ReorderableItems<T extends OrderedItem>({
   data, renderRow, onReorder, disabled = false, ...props
 }: Props<T>): React.JSX.Element {
+  useLanguage()
   const list = useRef<FlatList<T>>(null)
   const viewport = useRef<View>(null)
   const bounds = useRef({ top: 0, height: 0, content: 0, offset: 0 })

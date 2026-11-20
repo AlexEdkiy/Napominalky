@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { favoritesFirst } from '@/utils/favorites'
 import React from 'react'
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -23,7 +24,8 @@ interface ReminderRowProps {
 }
 
 const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, timeColor, dotColor, onPress }) => {
-  const title = reminder.title.trim().length > 0 ? reminder.title : 'Без названия'
+  useLanguage()
+  const title = reminder.title.trim().length > 0 ? reminder.title : t("Без названия")
 
   return (
     <View style={styles.row}>
@@ -39,7 +41,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({ reminder, timeColor, dotColor
       <View style={styles.divider} />
       <View style={styles.contentCol}>
         <Text numberOfLines={1} style={styles.rowTitle}>{title}</Text>
-        <Text style={styles.rowType}>Напоминание</Text>
+        <Text style={styles.rowType}>{t("Напоминание")}</Text>
       </View>
       <View testID={`row-dot-${reminder.uuid}`} style={[styles.dot, { backgroundColor: dotColor }]} />
     </Pressable>
@@ -52,6 +54,7 @@ const DayRemindersSheet: React.FC<DayRemindersSheetProps> = ({
   reminders,
   onOpenReminder,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
 
   return (
@@ -74,7 +77,7 @@ const DayRemindersSheet: React.FC<DayRemindersSheetProps> = ({
           />
         )}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>Нет событий</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t("Нет событий")}</Text>}
       />
     </View>
   )

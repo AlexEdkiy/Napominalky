@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { useCallback, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -20,6 +21,7 @@ import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
 export default function NoteDetailScreen() {
+  useLanguage()
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
@@ -45,10 +47,10 @@ export default function NoteDetailScreen() {
   )
 
   const confirmDelete = useCallback((): void => {
-    Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t("Удалить заметку?"), t("Действие нельзя отменить."), [
+      { text: t("Отмена"), style: 'cancel' },
       {
-        text: 'Удалить',
+        text: t("Удалить"),
         style: 'destructive',
         onPress: () => deleteNote.mutate(noteUuid, { onSuccess: () => router.back() }),
       },
@@ -56,9 +58,9 @@ export default function NoteDetailScreen() {
   }, [noteUuid, deleteNote])
 
   usePreventRemove(isTextDirty, () => {
-    Alert.alert('Сохранить изменения?', '', [
+    Alert.alert(t("Сохранить изменения?"), '', [
       {
-        text: 'Нет',
+        text: t("Нет"),
         style: 'destructive',
         // Exit WITHOUT saving text
         onPress: () => {
@@ -67,7 +69,7 @@ export default function NoteDetailScreen() {
         },
       },
       {
-        text: 'Да',
+        text: t("Да"),
         style: 'default',
         // Save current text then exit
         onPress: () => {
@@ -99,9 +101,7 @@ export default function NoteDetailScreen() {
   if (note === null || note === undefined) {
     return (
       <View style={[styles.center, { backgroundColor: colors.screenBg }]}>
-        <Text style={[styles.missing, { color: colors.textSecondary }]}>
-          Заметка не найдена
-        </Text>
+        <Text style={[styles.missing, { color: colors.textSecondary }]}>{t("Заметка не найдена")}</Text>
       </View>
     )
   }

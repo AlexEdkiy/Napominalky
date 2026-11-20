@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -12,6 +13,7 @@ interface PinPadProps {
 }
 
 const PinPad: React.FC<PinPadProps> = ({ onPress, onDelete, disabled = false }) => {
+  useLanguage()
   const handleKey = (key: PinKey): void => {
     if (disabled) return
     if (key === 'del') {
@@ -22,7 +24,7 @@ const PinPad: React.FC<PinPadProps> = ({ onPress, onDelete, disabled = false }) 
   }
 
   return (
-    <View style={styles.grid} accessibilityLabel="Цифровая клавиатура">
+    <View style={styles.grid} accessibilityLabel={t("Цифровая клавиатура")}>
       {PIN_DIGITS.map((key, index) => (
         <PinKey key={index} value={key} onPress={handleKey} disabled={disabled} />
       ))}
@@ -37,12 +39,13 @@ interface PinKeyProps {
 }
 
 const PinKey: React.FC<PinKeyProps> = ({ value, onPress, disabled }) => {
+  useLanguage()
   if (value === '') {
     return <View style={styles.keyPlaceholder} />
   }
 
   const label = value === 'del' ? '⌫' : value
-  const accessLabel = value === 'del' ? 'Удалить' : `Цифра ${value}`
+  const accessLabel = value === 'del' ? t("Удалить") : t("Цифра {0}", [value])
 
   return (
     <Pressable

@@ -1,3 +1,4 @@
+import { useLanguage } from '@/i18n'
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -19,6 +20,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({
   color,
   size = 72,
 }) => {
+  useLanguage()
   const ratio = total > 0 ? Math.min(value / total, 1) : 0
   const percent = Math.round(ratio * 100)
   const stroke = Math.round(size * 0.1)
@@ -64,6 +66,7 @@ interface ArcFillProps {
  * для прогресс-индикатора (не претендует на pixel-perfect SVG).
  */
 const ArcFill: React.FC<ArcFillProps> = ({ ratio, color, size, stroke }) => {
+  useLanguage()
   const half = size / 2
   const deg = ratio * 360
 

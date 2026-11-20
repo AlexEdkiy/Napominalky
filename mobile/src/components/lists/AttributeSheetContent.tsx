@@ -1,3 +1,4 @@
+import { t, useLanguage, dateLocale } from '@/i18n'
 import React, { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
@@ -66,6 +67,7 @@ const SheetContent: React.FC<SheetContentProps> = ({
   onChange,
   onPendingTagChange = () => {},
 }) => {
+  useLanguage()
   if (attribute === 'deadline') {
     return (
       <DeadlineContent draft={typeof draft === 'string' ? draft : null} accentColor={accentColor} onChange={onChange} />
@@ -103,6 +105,7 @@ interface DeadlineContentProps {
 }
 
 const DeadlineContent: React.FC<DeadlineContentProps> = ({ draft, accentColor, onChange }) => {
+  useLanguage()
   const [showPicker, setShowPicker] = useState(false)
   const [androidStep, setAndroidStep] = useState<AndroidStep>('idle')
   const [androidDraft, setAndroidDraft] = useState<Date>(new Date())
@@ -151,23 +154,23 @@ const DeadlineContent: React.FC<DeadlineContentProps> = ({ draft, accentColor, o
         {DEADLINE_PRESETS.map((preset) => (
           <AttributeSheetPill
             key={preset.key}
-            label={preset.label}
+            label={t(preset.label)}
             active={activePreset === preset.key}
             accentColor={accentColor}
             onPress={() => handlePreset(preset.key)}
           />
         ))}
-        <AttributeSheetPill label="Выбрать дату" active={isCustom} accentColor={accentColor} onPress={openPicker} />
+        <AttributeSheetPill label={t("Выбрать дату")} active={isCustom} accentColor={accentColor} onPress={openPicker} />
       </View>
       {Platform.OS === 'ios' && showPicker && (
-        <DateTimePicker value={pickerValue} mode="datetime" display="spinner" onChange={handleIosChange} />
+        <DateTimePicker value={pickerValue} mode="datetime" display="spinner" locale={dateLocale()} onChange={handleIosChange} />
       )}
       {Platform.OS === 'android' && androidStep !== 'idle' && (
         <DateTimePicker value={androidDraft} mode={androidStep} display="default" onChange={handleAndroidChange} />
       )}
       {Platform.OS === 'ios' && showPicker && (
         <Pressable onPress={() => setShowPicker(false)} style={styles.iosPickerDoneWrap}>
-          <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>Готово</Text>
+          <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>{t("Готово")}</Text>
         </Pressable>
       )}
     </View>
@@ -192,6 +195,7 @@ const matchReminderPreset = (draft: string | null, deadline: string | null): Rem
 }
 
 const ReminderContent: React.FC<ReminderContentProps> = ({ draft, deadline, accentColor, onChange }) => {
+  useLanguage()
   const [showPicker, setShowPicker] = useState(false)
   const [androidStep, setAndroidStep] = useState<AndroidStep>('idle')
   const [androidDraft, setAndroidDraft] = useState<Date>(new Date())
@@ -239,19 +243,19 @@ const ReminderContent: React.FC<ReminderContentProps> = ({ draft, deadline, acce
         {REMINDER_PRESETS.map((preset) => (
           <AttributeSheetPill
             key={preset.key}
-            label={preset.label}
+            label={t(preset.label)}
             active={activePreset === preset.key}
             accentColor={accentColor}
             onPress={() => handlePreset(preset.key)}
           />
         ))}
-        <AttributeSheetPill label="Своё время" active={isCustom} accentColor={accentColor} onPress={openPicker} />
+        <AttributeSheetPill label={t("Своё время")} active={isCustom} accentColor={accentColor} onPress={openPicker} />
       </View>
       {Platform.OS === 'ios' && showPicker && (
         <DateTimePicker
           value={draft !== null ? new Date(draft) : new Date()}
           mode="datetime"
-          display="spinner"
+          display="spinner" locale={dateLocale()}
           onChange={handleIosChange}
         />
       )}
@@ -260,7 +264,7 @@ const ReminderContent: React.FC<ReminderContentProps> = ({ draft, deadline, acce
       )}
       {Platform.OS === 'ios' && showPicker && (
         <Pressable onPress={() => setShowPicker(false)} style={styles.iosPickerDoneWrap}>
-          <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>Готово</Text>
+          <Text style={[styles.iosPickerDoneText, { color: accentColor }]}>{t("Готово")}</Text>
         </Pressable>
       )}
     </View>
@@ -276,19 +280,20 @@ interface LinkContentProps {
 }
 
 const LinkContent: React.FC<LinkContentProps> = ({ draft, accentColor, onChange }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={styles.content}>
       <TextInput
         value={draft}
         onChangeText={onChange}
-        placeholder="Вставьте ссылку"
+        placeholder={t("Вставьте ссылку")}
         placeholderTextColor={colors.textTertiary}
         autoCapitalize="none"
         keyboardType="url"
         autoFocus
         style={[styles.input, { borderColor: colors.borderInput, color: colors.textPrimary }]}
-        accessibilityLabel="Ссылка"
+        accessibilityLabel={t("Ссылка")}
         selectionColor={accentColor}
       />
     </View>
@@ -306,6 +311,7 @@ interface TagContentProps {
 }
 
 const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange, onPendingChange }) => {
+  useLanguage()
   const { colors } = useTheme()
   const [newTag, setNewTag] = useState('')
 
@@ -326,7 +332,8 @@ const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange, o
     onPendingChange?.('')
   }
 
-  const allPills = [...TAG_PRESETS, ...draft.filter((t) => !(TAG_PRESETS as readonly string[]).includes(t))]
+  const presets = TAG_PRESETS.map((label) => t(label))
+  const allPills = [...presets, ...draft.filter((tag) => !presets.includes(tag))]
 
   return (
     <View style={styles.content}>
@@ -346,17 +353,17 @@ const TagContent: React.FC<TagContentProps> = ({ draft, accentColor, onChange, o
           value={newTag}
           onChangeText={handleChangeText}
           onSubmitEditing={addCustomTag}
-          placeholder="＋ Новый тег"
+          placeholder={t("＋ Новый тег")}
           placeholderTextColor={colors.textTertiary}
           style={[styles.newTagInput, { color: colors.textPrimary }]}
           returnKeyType="done"
-          accessibilityLabel="Новый тег"
+          accessibilityLabel={t("Новый тег")}
         />
         {newTag.trim().length > 0 && (
           <Pressable
             onPress={addCustomTag}
             accessibilityRole="button"
-            accessibilityLabel="Добавить тег"
+            accessibilityLabel={t("Добавить тег")}
             style={styles.addTagBtn}
           >
             <Text style={[styles.addTagBtnText, { color: accentColor }]}>＋</Text>

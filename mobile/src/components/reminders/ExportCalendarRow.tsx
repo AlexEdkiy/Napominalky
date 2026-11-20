@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -38,15 +39,13 @@ interface ExportedBadgeProps {
 const ExportedBadge: React.FC<ExportedBadgeProps> = ({ colors }) => (
   <View
     testID="calendar-exported-badge"
-    accessibilityLabel="В календаре"
+    accessibilityLabel={t("В календаре")}
     style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
   >
     <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
     <View style={styles.texts}>
-      <Text style={[typography.buttonLabel, { color: colors.textPrimary }]}>В календаре</Text>
-      <Text style={[styles.hint, { color: colors.textTertiary }]}>
-        Напоминание уже экспортировано
-      </Text>
+      <Text style={[typography.buttonLabel, { color: colors.textPrimary }]}>{t("В календаре")}</Text>
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>{t("Напоминание уже экспортировано")}</Text>
     </View>
     <Ionicons name="calendar" size={20} color={colors.accent} />
   </View>
@@ -63,7 +62,7 @@ const ExportCheckbox: React.FC<ExportCheckboxProps> = ({ checked, onToggle, colo
     onPress={onToggle}
     accessibilityRole="checkbox"
     accessibilityState={{ checked }}
-    accessibilityLabel="Добавить в календарь"
+    accessibilityLabel={t("Добавить в календарь")}
     style={({ pressed }) => [
       styles.row,
       { backgroundColor: colors.surface, borderColor: colors.borderInput },
@@ -82,12 +81,8 @@ const ExportCheckbox: React.FC<ExportCheckboxProps> = ({ checked, onToggle, colo
       {checked ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
     </View>
     <View style={styles.texts}>
-      <Text style={[typography.buttonLabel, { color: colors.textPrimary }]}>
-        Добавить в календарь
-      </Text>
-      <Text style={[styles.hint, { color: colors.textTertiary }]}>
-        Экспорт произойдёт после сохранения
-      </Text>
+      <Text style={[typography.buttonLabel, { color: colors.textPrimary }]}>{t("Добавить в календарь")}</Text>
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>{t("Экспорт произойдёт после сохранения")}</Text>
     </View>
     <Ionicons name="calendar-outline" size={20} color={colors.accent} />
   </Pressable>

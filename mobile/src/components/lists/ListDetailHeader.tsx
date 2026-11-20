@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -53,6 +54,7 @@ const ListDetailHeader: React.FC<ListDetailHeaderProps> = ({
   statusIsManual = false,
   onOpenListStatus,
 }) => {
+  useLanguage()
   return (
     <>
       {/* Статус задачи — ТОЛЬКО для tasks; goods без статусов */}
@@ -99,13 +101,14 @@ const ListStatusRow: React.FC<ListStatusRowProps> = ({
   statusIsManual,
   onPress,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={styles.statusRow} testID="list-status-row">
-      <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>Статус</Text>
+      <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{t("Статус")}</Text>
       <StatusBadge status={status} onPress={onPress} testID="detail-status-badge" />
       <Text style={[styles.statusMode, { color: colors.textTertiary }]}>
-        {statusIsManual ? 'Вручную' : 'Авто'}
+        {statusIsManual ? t("Вручную") : t("Авто")}
       </Text>
     </View>
   )
@@ -126,6 +129,7 @@ const ItemFilterSegment: React.FC<ItemFilterSegmentProps> = ({
   onSelect,
   accentColor,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={[styles.filterRow, { backgroundColor: colors.borderSubtle }]}>
@@ -148,7 +152,7 @@ const ItemFilterSegment: React.FC<ItemFilterSegmentProps> = ({
                 { color: isActive ? accentColor : colors.textSecondary },
               ]}
             >
-              {f.label}
+              {t(f.label)}
             </Text>
           </Pressable>
         )
@@ -174,10 +178,11 @@ const EmptyBanner: React.FC<EmptyBannerProps> = ({
   hint,
   subHint,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const icon: React.ComponentProps<typeof Ionicons>['name'] =
     listType === 'tasks' ? 'list' : 'bag-handle'
-  const successText = 'Задача создана — добавьте первый пункт'
+  const successText = t("Задача создана — добавьте первый пункт")
   return (
     <View style={styles.emptyBannerOuter}>
       <View style={[styles.emptyBannerSuccess, { backgroundColor: accentBg }]}>

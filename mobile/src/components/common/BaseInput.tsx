@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -17,6 +18,7 @@ const BaseInput: React.FC<BaseInputProps> = ({
   secureTextEntry,
   ...inputProps
 }) => {
+  useLanguage()
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
   const resolvedSecureTextEntry = passwordToggle ? !isPasswordVisible : secureTextEntry
@@ -43,7 +45,7 @@ const BaseInput: React.FC<BaseInputProps> = ({
         {passwordToggle ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={isPasswordVisible ? 'Скрыть пароль' : 'Показать пароль'}
+            accessibilityLabel={isPasswordVisible ? t("Скрыть пароль") : t("Показать пароль")}
             accessibilityHint={label}
             hitSlop={12}
             style={styles.toggleButton}

@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
@@ -9,6 +10,7 @@ interface Props { result: SearchResult; query: string }
 interface HighlightProps { text: string; query: string; color: string }
 
 const Highlight: React.FC<HighlightProps> = ({ text, query, color }) => {
+  useLanguage()
   const literal = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const parts = query ? text.split(new RegExp(`(${literal})`, 'gi')) : [text]
   return <>{parts.map((part, i) => <Text key={i} style={i % 2 ? [styles.match, { color }] : undefined}>
@@ -26,25 +28,25 @@ export const openSearchResult = (result: SearchResult): void => {
 }
 
 const label = (result: SearchResult): string => {
-  if (result.type === 'list') return result.listType === 'tasks' ? 'Задача' : 'Покупки'
-  if (result.type === 'item') return result.listType === 'tasks' ? 'Пункт задачи' : 'Пункт покупок'
-  return result.type === 'note' ? 'Заметка' : 'Напоминание'
+  if (result.type === 'list') return result.listType === 'tasks' ? t("Задача") : t("Покупки")
+  if (result.type === 'item') return result.listType === 'tasks' ? t("Пункт задачи") : t("Пункт покупок")
+  return result.type === 'note' ? t("Заметка") : t("Напоминание")
 }
 
 const SearchResultCard: React.FC<Props> = ({ result, query }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Открыть: ${result.title || 'Без названия'}`}
+    <Pressable accessibilityRole="button" accessibilityLabel={t("Открыть: {0}", [result.title || t("Без названия")])}
       onPress={() => openSearchResult(result)} style={styles.body}>
       <Text style={[styles.meta, { color: colors.textSecondary }]}>
-        {label(result)}{result.isArchived ? ' · В архиве' : ''}{result.isCompleted ? ' · Выполнено' : ''}
+        {label(result)}{result.isArchived ? t(" · В архиве") : ''}{result.isCompleted ? t(" · Выполнено") : ''}
       </Text>
       <Text style={[styles.title, { color: colors.textPrimary }]}>
-        <Highlight text={result.title || 'Без названия'} query={query} color={colors.accent} />
+        <Highlight text={result.title || t("Без названия")} query={query} color={colors.accent} />
       </Text>
-      {result.listTitle && <Text style={[styles.meta, { color: colors.textSecondary }]}>
-        В списке «{result.listTitle}»
+      {result.listTitle && <Text style={[styles.meta, { color: colors.textSecondary }]}>{t('В списке «{0}»', [result.listTitle])}
       </Text>}
       {result.excerpt.length > 0 && <Text style={[styles.excerpt, { color: colors.textBody }]}>
         <Highlight text={result.excerpt} query={query} color={colors.accent} />

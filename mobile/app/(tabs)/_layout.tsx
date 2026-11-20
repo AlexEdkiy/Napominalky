@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import {
   Platform,
@@ -20,11 +21,13 @@ interface TabIconProps {
 }
 
 const TabIcon: React.FC<TabIconProps> = ({ name, focused, color, size }) => {
+  useLanguage()
   const iconName = focused ? name : (`${name}-outline` as IoniconsName)
   return <Ionicons name={iconName} size={size} color={color} />
 }
 
 export default function TabsLayout() {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
 
@@ -58,7 +61,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Главная',
+          title: t("Главная"),
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon name="home" focused={focused} color={color} size={size} />
           ),
@@ -67,7 +70,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="lists"
         options={{
-          title: 'Задачи',
+          title: t("Задачи"),
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon name="list" focused={focused} color={color} size={size} />
           ),
@@ -85,7 +88,7 @@ export default function TabsLayout() {
         name="reminders-tab"
         options={{
           // Короткая подпись: «Напоминания» не помещается в таб-бар.
-          title: 'Напомнить',
+          title: t("Напомнить"),
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon name="alarm" focused={focused} color={color} size={size} />
           ),
@@ -98,7 +101,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="notes-list"
         options={{
-          title: 'Заметки',
+          title: t("Заметки"),
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon name="document-text" focused={focused} color={color} size={size} />
           ),

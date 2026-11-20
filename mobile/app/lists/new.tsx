@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useEffect, useState } from 'react'
 import {
   Keyboard,
@@ -44,6 +45,7 @@ const TYPE_OPTIONS: readonly TypeOption[] = [
 ]
 
 export default function NewListScreen() {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const { height: screenHeight } = useWindowDimensions()
@@ -87,7 +89,7 @@ export default function NewListScreen() {
       <Pressable
         style={styles.backdrop}
         accessibilityRole="button"
-        accessibilityLabel="Закрыть"
+        accessibilityLabel={t("Закрыть")}
         onPress={() => router.back()}
       />
       <View
@@ -114,11 +116,11 @@ export default function NewListScreen() {
             <View style={styles.handleWrap}>
               <View style={[styles.handle, { backgroundColor: colors.borderInput }]} />
             </View>
-            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Новая задача</Text>
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>{t("Новая задача")}</Text>
             <View style={styles.fieldBlock}>
               <TextInput
-                accessibilityLabel="Название задачи"
-                placeholder="Название задачи"
+                accessibilityLabel={t("Название задачи")}
+                placeholder={t("Название задачи")}
                 placeholderTextColor={colors.textTertiary}
                 value={title}
                 onChangeText={setTitle}
@@ -134,7 +136,7 @@ export default function NewListScreen() {
             </View>
 
             <View style={styles.fieldBlock}>
-              <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>ВИД ЗАДАЧИ</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>{t("ВИД ЗАДАЧИ")}</Text>
               <View style={styles.typeCards}>
                 {TYPE_OPTIONS.map((opt) => {
                   const isActive = opt.value === listType
@@ -160,10 +162,10 @@ export default function NewListScreen() {
                       </View>
                       <View style={styles.typeInfo}>
                         <Text style={[styles.typeLabel, { color: colors.textPrimary }]}>
-                          {opt.label}
+                          {t(opt.label)}
                         </Text>
                         <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>
-                          {opt.description}
+                          {t(opt.description)}
                         </Text>
                       </View>
                       <View
@@ -184,7 +186,7 @@ export default function NewListScreen() {
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Создать задачу"
+              accessibilityLabel={t("Создать задачу")}
               onPress={handleCreate}
               disabled={title.trim().length === 0 || createList.isPending}
               style={({ pressed }) => [
@@ -193,7 +195,7 @@ export default function NewListScreen() {
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.createBtnLabel}>Создать задачу</Text>
+              <Text style={styles.createBtnLabel}>{t("Создать задачу")}</Text>
             </Pressable>
           </ScrollView>
       </View>

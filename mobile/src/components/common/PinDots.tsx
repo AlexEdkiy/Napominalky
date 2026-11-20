@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -8,10 +9,11 @@ interface PinDotsProps {
 }
 
 const PinDots: React.FC<PinDotsProps> = ({ length, filled, shake = false }) => {
+  useLanguage()
   return (
     <View
       style={[styles.row, shake && styles.shake]}
-      accessibilityLabel={`Введено ${filled} из ${length} цифр`}
+      accessibilityLabel={t("Введено {0} из {1} цифр", [filled, length])}
     >
       {Array.from({ length }).map((_, i) => (
         <View key={i} style={[styles.dot, i < filled && styles.dotFilled]} />

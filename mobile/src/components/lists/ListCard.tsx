@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -32,8 +33,9 @@ const ringProgressValue = (checked: number, total: number): number =>
   total === 0 ? 0 : checked / total
 
 const ListCard: React.FC<ListCardProps> = ({ list, onPress, nearestDeadline }) => {
+  useLanguage()
   const { colors } = useTheme()
-  const title = list.title.trim().length > 0 ? list.title : 'Без названия'
+  const title = list.title.trim().length > 0 ? list.title : t("Без названия")
   const { checkedItemsCount: checked, itemsCount: total } = list
   const cfg = useTypeConfig(list.type)
 

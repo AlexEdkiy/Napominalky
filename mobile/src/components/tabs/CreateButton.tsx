@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useCallback } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { router, usePathname } from 'expo-router'
@@ -19,6 +20,7 @@ export const resolveCreateRoute = (pathname: string): CreateRoute =>
   ROUTE_MAP[pathname] ?? '/create'
 
 const CreateButton: React.FC = () => {
+  useLanguage()
   const { colors } = useTheme()
   const pathname = usePathname()
 
@@ -30,7 +32,7 @@ const CreateButton: React.FC = () => {
     <View style={styles.wrapper}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Создать"
+        accessibilityLabel={t("Создать")}
         onPress={handlePress}
         style={({ pressed }) => [
           styles.btn,

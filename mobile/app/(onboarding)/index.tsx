@@ -1,5 +1,7 @@
+import LanguageSelector from '@/components/settings/LanguageSelector'
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 
@@ -17,6 +19,7 @@ const VALUES: ValueItem[] = [
 ]
 
 export default function OnboardingScreen(): React.JSX.Element {
+  useLanguage()
   const { continueAsGuest } = useAuth()
   const insets = useSafeAreaInsets()
 
@@ -25,34 +28,35 @@ export default function OnboardingScreen(): React.JSX.Element {
   }
 
   return (
-    <View
-      style={[
+    <ScrollView
+      contentContainerStyle={[
         styles.container,
         { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
       ]}
     >
+      <LanguageSelector />
       <View style={styles.illustration}>
         <Image
           testID="onboarding-illustration"
           source={require('../../assets/onboarding-illustration.png')}
           style={styles.illustrationImage}
           resizeMode="contain"
-          accessibilityLabel="Иллюстрация приложения"
+          accessibilityLabel={t("Иллюстрация приложения")}
         />
       </View>
 
       <View style={styles.textBlock}>
-        <Text style={styles.title}>Напоминалки</Text>
+        <Text style={styles.title}>{t("Напоминалки")}</Text>
         <Text style={styles.subtitle}>
-          {'Заметки, списки покупок и напоминания — всегда под рукой.'}
+          {t("Заметки, списки покупок и напоминания — всегда под рукой.")}
         </Text>
       </View>
 
       <View style={styles.values}>
         {VALUES.map((item) => (
           <View key={item.title} style={styles.valueRow}>
-            <Text style={styles.valueTitle}>{item.title}</Text>
-            <Text style={styles.valueDescription}>{item.description}</Text>
+            <Text style={styles.valueTitle}>{t(item.title)}</Text>
+            <Text style={styles.valueDescription}>{t(item.description)}</Text>
           </View>
         ))}
       </View>
@@ -60,28 +64,29 @@ export default function OnboardingScreen(): React.JSX.Element {
       <View style={styles.actions}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Начать без регистрации"
+          accessibilityLabel={t("Начать без регистрации")}
           onPress={continueAsGuest}
           style={({ pressed }) => [styles.btnPrimary, pressed && styles.pressed]}
         >
-          <Text style={styles.btnPrimaryText}>Начать без регистрации</Text>
+          <Text style={styles.btnPrimaryText}>{t("Начать без регистрации")}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Войти"
+          accessibilityLabel={t("Войти")}
           onPress={handleLogin}
           style={({ pressed }) => [styles.btnSecondary, pressed && styles.pressed]}
         >
-          <Text style={styles.btnSecondaryText}>Войти</Text>
+          <Text style={styles.btnSecondaryText}>{t("Войти")}</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
+    gap: 20,
     backgroundColor: '#ffffff',
     paddingHorizontal: 24,
     justifyContent: 'space-between',

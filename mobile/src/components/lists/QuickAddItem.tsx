@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useRef, useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -29,6 +30,7 @@ interface QuickAddItemProps {
  * жёлтая точка-индикатор, если хоть один атрибут задан.
  */
 const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus = false }) => {
+  useLanguage()
   const { colors } = useTheme()
   const [name, setName] = useState('')
   const [attrs, setAttrs] = useState<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
@@ -37,7 +39,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
   const sheetSnapshot = useRef<ItemAttributeValues>(EMPTY_ATTRIBUTE_VALUES)
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
   const accentBg = listType === 'tasks' ? colors.amberBg : colors.accentSoftBg
-  const placeholder = listType === 'tasks' ? 'Добавить задачи' : 'Что купить'
+  const placeholder = listType === 'tasks' ? t("Добавить задачи") : t("Что купить")
   const hasAttrs = ATTRIBUTE_ORDER.some((attr) => isAttributeSet(attr, attrs))
 
   const handleAdd = (): void => {
@@ -90,7 +92,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Допатрибуты"
+            accessibilityLabel={t("Допатрибуты")}
             onPress={openSheet}
             hitSlop={6}
             style={styles.attrsBtn}
@@ -106,7 +108,7 @@ const QuickAddItem: React.FC<QuickAddItemProps> = ({ listType, onAdd, autoFocus 
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Добавить"
+          accessibilityLabel={t("Добавить")}
           onPress={handleAdd}
           style={({ pressed }) => [
             styles.addButton,

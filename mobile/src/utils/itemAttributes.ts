@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 /**
  * Общие типы/хелперы для редизайна атрибутов пункта задачи (чипсы → шторка → токены).
  * Чистые функции без побочных эффектов — переиспользуются в AttributeTokens,
@@ -84,9 +85,9 @@ export const formatDeadlineToken = (dateStr: string): string => {
   const h = String(date.getHours()).padStart(2, '0')
   const m = String(date.getMinutes()).padStart(2, '0')
   const timeSuffix = withTime ? `, ${h}:${m}` : ''
-  if (date >= todayStart && date < tomorrowStart) return `Сегодня${timeSuffix}`
-  if (date >= tomorrowStart && date < dayAfter) return `Завтра${timeSuffix}`
-  const month = MONTHS_SHORT[date.getMonth()]
+  if (date >= todayStart && date < tomorrowStart) return t("Сегодня{0}", [timeSuffix])
+  if (date >= tomorrowStart && date < dayAfter) return t("Завтра{0}", [timeSuffix])
+  const month = t(MONTHS_SHORT[date.getMonth()] ?? '')
   const year = date.getFullYear()
   const currentYear = now.getFullYear()
   const datePart =
@@ -101,10 +102,10 @@ export const formatReminderToken = (iso: string): string => {
   const now = new Date()
   const diffMs = date.getTime() - now.getTime()
   const ONE_MIN = 60_000
-  if (diffMs > 0 && diffMs <= 11 * ONE_MIN) return 'За 10 минут'
-  if (diffMs > 11 * ONE_MIN && diffMs <= 61 * ONE_MIN) return 'За 1 час'
+  if (diffMs > 0 && diffMs <= 11 * ONE_MIN) return t("За 10 минут")
+  if (diffMs > 11 * ONE_MIN && diffMs <= 61 * ONE_MIN) return t("За 1 час")
   const day = String(date.getDate()).padStart(2, '0')
-  const month = MONTHS_SHORT[date.getMonth()] ?? ''
+  const month = t(MONTHS_SHORT[date.getMonth()] ?? '') ?? ''
   const h = String(date.getHours()).padStart(2, '0')
   const m = String(date.getMinutes()).padStart(2, '0')
   return `${day} ${month} ${h}:${m}`

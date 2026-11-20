@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -34,6 +35,7 @@ const AttributeTokens: React.FC<AttributeTokensProps> = ({
   onOpen,
   onRemove,
 }) => {
+  useLanguage()
   const set = ATTRIBUTE_ORDER.filter((attr) => isAttributeSet(attr, values))
   if (set.length === 0) return null
 
@@ -76,7 +78,7 @@ const AttributeToken: React.FC<AttributeTokenProps> = ({
   <Pressable
     onPress={onPress}
     accessibilityRole="button"
-    accessibilityLabel={`${ATTRIBUTE_LABELS[attribute]}: ${value}`}
+    accessibilityLabel={`${t(ATTRIBUTE_LABELS[attribute] ?? '')}: ${value}`}
     style={[styles.token, { backgroundColor: accentBg }]}
   >
     <Ionicons
@@ -90,7 +92,7 @@ const AttributeToken: React.FC<AttributeTokenProps> = ({
     <Pressable
       onPress={onRemove}
       accessibilityRole="button"
-      accessibilityLabel={`Удалить ${ATTRIBUTE_LABELS[attribute].toLowerCase()}`}
+      accessibilityLabel={t("Удалить {0}", [t(ATTRIBUTE_LABELS[attribute] ?? '').toLowerCase()])}
       hitSlop={8}
       style={styles.tokenRemove}
     >

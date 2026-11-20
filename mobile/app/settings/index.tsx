@@ -1,3 +1,5 @@
+import LanguageSelector from '@/components/settings/LanguageSelector'
+import { t, useLanguage } from '@/i18n'
 import { router } from 'expo-router'
 import React from 'react'
 import {
@@ -22,6 +24,7 @@ const THEME_LABELS: Record<Theme, string> = {
 const THEME_CYCLE: Theme[] = ['system', 'light', 'dark']
 
 export default function SettingsScreen() {
+  useLanguage()
   const {
     theme,
     notificationsEnabled,
@@ -53,50 +56,55 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
-        <Text style={styles.sectionTitle}>Внешний вид</Text>
+        <Text style={styles.sectionTitle}>{t("Язык")}</Text>
+        <LanguageSelector />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
+        <Text style={styles.sectionTitle}>{t("Внешний вид")}</Text>
         <SettingRow
-          label="Тема"
-          right={<Text style={styles.valueText}>{THEME_LABELS[theme]}</Text>}
+          label={t("Тема")}
+          right={<Text style={styles.valueText}>{t(THEME_LABELS[theme] ?? '')}</Text>}
           onPress={handleThemePress}
         />
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
-        <Text style={styles.sectionTitle}>Уведомления</Text>
+        <Text style={styles.sectionTitle}>{t("Уведомления")}</Text>
         <SettingRow
-          label="Уведомления"
+          label={t("Уведомления")}
           hint={notificationsError ?? undefined}
           right={
             <Switch
               value={notificationsEnabled}
               disabled={!isHydrated}
               onValueChange={() => { void toggleNotifications() }}
-              accessibilityLabel="Push-уведомления"
+              accessibilityLabel={t("Push-уведомления")}
             />
           }
         />
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
-        <Text style={styles.sectionTitle}>Синхронизация</Text>
+        <Text style={styles.sectionTitle}>{t("Синхронизация")}</Text>
         <SettingRow
-          label="Синхронизация с сервером"
-          hint={syncError ?? (!canSync ? 'Войдите в аккаунт для синхронизации.' : isSyncUpdating ? 'Обновление...' : !syncEnabled ? 'Выключена. Изменения сохраняются только на устройстве.' : undefined)}
+          label={t("Синхронизация с сервером")}
+          hint={syncError ?? (!canSync ? t("Войдите в аккаунт для синхронизации.") : isSyncUpdating ? t("Обновление...") : !syncEnabled ? t("Выключена. Изменения сохраняются только на устройстве.") : undefined)}
           right={
             <Switch
               value={syncEnabled}
               onValueChange={toggleSync}
               disabled={isSyncUpdating || !canSync}
-              accessibilityLabel="Синхронизация с сервером"
+              accessibilityLabel={t("Синхронизация с сервером")}
             />
           }
         />
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
-        <Text style={styles.sectionTitle}>Безопасность</Text>
+        <Text style={styles.sectionTitle}>{t("Безопасность")}</Text>
         <SettingRow
-          label="Блокировка и биометрия"
+          label={t("Блокировка и биометрия")}
           right={<Text style={styles.chevron}>›</Text>}
           onPress={handleSecurityPress}
         />

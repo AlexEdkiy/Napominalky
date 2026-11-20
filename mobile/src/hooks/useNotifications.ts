@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import * as Notifications from 'expo-notifications'
@@ -102,6 +103,7 @@ const dismissAndInvalidate = async (
  * при работающем приложении — через подписку (с cleanup).
  */
 export const useNotifications = (): UseNotificationsResult => {
+  const language = useLanguage()
   const [granted, setGranted] = useState(false)
   const coldStartHandled = useRef(false)
   const queryClient = useQueryClient()
@@ -114,15 +116,20 @@ export const useNotifications = (): UseNotificationsResult => {
     void reconcileNotificationSettings().then(() => {
       if (active) setGranted(useSettingsStore.getState().notificationsEnabled)
     }).catch(() => {
-      useSettingsStore.setState({ notificationsError: 'Не удалось обновить уведомления. Повторите попытку.' })
+      useSettingsStore.setState({ notificationsError: t("Не удалось обновить уведомления. Повторите попытку.") })
     })
     return () => { active = false }
   }, [ready, enabled])
 
   useEffect(() => {
+    void Promise.all([ensureAndroidNotificationChannel(), ensureReminderNotificationCategory()])
+      .catch(() => {
+        useSettingsStore.setState({ notificationsError: t('Не удалось обновить уведомления. Повторите попытку.') })
+      })
+  }, [language])
+
+  useEffect(() => {
     configureNotificationHandler()
-    void ensureAndroidNotificationChannel()
-    void ensureReminderNotificationCategory()
 
     if (!coldStartHandled.current) {
       coldStartHandled.current = true

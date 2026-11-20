@@ -1,3 +1,4 @@
+import { t, getLanguage, type Language } from '@/i18n'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { activeDatabaseScope } from '@/db/databaseScope'
@@ -70,8 +71,8 @@ const notificationsAllowed = (): boolean => useSettingsStore.getState().notifica
   notificationBelongsToSession({ scope: activeDatabaseScope() })
 
 let handlerConfigured = false
-let androidChannelConfigured = false
-let reminderCategoryConfigured = false
+let androidChannelLanguage: Language | null = null
+let reminderCategoryLanguage: Language | null = null
 
 /** Id Android-канала по умолчанию, используемого всеми локальными уведомлениями. */
 export const DEFAULT_ANDROID_CHANNEL_ID = 'default'
@@ -91,20 +92,21 @@ export const REMINDER_ACTION_SNOOZE_10M = 'reminder-snooze-10m'
  * getLastNotificationResponseAsync на следующем старте. Идемпотентна.
  */
 export const ensureReminderNotificationCategory = async (): Promise<void> => {
-  if (reminderCategoryConfigured) return
-  reminderCategoryConfigured = true
+  const language = getLanguage()
+  if (reminderCategoryLanguage === language) return
   await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
     {
       identifier: REMINDER_ACTION_COMPLETE,
-      buttonTitle: 'Выполнено',
+      buttonTitle: t("Выполнено"),
       options: { opensAppToForeground: false },
     },
     {
       identifier: REMINDER_ACTION_SNOOZE_10M,
-      buttonTitle: 'Отложить на 10 мин',
+      buttonTitle: t("Отложить на 10 мин"),
       options: { opensAppToForeground: false },
     },
   ])
+  reminderCategoryLanguage = language
 }
 
 /**
@@ -136,10 +138,10 @@ export const configureNotificationHandler = (): void => {
  */
 export const ensureAndroidNotificationChannel = async (): Promise<void> => {
   if (Platform.OS !== 'android') return
-  if (androidChannelConfigured) return
-  androidChannelConfigured = true
+  const language = getLanguage()
+  if (androidChannelLanguage === language) return
   await Notifications.setNotificationChannelAsync(DEFAULT_ANDROID_CHANNEL_ID, {
-    name: 'Напоминания',
+    name: t("Напоминания"),
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'default',
     vibrationPattern: [0, 250, 250, 250],
@@ -149,6 +151,7 @@ export const ensureAndroidNotificationChannel = async (): Promise<void> => {
     showBadge: false,
     bypassDnd: false,
   })
+  androidChannelLanguage = language
 }
 
 /**

@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { useState } from 'react'
 import {
   ActivityIndicator,
@@ -37,6 +38,7 @@ const filterByTitle = (items: Reminder[], q: string): Reminder[] => {
 }
 
 export default function RemindersScreen(): React.JSX.Element {
+  useLanguage()
   const { colors } = useTheme()
   const [segment, setSegment] = useState<ReminderSegment>('overdue')
   const [search, setSearch] = useState('')
@@ -50,9 +52,9 @@ export default function RemindersScreen(): React.JSX.Element {
   const favorites = selected.filter((r) => r.isFavorite)
   const rest = selected.filter((r) => !r.isFavorite)
   const regularSections: ListSection[] = segment === 'overdue'
-    ? (rest.length > 0 ? [{ title: 'Просроченные', data: rest }] : [])
+    ? (rest.length > 0 ? [{ title: t("Просроченные"), data: rest }] : [])
     : groupPlanned(rest, now)
-  const sections = [...(favorites.length ? [{ title: 'Избранное', data: favorites }] : []), ...regularSections]
+  const sections = [...(favorites.length ? [{ title: t("Избранное"), data: favorites }] : []), ...regularSections]
   const empty = EMPTY_TEXT[segment]
 
   const handleOpen = (uuid: string): void => {
@@ -67,7 +69,7 @@ export default function RemindersScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <DarkHeader
-        title="Напоминания"
+        title={t("Напоминания")}
         onAvatarPress={() => router.push('/(tabs)/profile')}
         onCalendarPress={() => router.push('/reminders-tab/calendar')}
         collapsibleSearch
@@ -118,10 +120,10 @@ export default function RemindersScreen(): React.JSX.Element {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                {empty.title}
+                {t(empty.title)}
               </Text>
               <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
-                {empty.hint}
+                {t(empty.hint)}
               </Text>
             </View>
           }

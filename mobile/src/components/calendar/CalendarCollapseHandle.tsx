@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -17,7 +18,7 @@ const CalendarCollapseHandle: React.FC<CalendarCollapseHandleProps> = ({
 }) => (
   <Pressable
     accessibilityRole="button"
-    accessibilityLabel={collapsed ? 'Развернуть календарь' : 'Свернуть календарь'}
+    accessibilityLabel={collapsed ? t("Развернуть календарь") : t("Свернуть календарь")}
     accessibilityState={{ expanded: !collapsed }}
     onPress={onToggle}
     style={styles.container}

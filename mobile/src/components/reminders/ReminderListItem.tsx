@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -30,8 +31,9 @@ interface ReminderListItemProps {
 const ReminderListItem: React.FC<ReminderListItemProps> = ({
   reminder, overdueText = null, tone, onPress, onComplete,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
-  const title = reminder.title.trim().length > 0 ? reminder.title : 'Без названия'
+  const title = reminder.title.trim().length > 0 ? reminder.title : t("Без названия")
   const isOverdue = (tone ?? (overdueText !== null ? 'overdue' : 'planned')) === 'overdue'
   const toneColor = isOverdue ? colors.danger : colors.amber
   const toneSoftBg = isOverdue ? colors.dangerSoftBg : colors.amberBg
@@ -75,7 +77,7 @@ const ReminderListItem: React.FC<ReminderListItemProps> = ({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Выполнить: ${title}`}
+        accessibilityLabel={t("Выполнить: {0}", [title])}
         onPress={() => onComplete(reminder.uuid)}
         hitSlop={8}
         testID="reminder-check-btn"

@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import * as Notifications from 'expo-notifications'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { activeDatabaseScope } from '@/db/databaseScope'
@@ -37,7 +38,7 @@ export const reconcileNotificationSettings = (): Promise<void> => {
     if (!useSettingsStore.getState().notificationsEnabled || !active()) return
     if (!permission.granted) {
       await useSettingsStore.getState().setNotificationsEnabled(false)
-      useSettingsStore.setState({ notificationsError: 'Разрешите уведомления в настройках телефона.' })
+      useSettingsStore.setState({ notificationsError: t("Разрешите уведомления в настройках телефона.") })
       return
     }
     await rescheduleAllNotificationsOnStart()

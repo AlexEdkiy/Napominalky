@@ -1,3 +1,5 @@
+import LanguageSelector from '@/components/settings/LanguageSelector'
+import { t, useLanguage } from '@/i18n'
 import { Link } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
@@ -23,6 +25,7 @@ import { getApiErrorMessage, getFieldErrors, requiresEmailVerification } from '@
 const LAST_EMAIL_KEY = 'lk_last_email'
 
 export default function LoginScreen() {
+  useLanguage()
   const { login, continueAsGuest } = useAuth()
   const sessionExpired = useAuthStore((state) => state.sessionExpired)
   const { colors } = useTheme()
@@ -67,11 +70,10 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Вход</Text>
+        <LanguageSelector />
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("Вход")}</Text>
         {sessionExpired && (
-          <Text style={[styles.generalError, { color: colors.textPrimary }]}>
-            Сессия истекла. Войдите снова. Ваши данные сохранены на устройстве и будут доступны после входа.
-          </Text>
+          <Text style={[styles.generalError, { color: colors.textPrimary }]}>{t("Сессия истекла. Войдите снова. Ваши данные сохранены на устройстве и будут доступны после входа.")}</Text>
         )}
 
         {generalError ? (
@@ -89,7 +91,7 @@ export default function LoginScreen() {
           textContentType="emailAddress"
         />
         <BaseInput
-          label="Пароль"
+          label={t("Пароль")}
           value={password}
           onChangeText={setPassword}
           error={fieldErrors['password']?.[0]}
@@ -99,11 +101,9 @@ export default function LoginScreen() {
         />
 
         <View style={styles.rememberRow}>
-          <Text style={[styles.rememberLabel, { color: colors.textPrimary }]}>
-            Запомнить меня
-          </Text>
+          <Text style={[styles.rememberLabel, { color: colors.textPrimary }]}>{t("Запомнить меня")}</Text>
           <Switch
-            accessibilityLabel="Запомнить меня"
+            accessibilityLabel={t("Запомнить меня")}
             value={rememberMe}
             onValueChange={setRememberMe}
             trackColor={{ true: colors.accent }}
@@ -114,12 +114,10 @@ export default function LoginScreen() {
           <EmailVerificationNotice key={email} email={email.trim()} password={password} />
         )}
 
-        <BaseButton label="Войти" onPress={handleSubmit} loading={login.isPending} />
-        <BaseButton label="Продолжить как гость" variant="secondary" onPress={continueAsGuest} disabled={login.isPending} />
+        <BaseButton label={t("Войти")} onPress={handleSubmit} loading={login.isPending} />
+        <BaseButton label={t("Продолжить как гость")} variant="secondary" onPress={continueAsGuest} disabled={login.isPending} />
 
-        <Link href="/(auth)/register" style={[styles.link, { color: colors.accent }]}>
-          Нет аккаунта? Зарегистрироваться
-        </Link>
+        <Link href="/(auth)/register" style={[styles.link, { color: colors.accent }]}>{t("Нет аккаунта? Зарегистрироваться")}</Link>
       </ScrollView>
     </KeyboardAvoidingView>
   )

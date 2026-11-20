@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -43,6 +44,7 @@ const StatusSheet: React.FC<StatusSheetProps> = ({
   onSelect,
   onClose,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   // Свайп вниз закрывает шторку (как в CommentsSheet/AttributeSheet);
@@ -54,7 +56,7 @@ const StatusSheet: React.FC<StatusSheetProps> = ({
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.flex}>
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть" />
+        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={t("Закрыть")} />
         <Animated.View
           testID="status-sheet"
           style={[
@@ -98,9 +100,10 @@ interface StatusOptionProps {
 }
 
 const StatusOption: React.FC<StatusOptionProps> = ({ status, selected, onPress }) => {
+  useLanguage()
   const { colors } = useTheme()
   const { fg, bg } = statusBadgeColors(status, colors)
-  const label = TASK_STATUS_LABELS[status]
+  const label = t(TASK_STATUS_LABELS[status] ?? '')
 
   return (
     <Pressable
@@ -126,12 +129,13 @@ interface AutoOptionProps {
 
 /** «Авто» — снять ручное закрепление, статус выводится из пунктов. */
 const AutoOption: React.FC<AutoOptionProps> = ({ selected, onPress }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Авто"
+      accessibilityLabel={t("Авто")}
       accessibilityState={{ selected }}
       style={[
         styles.option,
@@ -141,10 +145,8 @@ const AutoOption: React.FC<AutoOptionProps> = ({ selected, onPress }) => {
     >
       <Ionicons name="sync-outline" size={16} color={colors.textSecondary} />
       <View style={styles.autoTextCol}>
-        <Text style={[styles.autoLabel, { color: colors.textPrimary }]}>Авто</Text>
-        <Text style={[styles.autoHint, { color: colors.textSecondary }]}>
-          Статус определяется по пунктам
-        </Text>
+        <Text style={[styles.autoLabel, { color: colors.textPrimary }]}>{t("Авто")}</Text>
+        <Text style={[styles.autoHint, { color: colors.textSecondary }]}>{t("Статус определяется по пунктам")}</Text>
       </View>
       {selected && <Ionicons name="checkmark" size={18} color={colors.accent} />}
     </Pressable>

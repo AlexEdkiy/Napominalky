@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useEffect, useState } from 'react'
 import {
   Alert,
@@ -74,6 +75,7 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
   onDone,
   onClose,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const { panHandlers, translateY } = useSheetDragToClose(visible ? true : null, onClose)
@@ -101,16 +103,16 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
   if (!visible) return null
 
   const confirmDelete = (): void => {
-    Alert.alert('Удалить пункт?', 'Действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Удалить', style: 'destructive', onPress: () => onDelete?.() },
+    Alert.alert(t("Удалить пункт?"), t("Действие нельзя отменить."), [
+      { text: t("Отмена"), style: 'cancel' },
+      { text: t("Удалить"), style: 'destructive', onPress: () => onDelete?.() },
     ])
   }
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть шторку" />
+        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={t("Закрыть шторку")} />
         <Animated.View
           testID="attributes-sheet"
           style={[
@@ -130,7 +132,7 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
                 <Ionicons name="options-outline" size={18} color={accentColor} />
               </View>
               <View style={styles.headerText}>
-                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Допатрибуты</Text>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("Допатрибуты")}</Text>
                 {name !== undefined && (
                   <NameSubtitle name={name} onRename={onRename} />
                 )}
@@ -138,7 +140,7 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
-                accessibilityLabel="Закрыть"
+                accessibilityLabel={t("Закрыть")}
                 hitSlop={8}
                 testID="attributes-sheet-close"
                 style={[styles.closeBtn, { backgroundColor: colors.borderSubtle }]}
@@ -175,12 +177,12 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
             <Pressable
               onPress={confirmDelete}
               accessibilityRole="button"
-              accessibilityLabel="Удалить пункт"
+              accessibilityLabel={t("Удалить пункт")}
               testID="attributes-sheet-delete"
               style={[styles.deleteBtn, { borderTopColor: colors.borderSubtle }]}
             >
               <Ionicons name="trash-outline" size={15} color={colors.danger} />
-              <Text style={[styles.deleteText, { color: colors.danger }]}>Удалить пункт</Text>
+              <Text style={[styles.deleteText, { color: colors.danger }]}>{t("Удалить пункт")}</Text>
             </Pressable>
           )}
           {onDelete === undefined && onDone !== undefined && (
@@ -189,19 +191,19 @@ const AttributesSheet: React.FC<AttributesSheetProps> = ({
                 <Pressable
                   onPress={onCancel}
                   accessibilityRole="button"
-                  accessibilityLabel="Отмена"
+                  accessibilityLabel={t("Отмена")}
                   style={[styles.cancelBtn, { borderColor: colors.borderInput }]}
                 >
-                  <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Отмена</Text>
+                  <Text style={[styles.cancelText, { color: colors.textSecondary }]}>{t("Отмена")}</Text>
                 </Pressable>
               )}
               <Pressable
                 onPress={onDone}
                 accessibilityRole="button"
-                accessibilityLabel="Готово"
+                accessibilityLabel={t("Готово")}
                 style={[styles.doneBtn, { backgroundColor: accentColor }]}
               >
-                <Text style={styles.doneText}>Готово</Text>
+                <Text style={styles.doneText}>{t("Готово")}</Text>
               </Pressable>
             </View>
           )}
@@ -225,6 +227,7 @@ interface NameSubtitleProps {
  * Без onRename (композер) — просто текст.
  */
 const NameSubtitle: React.FC<NameSubtitleProps> = ({ name, onRename }) => {
+  useLanguage()
   const { colors } = useTheme()
   const [draft, setDraft] = useState(name)
 
@@ -257,7 +260,7 @@ const NameSubtitle: React.FC<NameSubtitleProps> = ({ name, onRename }) => {
       onSubmitEditing={commit}
       returnKeyType="done"
       testID="item-name-input"
-      accessibilityLabel="Название пункта"
+      accessibilityLabel={t("Название пункта")}
       style={[styles.subtitleInput, { color: colors.textSecondary }]}
     />
   )
@@ -272,16 +275,17 @@ interface QuantityRowProps {
 }
 
 const QuantityRow: React.FC<QuantityRowProps> = ({ quantity, accentColor, onQuantityChange }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={[styles.quantityRow, { borderBottomColor: colors.borderSubtle }]}>
-      <Text style={[styles.quantityLabel, { color: colors.textSecondary }]}>Количество</Text>
+      <Text style={[styles.quantityLabel, { color: colors.textSecondary }]}>{t("Количество")}</Text>
       <View style={styles.stepper}>
         <Pressable
           onPress={() => onQuantityChange(Math.max(1, quantity - 1))}
           style={[styles.stepBtn, { borderColor: colors.borderInput }]}
           accessibilityRole="button"
-          accessibilityLabel="Уменьшить"
+          accessibilityLabel={t("Уменьшить")}
         >
           <Text style={[styles.stepIcon, { color: accentColor }]}>−</Text>
         </Pressable>
@@ -290,7 +294,7 @@ const QuantityRow: React.FC<QuantityRowProps> = ({ quantity, accentColor, onQuan
           onPress={() => onQuantityChange(quantity + 1)}
           style={[styles.stepBtn, { borderColor: colors.borderInput }]}
           accessibilityRole="button"
-          accessibilityLabel="Увеличить"
+          accessibilityLabel={t("Увеличить")}
         >
           <Text style={[styles.stepIcon, { color: accentColor }]}>+</Text>
         </Pressable>

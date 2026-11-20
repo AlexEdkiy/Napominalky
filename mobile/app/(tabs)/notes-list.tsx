@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useState, useMemo, useCallback } from 'react'
 import {
   ActivityIndicator,
@@ -27,6 +28,7 @@ const filterByTitle = (items: Note[], q: string): Note[] => {
 }
 
 export default function NotesListScreen(): React.JSX.Element {
+  useLanguage()
   const { colors } = useTheme()
   const { notes, isLoading, deleteNote } = useNotes()
   const { isSyncing, syncNow } = useSyncEngine()
@@ -38,10 +40,10 @@ export default function NotesListScreen(): React.JSX.Element {
 
   const handleNoteLongPress = useCallback(
     (noteUuid: string): void => {
-      Alert.alert('Удалить заметку?', 'Действие нельзя отменить.', [
-        { text: 'Отмена', style: 'cancel' },
+      Alert.alert(t("Удалить заметку?"), t("Действие нельзя отменить."), [
+        { text: t("Отмена"), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t("Удалить"),
           style: 'destructive',
           onPress: () => deleteNote.mutate(noteUuid),
         },
@@ -59,7 +61,7 @@ export default function NotesListScreen(): React.JSX.Element {
     ({ item }: { item: Note }) => (
       <FeedCard
         uuid={item.uuid}
-        title={item.title.trim().length > 0 ? item.title : 'Без названия'}
+        title={item.title.trim().length > 0 ? item.title : t("Без названия")}
         subtitle={formatUpdatedAt(item.updatedAt)}
         iconName="document-text"
         iconColor={colors.noteBlue}
@@ -79,7 +81,7 @@ export default function NotesListScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <DarkHeader
-        title="Заметки"
+        title={t("Заметки")}
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
         searchValue={search}
@@ -124,12 +126,10 @@ interface EmptyStateProps {
 const EmptyState: React.FC<EmptyStateProps> = ({ colors, hasSearch }) => (
   <View style={styles.empty}>
     <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
-      {hasSearch ? 'Ничего не найдено' : 'Заметок пока нет'}
+      {hasSearch ? t("Ничего не найдено") : t("Заметок пока нет")}
     </Text>
     {!hasSearch && (
-      <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>
-        Нажмите «+», чтобы создать первую заметку
-      </Text>
+      <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>{t("Нажмите «+», чтобы создать первую заметку")}</Text>
     )}
   </View>
 )

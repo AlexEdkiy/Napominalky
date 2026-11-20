@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useState } from 'react'
 import {
   ActivityIndicator,
@@ -50,6 +51,7 @@ const formatDeadlineLabel = (deadline: string | null): string | null => {
 }
 
 export default function ListsScreen(): React.JSX.Element {
+  useLanguage()
   const { colors } = useTheme()
   const { lists, isLoading, isError } = useShoppingLists()
   const deadlinesMap = useNearestDeadlines()
@@ -78,7 +80,7 @@ export default function ListsScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <DarkHeader
-        title="Задачи"
+        title={t("Задачи")}
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
         searchValue={search}
@@ -163,6 +165,7 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
   accentColor,
   amberColor,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const dotColors: Record<FilterTab, string | undefined> = {
     all: undefined,
@@ -199,7 +202,7 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
                 { color: isActive ? colors.textPrimary : colors.textSecondary },
               ]}
             >
-              {tab.label}
+              {t(tab.label)}
             </Text>
             <View style={[styles.countBadge, { backgroundColor: colors.borderSubtle }]}>
               <Text style={[styles.countText, { color: colors.textSecondary }]}>
@@ -221,17 +224,17 @@ interface EmptyStateProps {
 const EmptyState: React.FC<EmptyStateProps> = ({ color, hasSearch }) => (
   <View style={styles.empty}>
     <Text style={[styles.emptyTitle, { color }]}>
-      {hasSearch ? 'Ничего не найдено' : 'Задач пока нет'}
+      {hasSearch ? t("Ничего не найдено") : t("Задач пока нет")}
     </Text>
     <Text style={[styles.emptyHint, { color }]}>
-      {hasSearch ? 'Попробуйте изменить запрос' : 'Нажмите «+», чтобы создать первый'}
+      {hasSearch ? t("Попробуйте изменить запрос") : t("Нажмите «+», чтобы создать первый")}
     </Text>
   </View>
 )
 
 const ErrorState: React.FC<{ color: string }> = ({ color }) => (
   <View style={styles.empty}>
-    <Text style={[styles.emptyTitle, { color }]}>Ошибка загрузки</Text>
+    <Text style={[styles.emptyTitle, { color }]}>{t("Ошибка загрузки")}</Text>
   </View>
 )
 

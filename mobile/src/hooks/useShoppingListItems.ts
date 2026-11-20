@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { Alert } from 'react-native'
 import { itemOrderRepo } from '@/db/repositories/itemOrderRepo'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -74,7 +75,7 @@ export function useShoppingListItems(listUuid: string) {
 
   const orderError = (): void => {
     invalidate()
-    Alert.alert('Не удалось изменить список', 'Повторите попытку. Пункты сохранены.')
+    Alert.alert(t("Не удалось изменить список"), t("Повторите попытку. Пункты сохранены."))
   }
   const reorderItems = useMutation({
     mutationFn: (uuids: string[]) => itemOrderRepo.reorder(listUuid, uuids),

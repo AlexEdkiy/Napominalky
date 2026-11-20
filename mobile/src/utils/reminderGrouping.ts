@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 /**
  * Чистая логика экрана «Напоминания»: разбивка pending-напоминаний на
  * просроченные/запланированные, группировка запланированных по секциям
@@ -100,7 +101,7 @@ export const groupPlanned = <T extends HasRemindAt>(
   }
   return GROUP_ORDER
     .filter((key) => buckets[key].length > 0)
-    .map((key) => ({ key, title: GROUP_TITLES[key], data: buckets[key] }))
+    .map((key) => ({ key, title: t(GROUP_TITLES[key] ?? ''), data: buckets[key] }))
 }
 
 /**
@@ -111,6 +112,6 @@ export const overdueLabel = (remindAtIso: string, now: Date): string => {
   const elapsedDays = Math.floor(
     (now.getTime() - new Date(remindAtIso).getTime()) / MS_PER_DAY,
   )
-  if (elapsedDays < 1) return 'просрочено сегодня'
-  return `просрочено на ${pluralizeDays(elapsedDays)}`
+  if (elapsedDays < 1) return t("просрочено сегодня")
+  return t("просрочено на {0}", [pluralizeDays(elapsedDays)])
 }

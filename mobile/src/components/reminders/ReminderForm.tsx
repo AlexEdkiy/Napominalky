@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useState } from 'react'
 import {
   Alert,
@@ -61,28 +62,29 @@ const emptyValues: ReminderFormValues = {
 /** Диалог при уходе с несохранёнными изменениями. */
 const confirmLeave = (canSave: boolean, onSave: () => void, onDiscard: () => void): void => {
   if (canSave) {
-    Alert.alert('Сохранить изменения?', 'Есть несохранённые изменения.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Не сохранять', style: 'destructive', onPress: onDiscard },
-      { text: 'Сохранить', onPress: onSave },
+    Alert.alert(t("Сохранить изменения?"), t("Есть несохранённые изменения."), [
+      { text: t("Отмена"), style: 'cancel' },
+      { text: t("Не сохранять"), style: 'destructive', onPress: onDiscard },
+      { text: t("Сохранить"), onPress: onSave },
     ])
     return
   }
-  Alert.alert('Сохранить изменения?', 'Заполните заголовок и дату, чтобы сохранить.', [
-    { text: 'Отмена', style: 'cancel' },
-    { text: 'Не сохранять', style: 'destructive', onPress: onDiscard },
+  Alert.alert(t("Сохранить изменения?"), t("Заполните заголовок и дату, чтобы сохранить."), [
+    { text: t("Отмена"), style: 'cancel' },
+    { text: t("Не сохранять"), style: 'destructive', onPress: onDiscard },
   ])
 }
 
 const ReminderForm: React.FC<ReminderFormProps> = ({
   initialValues,
-  submitLabel = 'Создать',
+  submitLabel = t("Создать"),
   isSaving = false,
   onSubmit,
   onDelete,
   onBack,
   footer,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
@@ -96,8 +98,8 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
   const exportedToCalendar = start.exportedToCalendar
 
   const headerTitle = initialValues === undefined
-    ? 'Новое напоминание'
-    : (initialValues.title.trim().length > 0 ? initialValues.title : 'Напоминание')
+    ? t("Новое напоминание")
+    : (initialValues.title.trim().length > 0 ? initialValues.title : t("Напоминание"))
 
   const remindAtValid = remindAt.trim().length > 0 && isValidIso(remindAt)
   const canSubmit = title.trim().length > 0 && remindAtValid
@@ -142,7 +144,7 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
         <Pressable
           onPress={onBack}
           accessibilityRole="button"
-          accessibilityLabel="Назад"
+          accessibilityLabel={t("Назад")}
           style={[styles.backBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
         >
           <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
@@ -181,10 +183,10 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
             <Pressable
               onPress={onDelete}
               accessibilityRole="button"
-              accessibilityLabel="Удалить"
+              accessibilityLabel={t("Удалить")}
               style={styles.deleteBtn}
             >
-              <Text style={[typography.body, { color: colors.danger }]}>Удалить</Text>
+              <Text style={[typography.body, { color: colors.danger }]}>{t("Удалить")}</Text>
             </Pressable>
           ) : null}
 
@@ -252,35 +254,35 @@ interface AboutSectionProps {
 
 const AboutSection: React.FC<AboutSectionProps> = ({ title, notes, onTitleChange, onNotesChange, colors }) => (
   <View style={styles.section}>
-    <SectionHeading dotColor={colors.accent} title="О чём напомнить" colors={colors} testID="dot-about" />
+    <SectionHeading dotColor={colors.accent} title={t("О чём напомнить")} colors={colors} testID="dot-about" />
     <View
       testID="about-card"
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
     >
       <View style={styles.fieldBlock}>
-        <FieldLabel text="ЗАГОЛОВОК" color={colors.textTertiary} />
+        <FieldLabel text={t("ЗАГОЛОВОК")} color={colors.textTertiary} />
         <TextInput
           value={title}
           onChangeText={onTitleChange}
-          placeholder="Например, Стирка"
+          placeholder={t("Например, Стирка")}
           placeholderTextColor={colors.textTertiary}
           style={[styles.titleInput, { color: colors.textPrimary }]}
           returnKeyType="next"
-          accessibilityLabel="Заголовок напоминания"
+          accessibilityLabel={t("Заголовок напоминания")}
         />
       </View>
       <View testID="about-card-divider" style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
       <View style={styles.fieldBlock}>
-        <FieldLabel text="ЗАМЕТКА" color={colors.textTertiary} />
+        <FieldLabel text={t("ЗАМЕТКА")} color={colors.textTertiary} />
         <TextInput
           value={notes}
           onChangeText={onNotesChange}
-          placeholder="Добавьте детали"
+          placeholder={t("Добавьте детали")}
           placeholderTextColor={colors.textTertiary}
           multiline
           style={[styles.notesInput, { color: colors.textSecondary }]}
           textAlignVertical="top"
-          accessibilityLabel="Заметка к напоминанию"
+          accessibilityLabel={t("Заметка к напоминанию")}
         />
       </View>
     </View>
@@ -295,7 +297,7 @@ interface WhenSectionProps {
 
 const WhenSection: React.FC<WhenSectionProps> = ({ remindAt, onChange, colors }) => (
   <View style={styles.section}>
-    <SectionHeading dotColor={colors.amber} title="Когда напомнить" colors={colors} testID="dot-when" />
+    <SectionHeading dotColor={colors.amber} title={t("Когда напомнить")} colors={colors} testID="dot-when" />
     <ReminderDateCard value={remindAt} onChange={onChange} />
   </View>
 )
@@ -308,7 +310,7 @@ interface RecurrenceSectionProps {
 
 const RecurrenceSection: React.FC<RecurrenceSectionProps> = ({ value, onChange, colors }) => (
   <View style={styles.section}>
-    <SectionHeading dotColor={colors.accent} title="Повтор" colors={colors} testID="dot-recurrence" />
+    <SectionHeading dotColor={colors.accent} title={t("Повтор")} colors={colors} testID="dot-recurrence" />
     <View accessibilityRole="radiogroup" testID="recurrence-row" style={styles.recurrenceRow}>
       {RECURRENCE_TYPES.map((type) => (
         <RecurrenceOption
@@ -334,7 +336,7 @@ const RecurrenceOption: React.FC<RecurrenceOptionProps> = ({ type, active, onSel
   <Pressable
     accessibilityRole="radio"
     accessibilityState={{ selected: active }}
-    accessibilityLabel={RECURRENCE_LABELS[type]}
+    accessibilityLabel={t(RECURRENCE_LABELS[type] ?? '')}
     onPress={() => onSelect(type)}
     style={({ pressed }) => [styles.recOption, pressed && styles.pressed]}
   >
@@ -347,7 +349,7 @@ const RecurrenceOption: React.FC<RecurrenceOptionProps> = ({ type, active, onSel
       numberOfLines={2}
       style={[styles.recOptionLabel, { color: active ? colors.accentDark : colors.textSecondary }]}
     >
-      {RECURRENCE_LABELS[type]}
+      {t(RECURRENCE_LABELS[type] ?? '')}
     </Text>
   </Pressable>
 )

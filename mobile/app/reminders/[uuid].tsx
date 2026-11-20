@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 
@@ -23,13 +24,14 @@ const exportAfterSave = async (
   })
   if (eventId !== null) onExported(eventId)
   Alert.alert(
-    eventId ? 'Добавлено в календарь' : 'Не удалось',
-    eventId ? 'Напоминание экспортировано.' : 'Нет разрешения или произошла ошибка.',
+    eventId ? t("Добавлено в календарь") : t("Не удалось"),
+    eventId ? t("Напоминание экспортировано.") : t("Нет разрешения или произошла ошибка."),
     [{ text: 'OK', onPress: () => router.back() }],
   )
 }
 
 export default function ReminderDetailScreen() {
+  useLanguage()
   const { uuid } = useLocalSearchParams<{ uuid: string }>()
   const reminderUuid = uuid ?? ''
   const { data: reminder, isLoading } = useReminder(reminderUuid)
@@ -63,10 +65,10 @@ export default function ReminderDetailScreen() {
   }
 
   const confirmDelete = (): void => {
-    Alert.alert('Удалить напоминание?', 'Действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t("Удалить напоминание?"), t("Действие нельзя отменить."), [
+      { text: t("Отмена"), style: 'cancel' },
       {
-        text: 'Удалить',
+        text: t("Удалить"),
         style: 'destructive',
         onPress: () => deleteReminder.mutate(reminderUuid, { onSuccess: () => router.back() }),
       },
@@ -80,7 +82,7 @@ export default function ReminderDetailScreen() {
   if (!reminder) {
     return (
       <View style={styles.center}>
-        <Text style={styles.missing}>Напоминание не найдено</Text>
+        <Text style={styles.missing}>{t("Напоминание не найдено")}</Text>
       </View>
     )
   }
@@ -102,7 +104,7 @@ export default function ReminderDetailScreen() {
         exportToCalendar: false,
         exportedToCalendar: reminder.calendarEventId != null,
       }}
-      submitLabel="Сохранить"
+      submitLabel={t("Сохранить")}
       isSaving={updateReminder.isPending}
       onSubmit={handleSubmit}
       onDelete={confirmDelete}
@@ -111,7 +113,7 @@ export default function ReminderDetailScreen() {
         !reminder.isCompleted ? (
           <View style={styles.extra}>
             <BaseButton
-              label="Выполнить"
+              label={t("Выполнить")}
               onPress={handleComplete}
               loading={completeReminder.isPending}
             />

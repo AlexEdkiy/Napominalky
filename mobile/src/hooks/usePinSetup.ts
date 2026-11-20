@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { useState } from 'react'
 
 interface PinSetupState {
@@ -35,11 +36,11 @@ export function usePinSetup(): PinSetupState {
 
   const validate = (): boolean => {
     if (pin.length < PIN_MIN_LENGTH) {
-      setError(`PIN должен содержать минимум ${PIN_MIN_LENGTH} цифры`)
+      setError(t("PIN должен содержать минимум {0} цифры", [PIN_MIN_LENGTH]))
       return false
     }
     if (pin !== confirm) {
-      setError('PIN-коды не совпадают')
+      setError(t("PIN-коды не совпадают"))
       return false
     }
     return true

@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useRef } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
@@ -49,6 +50,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
   onOpenAttributes,
   onSwipeDelete,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const swipeableRef = useRef<Swipeable | null>(null)
   const accentColor = listType === 'tasks' ? colors.amber : colors.accent
@@ -101,7 +103,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: done }}
-          accessibilityLabel={`Отметить ${item.name}`}
+          accessibilityLabel={t("Отметить {0}", [item.name])}
           onPress={() => onToggle(item.uuid, !done)}
           style={styles.checkboxTap}
         >
@@ -138,7 +140,7 @@ const ItemRowComponent: React.FC<ItemRowProps> = ({
                 <Text style={[styles.chipText, { color: accentColor }]}>×{item.quantity}</Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Увеличить количество: ${item.name}`}
+                  accessibilityLabel={t("Увеличить количество: {0}", [item.name])}
                   disabled={!onIncreaseQuantity || item.quantity >= 9999}
                   style={styles.quantityPlus}
                   onPress={() => onIncreaseQuantity?.(item.uuid)}
@@ -196,6 +198,7 @@ const RowControls: React.FC<RowControlsProps> = ({
   onOpenComments,
   onOpenAttributes,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={styles.controls}>
@@ -203,7 +206,7 @@ const RowControls: React.FC<RowControlsProps> = ({
         <Pressable
           onPress={() => onOpenComments(uuid)}
           accessibilityRole="button"
-          accessibilityLabel="Комментарии"
+          accessibilityLabel={t("Комментарии")}
           style={styles.controlBtn}
         >
           <Ionicons name="chatbubble-outline" size={16} color={colors.textTertiary} />
@@ -213,7 +216,7 @@ const RowControls: React.FC<RowControlsProps> = ({
         <Pressable
           onPress={() => onOpenAttributes(uuid)}
           accessibilityRole="button"
-          accessibilityLabel="Допатрибуты"
+          accessibilityLabel={t("Допатрибуты")}
           style={styles.controlBtn}
         >
           <Ionicons name="options-outline" size={16} color={colors.textTertiary} />

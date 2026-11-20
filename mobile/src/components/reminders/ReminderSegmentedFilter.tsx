@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -25,6 +26,7 @@ interface SegmentButtonProps {
 const SegmentButton: React.FC<SegmentButtonProps> = ({
   label, count, selected, danger, onPress,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   // Фон бейджа контрастирует с фоном пилюли: активная пилюля — surface(белый),
   // значит бейдж серый (appBg); неактивная пилюля сливается с контейнером
@@ -62,19 +64,20 @@ const SegmentButton: React.FC<SegmentButtonProps> = ({
 const ReminderSegmentedFilter: React.FC<ReminderSegmentedFilterProps> = ({
   active, overdueCount, plannedCount, onChange,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
 
   return (
     <View style={[styles.container, { backgroundColor: colors.appBg }]}>
       <SegmentButton
-        label="Просроченные"
+        label={t("Просроченные")}
         count={overdueCount}
         selected={active === 'overdue'}
         danger
         onPress={() => onChange('overdue')}
       />
       <SegmentButton
-        label="Запланированные"
+        label={t("Запланированные")}
         count={plannedCount}
         selected={active === 'planned'}
         danger={false}

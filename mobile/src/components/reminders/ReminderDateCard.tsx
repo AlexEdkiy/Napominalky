@@ -1,3 +1,4 @@
+import { t, useLanguage, dateLocale } from '@/i18n'
 import React, { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -23,6 +24,7 @@ const QUICK_PRESETS = [
 ] as const
 
 const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) => {
+  useLanguage()
   const { colors } = useTheme()
   const hasValue = value.trim().length > 0 && isValidIso(value)
 
@@ -68,16 +70,14 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
       <Pressable
         onPress={handleOpen}
         accessibilityRole="button"
-        accessibilityLabel="Выбрать дату и время"
+        accessibilityLabel={t("Выбрать дату и время")}
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
       >
         <IconSquare icon="alarm" iconColor={colors.amber} bgColor={colors.amberBg} size={44} radius={13} />
         <View style={styles.textBlock}>
-          <Text style={[typography.cardTitle, styles.title, { color: colors.textPrimary }]}>
-            Дата и время
-          </Text>
+          <Text style={[typography.cardTitle, styles.title, { color: colors.textPrimary }]}>{t("Дата и время")}</Text>
           <Text style={[typography.bodySm, styles.value, { color: hasValue ? colors.amber : colors.textTertiary }]}>
-            {hasValue ? formatRelativeReminder(value) : 'Выбрать дату и время'}
+            {hasValue ? formatRelativeReminder(value) : t("Выбрать дату и время")}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
@@ -90,7 +90,7 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
             <Pressable
               key={p.key}
               accessibilityRole="button"
-              accessibilityLabel={p.label}
+              accessibilityLabel={t(p.label)}
               accessibilityState={{ selected: active }}
               onPress={() => handlePreset(p)}
               style={({ pressed }) => [
@@ -100,7 +100,7 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
               ]}
             >
               <Text style={[typography.bodySm, styles.chipLabel, { color: active ? '#FFFFFF' : colors.amber }]}>
-                {p.label}
+                {t(p.label)}
               </Text>
             </Pressable>
           )
@@ -108,7 +108,7 @@ const ReminderDateCard: React.FC<ReminderDateCardProps> = ({ value, onChange }) 
       </View>
 
       {Platform.OS === 'ios' && iosOpen ? (
-        <DateTimePicker value={draftDate} mode="datetime" display="spinner" onChange={handleIosChange} />
+        <DateTimePicker value={draftDate} mode="datetime" display="spinner" locale={dateLocale()} onChange={handleIosChange} />
       ) : null}
       {Platform.OS === 'android' && androidStep !== 'idle' ? (
         <DateTimePicker value={draftDate} mode={androidStep} display="default" onChange={handleAndroidChange} />

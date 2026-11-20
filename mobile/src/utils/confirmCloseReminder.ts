@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { Alert } from 'react-native'
 
 import { nextOccurrence, type RecurrenceType } from '@/utils/recurrence'
@@ -18,7 +19,7 @@ export const closeReminderMessage = (reminder?: ClosableReminder): string | unde
   if (reminder === undefined || reminder.recurrence === 'none') return undefined
   const next = nextOccurrence(reminder.recurrence, reminder.remindAt)
   if (next === null) return undefined
-  return `Напоминание повторяется: в списке появится следующее — ${formatReminderChip(next)}.`
+  return t("Напоминание повторяется: в списке появится следующее — {0}.", [formatReminderChip(next)])
 }
 
 /**
@@ -32,8 +33,8 @@ export const confirmCloseReminder = (
   onConfirm: () => void,
   reminder?: ClosableReminder,
 ): void => {
-  Alert.alert('Закрыть напоминание?', closeReminderMessage(reminder), [
-    { text: 'Отмена', style: 'cancel' },
-    { text: 'Закрыть', onPress: onConfirm },
+  Alert.alert(t("Закрыть напоминание?"), closeReminderMessage(reminder), [
+    { text: t("Отмена"), style: 'cancel' },
+    { text: t("Закрыть"), onPress: onConfirm },
   ])
 }

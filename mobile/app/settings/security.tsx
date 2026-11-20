@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useEffect, useState } from 'react'
 import {
   Alert,
@@ -19,6 +20,7 @@ import { isBiometricAvailable } from '@/services/appLock'
 type PinMode = 'idle' | 'setup' | 'change'
 
 export default function SecurityScreen() {
+  useLanguage()
   const { pinSet, biometricEnabled, setupPin, removePin, enableBiometric, disableBiometric } =
     useAppLock()
 
@@ -36,9 +38,9 @@ export default function SecurityScreen() {
       setPinMode('setup')
       reset()
     } else {
-      Alert.alert('Отключить PIN?', 'Блокировка приложения будет отключена.', [
-        { text: 'Отмена', style: 'cancel' },
-        { text: 'Отключить', style: 'destructive', onPress: () => void handleRemovePin() },
+      Alert.alert(t("Отключить PIN?"), t("Блокировка приложения будет отключена."), [
+        { text: t("Отмена"), style: 'cancel' },
+        { text: t("Отключить"), style: 'destructive', onPress: () => void handleRemovePin() },
       ])
     }
   }
@@ -64,7 +66,7 @@ export default function SecurityScreen() {
     setLoading(true)
     if (value) {
       const ok = await enableBiometric()
-      if (!ok) Alert.alert('Биометрия недоступна', 'Убедитесь, что биометрия настроена на устройстве.')
+      if (!ok) Alert.alert(t("Биометрия недоступна"), t("Убедитесь, что биометрия настроена на устройстве."))
     } else {
       await disableBiometric()
     }
@@ -80,29 +82,29 @@ export default function SecurityScreen() {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Блокировка приложения</Text>
+          <Text style={styles.sectionTitle}>{t("Блокировка приложения")}</Text>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Блокировка по PIN</Text>
+            <Text style={styles.rowLabel}>{t("Блокировка по PIN")}</Text>
             <Switch
               value={pinSet}
               onValueChange={handlePinToggle}
               disabled={loading}
-              accessibilityLabel="Блокировка по PIN"
+              accessibilityLabel={t("Блокировка по PIN")}
             />
           </View>
 
           {pinSet && pinMode === 'idle' ? (
-            <BaseButton label="Сменить PIN" onPress={() => { setPinMode('change'); reset() }} variant="secondary" />
+            <BaseButton label={t("Сменить PIN")} onPress={() => { setPinMode('change'); reset() }} variant="secondary" />
           ) : null}
         </View>
 
         {pinMode !== 'idle' ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {pinMode === 'setup' ? 'Установка PIN' : 'Смена PIN'}
+              {pinMode === 'setup' ? t("Установка PIN") : t("Смена PIN")}
             </Text>
             <BaseInput
-              label="Новый PIN"
+              label={t("Новый PIN")}
               value={pin}
               onChangeText={setPin}
               keyboardType="number-pad"
@@ -111,7 +113,7 @@ export default function SecurityScreen() {
               error={error ?? undefined}
             />
             <BaseInput
-              label="Подтвердите PIN"
+              label={t("Подтвердите PIN")}
               value={confirm}
               onChangeText={setConfirm}
               keyboardType="number-pad"
@@ -119,28 +121,28 @@ export default function SecurityScreen() {
               maxLength={6}
             />
             <View style={styles.buttonRow}>
-              <BaseButton label="Отмена" onPress={() => { setPinMode('idle'); reset() }} variant="secondary" />
-              <BaseButton label="Сохранить" onPress={() => { void handleSavePin() }} loading={loading} />
+              <BaseButton label={t("Отмена")} onPress={() => { setPinMode('idle'); reset() }} variant="secondary" />
+              <BaseButton label={t("Сохранить")} onPress={() => { void handleSavePin() }} loading={loading} />
             </View>
           </View>
         ) : null}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Биометрия</Text>
+          <Text style={styles.sectionTitle}>{t("Биометрия")}</Text>
           <View style={styles.row}>
             <View style={styles.rowLabelBlock}>
-              <Text style={styles.rowLabel}>Вход по биометрии</Text>
+              <Text style={styles.rowLabel}>{t("Вход по биометрии")}</Text>
               {!bioAvailable ? (
-                <Text style={styles.rowHint}>Биометрия не настроена на устройстве</Text>
+                <Text style={styles.rowHint}>{t("Биометрия не настроена на устройстве")}</Text>
               ) : !pinSet ? (
-                <Text style={styles.rowHint}>Сначала установите PIN</Text>
+                <Text style={styles.rowHint}>{t("Сначала установите PIN")}</Text>
               ) : null}
             </View>
             <Switch
               value={biometricEnabled}
               onValueChange={(v) => { void handleBioToggle(v) }}
               disabled={bioSwitchDisabled}
-              accessibilityLabel="Вход по биометрии"
+              accessibilityLabel={t("Вход по биометрии")}
             />
           </View>
         </View>

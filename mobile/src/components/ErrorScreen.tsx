@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import React from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
@@ -21,10 +22,10 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({ title, message, stack, extra 
   >
     <View style={styles.header}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.hint}>Перезапустите приложение</Text>
+      <Text style={styles.hint}>{t("Перезапустите приложение")}</Text>
     </View>
 
-    <Text style={styles.label}>Сообщение об ошибке:</Text>
+    <Text style={styles.label}>{t("Сообщение об ошибке:")}</Text>
     <Text style={styles.message} selectable>
       {message}
     </Text>

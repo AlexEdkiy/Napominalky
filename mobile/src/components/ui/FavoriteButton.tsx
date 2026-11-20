@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { createContext, useContext, useState } from 'react'
 import { Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -8,11 +9,12 @@ export const FavoriteActions = createContext<((entity: FavoriteEntity, uuid: str
 interface Props { entity: FavoriteEntity; uuid: string; title: string; favorite?: boolean | undefined }
 
 const FavoriteButton: React.FC<Props> = ({ entity, uuid, title, favorite = false }) => {
+  useLanguage()
   const toggle = useContext(FavoriteActions)
   const { colors } = useTheme()
   const [pending, setPending] = useState(false)
   return <Pressable accessibilityRole="button"
-    accessibilityLabel={`${favorite ? 'Убрать из избранного' : 'В избранное'}: ${title}`}
+    accessibilityLabel={`${favorite ? t("Убрать из избранного") : t("В избранное")}: ${title}`}
     accessibilityState={{ selected: favorite, disabled: pending || !toggle }}
     disabled={pending || !toggle} style={styles.button}
     onPress={(event) => {

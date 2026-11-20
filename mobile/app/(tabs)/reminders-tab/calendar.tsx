@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
@@ -25,6 +26,7 @@ const filterByTitle = <T extends { title: string }>(items: T[], q: string): T[] 
 }
 
 export default function CalendarScreen(): React.JSX.Element {
+  useLanguage()
   const { colors } = useTheme()
   const [{ year, month }, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => new Date())
@@ -53,7 +55,7 @@ export default function CalendarScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
       <DarkHeader
-        title="Календарь"
+        title={t("Календарь")}
         onBack={() => router.back()}
         onAvatarPress={handleAvatarPress}
         collapsibleSearch
@@ -66,7 +68,7 @@ export default function CalendarScreen(): React.JSX.Element {
         <View style={styles.calHeader}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Предыдущий месяц"
+            accessibilityLabel={t("Предыдущий месяц")}
             onPress={() => stepMonth(-1)}
             style={styles.arrowBtn}
           >
@@ -77,7 +79,7 @@ export default function CalendarScreen(): React.JSX.Element {
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Следующий месяц"
+            accessibilityLabel={t("Следующий месяц")}
             onPress={() => stepMonth(1)}
             style={styles.arrowBtn}
           >

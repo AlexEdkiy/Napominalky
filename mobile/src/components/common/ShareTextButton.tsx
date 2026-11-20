@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useRef, useState } from 'react'
 import { Alert, Pressable, Share, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -10,6 +11,7 @@ interface ShareTextButtonProps {
 
 /** The user selects Telegram and the recipient in the system share sheet. */
 const ShareTextButton: React.FC<ShareTextButtonProps> = ({ text, disabled = false }) => {
+  useLanguage()
   const { colors } = useTheme()
   const pending = useRef(false)
   const [sharing, setSharing] = useState(false)
@@ -20,9 +22,9 @@ const ShareTextButton: React.FC<ShareTextButtonProps> = ({ text, disabled = fals
     pending.current = true
     setSharing(true)
     try {
-      await Share.share({ message: text }, { dialogTitle: 'Поделиться — выберите Telegram' })
+      await Share.share({ message: text }, { dialogTitle: t("Поделиться — выберите Telegram") })
     } catch {
-      Alert.alert('Не удалось поделиться', 'Попробуйте ещё раз через меню «Поделиться».')
+      Alert.alert(t("Не удалось поделиться"), t("Попробуйте ещё раз через меню «Поделиться»."))
     } finally {
       pending.current = false
       setSharing(false)
@@ -30,8 +32,8 @@ const ShareTextButton: React.FC<ShareTextButtonProps> = ({ text, disabled = fals
   }
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Поделиться в Telegram"
-      accessibilityHint="Выберите Telegram в меню приложений"
+    <Pressable accessibilityRole="button" accessibilityLabel={t("Поделиться в Telegram")}
+      accessibilityHint={t("Выберите Telegram в меню приложений")}
       accessibilityState={{ disabled: Boolean(unavailable) }} disabled={Boolean(unavailable)}
       onPress={() => { void share() }} style={[styles.button, unavailable && styles.disabled]}>
       <Ionicons name="share-outline" size={22} color={colors.accent} />

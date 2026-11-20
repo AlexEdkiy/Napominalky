@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 /**
  * Чистые функции для месячного календаря (без сторонних либ, нативный Date).
  * Неделя начинается с понедельника (Пн Вт Ср Чт Пт Сб Вс).
@@ -81,12 +82,12 @@ const MONTHS_NOMINATIVE = [
 
 /** Заголовок дня «4 июня 2026» по локальным компонентам. */
 export const formatDateTitle = (date: Date): string => {
-  const month = MONTHS_GENITIVE[date.getMonth()] ?? ''
+  const month = t(MONTHS_GENITIVE[date.getMonth()] ?? '') ?? ''
   return `${date.getDate()} ${month} ${date.getFullYear()}`
 }
 
 /** Заголовок месяца «Июнь 2026». */
 export const formatMonthTitle = (year: number, month: number): string => {
-  const name = MONTHS_NOMINATIVE[((month % 12) + 12) % 12] ?? ''
+  const name = t(MONTHS_NOMINATIVE[((month % 12) + 12) % 12] ?? '') ?? ''
   return `${name} ${year}`
 }

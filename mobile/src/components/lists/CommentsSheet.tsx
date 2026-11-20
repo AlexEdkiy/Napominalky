@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useEffect, useState } from 'react'
 import {
   Alert,
@@ -48,6 +49,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
   itemName,
   onClose,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const insets = useSafeAreaInsets()
   // Свайп вниз по drag-зоне (ручка + заголовок) закрывает шторку, как в AttributeSheet.
@@ -85,9 +87,9 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
   }
 
   const confirmDelete = (uuid: string): void => {
-    Alert.alert('Удалить комментарий?', 'Действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Удалить', style: 'destructive', onPress: () => deleteComment.mutate(uuid) },
+    Alert.alert(t("Удалить комментарий?"), t("Действие нельзя отменить."), [
+      { text: t("Отмена"), style: 'cancel' },
+      { text: t("Удалить"), style: 'destructive', onPress: () => deleteComment.mutate(uuid) },
     ])
   }
 
@@ -96,7 +98,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Закрыть шторку" />
+        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={t("Закрыть шторку")} />
         <Animated.View
           testID="comments-sheet"
           style={[
@@ -116,7 +118,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
                 <Ionicons name="chatbubble-outline" size={18} color={accentColor} />
               </View>
               <View style={styles.headerText}>
-                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Комментарии</Text>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("Комментарии")}</Text>
                 {itemName !== undefined && (
                   <Text
                     numberOfLines={1}
@@ -129,7 +131,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
-                accessibilityLabel="Закрыть"
+                accessibilityLabel={t("Закрыть")}
                 hitSlop={8}
                 testID="comments-sheet-close"
                 style={[styles.closeBtn, { backgroundColor: colors.borderSubtle }]}
@@ -148,9 +150,7 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
               <CommentRow comment={comment} onDelete={confirmDelete} />
             )}
             ListEmptyComponent={
-              <Text style={[styles.empty, { color: colors.textTertiary }]}>
-                Комментариев пока нет
-              </Text>
+              <Text style={[styles.empty, { color: colors.textTertiary }]}>{t("Комментариев пока нет")}</Text>
             }
           />
 
@@ -158,24 +158,22 @@ const CommentsSheet: React.FC<CommentsSheetProps> = ({
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Написать комментарий"
+              placeholder={t("Написать комментарий")}
               placeholderTextColor={colors.textTertiary}
               multiline
               style={[styles.input, { borderColor: colors.borderInput, color: colors.textPrimary }]}
-              accessibilityLabel="Новый комментарий"
+              accessibilityLabel={t("Новый комментарий")}
               selectionColor={accentColor}
             />
             <Pressable
               onPress={handleSend}
               disabled={!canSend}
               accessibilityRole="button"
-              accessibilityLabel="Отправить"
+              accessibilityLabel={t("Отправить")}
               accessibilityState={{ disabled: !canSend }}
               style={[styles.sendBtn, { backgroundColor: canSend ? accentColor : colors.borderSubtle }]}
             >
-              <Text style={[styles.sendText, { color: canSend ? '#fff' : colors.textTertiary }]}>
-                Отправить
-              </Text>
+              <Text style={[styles.sendText, { color: canSend ? '#fff' : colors.textTertiary }]}>{t("Отправить")}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -193,6 +191,7 @@ interface CommentRowProps {
 
 /** Один комментарий треда: автор (жирным) + время + «×», ниже — текст. */
 const CommentRow: React.FC<CommentRowProps> = ({ comment, onDelete }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
     <View style={[styles.comment, { borderBottomColor: colors.borderSubtle }]}>
@@ -206,7 +205,7 @@ const CommentRow: React.FC<CommentRowProps> = ({ comment, onDelete }) => {
         <Pressable
           onPress={() => onDelete(comment.uuid)}
           accessibilityRole="button"
-          accessibilityLabel="Удалить комментарий"
+          accessibilityLabel={t("Удалить комментарий")}
           hitSlop={8}
           style={styles.commentDelete}
         >

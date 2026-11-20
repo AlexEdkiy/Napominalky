@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
@@ -32,6 +33,7 @@ const MonthGrid: React.FC<MonthGridProps> = ({
   collapsed,
   onSelectDay,
 }) => {
+  useLanguage()
   const today = new Date()
   const weeks = chunkWeeks(getCalendarDays(year, month))
   const foundIndex = findWeekIndex(weeks, selectedDate)
@@ -42,7 +44,7 @@ const MonthGrid: React.FC<MonthGridProps> = ({
       <View style={styles.weekRow}>
         {WEEKDAYS.map((label) => (
           <Text key={label} style={styles.weekday}>
-            {label}
+            {t(label)}
           </Text>
         ))}
       </View>

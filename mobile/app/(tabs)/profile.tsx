@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import { router, useFocusEffect } from 'expo-router'
 import Constants from 'expo-constants'
 import * as Application from 'expo-application'
@@ -25,6 +26,7 @@ import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
 
 export default function ProfileScreen(): React.JSX.Element {
+  useLanguage()
   const { colors } = useTheme()
   const { user, isAuthenticated, guestMode, logout } = useAuth()
 
@@ -34,15 +36,15 @@ export default function ProfileScreen(): React.JSX.Element {
     void useAuthStore.getState().rehydrateUser(authApi.getMe)
   }, [])
   useFocusEffect(useCallback(() => { refresh() }, [refresh]))
-  const displayName = user?.name?.trim() || user?.email || (isAuthenticated ? 'Аккаунт' : 'Гость')
+  const displayName = user?.name?.trim() || user?.email || (isAuthenticated ? t("Аккаунт") : t("Гость"))
   const initial = displayName.charAt(0).toUpperCase()
   const isGuest = guestMode || !isAuthenticated
 
   const handleLogout = (): void => {
-    Alert.alert('Выйти из аккаунта?', 'Вы уверены, что хотите выйти?', [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t("Выйти из аккаунта?"), t("Вы уверены, что хотите выйти?"), [
+      { text: t("Отмена"), style: 'cancel' },
       {
-        text: 'Выйти',
+        text: t("Выйти"),
         style: 'destructive',
         onPress: () => { logout.mutate() },
       },
@@ -51,7 +53,7 @@ export default function ProfileScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screenBg }]}>
-      <DarkHeader title="Профиль" onAvatarPress={() => {}} />
+      <DarkHeader title={t("Профиль")} onAvatarPress={() => {}} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AvatarSection
           key={user?.uuid ?? 'guest'}
@@ -64,25 +66,25 @@ export default function ProfileScreen(): React.JSX.Element {
 
         {isAuthenticated && (profileLoading || profileError) && <View style={styles.section}>
           <Text accessibilityLiveRegion="polite" style={{ color: colors.textSecondary }}>
-            {profileLoading ? 'Обновляем профиль…' : profileError}
+            {profileLoading ? t("Обновляем профиль…") : profileError}
           </Text>
-          {!profileLoading && <BaseButton label="Обновить профиль" onPress={refresh} variant="secondary" />}
+          {!profileLoading && <BaseButton label={t("Обновить профиль")} onPress={refresh} variant="secondary" />}
         </View>}
 
         <View style={styles.section}>
-          <SectionLabel text="АККАУНТ" color={colors.textTertiary} />
+          <SectionLabel text={t("АККАУНТ")} color={colors.textTertiary} />
           {isGuest ? (
             <View style={styles.authButtons}>
-              <BaseButton label="Войти" onPress={() => router.push('/(auth)/login')} />
+              <BaseButton label={t("Войти")} onPress={() => router.push('/(auth)/login')} />
               <BaseButton
-                label="Зарегистрироваться"
+                label={t("Зарегистрироваться")}
                 onPress={() => router.push('/(auth)/register')}
                 variant="secondary"
               />
             </View>
           ) : (
             <BaseButton
-              label="Выйти"
+              label={t("Выйти")}
               onPress={handleLogout}
               variant="secondary"
               loading={logout.isPending}
@@ -91,13 +93,13 @@ export default function ProfileScreen(): React.JSX.Element {
         </View>
 
         <View style={styles.section}>
-          <SectionLabel text="О ПРИЛОЖЕНИИ" color={colors.textTertiary} />
+          <SectionLabel text={t("О ПРИЛОЖЕНИИ")} color={colors.textTertiary} />
           <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
             <MenuRow
               icon="settings-outline"
               iconBg="#DDF1ED"
               iconColor="#0D9488"
-              label="Настройки"
+              label={t("Настройки")}
               onPress={() => router.push('/settings')}
             />
             <View style={[styles.separator, { backgroundColor: colors.borderSubtle }]} />
@@ -105,7 +107,7 @@ export default function ProfileScreen(): React.JSX.Element {
               icon="lock-closed-outline"
               iconBg="#FCE7E1"
               iconColor="#E26A4D"
-              label="Безопасность"
+              label={t("Безопасность")}
               onPress={() => router.push('/settings/security')}
             />
           </View>
@@ -132,13 +134,14 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
   email,
   isGuest,
 }) => {
+  useLanguage()
   const { colors } = useTheme()
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [avatar])
   return (
   <View style={styles.avatarSection}>
     <View style={styles.avatarWrap}>
-      {avatar && !failed ? <Image accessibilityLabel="Фото профиля" source={{ uri: avatar }}
+      {avatar && !failed ? <Image accessibilityLabel={t("Фото профиля")} source={{ uri: avatar }}
         onError={() => setFailed(true)} style={{ width: '100%', height: '100%', borderRadius: 32 }} />
         : <Text style={styles.avatarText}>{initial}</Text>}
     </View>
@@ -146,7 +149,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
     {email !== undefined ? <Text style={styles.email}>{email}</Text> : null}
     {isGuest ? (
       <View style={styles.guestBadge}>
-        <Text style={styles.guestText}>Гостевой режим</Text>
+        <Text style={styles.guestText}>{t("Гостевой режим")}</Text>
       </View>
     ) : null}
   </View>
@@ -162,6 +165,7 @@ interface MenuRowProps {
 }
 
 const MenuRow: React.FC<MenuRowProps> = ({ icon, iconBg, iconColor, label, onPress }) => {
+  useLanguage()
   const { colors } = useTheme()
   return (
   <Pressable
@@ -188,6 +192,7 @@ interface VersionLabelProps {
 }
 
 const VersionLabel: React.FC<VersionLabelProps> = ({ colors }) => {
+  useLanguage()
   // versionName/versionCode берём из НАТИВНОЙ сборки (expo-application), а не из
   // app.json: EAS autoIncrement проставляет versionCode на стороне сборки, поэтому
   // Constants.expoConfig его не содержит. nativeBuildVersion = реальный versionCode (14, 15…).
@@ -196,7 +201,7 @@ const VersionLabel: React.FC<VersionLabelProps> = ({ colors }) => {
   const buildNumber = Application.nativeBuildVersion ?? null
   if (version === null) return null
   const label =
-    buildNumber !== null ? `Версия ${version} (${buildNumber})` : `Версия ${version}`
+    buildNumber !== null ? t("Версия {0} ({1})", [version, buildNumber]) : t("Версия {0}", [version])
   return <Text style={[styles.versionText, { color: colors.textTertiary }]}>{label}</Text>
 }
 

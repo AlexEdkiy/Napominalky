@@ -1,3 +1,4 @@
+import { t, useLanguage, useLanguageStore } from '@/i18n'
 import AppStatusBar from '@/components/ui/AppStatusBar'
 import FavoritesProvider from '@/providers/FavoritesProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -52,6 +53,7 @@ function NotificationsBootstrap(): null {
 }
 
 function RootLayout(): React.JSX.Element {
+  useLanguage()
   const hasSession = useAuthStore((state) => !!state.token || state.guestMode)
   const hydrate = useAuthStore((state) => state.hydrate)
   const hydrateSettings = useSettingsStore((state) => state.hydrate)
@@ -60,6 +62,7 @@ function RootLayout(): React.JSX.Element {
   useEffect(() => {
     void hydrate()
     void hydrateSettings()
+    void useLanguageStore.getState().hydrate()
   }, [hydrate, hydrateSettings])
 
   useEffect(() => {
@@ -72,7 +75,7 @@ function RootLayout(): React.JSX.Element {
   if (globalError !== null) {
     return (
       <ErrorScreen
-        title="Ошибка приложения"
+        title={t("Ошибка приложения")}
         message={globalError.message}
         stack={globalError.stack ?? null}
       />

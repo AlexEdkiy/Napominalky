@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n'
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -39,6 +40,7 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
   onGlobalSearch,
   onSearchPress,
 }) => {
+  useLanguage()
   const insets = useSafeAreaInsets()
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -60,7 +62,7 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
         {onBack !== undefined && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Назад"
+            accessibilityLabel={t("Назад")}
             onPress={onBack}
             hitSlop={8}
             style={styles.backBtn}
@@ -74,7 +76,7 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
         {onCalendarPress !== undefined && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Открыть календарь"
+            accessibilityLabel={t("Открыть календарь")}
             onPress={onCalendarPress}
             style={styles.calendarBtn}
           >
@@ -85,7 +87,7 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
         {collapsibleSearch && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Поиск"
+            accessibilityLabel={t("Поиск")}
             onPress={handleSearchToggle}
             style={[
               styles.searchToggleBtn,
@@ -103,7 +105,7 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
         {onAvatarPress !== undefined && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Профиль"
+            accessibilityLabel={t("Профиль")}
             onPress={onAvatarPress}
             style={styles.avatar}
           >
@@ -116,8 +118,8 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
         <View style={styles.searchRow}>
           <Ionicons name="search" size={16} color="#9aa39f" style={styles.searchIcon} />
           <TextInput
-            accessibilityLabel="Поиск"
-            placeholder="Поиск"
+            accessibilityLabel={t("Поиск")}
+            placeholder={t("Поиск")}
             placeholderTextColor="#9aa39f"
             value={searchValue}
             onChangeText={onSearchChange}
@@ -129,9 +131,9 @@ const DarkHeader: React.FC<DarkHeaderProps> = ({
         </View>
       )}
       {showSearchRow && onGlobalSearch && (
-        <Pressable accessibilityRole="button" accessibilityLabel="Искать везде"
+        <Pressable accessibilityRole="button" accessibilityLabel={t("Искать везде")}
           onPress={() => onGlobalSearch(searchValue)} style={styles.globalSearch}>
-          <Text style={styles.globalSearchText}>Искать везде →</Text>
+          <Text style={styles.globalSearchText}>{t("Искать везде →")}</Text>
         </Pressable>
       )}
     </LinearGradient>
