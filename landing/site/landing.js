@@ -11,7 +11,7 @@ for (const item of items) {
     const done = items.filter(row => row.getAttribute('aria-pressed') === 'true').length;
     progress.style.width = `${done / items.length * 100}%`;
     progress.setAttribute('aria-valuenow', String(done));
-    label.textContent = `${done} из ${items.length} куплено`;
+    label.textContent = label.dataset.template.replace('{done}', done).replace('{total}', items.length);
   });
 }
 
@@ -21,12 +21,12 @@ if (header && toggle) {
   const closeMenu = () => {
     header.classList.remove('is-open');
     toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-label', 'Открыть меню');
+    toggle.setAttribute('aria-label', toggle.dataset.openLabel);
   };
   toggle.addEventListener('click', () => {
     const open = header.classList.toggle('is-open');
     toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+    toggle.setAttribute('aria-label', open ? toggle.dataset.closeLabel : toggle.dataset.openLabel);
   });
   header.querySelectorAll('.primary-nav a').forEach(link => link.addEventListener('click', closeMenu));
   header.addEventListener('keydown', event => {
@@ -35,4 +35,16 @@ if (header && toggle) {
       toggle.focus();
     }
   });
+}
+
+// Keep the current section when switching languages; ordinary links work without JS.
+const languageLink = document.querySelector('.language-switch');
+if (languageLink) {
+  const destination = new URL(languageLink.href);
+  const updateLanguageLink = () => {
+    destination.hash = window.location.hash;
+    languageLink.href = destination.href;
+  };
+  updateLanguageLink();
+  window.addEventListener('hashchange', updateLanguageLink);
 }

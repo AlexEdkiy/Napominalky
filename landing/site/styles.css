@@ -32,6 +32,13 @@ svg{flex-shrink:0}
 .info-page h1{font-size:clamp(2rem,5vw,3rem);line-height:1.15;letter-spacing:-.02em}
 .info-page h2{font-size:1.35rem;margin-top:2rem}
 .info-card{background:white;border-radius:24px;padding:32px;margin-top:24px}
+.language-switch{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;border:1px solid #d3dad6;border-radius:12px;background:#fff;text-decoration:none}
+.language-switch:hover{background:#eaf5ef}
+.language-switch img{display:block;border-radius:3px;box-shadow:0 0 0 1px rgba(31,38,34,.12)}
+.site-header .language-switch{order:2}
+.site-header .header-actions{order:1}
+.site-header>div{gap:16px!important}
+.info-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
 @media(max-width:1000px){
   .hero-layout{gap:32px!important;padding-top:48px!important;padding-bottom:56px!important}
   .hero-demo{flex-basis:100%!important}
@@ -40,19 +47,28 @@ svg{flex-shrink:0}
   .browser-sidebar{max-width:none!important}
   .browser-main{flex-basis:100%!important}
 }
-@media(max-width:760px){
-  .js .menu-toggle{display:flex;margin-left:auto}
+@media(max-width:1100px){
+  .js .menu-toggle{display:flex;order:2;margin-left:0}
+  .site-header .language-switch{order:1;margin-left:auto}
   .js .primary-nav{display:none!important}
   .js .site-header.is-open .primary-nav{display:flex!important;order:4;flex-basis:100%!important}
   .site-header>div{gap:12px!important;padding:14px 20px!important}
-  .header-actions{flex-basis:100%;order:3}
+  .site-header .header-actions{flex-basis:100%;order:3}
   .header-actions a{justify-content:center;flex:1}
+}
+@media(max-width:760px){
   main>section:not(#top):not(#start){padding-top:56px!important;padding-bottom:56px!important}
   #start{padding-bottom:56px!important}
   .final-card{padding:28px!important;gap:24px!important}
   .final-card>img{margin-inline:auto;max-width:280px!important}
   .browser-sidebar{display:none!important}
   .browser-main{padding:16px!important}
+}
+@media(max-width:380px){
+  .site-header>div{gap:8px!important}
+  .site-brand{gap:8px!important}
+  .site-brand>span:first-child{width:36px!important;height:36px!important}
+  .site-brand>span:last-child{font-size:18px!important}
 }
 @media(max-width:520px){
   .hero-layout{padding:36px 20px 44px!important;gap:22px!important}

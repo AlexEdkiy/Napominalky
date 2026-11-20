@@ -13,6 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  landing:
+    name: Landing checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check static translations and domain configuration
+        run: python3 -m unittest discover -s landing/checks -p 'test_*.py' -v
+
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 15

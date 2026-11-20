@@ -7,6 +7,7 @@
   <meta name="description" content="Освободите голову для важного. Задачи, списки покупок, заметки и напоминания на Android и в браузере. Гостевой режим, работа офлайн на телефоне и синхронизация.">
   <meta name="theme-color" content="#0f6155">
   <link rel="canonical" href="https://www.napominalky.ru/">
+  <!-- LOCALE_LINKS -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Напоминалки">
@@ -28,13 +29,14 @@
   <!-- ================= HEADER ================= -->
   <header class="site-header" style="background: #ffffff; border-bottom: 1px solid #e3e7e5;">
     <div style="max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px;">
-      <a href="#top" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #1f2622;">
+      <a class="site-brand" href="#top" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #1f2622;">
         <span style="flex: none; width: 42px; height: 42px; border-radius: 13px; background: #e9a63c; display: flex; align-items: center; justify-content: center;">
           <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
         </span>
         <span style="font-size: 20px; font-weight: 900; letter-spacing: -0.01em;">Напоминалки</span>
       </a>
-      <button class="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="primary-nav"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <!-- LANGUAGE_SWITCH -->
+      <button class="menu-toggle" type="button" aria-label="Открыть меню" data-open-label="Открыть меню" data-close-label="Закрыть меню" aria-expanded="false" aria-controls="primary-nav"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <nav id="primary-nav" class="primary-nav" aria-label="Разделы" style="display: flex; flex-wrap: wrap; gap: 4px 22px; flex: 1 1 auto;">
         <a href="#features" style="font-size: 15px; font-weight: 500; color: #4a524e; text-decoration: none; padding: 12px 0;">Возможности</a>
         <a href="#why" style="font-size: 15px; font-weight: 500; color: #4a524e; text-decoration: none; padding: 12px 0;">Почему удобно</a>
@@ -96,7 +98,7 @@
             <div style="margin-top: 14px; height: 7px; border-radius: 4px; background: #e1e6e3; overflow: hidden;">
               <div id="demo-progress" class="demo-progress" role="progressbar" aria-label="Куплено" aria-valuemin="0" aria-valuemax="5" aria-valuenow="2"></div>
             </div>
-            <div id="demo-label" class="demo-label" aria-live="polite">2 из 5 куплено</div>
+            <div id="demo-label" class="demo-label" data-template="{done} из {total} куплено" aria-live="polite">2 из 5 куплено</div>
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
               <button type="button" class="demo-item" aria-pressed="true"><span class="demo-check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"></polyline></svg></span><span class="demo-name">Молоко</span><span class="demo-qty">2 шт</span></button>
 <button type="button" class="demo-item" aria-pressed="true"><span class="demo-check" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"></polyline></svg></span><span class="demo-name">Хлеб</span><span class="demo-qty">1 шт</span></button>

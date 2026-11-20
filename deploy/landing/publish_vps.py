@@ -76,9 +76,13 @@ def smoke(port, release):
     if 'noindex' in headers.get('X-Robots-Tag', ''):
         raise RuntimeError('Published landing is still noindex')
     for path in ['/styles.css', '/landing.js', '/assets/fairy.png', '/assets/roboto-cyrillic.woff2',
-                 '/assets/roboto-latin.woff2', '/favicon.svg', '/data.html', '/robots.txt', '/sitemap.xml']:
+                 '/assets/roboto-latin.woff2', '/favicon.svg', '/data.html', '/robots.txt', '/sitemap.xml',
+                 '/assets/flag-ru.svg', '/assets/flag-en.svg', '/en/', '/en/data.html']:
         if get(port, path)[0] != 200:
             raise RuntimeError('Missing public resource: ' + path)
+    english = get(port, '/en/')[1]
+    if b'<html lang="en">' not in english or b'Free your mind for what matters.' not in english:
+        raise RuntimeError('English landing smoke failed')
     if get(port, '/missing-web71-page')[0] != 404:
         raise RuntimeError('Missing pages must return 404')
     status, body, _ = get(port, '/downloads/napominalky-1.0.8-52.apk', {'Range': 'bytes=0-3'})
