@@ -45,7 +45,13 @@ API, SQLite, outbox, tombstone, LWW и схема синхронизации н�
 - Chromium: 5 экранов (onboarding, login, settings, note, task/shopping components) ×
   320/390/768 × light/dark = 30 проверок. Нет горизонтального переполнения,
   восстановление языка после reload и переключение офлайн работают; снимки просмотрены.
-- [CI реализации](https://github.com/AlexEdkiy/Napominalky/actions/runs/44709674862) успешен.
+- CI успешен: [исходная реализация](https://github.com/AlexEdkiy/Napominalky/actions/runs/44709674862),
+  [итоговая реализация 6a82b1b](https://github.com/AlexEdkiy/Napominalky/actions/runs/44710607314),
+  [кандидат 5483795](https://github.com/AlexEdkiy/Napominalky/actions/runs/44710339811).
+- Точные Android/iOS bundles кандидата `5483795` также собраны; маркеры языка и
+  рабочего API проверены в четырёх Hermes-файлах обеих веток.
+- После исключения MOB-74 отдельно проверены 12 сочетаний login/register ×
+  320/390/768 × light/dark: перевод, сохранность полей и отсутствие overflow.
 - EAS archive: 382 файла, 364 мобильных побайтно совпадают с `5483795`; все tracked
   mobile-файлы включены, секреты/зависимости/сервер/web/landing исключены.
 
@@ -56,8 +62,10 @@ API, SQLite, outbox, tombstone, LWW и схема синхронизации н�
 
 ## Выпуск и ограничения
 
-Версия кандидата 1.0.9. Android APK готовится отдельно от основной ветки:
-не включать отложенный MOB-74 (обязательное подтверждение email до настройки почты).
+Версия кандидата 1.0.9 (53). [EAS build](https://expo.dev/accounts/alex_edkiy/projects/reminders-app/builds/9b1cfac0-9c08-444a-8496-8bbe7cbd8e79)
+запущен 20 ноября 2026 в 12:24:57 МСК с `--freeze-credentials`, прежняя
+keystore `4miH_5pN9B`. Android APK собран отдельно от основной ветки:
+отложенный MOB-74 (обязательное подтверждение email до настройки почты) исключён.
 Сервер, БД, лендинг и установленный APK этим коммитом не обновляются.
 
 Нативный Android-календарь/системные окна используют язык телефона. iOS spinner
@@ -65,3 +73,24 @@ API, SQLite, outbox, tombstone, LWW и схема синхронизации н�
 Apple signing / TestFlight в рамках этой задачи не настроены; IPA не выпускалась.
 После установки APK нужна ручная проверка на устройстве: сменить RU/EN в настройках,
 закрыть и открыть приложение, проверить вход/гостя, списки, даты и существующие записи.
+
+## Проверенный APK
+
+[Скачать **1.0.9 (53)**](https://expo.dev/artifacts/eas/FYZa4QZqkLUHWZiOL5jbrLoC5n6TjPbifGt81qlm6uE.apk).
+Сборка завершена 20 ноября 2026 в 12:44:41 МСК, source `5483795`; прежняя keystore.
+APK скачан и проверен: ZIP CRC, manifest versionName/versionCode/package,
+рабочий API без localhost fallback, новые языковые маркеры, native SQLite/SecureStore/
+FontLoader/Share, сохранение предыдущих функций и отсутствие MOB-74.
+Сертификат APK v2 совпадает с предыдущим:
+`c53a2d3d9c97028c1b81739b5de86eea7be1e89f9c703f707abeb21242e41c2b`.
+Отдельная криптографическая проверка apksigner и установка на физический телефон
+не выполнялись. Устанавливать поверх текущего приложения без удаления.
+
+Размер: 121137666 байт. SHA-256:
+`a5019d1c2931069d95b1e70b241e127d3ef242a2945b0364a57195d405e74dbd`.
+Локальный APK: `Napominalky-artifacts/mob78/napominalky-1.0.9-53.apk`,
+проверка рядом в `.apk.json` и `apk-verification.log`.
+
+Реализация перенесена в `manage-2026-09-30`; выпускной `release-mob78` остаётся
+на проверенном исходнике. Сервер, кабинет и лендинг не обновлялись; IPA/TestFlight
+и публикация в Google Play не выполнялись.
