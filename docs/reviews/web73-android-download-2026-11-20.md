@@ -12,8 +12,40 @@ Manifest скачивания, браузерный сценарий и prefligh
 файл. 9 тестов локализации и сборка RU/EN с проверкой размера/SHA-256 APK прошли.
 Кабинет/API/БД и дизайн лендинга не изменяются.
 
-Следующий шаг: CI исходника, проверка неизменяемого пакета в nginx/браузере,
-передача на VPS, затем запуск владельцем publisher и public smoke.
 SSH devops доступен; `sudo -n true` требует интерактивной аутентификации.
 Временный sudo удалён после миграции. Текущий public release при начале работы:
 `landing-web72-20261120-r2`.
+
+## Проверенный пакет на VPS
+
+Source `2b9c717d693b5cabda7444a74813f70b1e406a27`,
+[CI success](https://github.com/AlexEdkiy/Napominalky/actions/runs/44714416156).
+Неизменяемый артефакт `landing-web73-20261120`: 18 файлов, nginx config/publisher
+smoke, RU/EN/404/редирект `/en`, APK Range 206 прошли в отдельном readonly-контейнере.
+Браузерный сценарий прошёл RU/EN на 1440/1024/768/390/320: новый href, версия и
+размер APK; меню, флаги, hash/клавиатура/no-JS, отсутствие overflow и ошибок.
+В проверке подписи уточнён селектор по тексту APK: общий `.download-meta` также
+совпадал с подписями iPhone и регистрации. Повторный прогон успешен;
+эта корректировка относится только к проверяющему скрипту, не к public-файлам артефакта.
+Просмотрены блоки скачивания RU mobile / EN desktop. Физический телефон не проверялся.
+
+На VPS пакет: `/home/devops/napominalky-deploy/web73/landing-web73-20261120`.
+После передачи сверены архив/publisher, затем все 18 файлов через `verify()`;
+обе страницы содержат новый путь/версию, SHA-256 APK соответствует MOB-78.
+Архив SHA-256 `935f042fdd6c15a78a85976230be99786cee302d7562114f95f2eba6721ea8fb`.
+Publisher SHA-256 `3202568bda83e7059ab016c0ebcba291b4281c86c1f7fffc2c6d546071fab293`.
+Артефакты: `Napominalky-artifacts/web73/artifact-smoke.json`, `browser/`,
+`transfer.json`, `verified-vps.json`. Самопроверка автора, не независимое ревью.
+
+Владельцу передана команда:
+
+```bash
+sudo python3 /home/devops/napominalky-deploy/web73/publish_vps.py \
+  --artifact /home/devops/napominalky-deploy/web73/landing-web73-20261120
+```
+
+Publisher сохраняет предыдущий контейнер для отката, проверяет candidate до
+переключения и кабинет/API после него. На момент передачи команды public release
+остаётся WEB-72 r2; WEB-73 ещё не опубликован. Следующий шаг: получить результат
+запуска, проверить public release.json, RU/EN ссылки/подписи, HEAD/Range APK,
+HTTPS/редиректы и неизменность релиза кабинета, затем завершить WEB-73.

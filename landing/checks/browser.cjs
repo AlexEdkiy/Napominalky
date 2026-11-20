@@ -71,7 +71,7 @@ const output = process.env.CHECK_OUTPUT;
       await page.waitForFunction(() => { const image = document.querySelector('#start img'); return image.complete && image.naturalWidth > 0; });
       assert.equal(await page.locator('#start img').evaluate(i => i.complete && i.naturalWidth > 0), true);
       assert.equal(await page.locator('a[download]').getAttribute('href'), '/downloads/napominalky-1.0.9-53.apk');
-      assert.match(await page.locator('.download-meta').innerText(), /APK 1\.0\.9/);
+      assert.match(await page.locator('.download-meta').filter({ hasText: 'APK' }).innerText(), /APK 1\.0\.9/);
       const apk = await context.request.head(origin + '/downloads/napominalky-1.0.9-53.apk');
       assert.equal(apk.status(), 200);
       assert.equal(Number(apk.headers()['content-length']), 121137666);
