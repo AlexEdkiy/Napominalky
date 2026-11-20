@@ -37,16 +37,13 @@ const BaseInput: React.FC<BaseInputProps> = ({
             passwordToggle ? styles.inputWithIcon : null,
             error ? styles.inputError : null,
           ]}
-          autoCapitalize={passwordToggle ? 'none' : undefined}
-          autoCorrect={passwordToggle ? false : undefined}
           secureTextEntry={resolvedSecureTextEntry}
           {...inputProps}
         />
         {passwordToggle ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={isPasswordVisible ? t("Скрыть пароль") : t("Показать пароль")}
-            accessibilityHint={label}
+            accessibilityLabel={isPasswordVisible ? t('Скрыть пароль') : t('Показать пароль')}
             hitSlop={12}
             style={styles.toggleButton}
             onPress={togglePasswordVisibility}
@@ -54,7 +51,7 @@ const BaseInput: React.FC<BaseInputProps> = ({
             <Ionicons
               name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color="#657783"
+              color="#9AA6B2"
             />
           </Pressable>
         ) : null}

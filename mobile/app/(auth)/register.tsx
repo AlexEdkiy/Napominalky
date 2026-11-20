@@ -4,9 +4,6 @@ import { Link } from 'expo-router'
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native'
 
-import EmailVerificationNotice from '@/components/auth/EmailVerificationNotice'
-import { validateRegistrationPassword } from '@/utils/registrationValidation'
-
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,22 +13,17 @@ import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
 
 export default function RegisterScreen() {
   useLanguage()
-  const { register, login } = useAuth()
+  const { register } = useAuth()
   const { colors } = useTheme()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
 
-  const [localErrors, setLocalErrors] = useState<Record<string, string[]>>({})
-  const registration = register.data
-  const fieldErrors = { ...getFieldErrors(register.error), ...localErrors }
-  const generalError = register.isError ? (Object.keys(fieldErrors).length ? t("Проверьте заполнение полей.") : getApiErrorMessage(register.error)) : null
+  const fieldErrors = getFieldErrors(register.error)
+  const generalError = register.isError ? getApiErrorMessage(register.error) : null
 
   const handleSubmit = (): void => {
-    const errors = validateRegistrationPassword(password, passwordConfirmation)
-    setLocalErrors(errors)
-    if (Object.keys(errors).length) return
     register.mutate({
       name: name.trim(),
       email: email.trim(),
@@ -46,41 +38,35 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        {registration ? <>
-          <EmailVerificationNotice email={registration.email} password={password} message={registration.message} />
-          {login.isError && <Text style={[styles.generalError, { color: colors.danger }]}>{getApiErrorMessage(login.error)}</Text>}
-          <BaseButton label={t("Я подтвердил почту — войти")} loading={login.isPending}
-            onPress={() => login.mutate({ email: registration.email, password })} />
-        </> : <>
-          <LanguageSelector />
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("Регистрация")}</Text>
+        <LanguageSelector />
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('Регистрация')}</Text>
 
         {generalError ? (
           <Text style={[styles.generalError, { color: colors.danger }]}>{generalError}</Text>
         ) : null}
 
-        <BaseInput editable={!register.isPending} label={t("Имя")} value={name} onChangeText={setName}
+        <BaseInput label={t('Имя')} value={name} onChangeText={setName}
           error={fieldErrors['name']?.[0]} autoComplete="name" textContentType="name" />
-        <BaseInput editable={!register.isPending} label="Email" value={email} onChangeText={setEmail}
+        <BaseInput label="Email" value={email} onChangeText={setEmail}
           error={fieldErrors['email']?.[0]} autoCapitalize="none"
           autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
-        <BaseInput editable={!register.isPending} label={t("Пароль")} value={password} onChangeText={(value) => { setPassword(value); setLocalErrors({}) }}
-          error={fieldErrors['password']?.[0]} passwordToggle
+        <BaseInput label={t('Пароль')} value={password} onChangeText={setPassword}
+          error={fieldErrors['password']?.[0]} secureTextEntry
           autoComplete="password-new" textContentType="newPassword" />
-        <BaseInput editable={!register.isPending} label={t("Повтор пароля")} value={passwordConfirmation}
-          onChangeText={(value) => { setPasswordConfirmation(value); setLocalErrors({}) }}
+        <BaseInput label={t('Повтор пароля')} value={passwordConfirmation}
+          onChangeText={setPasswordConfirmation}
           error={fieldErrors['password_confirmation']?.[0]}
-          passwordToggle autoComplete="password-new" textContentType="newPassword" />
+          secureTextEntry autoComplete="password-new" textContentType="newPassword" />
 
         <BaseButton
-          label={t("Создать аккаунт")}
+          label={t('Создать аккаунт')}
           onPress={handleSubmit}
           loading={register.isPending}
         />
 
-        </>}
-
-        <Link href="/(auth)/login" style={[styles.link, { color: colors.accent }]}>{t("Уже есть аккаунт? Войти")}</Link>
+        <Link href="/(auth)/login" style={[styles.link, { color: colors.accent }]}>
+          {t('Уже есть аккаунт? Войти')}
+        </Link>
       </ScrollView>
     </KeyboardAvoidingView>
   )

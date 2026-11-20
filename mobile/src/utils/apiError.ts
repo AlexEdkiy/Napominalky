@@ -23,9 +23,3 @@ export function getFieldErrors(error: unknown): Record<string, string[]> {
   return Object.fromEntries(Object.entries(error.response.data?.errors ?? {})
     .map(([field, messages]) => [field, messages.map((message) => t(message))]))
 }
-
-export function requiresEmailVerification(error: unknown): boolean {
-  return isAxiosError<{ code?: string }>(error)
-    && error.response?.status === 403
-    && error.response.data?.code === 'email_verification_required'
-}

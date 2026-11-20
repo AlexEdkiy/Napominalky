@@ -4,22 +4,16 @@ import type {
   AuthResponse,
   LoginPayload,
   RegisterPayload,
-  RegistrationResponse,
   User,
 } from '@/types/auth'
 
 export const authApi = {
-  register: async (payload: RegisterPayload): Promise<RegistrationResponse> => {
-    const { data } = await apiClient.post<ApiResponse<RegistrationResponse>>(
+  register: async (payload: RegisterPayload): Promise<AuthResponse> => {
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
       'auth/register',
       payload,
     )
     return data.data
-  },
-
-  resendVerification: async (payload: LoginPayload): Promise<{ message: string }> => {
-    const { data } = await apiClient.post<{ message: string }>('auth/email/resend', payload)
-    return data
   },
 
   login: async (payload: LoginPayload): Promise<AuthResponse> => {

@@ -13,14 +13,13 @@ import {
 } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 
-import EmailVerificationNotice from '@/components/auth/EmailVerificationNotice'
 import BaseButton from '@/components/common/BaseButton'
 import BaseInput from '@/components/common/BaseInput'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/theme'
 import { typography } from '@/theme/typography'
-import { getApiErrorMessage, getFieldErrors, requiresEmailVerification } from '@/utils/apiError'
+import { getApiErrorMessage, getFieldErrors } from '@/utils/apiError'
 
 const LAST_EMAIL_KEY = 'lk_last_email'
 
@@ -71,9 +70,11 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LanguageSelector />
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("Вход")}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('Вход')}</Text>
         {sessionExpired && (
-          <Text style={[styles.generalError, { color: colors.textPrimary }]}>{t("Сессия истекла. Войдите снова. Ваши данные сохранены на устройстве и будут доступны после входа.")}</Text>
+          <Text style={[styles.generalError, { color: colors.textPrimary }]}>
+            {t('Сессия истекла. Войдите снова. Ваши данные сохранены на устройстве и будут доступны после входа.')}
+          </Text>
         )}
 
         {generalError ? (
@@ -91,7 +92,7 @@ export default function LoginScreen() {
           textContentType="emailAddress"
         />
         <BaseInput
-          label={t("Пароль")}
+          label={t('Пароль')}
           value={password}
           onChangeText={setPassword}
           error={fieldErrors['password']?.[0]}
@@ -101,23 +102,23 @@ export default function LoginScreen() {
         />
 
         <View style={styles.rememberRow}>
-          <Text style={[styles.rememberLabel, { color: colors.textPrimary }]}>{t("Запомнить меня")}</Text>
+          <Text style={[styles.rememberLabel, { color: colors.textPrimary }]}>
+            {t('Запомнить меня')}
+          </Text>
           <Switch
-            accessibilityLabel={t("Запомнить меня")}
+            accessibilityLabel={t('Запомнить меня')}
             value={rememberMe}
             onValueChange={setRememberMe}
             trackColor={{ true: colors.accent }}
           />
         </View>
 
-        {requiresEmailVerification(login.error) && (
-          <EmailVerificationNotice key={email} email={email.trim()} password={password} />
-        )}
+        <BaseButton label={t('Войти')} onPress={handleSubmit} loading={login.isPending} />
+        <BaseButton label={t('Продолжить как гость')} variant="secondary" onPress={continueAsGuest} disabled={login.isPending} />
 
-        <BaseButton label={t("Войти")} onPress={handleSubmit} loading={login.isPending} />
-        <BaseButton label={t("Продолжить как гость")} variant="secondary" onPress={continueAsGuest} disabled={login.isPending} />
-
-        <Link href="/(auth)/register" style={[styles.link, { color: colors.accent }]}>{t("Нет аккаунта? Зарегистрироваться")}</Link>
+        <Link href="/(auth)/register" style={[styles.link, { color: colors.accent }]}>
+          {t('Нет аккаунта? Зарегистрироваться')}
+        </Link>
       </ScrollView>
     </KeyboardAvoidingView>
   )

@@ -7,6 +7,7 @@ jest.mock('expo-router', () => {
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }))
 jest.mock('@/hooks/useAuth', () => ({ useAuth: () => ({
   continueAsGuest: jest.fn(), login: { mutate: jest.fn(), isPending: false, isError: false, error: null },
+  register: { mutate: jest.fn(), isPending: false, isError: false, error: null },
 }) }))
 jest.mock('@/theme', () => ({ useTheme: () => ({ colors: {
   screenBg: '#fff', surface: '#fff', textPrimary: '#111', textSecondary: '#666', textTertiary: '#888',
@@ -17,6 +18,7 @@ import React from 'react'
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import { useLanguageStore } from '..'
 import LoginScreen from '../../../app/(auth)/login'
+import RegisterScreen from '../../../app/(auth)/register'
 import OnboardingScreen from '../../../app/(onboarding)/index'
 import LanguageSelector from '@/components/settings/LanguageSelector'
 import NoteForm from '@/components/notes/NoteForm'
@@ -58,6 +60,17 @@ it('updates an existing note editor in place without rewriting or autosaving its
   expect(screen.getByLabelText('Note title').props.value).toBe('Работа черновик')
   expect(screen.getByLabelText('Note text').props.value).toBe('Заметки на русском')
   expect(save).not.toHaveBeenCalled()
+})
+
+it('changes registration labels without replacing the name or password confirmation', async () => {
+  const screen = await render(<RegisterScreen />)
+  await fireEvent.changeText(screen.getByLabelText('Имя'), 'Александр')
+  await fireEvent.changeText(screen.getByLabelText('Повтор пароля'), 'MyPassword1')
+  await fireEvent.press(screen.getByLabelText('English'))
+  await waitFor(() => expect(screen.getByLabelText('Confirm password')).toBeTruthy())
+  expect(screen.getByLabelText('Name').props.value).toBe('Александр')
+  expect(screen.getByLabelText('Confirm password').props.value).toBe('MyPassword1')
+  expect(screen.getByText('Create account')).toBeTruthy()
 })
 
 it('updates static status and repeat options after their modules were already imported', async () => {

@@ -36,7 +36,7 @@ export function useAuth() {
     mutationFn: (payload: LoginPayload) => authApi.login(payload), onSuccess: onAuthSuccess,
   })
   const register = useMutation({
-    mutationFn: (payload: RegisterPayload) => authApi.register(payload),
+    mutationFn: (payload: RegisterPayload) => authApi.register(payload), onSuccess: onAuthSuccess,
   })
   const logout = useMutation({
     mutationFn: async (): Promise<void> => {
