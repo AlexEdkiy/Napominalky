@@ -20,10 +20,10 @@ def build(output, apk, mode='bilingual', ru_url='https://www.napominalky.ru/', e
              for locale in locales for page in ['index.html', 'data.html']}
     release = json.loads((source / 'android-release.json').read_text())
     if apk.stat().st_size != release['size']:
-        raise ValueError('APK size differs from the verified MOB-77 release')
+        raise ValueError('APK size differs from the verified Android release')
     with apk.open('rb') as handle:
         if hashlib.file_digest(handle, 'sha256').hexdigest() != release['sha256']:
-            raise ValueError('APK hash differs from the verified MOB-77 release')
+            raise ValueError('APK hash differs from the verified Android release')
     if output.exists():
         raise ValueError('Output must be a new directory')
     shutil.copytree(source / 'site', output)

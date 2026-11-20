@@ -8,7 +8,7 @@
 
 Канонический адрес — https://www.napominalky.ru/, apex перенаправляется на www.
 Вход/регистрация ведут на lk.napominalky.ru. Гость и офлайн относятся к Android;
-кнопка скачивания выдаёт прежний проверенный APK MOB-77 1.0.8 (52), без пересборки.
+кнопка скачивания выдаёт проверенный APK MOB-78 1.0.9 (53), без пересборки.
 Сведения о нём закреплены в `android-release.json`; сам APK не хранится в Git.
 Демо не обращается к API, не сохраняет записи и не отправляет их в Telegram.
 
@@ -35,7 +35,7 @@ Canonical, OpenGraph, hreflang и sitemap генерируются для выб
 python3 landing/build.py --mode english --en-url https://example.com/ \
   --ru-url https://www.napominalky.ru/ \
   --output /tmp/napominalky-english-build \
-  --apk /home/vselug/workspace/Napominalky-artifacts/mob77/napominalky-1.0.8-52.apk
+  --apk /home/vselug/workspace/Napominalky-artifacts/mob78/napominalky-1.0.9-53.apk
 ```
 
 При выборе .com нужны его реальный адрес, DNS/TLS и отдельный vhost/контейнер;
@@ -52,12 +52,12 @@ python3 landing/build.py --mode english --en-url https://example.com/ \
 
 ```bash
 python3 landing/build.py \
-  --output /home/vselug/workspace/Napominalky-artifacts/web71/site-build \
-  --apk /home/vselug/workspace/Napominalky-artifacts/mob77/napominalky-1.0.8-52.apk
+  --output /home/vselug/workspace/Napominalky-artifacts/web73/site-build \
+  --apk /home/vselug/workspace/Napominalky-artifacts/mob78/napominalky-1.0.9-53.apk
 python3 deploy/landing/prepare.py --ref HEAD \
-  --root /home/vselug/workspace/Napominalky-artifacts/web71/releases \
-  --release-id landing-web71-20261119 \
-  --content /home/vselug/workspace/Napominalky-artifacts/web71/site-build
+  --root /home/vselug/workspace/Napominalky-artifacts/web73/releases \
+  --release-id landing-web73-20261120 \
+  --content /home/vselug/workspace/Napominalky-artifacts/web73/site-build
 ```
 
 Выходной каталог должен быть новым. Сборщик сверяет размер/SHA-256 APK.

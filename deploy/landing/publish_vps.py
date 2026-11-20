@@ -99,7 +99,7 @@ def smoke(port, release):
     smoke_directory_redirect(port)
     if get(port, '/missing-web71-page')[0] != 404:
         raise RuntimeError('Missing pages must return 404')
-    status, body, _ = get(port, '/downloads/napominalky-1.0.8-52.apk', {'Range': 'bytes=0-3'})
+    status, body, _ = get(port, '/downloads/napominalky-1.0.9-53.apk', {'Range': 'bytes=0-3'})
     if status != 206 or body != b'PK\x03\x04':
         raise RuntimeError('APK partial download failed')
 
