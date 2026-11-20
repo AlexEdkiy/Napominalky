@@ -86,3 +86,27 @@ sudo python3 /home/devops/napominalky-deploy/web72/publish_vps.py \
 Изменение применяется к основной странице и странице данных, включая будущую .com-сборку.
 Готовится новый неизменяемый `landing-web72-20261120-r2`; первый артефакт не меняется.
 До проверки r2 на публичном сайте задача остаётся in_progress.
+
+## Пакет r2 готов к переключению
+
+Source `482be732847bb7759341ba21e123ae4369457357`,
+[CI success — четыре job](https://github.com/AlexEdkiy/Napominalky/actions/runs/44703781941).
+9 тестов локализации прошли. Точный immutable artifact проверен в изолированном
+readonly nginx: config, publisher smoke с относительным редиректом, APK Range.
+Браузер: RU/EN на 1440/1024/768/390/320, текущий флаг 21×14, область 44×44,
+клик/клавиатура/hash/reload/no-JS, меню, отсутствие переполнения и ошибок.
+Просмотрены скриншоты RU desktop и EN mobile; физическое устройство не проверялось.
+Контейнер проверки удалён. Артефакты: `web72/artifact-r2-smoke.json`, `browser-r2/`, `ci-r2.json`.
+
+На VPS `/home/devops/napominalky-deploy/web72-r2/landing-web72-20261120-r2`;
+18 файлов проверены `verify()`, APK скопирован из первого WEB-72 после проверки SHA-256.
+Архив SHA-256: `d124bbd30a6809e4cad275f388c02c97c35de2f26576e1fd2f6d0e99e439e585`.
+Publisher SHA-256: `82aebc6322a9cd1d5775d0ae82ce400b3b9946222ea94fa86effda0757bb8ebd`.
+Владельцу передана команда (sudo агента удалён после миграции):
+
+```bash
+sudo python3 /home/devops/napominalky-deploy/web72-r2/publish_vps.py \
+  --artifact /home/devops/napominalky-deploy/web72-r2/landing-web72-20261120-r2
+```
+
+На этом этапе r2 только подготовлен: публично ещё первая версия WEB-72.
