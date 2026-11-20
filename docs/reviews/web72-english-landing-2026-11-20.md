@@ -38,3 +38,29 @@ Canonical/hreflang/x-default/sitemap и OpenGraph генерируются пр�
 Следующий шаг: commit/CI, immutable artifact и nginx smoke, передача пакета на VPS.
 Временный migration sudo удалён; если по-прежнему недоступен, переключение выполнит
 владелец одной командой, как в WEB-71. До public smoke задача остаётся in_progress.
+
+## Проверенный пакет на VPS
+
+Source **6bb9daadb6bcad9f6fd2e0a58419acbf0a73abdc**; [CI success](https://github.com/AlexEdkiy/Napominalky/actions/runs/44701618063):
+Landing checks, backend, web, mobile. Артефакт **landing-web72-20261120**, 18 файлов
+manifest. Повторная браузерная проверка обеих версий на пяти ширинах проведена
+на самом артефакте в readonly nginx с production CSP. `nginx -t`, publisher smoke,
+EN metadata/страница, флаги, APK HEAD/Range прошли; временный контейнер/сеть удалены.
+Артефакты: `web72/browser-nginx/`, `artifact-smoke.json`, `ci.json`.
+
+На VPS пакет в `/home/devops/napominalky-deploy/web72/landing-web72-20261120`.
+Небольшой архив 365687 байт передан без неизменённого APK, который скопирован
+из WEB-71 после проверки SHA-256. После сборки на VPS все 18 файлов проверены
+реальным `verify()` publisher; `verified.json` сохранён рядом с пакетом.
+Архив SHA-256: `7baae45d8c55f8eba4dfa20bbf9d44f83a4d2af16b863d1d6d57e45f6e2979b3`.
+Publisher SHA-256: `4f87978b4d88b78cc95e82d7f900543cae4efdcb11f60582458f452dc0c6e3f4`.
+
+Проверка доступа подтвердила: sudo агента недоступен, текущий production WEB-71.
+Владельцу передана команда для переключения только landing с сохранением отката:
+
+```bash
+sudo python3 /home/devops/napominalky-deploy/web72/publish_vps.py \
+  --artifact /home/devops/napominalky-deploy/web72/landing-web72-20261120
+```
+
+Это готовность к публикации, ещё не подтверждённый public release.
