@@ -28,7 +28,7 @@ class LocalizationTests(unittest.TestCase):
         for text in ['Напоминалки', 'куплено', 'Купить', '<!-- LANGUAGE_SWITCH -->', '<!-- LOCALE_LINKS -->']:
             self.assertNotIn(text, html)
         self.assertIn('href="/" hreflang="ru"', html)
-        self.assertIn('aria-label="Русский"', html)
+        self.assertIn('aria-label="English. Switch to Russian"', html)
 
     def test_russian_and_english_canonical_and_shared_assets(self):
         for lang, url in [('ru', RU), ('en', RU + 'en/')]:

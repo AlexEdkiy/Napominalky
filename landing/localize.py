@@ -77,10 +77,10 @@ def language_link(locale, urls, page):
     url = page_url(urls[target], page)
     if urlsplit(url).netloc == urlsplit(urls[locale]).netloc:
         url = urlsplit(url).path
-    label = 'English' if target == 'en' else 'Русский'
+    label = 'Русский язык. Переключить на английский' if locale == 'ru' else 'English. Switch to Russian'
     return (f'<a class="language-switch" href="{escape(url, quote=True)}" hreflang="{target}" '
-            f'lang="{target}" rel="alternate" aria-label="{label}" title="{label}">'
-            f'<img src="/assets/flag-{target}.svg" width="27" height="18" alt="" aria-hidden="true"></a>')
+            f'lang="{locale}" rel="alternate" aria-label="{label}" title="{label}">'
+            f'<img src="/assets/flag-{locale}.svg" width="21" height="14" alt="" aria-hidden="true"></a>')
 
 
 def alternate_links(urls, page, default):

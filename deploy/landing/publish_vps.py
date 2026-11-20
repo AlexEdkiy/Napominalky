@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -59,6 +60,18 @@ def get(port, path, headers=None):
         return response.code, response.read(), dict(response.headers)
 
 
+def smoke_directory_redirect(port):
+    connection = http.client.HTTPConnection('127.0.0.1', port, timeout=8)
+    try:
+        connection.request('GET', '/en?check=landing', headers={'Host': 'www.napominalky.ru'})
+        response = connection.getresponse()
+        if response.status != 301 or response.getheader('Location') != '/en/?check=landing':
+            raise RuntimeError('English directory redirect exposes the internal origin or loses the query')
+        response.read()
+    finally:
+        connection.close()
+
+
 def smoke(port, release):
     for attempt in range(30):
         try:
@@ -83,6 +96,7 @@ def smoke(port, release):
     english = get(port, '/en/')[1]
     if b'<html lang="en">' not in english or b'Free your mind for what matters.' not in english:
         raise RuntimeError('English landing smoke failed')
+    smoke_directory_redirect(port)
     if get(port, '/missing-web71-page')[0] != 404:
         raise RuntimeError('Missing pages must return 404')
     status, body, _ = get(port, '/downloads/napominalky-1.0.8-52.apk', {'Range': 'bytes=0-3'})

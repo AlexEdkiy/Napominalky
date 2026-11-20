@@ -32,8 +32,11 @@ const output = process.env.CHECK_OUTPUT;
       assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), canonical);
       assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), new URL('/assets/fairy.png', canonical).href);
       assert.equal(await page.locator('link[hreflang=en]').getAttribute('href'), process.env.LANDING_CANONICAL_EN || 'https://www.napominalky.ru/en/');
-      assert.equal(await page.locator('.language-switch').getAttribute('aria-label'), english ? 'Русский' : 'English');
-      assert.equal(await page.locator('.language-switch img').getAttribute('src'), english ? '/assets/flag-ru.svg' : '/assets/flag-en.svg');
+      assert.equal(await page.locator('.language-switch').getAttribute('aria-label'), english ? 'English. Switch to Russian' : 'Русский язык. Переключить на английский');
+      assert.equal(await page.locator('.language-switch img').getAttribute('src'), `/assets/flag-${language}.svg`);
+      const flagImage = await page.locator('.language-switch img').boundingBox();
+      assert.equal(flagImage.width, 21);
+      assert.equal(flagImage.height, 14);
       if (english) assert.doesNotMatch(await page.locator('body').innerText(), /[А-Яа-яЁё]/);
       const flagBox = await page.locator('.language-switch').boundingBox();
       assert.ok(flagBox.width >= 44 && flagBox.height >= 44);
@@ -89,6 +92,9 @@ const output = process.env.CHECK_OUTPUT;
     // Switch with the keyboard, retain the current section, and reload the direct URL.
     if (languages.length === 2) {
       const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+      const redirect = await context.request.get(origin + '/en?check=landing', { maxRedirects: 0 });
+      assert.equal(redirect.status(), 301);
+      assert.equal(redirect.headers()['location'], '/en/?check=landing');
       const page = await context.newPage();
       await page.goto(origin + route + '#features');
       await page.locator('.language-switch').focus();
